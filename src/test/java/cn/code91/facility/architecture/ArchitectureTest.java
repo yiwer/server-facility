@@ -42,4 +42,14 @@ class ArchitectureTest {
             noClasses().that().resideInAPackage("cn.code91.facility..")
                     .should().dependOnClassesThat()
                     .resideInAnyPackage("ch.qos.logback..");
+
+    /**
+     * C3(spec §4.4):装配层单向向下——业务包不得反向依赖 autoconfigure
+     * (properties 各归其组件包后,该规则锁定归位成果)。
+     */
+    @ArchTest
+    static final ArchRule autoconfigure_is_not_depended_on_by_main_packages =
+            noClasses().that().resideOutsideOfPackage("cn.code91.facility.autoconfigure..")
+                    .should().dependOnClassesThat()
+                    .resideInAPackage("cn.code91.facility.autoconfigure..");
 }
