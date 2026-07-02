@@ -26,13 +26,12 @@ import java.util.function.Supplier;
  * <h3>配置示例：</h3>
  * <pre>{@code
  * # application.yml
- * beacon:
- *   facility:
- *     id:
- *       data-center-id: 1  # 数据中心ID (0-3)
- *       worker-id: 0       # 工作节点ID (0-3)
- *       clock-backwards-threshold-millis: 5
- *       throw-on-clock-backwards-exceed-threshold: true
+ * facility:
+ *   id:
+ *     data-center-id: 1  # 数据中心ID (0-3)
+ *     worker-id: 0       # 工作节点ID (0-3)
+ *     clock-backwards-threshold-millis: 5
+ *     throw-on-clock-backwards-exceed-threshold: true
  * }</pre>
  *
  * @author yvvb
