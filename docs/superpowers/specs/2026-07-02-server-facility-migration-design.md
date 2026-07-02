@@ -197,7 +197,7 @@ Strategy,第二实现出现再升 real seam。
 1. **回归基线**:36 个测试文件(355 用例)随各簇迁移(包名替换),**必须全绿**——这是每个 phase 的地板;
 2. **TDD**:所有 rework(别名精简 / date 去 lang3 / LogUtil 格式化 / CopyUtil 拆分等)先写失败测试再动实现;
 3. **盲区补齐**(源项目无测试的包,每包至少一个行为测试类):`hash`、`mime`、`path`、`pattern`、
-   `io.Zipping`、`convert`、`structure`(Tuple/Triple)、`common`、`web`(download/upload/session/util.Xss 等);
+   `io.Zipping`、~~`convert`~~(P4 改判 drop)、`structure`(Tuple/Triple)、`common`、`web`(download/upload/session/util.Xss 等);
 4. **装配测试范式**:`ApplicationContextRunner` + `@Nested`(源项目已确立,7 个 autoconfig 测试类随迁);
 5. **架构守护**:ArchUnit 测试(A7)自 P1 起随源码演进——包依赖无环(守护 §4.4 断环成果)、
    `autoconfigure` 单向向下、util 类不可实例化等纪律规则;
@@ -219,7 +219,7 @@ Strategy,第二实现出现再升 real seam。
 | P1 核心类型 | `result` `error` `common` `structure`(Tuple/Triple) | C1 断环之 error 侧(错误类型纯数据化,ADR);RV2-18 别名精简决议(ADR);ArchUnit 无环规则就位 |
 | P2 运行基座 | `context` `log` `pattern` `hash` | RV2-17 重估 + logback 耦合隔离(ADR);盲区补测 |
 | P3 数值与 ID | `date` `number` `id` + Id 装配 | date 去 lang3;ChineseNumbers 决议执行;`FacilityIdProperties` 归位 id 包(C3);`FacilityIdAutoConfiguration` |
-| P4 IO 与序列化 | `io` `path` `mime` `json` `convert` `copy` + Json 装配 | CopyUtil 拆分;zip-slip 复核;C2 收尾(`WrappedContainer`/`WrappedDataType` 安置落位);`FacilityJsonAutoConfiguration` |
+| P4 IO 与序列化 | `io` `path` `mime` `json` ~~`convert`~~ `copy` + Json 装配 | CopyUtil 拆分(已执行);zip-slip 不适用;C2 收尾(Wrapped* **drop** 落定);convert **drop** 改判;`FacilityJsonAutoConfiguration` |
 | P5 运行期服务 | `locale` `async` + Core/Locale/Async 装配 | C1 断环之 locale 侧(错误消息解析衔接+集成测试);i18n 资源迁移;`FacilityCoreAutoConfiguration` 跨簇 bean 齐装 |
 | P6 Web 簇 | `web` 全部 + Web 装配 | 安全默认值逐类复核;servlet API 依赖决议;5 个 web properties 归位(C3) |
 | P7 收口 | 文档 / 覆盖率 / 对账 | README/DESIGN/USAGE 全新撰写;JaCoCo gate 生效;`dependency:analyze` 清零;§5 verdict 对账;§10 roadmap 落档 |

@@ -8,10 +8,10 @@
  *
  * <p><b>Depends on:</b> nothing outside the JDK — structure is a pure leaf package
  * (C2 cycle break, spec §4.4: {@code WrappedContainer} / {@code WrappedDataType}
- * remain in the source project; their re-home is decided in P4).</p>
+ * were dropped at P4 — zero consumers across the source repo; C2 closed).</p>
  *
  * <p><b>Depended on by:</b> {@code common} ({@code Collects} returns {@code Tuple}),
- * {@code date} (arriving in P3), and downstream application code that needs
- * lightweight structural types.</p>
+ * {@code date} ({@code DateUtil} range normalization), and downstream application
+ * code that needs lightweight structural types.</p>
  */
 package cn.code91.facility.structure;
