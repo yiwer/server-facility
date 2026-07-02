@@ -66,7 +66,15 @@ new:
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
 ```
+
+> 勘误(T4 执行时发现):初版 T1 漏排 `jakarta.validation-api`(compile,spec §6 既定项)——
+> `FacilityIdProperties` 的 `@Min/@Max` 依赖它,spring-boot-autoconfigure 不传递(optional)。
+> 实际由 T4 commit 8820b66 补入,内容与上方一致;上方代码块为修正后的 T1 终态。
 
 - [ ] **Step 2: pom.xml 插入 test 依赖** —— old:
 
