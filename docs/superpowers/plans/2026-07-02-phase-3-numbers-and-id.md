@@ -912,7 +912,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 - [ ] `mvn test` 全绿,377 个用例(P2 303 + date 11 + number 33 + id 23 + 装配 6 + arch 1),0 失败 0 跳过
 - [ ] 主源码 `grep -r "org.apache.commons" src/main` 零命中(lang3 已去)
-- [ ] `grep -r "ChineseNumbers" src` 零命中(drop 执行且无 dangling 引用)
+- [ ] `grep -r "ChineseNumbers" src` 零**功能性**引用(无 import/@link/类文件;package-info 的 `{@code}` 说明性提及是 brief 授权文案,不计——审阅勘误)
 - [ ] `grep -rn "beacon.facility" src` 零命中(前缀迁移完成;含 javadoc yaml 示例)
 - [ ] id 簇零 `autoconfigure` import;ArchUnit 四规则绿(含新增 autoconfigure 单向)
 - [ ] `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 存在且含 1 行
