@@ -14,3 +14,5 @@
 | [0008](0008-rp-15-snowid-parsetimestamp-instance.md) | inherited | SnowId parseTimestamp/parseInfo 改 instance |
 | [0009](0009-alias-trimming.md) | Accepted | Result/Tuple/Triple 纯别名精简(13 个方法) |
 | [0010](0010-error-message-boundary-localization.md) | Accepted | 错误消息边界本地化,error 包纯 JDK(C1 断环) |
+| [0011](0011-logutil-setlevel-removal.md) | Accepted | 删除 LogUtil.setLevel,主源码零 logback 依赖 |
+| [0012](0012-logutil-slf4j-messageformatter.md) | Accepted | formatMessage 委托 SLF4J MessageFormatter(RV2-17 翻案) |
