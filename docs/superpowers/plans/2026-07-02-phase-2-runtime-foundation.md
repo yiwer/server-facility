@@ -1042,7 +1042,8 @@ class PatternsTest {
         void replaceFirstAndAll_stringReplacement() {
             assertThat(Patterns.replaceFirst("a1b2", "\\d", "#")).isEqualTo("a#b2");
             assertThat(Patterns.replaceAll("a1b2", "\\d", "#")).isEqualTo("a#b#");
-            assertThat(Patterns.replaceAll("a1", "\\d", null)).isEqualTo("a");
+            assertThat(Patterns.replaceAll("a1", "\\d", (String) null)).isEqualTo("a");
+            // 勘误:null 直传在 String/Function 两个 replaceAll 重载间歧义,需显式 cast(执行时发现)
         }
 
         @Test
