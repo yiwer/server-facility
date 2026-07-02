@@ -1695,16 +1695,22 @@ class ArchitectureTest {
             slices().matching("cn.code91.facility.(*)..")
                     .should().beFreeOfCycles();
 
+    /**
+     * "纯 JDK"指运行期依赖(ADR-0010)。lombok.. 仅放行编译期注解:
+     * addLombokGeneratedAnnotation=true 会在字节码标注 @lombok.Generated 供 JaCoCo 排除,
+     * 不构成运行期依赖。
+     */
     @ArchTest
     static final ArchRule error_package_depends_only_on_jdk =
             classes().that().resideInAPackage("cn.code91.facility.error..")
                     .should().onlyDependOnClassesThat()
-                    .resideInAnyPackage("java..", "cn.code91.facility.error..");
+                    .resideInAnyPackage("java..", "cn.code91.facility.error..", "lombok..");
 }
 ```
 
-> 说明:Lombok 注解(`@Getter`)是 SOURCE retention,不进字节码,不影响 error 纯度规则;
-> ArchUnit 分析的是编译产物。
+> 勘误 3(2026-07-02 执行时发现):初版规则未放行 `lombok..`,与 Task 1 的
+> `addLombokGeneratedAnnotation=true`(JaCoCo 排除机制,spec §7)冲突——该配置会在字节码
+> 注入 `@lombok.Generated`。按 spec"Lombok 注解不算依赖"的原意放行编译期注解,两项要求并存。
 
 - [ ] **Step 2: 运行验证(守护型测试,落地即绿;若红则说明 Task 3-6 有依赖泄漏,必须回查)**
 
