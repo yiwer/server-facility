@@ -180,7 +180,7 @@ Strategy,第二实现出现再升 real seam。
 | tika-core | optional | optional | 仅 `MimeTyping`(ADR-0001 吻合) |
 | lombok | optional | optional | 主源码广泛使用(`@UtilityClass`/`@Data` 等) |
 | logback-classic | optional | **test**(P2 已定,ADR-0011) | setLevel 全仓零调用删除后主源码零 logback;test 侧供 ListAppender 断言与 SLF4J provider |
-| commons-lang3 | compile | **移除**(P3 date rework 后) | 仅 `DateUtil` 一个文件使用 |
+| commons-lang3 | compile | **已移除**(P3 执行:DateUtils 4 处调用 JDK 等价替换) | 仅 `DateUtil` 一个文件使用 |
 | commons-io | compile | **移除** | **零使用** |
 | hutool-core | compile | **移除** | **零使用** |
 | spring-jdbc / postgresql | optional | **移除** | phase-5 rowmapper 迁出后遗留,**零使用** |
