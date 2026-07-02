@@ -1,0 +1,371 @@
+package cn.code91.facility.log;
+
+import cn.code91.facility.context.SpringContextHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+
+/**
+ * <b>日志输出工具类 - 重构版本</b>
+ * <p>
+ * 提供统一的日志输出接口，支持TRACE/DEBUG/INFO/WARN/ERROR等日志级别。
+ * </p>
+ *
+ * <h3>重构改进：</h3>
+ * <ul>
+ *     <li><b>可靠的栈分析</b>：不依赖硬编码的栈深度</li>
+ *     <li><b>性能优化</b>：先检查日志级别再获取调用者信息</li>
+ *     <li><b>线程安全</b>：改进的缓存策略</li>
+ *     <li><b>自动清理</b>：使用弱引用缓存避免内存泄漏</li>
+ * </ul>
+ *
+ * <h3>使用示例：</h3>
+ * <pre>{@code
+ * LogUtil.info("用户{}登录成功", username);
+ * LogUtil.error(exception, "处理订单{}失败", orderId);
+ * }</pre>
+ *
+ * @author yvvb
+ * @since 2.0.0
+ * @apiNote 重构版本，修复了栈分析和性能问题
+ */
+public final class LogUtil {
+
+    private LogUtil() {
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+
+    /**
+     * Logger实例缓存（弱引用避免内存泄漏）
+     */
+    private static final Map<String, Logger> LOGGER_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * 默认 Logger（用于快速级别检查）
+     */
+    private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(LogUtil.class);
+
+    /**
+     * 缓存的日志后处理器组合器
+     */
+    private static final AtomicReference<LogPostHandlerComposite> HANDLER_CACHE = new AtomicReference<>();
+
+    // ==================== 日志输出方法 ====================
+
+    /**
+     * <b>输出TRACE级别日志</b>
+     *
+     * @param msgTemp 日志消息模板，支持{}占位符
+     * @param args    占位符参数
+     */
+    public static void trace(String msgTemp, Object... args) {
+        if (!DEFAULT_LOGGER.isTraceEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isTraceEnabled()) {
+            final String msg = formatMessage(msgTemp, args);
+            logger.trace(msg);
+            invokePostHandler(msg, Level.TRACE, callerClassName, null);
+        }
+    }
+
+    /**
+     * <b>输出DEBUG级别日志</b>
+     *
+     * @param msgTemp 日志消息模板，支持{}占位符
+     * @param args    占位符参数
+     */
+    public static void debug(String msgTemp, Object... args) {
+        if (!DEFAULT_LOGGER.isDebugEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isDebugEnabled()) {
+            final String msg = formatMessage(msgTemp, args);
+            logger.debug(msg);
+            invokePostHandler(msg, Level.DEBUG, callerClassName, null);
+        }
+    }
+
+    /**
+     * <b>输出INFO级别日志</b>
+     *
+     * @param msgTemp 日志消息模板，支持{}占位符
+     * @param args    占位符参数
+     */
+    public static void info(String msgTemp, Object... args) {
+        if (!DEFAULT_LOGGER.isInfoEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isInfoEnabled()) {
+            final String msg = formatMessage(msgTemp, args);
+            logger.info(msg);
+            invokePostHandler(msg, Level.INFO, callerClassName, null);
+        }
+    }
+
+    /**
+     * <b>输出WARN级别日志</b>
+     *
+     * @param msgTemp 日志消息模板，支持{}占位符
+     * @param args    占位符参数
+     */
+    public static void warn(String msgTemp, Object... args) {
+        if (!DEFAULT_LOGGER.isWarnEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isWarnEnabled()) {
+            final String msg = formatMessage(msgTemp, args);
+            logger.warn(msg);
+            invokePostHandler(msg, Level.WARN, callerClassName, null);
+        }
+    }
+
+    /**
+     * <b>WARN 级日志（含异常 stack trace）</b>
+     * <p>SLF4J 风格签名：msg 在前，Throwable 在后。与 SLF4J {@code Logger.warn(String, Throwable)} 对齐。</p>
+     *
+     * <p>详见 docs/adr/0005-rp-08-slf4j-throwable-position.md</p>
+     *
+     * @param msg 日志消息
+     * @param t   异常（可 null）
+     * @since phase-3
+     */
+    public static void warn(String msg, Throwable t) {
+        if (!DEFAULT_LOGGER.isWarnEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isWarnEnabled()) {
+            logger.warn(msg, t);
+            invokePostHandler(msg, Level.WARN, callerClassName, t);
+        }
+    }
+
+    /**
+     * <b>WARN 级日志（含 SLF4J 占位符参数 + 异常）</b>
+     * <p>{@code msgPattern} 含 SLF4J {@code {}} 占位符，由 {@code args} 填充。Throwable 显式置于
+     * msgPattern 后、args 前，避免调用方误传 Throwable 到 args 末位。</p>
+     *
+     * @param msgPattern SLF4J 占位符格式串
+     * @param t          异常（可 null）
+     * @param args       占位符参数
+     * @since phase-3
+     */
+    public static void warn(String msgPattern, Throwable t, Object... args) {
+        if (!DEFAULT_LOGGER.isWarnEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isWarnEnabled()) {
+            final String msg = formatMessage(msgPattern, args);
+            logger.warn(msg, t);
+            invokePostHandler(msg, Level.WARN, callerClassName, t);
+        }
+    }
+
+    /**
+     * <b>输出ERROR级别日志</b>
+     *
+     * @param msgTemp 日志消息模板，支持{}占位符
+     * @param args    占位符参数
+     */
+    public static void error(String msgTemp, Object... args) {
+        if (!DEFAULT_LOGGER.isErrorEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isErrorEnabled()) {
+            final String msg = formatMessage(msgTemp, args);
+            logger.error(msg);
+            invokePostHandler(msg, Level.ERROR, callerClassName, null);
+        }
+    }
+
+    /**
+     * <b>ERROR 级日志（含异常 stack trace）</b>
+     * <p>详见 docs/adr/0005-rp-08-slf4j-throwable-position.md</p>
+     *
+     * @param msg 日志消息
+     * @param t   异常（可 null）
+     * @since phase-3
+     */
+    public static void error(String msg, Throwable t) {
+        if (!DEFAULT_LOGGER.isErrorEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isErrorEnabled()) {
+            logger.error(msg, t);
+            invokePostHandler(msg, Level.ERROR, callerClassName, t);
+        }
+    }
+
+    /**
+     * <b>ERROR 级日志（含 SLF4J 占位符参数 + 异常）</b>
+     *
+     * @param msgPattern SLF4J 占位符格式串
+     * @param t          异常（可 null）
+     * @param args       占位符参数
+     * @since phase-3
+     */
+    public static void error(String msgPattern, Throwable t, Object... args) {
+        if (!DEFAULT_LOGGER.isErrorEnabled()) {
+            return;
+        }
+
+        final String callerClassName = getCallerClassName();
+        final Logger logger = getLogger(callerClassName);
+
+        if (logger.isErrorEnabled()) {
+            final String msg = formatMessage(msgPattern, args);
+            logger.error(msg, t);
+            invokePostHandler(msg, Level.ERROR, callerClassName, t);
+        }
+    }
+
+    // ==================== 内部方法 ====================
+
+    /**
+     * <b>获取调用者的类名</b>
+     * <p>
+     * 重构说明：不依赖硬编码的栈深度，通过遍历栈找到第一个非 LogUtil 的类。
+     * </p>
+     *
+     * @return 调用者的完整类名
+     */
+    private static String getCallerClassName() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+
+        // 跳过 getStackTrace、getCallerClassName 和 LogUtil 的方法
+        boolean foundLogUtil = false;
+        for (StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+
+            if (className.equals(LogUtil.class.getName())) {
+                foundLogUtil = true;
+                continue;
+            }
+
+            // 找到第一个非 LogUtil 的类
+            if (foundLogUtil) {
+                return className;
+            }
+        }
+
+        // 降级处理：返回默认类名
+        return LogUtil.class.getName();
+    }
+
+    /**
+     * <b>格式化消息</b>
+     * <p>委托 SLF4J {@link org.slf4j.helpers.MessageFormatter#arrayFormat},与 SLF4J
+     * {@code Logger} 的占位符语义完全一致:支持 {@code \\{}} 转义、数组参数深度格式化、
+     * null 模板安全(RV2-17 翻案,ADR-0012)。</p>
+     */
+    private static String formatMessage(String template, Object... args) {
+        if (args == null || args.length == 0) {
+            return template;
+        }
+        // 三参变体禁用"尾参 Throwable 自动剥离":所有参数(含 Throwable,经 toString)按占位符填充,
+        // 与旧手写实现一致;Throwable 的 stack trace 输出走显式重载位(ADR-0005)。
+        return org.slf4j.helpers.MessageFormatter.arrayFormat(template, args, null).getMessage();
+    }
+
+    /**
+     * <b>获取或创建Logger实例</b>
+     *
+     * @param className 类名
+     * @return {@link Logger} 日志器实例
+     */
+    private static Logger getLogger(String className) {
+        return LOGGER_CACHE.computeIfAbsent(className, LoggerFactory::getLogger);
+    }
+
+    /**
+     * <b>调用日志后处理器</b>
+     */
+    private static void invokePostHandler(String message, Level level, String callerClassName, Throwable throwable) {
+        LogPostHandlerComposite handler = HANDLER_CACHE.get();
+
+        if (handler == null) {
+            // 尝试从 Spring 容器获取并 publish 到 CACHE（compareAndExchange 单次分支，
+            // 确保 doInvokePostHandler 在并发首次场景下恰好执行一次。详见 docs/adr/0006-rp-13-cas-compare-and-exchange.md）
+            SpringContextHolder.getBean(LogPostHandlerComposite.class).ifOk(h -> {
+                // compareAndExchange 返回 expected（即 null）则表示本线程 CAS 成功；
+                // 返回非 null 则表示别的线程已先写入，本线程使用 witnessed 值
+                LogPostHandlerComposite witnessed = HANDLER_CACHE.compareAndExchange(null, h);
+                LogPostHandlerComposite winner = (witnessed == null) ? h : witnessed;
+                doInvokePostHandler(winner, message, level, callerClassName, throwable);
+            });
+        } else {
+            doInvokePostHandler(handler, message, level, callerClassName, throwable);
+        }
+    }
+
+    /**
+     * <b>执行后处理器调用</b>
+     */
+    private static void doInvokePostHandler(LogPostHandlerComposite handler, String message,
+                                            Level level, String callerClassName, Throwable throwable) {
+        try {
+            LogContext context = LogContext.builder()
+                    .message(message)
+                    .level(level)
+                    .callerClassName(callerClassName)
+                    .throwable(throwable)
+                    .build();
+            handler.handle(context);
+        } catch (Exception e) {
+            // 后处理器失败不应影响日志输出
+            DEFAULT_LOGGER.error("Failed to invoke log post handler", e);
+        }
+    }
+
+    /**
+     * <b>清除后处理器缓存</b>
+     * <p>主要用于测试或Spring容器重启场景</p>
+     */
+    public static void clearHandlerCache() {
+        HANDLER_CACHE.set(null);
+    }
+
+    /**
+     * <b>清除Logger缓存</b>
+     * <p>主要用于测试场景</p>
+     */
+    public static void clearLoggerCache() {
+        LOGGER_CACHE.clear();
+    }
+}

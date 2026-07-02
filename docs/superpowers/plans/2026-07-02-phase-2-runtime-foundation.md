@@ -19,7 +19,8 @@
   [IO.File]::WriteAllText($d, $t.Replace('cn.hbads.beacon.facility', 'cn.code91.facility'), [Text.UTF8Encoding]::new($false))
   ```
 - **迁移 commit 与 rework commit 分开**(P0+P1 终审裁定):T4(迁移+删除类改动)与 T5(行为 rework)必须是独立 commit。删除类改动(setLevel)允许在迁移 commit 内执行——P1 别名精简先例(ADR-0009 模式)。
-- **测试计数纪律**(P1 教训):本计划新测试文件均为全新授权内容,`@Test` 数以本文代码块为准(T2:14 / T3:12 / T4:8 / T5:+3 / T6:36 / T7:10 / T8:+1 规则);任务出口给出的期望总数由此推导:**T2 后 232 → T3 后 244 → T4 后 252 → T5 后 255 → T6 后 291 → T7 后 301 → T8 后 302**。若实测不符,STOP 报 BLOCKED——先查计数再查代码。
+- **测试计数纪律**(P1 教训):本计划新测试文件均为全新授权内容,`@Test` 数以本文代码块为准(T2:14 / T3:12 / T4:8 / T5:+4 / T6:36 / T7:10 / T8:+1 规则);任务出口给出的期望总数由此推导:**T2 后 232 → T3 后 244 → T4 后 252 → T5 后 256 → T6 后 292 → T7 后 302 → T8 后 303**。若实测不符,STOP 报 BLOCKED——先查计数再查代码。
+  (勘误:T5 执行时按审查发现追加了第 4 个守卫用例与三参 arrayFormat 修正,见 T5 末尾勘误块。)
 - **禁止事项**:不迁移 autoconfigure(P3 起);LogUtil 的 `setLevel` 不迁移(T4 删除,ADR-0011);不改 P1 已交付文件(ArchitectureTest 按 T8 指定块追加除外)。
 
 ---
@@ -840,9 +841,15 @@ new:
         if (args == null || args.length == 0) {
             return template;
         }
-        return org.slf4j.helpers.MessageFormatter.arrayFormat(template, args).getMessage();
+        // 三参变体禁用"尾参 Throwable 自动剥离":所有参数(含 Throwable,经 toString)按占位符填充,
+        // 与旧手写实现一致;Throwable 的 stack trace 输出走显式重载位(ADR-0005)。
+        return org.slf4j.helpers.MessageFormatter.arrayFormat(template, args, null).getMessage();
     }
 ```
+
+> 勘误(执行时,commit 22a7a00):初版用双参 `arrayFormat(template, args)`——审查发现该变体会无条件
+> 剥离尾参 Throwable(`info("失败: {}", ex)` 渲染 "失败: {}" 且异常静默丢弃)。改用三参传 null 禁用
+> 提取,并追加守卫用例 `info_trailingThrowableArg_formattedIntoPlaceholder`(先红后绿)。上方代码为终态。
 
 - [ ] **Step 4: 运行验证"绿"**
 
@@ -1035,7 +1042,8 @@ class PatternsTest {
         void replaceFirstAndAll_stringReplacement() {
             assertThat(Patterns.replaceFirst("a1b2", "\\d", "#")).isEqualTo("a#b2");
             assertThat(Patterns.replaceAll("a1b2", "\\d", "#")).isEqualTo("a#b#");
-            assertThat(Patterns.replaceAll("a1", "\\d", null)).isEqualTo("a");
+            assertThat(Patterns.replaceAll("a1", "\\d", (String) null)).isEqualTo("a");
+            // 勘误:null 直传在 String/Function 两个 replaceAll 重载间歧义,需显式 cast(执行时发现)
         }
 
         @Test
@@ -1184,7 +1192,7 @@ Expected: `BUILD FAILURE`,`cannot find symbol`(Patterns / CommonPatterns)
 - [ ] **Step 5: 运行验证"绿"**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 291`(255 + 36),0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 292`(256 + 36),0 失败
 
 - [ ] **Step 6: Commit**
 
@@ -1350,7 +1358,7 @@ package cn.code91.facility.hash;
 - [ ] **Step 4: 运行验证"绿"**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 301`(291 + 10),0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 302`(292 + 10),0 失败
 
 - [ ] **Step 5: Commit**
 
@@ -1400,7 +1408,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 - [ ] **Step 2: 运行验证(守护型,落地即绿;红则 T4 有 logback 泄漏,STOP 回查)**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 302`(301 + 1),0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 303`(302 + 1),0 失败
 
 - [ ] **Step 3: Commit**
 
@@ -1472,8 +1480,10 @@ toString(如 `[I@1a2b3c`)、null 模板遇参数抛 NPE——与"SLF4J 风格"�
 
 ## 决策
 
-`formatMessage` 委托 `org.slf4j.helpers.MessageFormatter.arrayFormat(template, args).getMessage()`
-(slf4j-api 自带,零新依赖)。行为差异(均为修正而非破坏):
+`formatMessage` 委托 `org.slf4j.helpers.MessageFormatter.arrayFormat(template, args, null).getMessage()`
+(slf4j-api 自带,零新依赖)。**三参变体传 null throwable**:禁用双参变体的"尾参 Throwable 自动剥离",
+所有参数(含 Throwable,经 toString)按占位符填充,与旧手写语义一致;stack trace 输出走显式重载位(ADR-0005)。
+行为差异(均为修正而非破坏):
 
 | 场景 | 旧(手写) | 新(MessageFormatter) |
 |---|---|---|
@@ -1484,9 +1494,9 @@ toString(如 `[I@1a2b3c`)、null 模板遇参数抛 NPE——与"SLF4J 风格"�
 
 ## 后果
 
-- LogUtil 占位符语义与 SLF4J `Logger` 完全一致,"SLF4J 风格"名实相符;
-- 尾参为 Throwable 且参数数超占位符时,MessageFormatter 会将其从消息中剔除——
-  本门面的 Throwable 已有显式重载位(ADR-0005),正常调用不触及该路径。
+- LogUtil 占位符渲染语义与 SLF4J 生态一致,"SLF4J 风格"名实相符;
+- 守卫用例 `info_trailingThrowableArg_formattedIntoPlaceholder` 钉住"尾参 Throwable 填入占位符
+  而非被静默剥离"的语义,防止未来误改回双参变体。
 ```
 
 - [ ] **Step 3: INDEX.md 表尾追加 2 行**
@@ -1508,7 +1518,7 @@ new:
 - [ ] **Step 4: 全量回归 + Commit**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 302`,0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 303`,0 失败
 
 ```powershell
 git -C D:\Yiwer\code\server-facility add docs\adr
@@ -1523,9 +1533,9 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 ## 验收清单(P2 出口)
 
-- [ ] `mvn test` 全绿,302 个用例(P1 218 + context 14 + log 23 + pattern 36 + hash 10 + arch 1),0 失败 0 跳过
+- [ ] `mvn test` 全绿,303 个用例(P1 218 + context 14 + log 24 + pattern 36 + hash 10 + arch 1),0 失败 0 跳过
 - [ ] `mvn dependency:analyze` 对已迁移簇无 used-undeclared(spring-context/beans/core、slf4j-api 均已显式声明)
-- [ ] ArchUnit 四规则绿:包无环、error 纯 JDK、log 无 logback(新)、(纯度规则含 lombok 放行)
+- [ ] ArchUnit 三规则绿:包无环、error 纯 JDK(含 lombok 编译期注解放行)、主源码无 logback(新)
 - [ ] 主源码 `grep -r "ch.qos.logback" src/main` 零命中
 - [ ] `docs/adr/` 新增 0011/0012,INDEX 同步
 - [ ] git log:T4 迁移与 T5 rework 为两个独立 commit(终审要求)

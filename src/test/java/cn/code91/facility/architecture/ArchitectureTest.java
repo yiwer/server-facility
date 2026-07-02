@@ -6,6 +6,7 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 /**
@@ -31,4 +32,14 @@ class ArchitectureTest {
             classes().that().resideInAPackage("cn.code91.facility.error..")
                     .should().onlyDependOnClassesThat()
                     .resideInAnyPackage("java..", "cn.code91.facility.error..", "lombok..");
+
+    /**
+     * ADR-0011:setLevel 已删除,主源码不得再依赖 logback 实现类
+     * (logback-classic 仅存在于 test classpath,供 ListAppender 断言)。
+     */
+    @ArchTest
+    static final ArchRule main_code_does_not_depend_on_logback =
+            noClasses().that().resideInAPackage("cn.code91.facility..")
+                    .should().dependOnClassesThat()
+                    .resideInAnyPackage("ch.qos.logback..");
 }
