@@ -137,4 +137,11 @@ class LogUtilTest {
         LogUtil.info(null, "arg");
         // MessageFormatter 对 null 模板返回 null 消息;不抛异常即通过,输出内容不作断言
     }
+
+    @Test
+    void info_trailingThrowableArg_formattedIntoPlaceholder() {
+        LogUtil.info("failed: {}", new IllegalStateException("boom"));
+        assertThat(lastEvent().getFormattedMessage())
+                .isEqualTo("failed: java.lang.IllegalStateException: boom");
+    }
 }

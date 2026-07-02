@@ -298,7 +298,9 @@ public final class LogUtil {
         if (args == null || args.length == 0) {
             return template;
         }
-        return org.slf4j.helpers.MessageFormatter.arrayFormat(template, args).getMessage();
+        // 三参变体禁用"尾参 Throwable 自动剥离":所有参数(含 Throwable,经 toString)按占位符填充,
+        // 与旧手写实现一致;Throwable 的 stack trace 输出走显式重载位(ADR-0005)。
+        return org.slf4j.helpers.MessageFormatter.arrayFormat(template, args, null).getMessage();
     }
 
     /**
