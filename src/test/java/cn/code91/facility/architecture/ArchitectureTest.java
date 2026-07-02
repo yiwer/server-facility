@@ -21,9 +21,14 @@ class ArchitectureTest {
             slices().matching("cn.code91.facility.(*)..")
                     .should().beFreeOfCycles();
 
+    /**
+     * "纯 JDK"指运行期依赖(ADR-0010)。lombok.. 仅放行编译期注解:
+     * addLombokGeneratedAnnotation=true 会在字节码标注 @lombok.Generated 供 JaCoCo 排除,
+     * 不构成运行期依赖。
+     */
     @ArchTest
     static final ArchRule error_package_depends_only_on_jdk =
             classes().that().resideInAPackage("cn.code91.facility.error..")
                     .should().onlyDependOnClassesThat()
-                    .resideInAnyPackage("java..", "cn.code91.facility.error..");
+                    .resideInAnyPackage("java..", "cn.code91.facility.error..", "lombok..");
 }
