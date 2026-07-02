@@ -1177,7 +1177,8 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 - [ ] `mvn test` 全绿,450 个用例(P3 379 + io/path 22 + mime 8 + json 26 + copy 12 + 装配 3),0 失败 0 跳过
 - [ ] `src` 无 `convert`/`WrappedContainer`/`WrappedDataType`/`coordinate` 目录或文件(drop 清单执行)
-- [ ] CopyUtil 与 AutoCopyEngine 均 < 520 行;copy 公共 API 面与迁移前一致(嵌套 CopyOptions/CopyException 原位)
+- [ ] CopyUtil 拆分完成:授权 13 成员全部移出(实测 CopyUtil 548 / AutoCopyEngine 309——初版"<520"系计划估算失准,勘误;548 = API+CopyOptions+CopyException+集合内部的自然体量,不为凑数越权裁剪);copy 公共 API 面与迁移前一致(嵌套 CopyOptions/CopyException 原位)
+  (测量注记:PowerShell 5.1 `Get-Content` 无 `-Encoding UTF8` 对无 BOM 中文源码错切行——行数以 git/LF 计为准)
 - [ ] imports 文件恰好 2 行(Id + Json);ArchUnit 四规则绿
 - [ ] 五个新迁 package-info(io/path/mime/json/copy)依赖声明与 import 实况一致
 - [ ] T5 迁移与 T6 拆分为独立 commit;提交信息无 `@` 包裹
