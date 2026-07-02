@@ -13,7 +13,7 @@
 ## 决策
 
 1. **error 包纯数据化**:`ErrorTypeInterface` 只承载 `code/messageKey/defaultMessage`;
-   `format()` 只渲染默认模板,语义精确镜像旧 `LocaleUtil.renderFallback`:
+   `format()` 只渲染默认模板,语义精确镜像旧 `LocaleUtil.translateMessageWithFallback` 的 MessageSource 未命中路径:
    - 无参 → 返回 `getDefaultMessage()` 原文(不经 MessageFormat,单引号不被吞);
    - 有参 → `MessageFormat.format(defaultMessage, args)`;
    - 模板 null → 返回 `getMessageKey()`;

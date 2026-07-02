@@ -24,6 +24,9 @@
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <jacoco.version>0.8.12</jacoco.version>
+
+        <!-- JaCoCo prepare-agent 未执行时(如 -Djacoco.skip=true)保证 surefire 的 @{argLine} 可解析 -->
+        <argLine></argLine>
     </properties>
 
     <dependencyManagement>

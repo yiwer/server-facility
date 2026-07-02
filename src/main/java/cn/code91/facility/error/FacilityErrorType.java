@@ -22,16 +22,13 @@ import lombok.Getter;
  *
  * <h3>使用示例：</h3>
  * <pre>{@code
- * // 直接使用
- * Result<String, AppError> result = Result.err(
- *     FacilityErrorType.JSON_SERIALIZE_ERROR.toError()
+ * // 作为 Result 错误通道
+ * Result<String, WrappedError> result = Result.err(
+ *     WrappedError.of(FacilityErrorType.JSON_SERIALIZE_ERROR)
  * );
  *
- * // 带参数
- * throw new AppException(FacilityErrorType.CONTEXT_GET_BEAN_ERROR, "UserService");
- *
- * // 获取本地化消息
- * String msg = FacilityErrorType.JSON_SERIALIZE_ERROR.getMessage(Locale.ENGLISH);
+ * // 带参数渲染默认模板(i18n 解析在展示边界完成,见 ADR-0010)
+ * String msg = FacilityErrorType.CONTEXT_GET_BEAN_ERROR.format("UserService");
  * }</pre>
  *
  * @author yvvb

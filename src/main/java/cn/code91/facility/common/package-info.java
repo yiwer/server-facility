@@ -9,7 +9,7 @@
  *
  * <p><b>Depends on:</b> {@code structure} ({@code Collects} returns {@code Tuple} values).</p>
  *
- * <p><b>Depended on by:</b> {@code result}, {@code async}, {@code web}, and other packages
- * that need safe collection operations.</p>
+ * <p><b>Depended on by:</b> {@code copy} and {@code locale} (arriving in later phases),
+ * plus downstream application code that needs safe collection operations.</p>
  */
 package cn.code91.facility.common;
