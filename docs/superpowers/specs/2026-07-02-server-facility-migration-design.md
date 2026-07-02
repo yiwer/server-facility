@@ -174,11 +174,12 @@ Strategy,第二实现出现再升 real seam。
 | jakarta.annotation-api / jakarta.validation-api | compile | compile | 注解 |
 | spring-boot-autoconfigure | compile | compile | 装配 |
 | spring-web / spring-webmvc | optional | optional | web 簇 |
+| spring-context / spring-beans / spring-core | (经 autoconfigure 传递) | **compile 显式声明**(P2 勘误) | context/log 簇直接 import;按 dependency:analyze 清洁原则"import 什么声明什么",spring-boot-autoconfigure 推迟至 P3 首个装配迁入 |
 | tomcat-embed-core | optional | optional→复核 | 仅需 servlet API,评估换 `jakarta.servlet-api`(web phase 定) |
 | jsoup | optional | optional | 仅 `XssUtil`/`XssLevel`(ADR-0001 吻合) |
 | tika-core | optional | optional | 仅 `MimeTyping`(ADR-0001 吻合) |
 | lombok | optional | optional | 主源码广泛使用(`@UtilityClass`/`@Data` 等) |
-| logback-classic | optional | **待 log rework 定**(目标:降 test) | 主源码仅 `LogUtil` 一处 import logback 内部类 |
+| logback-classic | optional | **test**(P2 已定,ADR-0011) | setLevel 全仓零调用删除后主源码零 logback;test 侧供 ListAppender 断言与 SLF4J provider |
 | commons-lang3 | compile | **移除**(P3 date rework 后) | 仅 `DateUtil` 一个文件使用 |
 | commons-io | compile | **移除** | **零使用** |
 | hutool-core | compile | **移除** | **零使用** |

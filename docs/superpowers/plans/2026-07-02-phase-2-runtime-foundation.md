@@ -1535,7 +1535,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 - [ ] `mvn test` 全绿,303 个用例(P1 218 + context 14 + log 24 + pattern 36 + hash 10 + arch 1),0 失败 0 跳过
 - [ ] `mvn dependency:analyze` 对已迁移簇无 used-undeclared(spring-context/beans/core、slf4j-api 均已显式声明)
-- [ ] ArchUnit 四规则绿:包无环、error 纯 JDK、log 无 logback(新)、(纯度规则含 lombok 放行)
+- [ ] ArchUnit 三规则绿:包无环、error 纯 JDK(含 lombok 编译期注解放行)、主源码无 logback(新)
 - [ ] 主源码 `grep -r "ch.qos.logback" src/main` 零命中
 - [ ] `docs/adr/` 新增 0011/0012,INDEX 同步
 - [ ] git log:T4 迁移与 T5 rework 为两个独立 commit(终审要求)
