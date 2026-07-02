@@ -1,7 +1,7 @@
 # server-facility 迁移与优化设计(spec)
 
 > **日期**:2026-07-02
-> **状态**:待用户审阅
+> **状态**:已批准(2026-07-02,用户确认全部决策与假设 D1-D2 / A1-A7 / C1-C3 / §5 判定表)
 > **源项目**:`D:\STELE\beacon\beacon-support\beacon-facility`(`cn.hbads:beacon-facility`,phase-14 后稳定态:23 子包 / 117 主源文件 / 355 测试全绿 / REVIEW-2 全部 23 条处置完毕)
 > **目标项目**:`D:\Yiwer\code\server-facility`(`cn.code91:server-facility`,独立仓库,当前仅空 pom)
 
