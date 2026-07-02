@@ -1,1 +1,2 @@
 cn.code91.facility.autoconfigure.FacilityIdAutoConfiguration
+cn.code91.facility.autoconfigure.FacilityJsonAutoConfiguration

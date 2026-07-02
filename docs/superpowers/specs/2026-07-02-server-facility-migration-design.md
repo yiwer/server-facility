@@ -137,7 +137,7 @@ Strategy,第二实现出现再升 real seam。
 |---|---|---|---|
 | 1 | `result` | keep+rework | 核心值类型(sealed `Result<T,E>`),质量高。rework:A6 重估 RV2-18 纯别名(`filter`≡`ensure`、`unwrap`≡`get`),零消费方窗口精简 API,保留语义独立方法(记 ADR) |
 | 2 | `error` | keep+rework | `ErrorTypeInterface`/`FacilityErrorType`/`WrappedError`,Result-style 与异常体系的错误类型支撑。rework:执行 C1 断环(§4.4)——错误类型收敛为 code+args 纯数据,本地化解析移交 locale 侧(记 ADR) |
-| 3 | `structure` | keep+review | `Tuple`/`Triple` keep(别名精简同上);`WrappedContainer`/`WrappedDataType` 复核必要性与去向(C2 断环要求其迁出 structure:并入 copy 簇 / 独立子包 / drop,复核时定) |
+| 3 | `structure` | keep+review | `Tuple`/`Triple` keep(别名精简同上);`WrappedContainer`/`WrappedDataType` **复核结论:drop**(P4 定案——beacon 全仓零消费方,C2 环随之闭合;详见 P4 计划复核结论) |
 | 4 | `common` | keep | `Collects`/`NullSafe`,跨包基础 |
 | 5 | `context` | keep | `SpringContextHolder`(AtomicReference+CAS 单次发布,REVIEW-2 认证的并发亮点) |
 | 6 | `id` | keep | `IdUtil`+`SnowIdGenerator`:完整时钟回拨处理、instance parse(ADR-0008)、RV2-06 已修;顺带复核 workerId/dataCenterId 位宽([0..3] 偏窄是否够用) |
@@ -149,7 +149,7 @@ Strategy,第二实现出现再升 real seam。
 | 12 | `io` | keep | `PathIo`/`Zipping`;RV2-09/10 已修;复核 Zipping 的 zip-slip 防护 |
 | 13 | `mime` | keep | `MimeTyping` magic-bytes 检测;tika optional(ADR-0001) |
 | 14 | `json` | keep | 三层设计(`Jsons` 实例 / `JsonsRegistry` / `JsonUtil` 门面)复用 Spring `ObjectMapper`,序列化一致性亮点;RV2-20 已修,迁移时以并行 ApplicationContextRunner 复核 |
-| 15 | `convert` | keep+review | 基于 Spring ConversionService;以"脚手架 API"标准复核 `TypeConverter`/`BidirectionalConverter` 的必要性与易用性 |
+| 15 | `convert` | ~~keep+review~~ **drop**(P4 改判) | 复核实况:两接口是 fromDb/toDb 数据库契约(非 ConversionService,原描述失实),beacon 全仓零消费方;未来 database 模块出现时随模块重建 |
 | 16 | `copy` | keep+rework | `CopyUtil` 体量过大(约 700 行 UtilityClass),审拆分;修正 USAGE"封装 MapStruct"失实描述(实为反射实现,无 mapstruct 依赖);复核 carry-forward 的 `processMapEntry` null-put |
 | 17 | `locale` | keep+rework | `AggregatedMessageSource` 聚合模式(六大架构模式之一);RV2-21 已修;i18n 资源(en/zh_CN/zh_TW)同迁。rework:承接 C1 断环后的错误消息解析职责(locale→error 单向) |
 | 18 | `log` | keep+rework | ①A6 重估 RV2-17:手写 `{}` 格式化 → SLF4J `MessageFormatter`(零消费方,兼容顾虑消失);②`LogUtil` 直接 import `ch.qos.logback.classic.LoggerContext`(门面耦合实现)——隔离为条件能力或明确文档化;`LogPostHandler` SPI keep |
@@ -197,7 +197,7 @@ Strategy,第二实现出现再升 real seam。
 1. **回归基线**:36 个测试文件(355 用例)随各簇迁移(包名替换),**必须全绿**——这是每个 phase 的地板;
 2. **TDD**:所有 rework(别名精简 / date 去 lang3 / LogUtil 格式化 / CopyUtil 拆分等)先写失败测试再动实现;
 3. **盲区补齐**(源项目无测试的包,每包至少一个行为测试类):`hash`、`mime`、`path`、`pattern`、
-   `io.Zipping`、`convert`、`structure`(Tuple/Triple)、`common`、`web`(download/upload/session/util.Xss 等);
+   `io.Zipping`、~~`convert`~~(P4 改判 drop)、`structure`(Tuple/Triple)、`common`、`web`(download/upload/session/util.Xss 等);
 4. **装配测试范式**:`ApplicationContextRunner` + `@Nested`(源项目已确立,7 个 autoconfig 测试类随迁);
 5. **架构守护**:ArchUnit 测试(A7)自 P1 起随源码演进——包依赖无环(守护 §4.4 断环成果)、
    `autoconfigure` 单向向下、util 类不可实例化等纪律规则;
@@ -219,7 +219,7 @@ Strategy,第二实现出现再升 real seam。
 | P1 核心类型 | `result` `error` `common` `structure`(Tuple/Triple) | C1 断环之 error 侧(错误类型纯数据化,ADR);RV2-18 别名精简决议(ADR);ArchUnit 无环规则就位 |
 | P2 运行基座 | `context` `log` `pattern` `hash` | RV2-17 重估 + logback 耦合隔离(ADR);盲区补测 |
 | P3 数值与 ID | `date` `number` `id` + Id 装配 | date 去 lang3;ChineseNumbers 决议执行;`FacilityIdProperties` 归位 id 包(C3);`FacilityIdAutoConfiguration` |
-| P4 IO 与序列化 | `io` `path` `mime` `json` `convert` `copy` + Json 装配 | CopyUtil 拆分;zip-slip 复核;C2 收尾(`WrappedContainer`/`WrappedDataType` 安置落位);`FacilityJsonAutoConfiguration` |
+| P4 IO 与序列化 | `io` `path` `mime` `json` ~~`convert`~~ `copy` + Json 装配 | CopyUtil 拆分(已执行);zip-slip 不适用;C2 收尾(Wrapped* **drop** 落定);convert **drop** 改判;`FacilityJsonAutoConfiguration` |
 | P5 运行期服务 | `locale` `async` + Core/Locale/Async 装配 | C1 断环之 locale 侧(错误消息解析衔接+集成测试);i18n 资源迁移;`FacilityCoreAutoConfiguration` 跨簇 bean 齐装 |
 | P6 Web 簇 | `web` 全部 + Web 装配 | 安全默认值逐类复核;servlet API 依赖决议;5 个 web properties 归位(C3) |
 | P7 收口 | 文档 / 覆盖率 / 对账 | README/DESIGN/USAGE 全新撰写;JaCoCo gate 生效;`dependency:analyze` 清零;§5 verdict 对账;§10 roadmap 落档 |

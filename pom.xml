@@ -20,6 +20,7 @@
         <spring-boot.version>3.5.10</spring-boot.version>
         <lombok.version>1.18.42</lombok.version>
         <archunit.version>1.3.0</archunit.version>
+        <tika.version>3.2.3</tika.version>
 
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
@@ -86,6 +87,30 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
+        <!-- ===== P4 序列化簇所需 ===== -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-parameter-names</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>${tika.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- ===== test ===== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -100,6 +125,13 @@
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- JacksonAutoConfiguration 的 ObjectMapper 条件链需要 Jackson2ObjectMapperBuilder(spring-web);
+             P6 迁移 web 簇时升为 optional compile 并移除本条 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
