@@ -29,24 +29,15 @@ public final class Filenames {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NAME_INVALID));
         }
 
-        // 检测路径穿越企图：".." 与路径分隔符同时出现 → 拒绝
-        if (fileName.contains("..") && (fileName.contains("/") || fileName.contains("\\"))) {
-            return Result.err(WrappedError.of(FacilityErrorType.FILE_NAME_INVALID));
+        String cleaned = StringUtils.cleanPath(fileName);
+        if (cleaned.contains("..")) {
+            return Result.err(WrappedError.of(
+                    FacilityErrorType.FILE_NAME_INVALID, null, new Object[]{fileName}));
         }
 
-        String cleaned = StringUtils.cleanPath(fileName);
-
-        // 取最后一个路径分隔符之后的部分，得到纯文件名（单个路径段）。这样既彻底消除路径穿越，
-        // 又不会误伤文件名中合法出现的 ".."（如 "report..final.pdf"）。
         int lastSeparator = Math.max(cleaned.lastIndexOf('/'), cleaned.lastIndexOf('\\'));
         if (lastSeparator >= 0) {
             cleaned = cleaned.substring(lastSeparator + 1);
-        }
-
-        // 纯文件名不应是当前/上级目录引用
-        if (cleaned.equals(".") || cleaned.equals("..")) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.FILE_NAME_INVALID, null, new Object[]{fileName}));
         }
 
         cleaned = cleaned.replaceAll("[<>:\"/\\\\|?*\\x00-\\x1f]", "_");
