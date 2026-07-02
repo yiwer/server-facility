@@ -1640,7 +1640,8 @@ package cn.code91.facility.error;
 - [ ] **Step 5: 运行验证"绿"(断言不变即证明 C1 行为保持)**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 215`(179 + ErrorTypeInterfaceTest 13 + WrappedErrorTest 23),0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 216`(179 + ErrorTypeInterfaceTest 13 + WrappedErrorTest 24),0 失败
+> 勘误 2:源 WrappedErrorTest 实有 24 用例(初版漏数 getArgsList);连锁预期 215/217 → 216/218。
 关键佐证:`format_noArgs_returnsDefaultMessage`、`format_withArgs_substitutesPlaceholders`、`format_invalidPattern_fallbackGracefully` 三条迁移断言原样通过。
 
 - [ ] **Step 6: Commit**
@@ -1708,7 +1709,7 @@ class ArchitectureTest {
 - [ ] **Step 2: 运行验证(守护型测试,落地即绿;若红则说明 Task 3-6 有依赖泄漏,必须回查)**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 217`,0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 218`,0 失败
 
 - [ ] **Step 3: Commit**
 
@@ -1829,7 +1830,7 @@ new:
 - [ ] **Step 4: 全量回归 + Commit**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 217`,0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 218`,0 失败
 
 ```powershell
 git -C D:\Yiwer\code\server-facility add docs\adr
@@ -1844,7 +1845,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 ## 验收清单(P0+P1 出口)
 
-- [ ] `mvn test` 全绿,217 个用例(structure 31 + common 47 + result 101 + error 36 + arch 2),0 失败 0 跳过
+- [ ] `mvn test` 全绿,218 个用例(structure 31 + common 47 + result 101 + error 37 + arch 2),0 失败 0 跳过
 - [ ] `mvn verify` 生成 `target/site/jacoco/index.html`,P1 四簇 line coverage 目测 ≥ 90%(gate 在 P7 挂)
 - [ ] ArchUnit 两规则绿:包无环、error 纯 JDK
 - [ ] `docs/adr/` 共 11 个文件(0000 模板 + 0001-0008 inherited + 0009/0010)
