@@ -10,7 +10,8 @@
  *
  * <p><b>Depends on:</b> {@code context} ({@code IdUtil} resolves the Spring-managed
  * generator via {@code SpringContextHolder}, with non-latching DEFAULT fallback — RV2-06),
- * Spring Boot configuration-properties annotations, Jakarta validation annotations.</p>
+ * Spring Boot configuration-properties annotations, Jakarta validation annotations,
+ * and SLF4J ({@code IdUtil} RV2-06 fallback warning).</p>
  *
  * <p><b>Depended on by:</b> {@code autoconfigure} ({@code FacilityIdAutoConfiguration}
  * wires {@code SnowIdGenerator} from {@code FacilityIdProperties}), downstream application code.</p>

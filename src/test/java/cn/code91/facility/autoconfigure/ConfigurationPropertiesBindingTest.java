@@ -43,15 +43,14 @@ class ConfigurationPropertiesBindingTest {
     }
 
     @Test
-    void facilityIdPropertiesRejectsOutOfRangeWorkerId() {
+    void facilityIdPropertiesBindsOutOfRangeWithoutValidation() {
+        // ADR-0013:绑定不校验(@Validated 已移除);范围守卫在 SnowIdGenerator 构造器,
+        // 消费方可见契约见 FacilityIdAutoConfigurationTest.outOfRangeWorkerId_failsStartupViaConstructorGuard
         runner
             .withPropertyValues("facility.id.worker-id=4")
             .run(ctx -> {
-                assertThat(ctx).hasFailed();
-                assertThat(ctx.getStartupFailure())
-                    .hasMessageContaining("FacilityIdProperties")
-                    .getRootCause()
-                    .hasMessageContaining("workerId");
+                assertThat(ctx).hasNotFailed();
+                assertThat(ctx.getBean(FacilityIdProperties.class).getWorkerId()).isEqualTo(4);
             });
     }
 }
