@@ -127,6 +127,13 @@
             <artifactId>hibernate-validator</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- JacksonAutoConfiguration 的 ObjectMapper 条件链需要 Jackson2ObjectMapperBuilder(spring-web);
+             P6 迁移 web 簇时升为 optional compile 并移除本条 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit-junit5</artifactId>

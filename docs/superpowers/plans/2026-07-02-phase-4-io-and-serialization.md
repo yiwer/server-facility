@@ -1089,6 +1089,11 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Consumes: T4 的 JsonUtil.registry()/Jsons/JsonsRegistry
 - Produces: Spring 应用中默认 namespace 复用 Spring ObjectMapper;`JsonsRegistry` bean 可注入
 
+> 勘误(执行时发现):迁移测试经 `JacksonAutoConfiguration` 供给 ObjectMapper,其条件链需要
+> spring-web 的 `Jackson2ObjectMapperBuilder`——beacon 的 optional spring-web 对自家 classpath
+> 可见,本项目 P6 才引入。修复:spring-web 以 **test** scope 先行落 pom(P6 升 optional compile
+> 时移除 test 条目)。初版计划漏排此测试依赖。
+
 - [ ] **Step 1: 迁移测试(标准命令)**
 
 `$SRC\src\test\java\cn\hbads\beacon\facility\autoconfigure\FacilityJsonAutoConfigurationTest.java` → `$DST\src\test\java\cn\code91\facility\autoconfigure\FacilityJsonAutoConfigurationTest.java`
