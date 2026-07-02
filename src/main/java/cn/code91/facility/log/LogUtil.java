@@ -290,24 +290,15 @@ public final class LogUtil {
 
     /**
      * <b>格式化消息</b>
-     * <p>使用 SLF4J 风格的占位符格式化</p>
+     * <p>委托 SLF4J {@link org.slf4j.helpers.MessageFormatter#arrayFormat},与 SLF4J
+     * {@code Logger} 的占位符语义完全一致:支持 {@code \\{}} 转义、数组参数深度格式化、
+     * null 模板安全(RV2-17 翻案,ADR-0012)。</p>
      */
     private static String formatMessage(String template, Object... args) {
         if (args == null || args.length == 0) {
             return template;
         }
-
-        // 简单的占位符替换
-        String result = template;
-        for (Object arg : args) {
-            int index = result.indexOf("{}");
-            if (index == -1) {
-                break;
-            }
-            String argStr = arg == null ? "null" : arg.toString();
-            result = result.substring(0, index) + argStr + result.substring(index + 2);
-        }
-        return result;
+        return org.slf4j.helpers.MessageFormatter.arrayFormat(template, args).getMessage();
     }
 
     /**

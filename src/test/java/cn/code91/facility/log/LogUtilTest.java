@@ -119,4 +119,22 @@ class LogUtilTest {
         assertThat(logCtx.getLevel()).isEqualTo(Level.WARN);
         assertThat(logCtx.getCallerClassName()).isEqualTo(LogUtilTest.class.getName());
     }
+
+    @Test
+    void info_escapedPlaceholder_rendersLiteralBraces() {
+        LogUtil.info("literal \\{} and {}", "value");
+        assertThat(lastEvent().getFormattedMessage()).isEqualTo("literal {} and value");
+    }
+
+    @Test
+    void info_arrayArg_deepFormatted() {
+        LogUtil.info("ids={}", (Object) new int[]{1, 2, 3});
+        assertThat(lastEvent().getFormattedMessage()).isEqualTo("ids=[1, 2, 3]");
+    }
+
+    @Test
+    void info_nullTemplateWithArgs_doesNotThrow() {
+        LogUtil.info(null, "arg");
+        // MessageFormatter 对 null 模板返回 null 消息;不抛异常即通过,输出内容不作断言
+    }
 }
