@@ -76,6 +76,6 @@ class DateUtilTest {
     @Test @DisplayName("yesterday null 入参抛 NPE")
     void yesterday_nullArg_throwsNPE() {
         org.assertj.core.api.Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> DateUtil.yesterday((java.util.Date) null));
+                .isThrownBy(() -> DateUtil.yesterday((java.util.Date) null)); // cast 消除 yesterday(Date)/yesterday(LocalDate) 重载歧义
     }
 }

@@ -174,9 +174,12 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
     @Test @DisplayName("yesterday null 入参抛 NPE")
     void yesterday_nullArg_throwsNPE() {
         org.assertj.core.api.Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> DateUtil.yesterday(null));
+                .isThrownBy(() -> DateUtil.yesterday((java.util.Date) null)); // cast 消除 yesterday(Date)/yesterday(LocalDate) 重载歧义
     }
 ```
+
+> 勘误(执行时发现):DateUtil 存在 `yesterday(LocalDate)` 重载(源 L475),裸 `null` 编译歧义,
+> 必须显式 cast。初版计划漏此(未通读 599 行源文件的代价);实施者修正正确但未披露,审查捕获。
 
 - [ ] **Step 3: 验证"红"** Run mvn test → Expected: `BUILD FAILURE`,`cannot find symbol: class DateUtil`
 
