@@ -180,11 +180,11 @@ Strategy,第二实现出现再升 real seam。
 | tika-core | optional | optional | 仅 `MimeTyping`(ADR-0001 吻合) |
 | lombok | optional | optional | 主源码广泛使用(`@UtilityClass`/`@Data` 等) |
 | logback-classic | optional | **test**(P2 已定,ADR-0011) | setLevel 全仓零调用删除后主源码零 logback;test 侧供 ListAppender 断言与 SLF4J provider |
-| commons-lang3 | compile | **移除**(P3 date rework 后) | 仅 `DateUtil` 一个文件使用 |
+| commons-lang3 | compile | **已移除**(P3 执行:DateUtils 4 处调用 JDK 等价替换) | 仅 `DateUtil` 一个文件使用 |
 | commons-io | compile | **移除** | **零使用** |
 | hutool-core | compile | **移除** | **零使用** |
 | spring-jdbc / postgresql | optional | **移除** | phase-5 rowmapper 迁出后遗留,**零使用** |
-| hibernate-validator | **runtime** | **test** | runtime scope 会传染消费方 classpath;实际仅测试需要 validator 实现 |
+| hibernate-validator | **runtime** | **test**(ADR-0013) | runtime 传染消费方;P3 终审实验修正:须配合"properties 不用 @Validated、构造器兜底"策略,否则无 provider 的默认消费方启动即崩 |
 | spring-boot-configuration-processor | optional | optional | `facility.*` 前缀变更后重新生成配置元数据 |
 | starter-test / junit-jupiter / mockito×2 / assertj | test | test | 测试五件套 |
 

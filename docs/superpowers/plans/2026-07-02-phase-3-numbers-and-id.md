@@ -66,7 +66,15 @@ new:
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
 ```
+
+> 勘误(T4 执行时发现):初版 T1 漏排 `jakarta.validation-api`(compile,spec §6 既定项)——
+> `FacilityIdProperties` 的 `@Min/@Max` 依赖它,spring-boot-autoconfigure 不传递(optional)。
+> 实际由 T4 commit 8820b66 补入,内容与上方一致;上方代码块为修正后的 T1 终态。
 
 - [ ] **Step 2: pom.xml 插入 test 依赖** —— old:
 
@@ -174,9 +182,12 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
     @Test @DisplayName("yesterday null 入参抛 NPE")
     void yesterday_nullArg_throwsNPE() {
         org.assertj.core.api.Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> DateUtil.yesterday(null));
+                .isThrownBy(() -> DateUtil.yesterday((java.util.Date) null)); // cast 消除 yesterday(Date)/yesterday(LocalDate) 重载歧义
     }
 ```
+
+> 勘误(执行时发现):DateUtil 存在 `yesterday(LocalDate)` 重载(源 L475),裸 `null` 编译歧义,
+> 必须显式 cast。初版计划漏此(未通读 599 行源文件的代价);实施者修正正确但未披露,审查捕获。
 
 - [ ] **Step 3: 验证"红"** Run mvn test → Expected: `BUILD FAILURE`,`cannot find symbol: class DateUtil`
 
@@ -909,7 +920,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 - [ ] `mvn test` 全绿,377 个用例(P2 303 + date 11 + number 33 + id 23 + 装配 6 + arch 1),0 失败 0 跳过
 - [ ] 主源码 `grep -r "org.apache.commons" src/main` 零命中(lang3 已去)
-- [ ] `grep -r "ChineseNumbers" src` 零命中(drop 执行且无 dangling 引用)
+- [ ] `grep -r "ChineseNumbers" src` 零**功能性**引用(无 import/@link/类文件;package-info 的 `{@code}` 说明性提及是 brief 授权文案,不计——审阅勘误)
 - [ ] `grep -rn "beacon.facility" src` 零命中(前缀迁移完成;含 javadoc yaml 示例)
 - [ ] id 簇零 `autoconfigure` import;ArchUnit 四规则绿(含新增 autoconfigure 单向)
 - [ ] `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 存在且含 1 行
