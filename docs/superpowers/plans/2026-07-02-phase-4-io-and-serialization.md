@@ -830,7 +830,7 @@ class CopyUtilAutoCopyTest {
 
     @Test
     void null_returnsNull() {
-        assertThat(CopyUtil.autoCopy(null)).isNull();
+        assertThat(CopyUtil.<Rich>autoCopy(null)).isNull(); // 类型见证:无约束泛型在 assertThat 重载间歧义(勘误)
     }
 
     @Test
