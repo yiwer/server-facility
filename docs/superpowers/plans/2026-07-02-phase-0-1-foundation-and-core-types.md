@@ -1314,7 +1314,8 @@ new:
 - [ ] **Step 6: 运行验证"绿"**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 176`(78 + ResultTest 96 + ResultSwapTest 2),0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 179`(78 + ResultTest 99 + ResultSwapTest 2),0 失败
+> 勘误(2026-07-02 执行时发现):源 ResultTest 实有 102 用例,删 3 别名后余 99;计划初版误记为 96,连锁预期 176/212/214 相应改为 179/215/217。
 
 - [ ] **Step 7: Commit**
 
@@ -1323,7 +1324,7 @@ git -C D:\Yiwer\code\server-facility add src
 git -C D:\Yiwer\code\server-facility commit -m @'
 feat: 迁移 result 簇(sealed Result<T,E>)并删除 filter/unwrap/unwrapErr 别名(ADR-0009)
 
-98 个迁移测试(含 RV2-03 swap 守卫);别名用例同步删除。
+101 个迁移测试(含 RV2-03 swap 守卫);别名用例同步删除。
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 '@
@@ -1639,7 +1640,8 @@ package cn.code91.facility.error;
 - [ ] **Step 5: 运行验证"绿"(断言不变即证明 C1 行为保持)**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 212`(176 + ErrorTypeInterfaceTest 13 + WrappedErrorTest 23),0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 216`(179 + ErrorTypeInterfaceTest 13 + WrappedErrorTest 24),0 失败
+> 勘误 2:源 WrappedErrorTest 实有 24 用例(初版漏数 getArgsList);连锁预期 215/217 → 216/218。
 关键佐证:`format_noArgs_returnsDefaultMessage`、`format_withArgs_substitutesPlaceholders`、`format_invalidPattern_fallbackGracefully` 三条迁移断言原样通过。
 
 - [ ] **Step 6: Commit**
@@ -1693,21 +1695,27 @@ class ArchitectureTest {
             slices().matching("cn.code91.facility.(*)..")
                     .should().beFreeOfCycles();
 
+    /**
+     * "纯 JDK"指运行期依赖(ADR-0010)。lombok.. 仅放行编译期注解:
+     * addLombokGeneratedAnnotation=true 会在字节码标注 @lombok.Generated 供 JaCoCo 排除,
+     * 不构成运行期依赖。
+     */
     @ArchTest
     static final ArchRule error_package_depends_only_on_jdk =
             classes().that().resideInAPackage("cn.code91.facility.error..")
                     .should().onlyDependOnClassesThat()
-                    .resideInAnyPackage("java..", "cn.code91.facility.error..");
+                    .resideInAnyPackage("java..", "cn.code91.facility.error..", "lombok..");
 }
 ```
 
-> 说明:Lombok 注解(`@Getter`)是 SOURCE retention,不进字节码,不影响 error 纯度规则;
-> ArchUnit 分析的是编译产物。
+> 勘误 3(2026-07-02 执行时发现):初版规则未放行 `lombok..`,与 Task 1 的
+> `addLombokGeneratedAnnotation=true`(JaCoCo 排除机制,spec §7)冲突——该配置会在字节码
+> 注入 `@lombok.Generated`。按 spec"Lombok 注解不算依赖"的原意放行编译期注解,两项要求并存。
 
 - [ ] **Step 2: 运行验证(守护型测试,落地即绿;若红则说明 Task 3-6 有依赖泄漏,必须回查)**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 214`,0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 218`,0 失败
 
 - [ ] **Step 3: Commit**
 
@@ -1785,7 +1793,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 ## 决策
 
 1. **error 包纯数据化**:`ErrorTypeInterface` 只承载 `code/messageKey/defaultMessage`;
-   `format()` 只渲染默认模板,语义精确镜像旧 `LocaleUtil.renderFallback`:
+   `format()` 只渲染默认模板,语义精确镜像旧 `LocaleUtil.translateMessageWithFallback` 的 MessageSource 未命中路径:
    - 无参 → 返回 `getDefaultMessage()` 原文(不经 MessageFormat,单引号不被吞);
    - 有参 → `MessageFormat.format(defaultMessage, args)`;
    - 模板 null → 返回 `getMessageKey()`;
@@ -1799,7 +1807,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 ## 行为影响
 
 - **无 Spring / MessageSource 未命中场景**:行为完全不变(旧实现本就落入 renderFallback 路径),
-  36 个迁移测试断言零改动通过是直接证据。
+  37 个迁移测试断言零改动通过是直接证据。
 - **Spring + i18n 命中场景**:`format()` 不再隐式返回本地化消息——需要本地化的调用点
   (源项目中实际只有 web 异常出口)改为在边界显式解析(P6 落地)。
 
@@ -1828,7 +1836,7 @@ new:
 - [ ] **Step 4: 全量回归 + Commit**
 
 Run: `mvn -f D:\Yiwer\code\server-facility\pom.xml test`
-Expected: `BUILD SUCCESS`,`Tests run: 214`,0 失败
+Expected: `BUILD SUCCESS`,`Tests run: 218`,0 失败
 
 ```powershell
 git -C D:\Yiwer\code\server-facility add docs\adr
@@ -1843,7 +1851,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 ## 验收清单(P0+P1 出口)
 
-- [ ] `mvn test` 全绿,214 个用例(structure 31 + common 47 + result 98 + error 36 + arch 2),0 失败 0 跳过
+- [ ] `mvn test` 全绿,218 个用例(structure 31 + common 47 + result 101 + error 37 + arch 2),0 失败 0 跳过
 - [ ] `mvn verify` 生成 `target/site/jacoco/index.html`,P1 四簇 line coverage 目测 ≥ 90%(gate 在 P7 挂)
 - [ ] ArchUnit 两规则绿:包无环、error 纯 JDK
 - [ ] `docs/adr/` 共 11 个文件(0000 模板 + 0001-0008 inherited + 0009/0010)
