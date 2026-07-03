@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *     <li><b>可靠的栈分析</b>：不依赖硬编码的栈深度</li>
  *     <li><b>性能优化</b>：先检查日志级别再获取调用者信息</li>
  *     <li><b>线程安全</b>：改进的缓存策略</li>
- *     <li><b>自动清理</b>：使用弱引用缓存避免内存泄漏</li>
+ *     <li><b>实例缓存</b>：ConcurrentHashMap 缓存 Logger(键为 logger 名称,集合有界,不随用户输入增长);如需手动清理见 {@link #clearLoggerCache()}</li>
  * </ul>
  *
  * <h3>使用示例：</h3>
@@ -40,7 +40,7 @@ public final class LogUtil {
     }
 
     /**
-     * Logger实例缓存（弱引用避免内存泄漏）
+     * Logger 实例缓存（ConcurrentHashMap 强引用;logger 名称集有界,不构成泄漏）
      */
     private static final Map<String, Logger> LOGGER_CACHE = new ConcurrentHashMap<>();
 

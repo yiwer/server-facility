@@ -55,7 +55,7 @@ public class LocaleUtil {
      * @param messageArgs 消息参数数组
      * @param locale      {@link Locale} 目标语言环境
      *
-     * @return 翻译后的消息，如果翻译失败则返回原始key
+     * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
     public static String translateMessageWithArgs(String messageKey, Object[] messageArgs, Locale locale) {
         if (NullSafe.isBlank(messageKey)) {
@@ -72,7 +72,7 @@ public class LocaleUtil {
      * @param messageKey 消息键
      * @param locale     {@link Locale} 目标语言环境
      *
-     * @return 翻译后的消息，如果翻译失败则返回原始key
+     * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
     public static String translateMessage(String messageKey, Locale locale) {
         if (NullSafe.isBlank(messageKey)) {
@@ -89,7 +89,7 @@ public class LocaleUtil {
      * @param messageKey  消息键
      * @param messageArgs 消息参数数组
      *
-     * @return 翻译后的消息，如果翻译失败则返回原始key
+     * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
     public static String translateMessageWithArgs(String messageKey, Object[] messageArgs) {
         if (NullSafe.isBlank(messageKey)) {
@@ -105,7 +105,7 @@ public class LocaleUtil {
      *
      * @param messageKey 消息键
      *
-     * @return 翻译后的消息，如果翻译失败则返回原始key
+     * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
     public static String translateMessage(String messageKey) {
         if (NullSafe.isBlank(messageKey)) {
