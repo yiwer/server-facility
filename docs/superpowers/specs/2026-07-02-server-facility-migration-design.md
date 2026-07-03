@@ -175,7 +175,7 @@ Strategy,第二实现出现再升 real seam。
 | spring-boot-autoconfigure | compile | compile | 装配 |
 | spring-web / spring-webmvc | optional | optional | web 簇 |
 | spring-context / spring-beans / spring-core | (经 autoconfigure 传递) | **compile 显式声明**(P2 勘误) | context/log 簇直接 import;按 dependency:analyze 清洁原则"import 什么声明什么",spring-boot-autoconfigure 推迟至 P3 首个装配迁入 |
-| tomcat-embed-core | optional | optional→复核 | 仅需 servlet API,评估换 `jakarta.servlet-api`(web phase 定) |
+| tomcat-embed-core → `jakarta.servlet-api` | optional | **换为 `jakarta.servlet-api` optional**(P6 决议) | web 树零 tomcat 内部 API,脚手架不绑容器实现;BOM 管版本(6.0.0);dependency:tree 实证 test classpath 零 tomcat |
 | jsoup | optional | optional | 仅 `XssUtil`/`XssLevel`(ADR-0001 吻合) |
 | tika-core | optional | optional | 仅 `MimeTyping`(ADR-0001 吻合) |
 | lombok | optional | optional | 主源码广泛使用(`@UtilityClass`/`@Data` 等) |
