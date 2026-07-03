@@ -1,2 +1,5 @@
 cn.code91.facility.autoconfigure.FacilityIdAutoConfiguration
 cn.code91.facility.autoconfigure.FacilityJsonAutoConfiguration
+cn.code91.facility.autoconfigure.FacilityCoreAutoConfiguration
+cn.code91.facility.autoconfigure.FacilityLocaleAutoConfiguration
+cn.code91.facility.autoconfigure.FacilityAsyncAutoConfiguration

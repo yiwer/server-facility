@@ -92,6 +92,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.context.support.StaticApplicationContext;
 
@@ -125,8 +126,10 @@ class LocaleUtilTest {
         ms.setBasename("i18n/facility-messages");
         ms.setDefaultEncoding("UTF-8");
         ms.setFallbackToSystemLocale(false);
-        StaticApplicationContext ctx = new StaticApplicationContext();
-        // refresh 前以内置名 "messageSource" 注册,顶替容器默认——避免与内置 bean 撞类型
+        // GenericApplicationContext 不预绑 messageSource(StaticApplicationContext 构造器会预绑
+        // StaticMessageSource 致 registerSingleton 抛 ISE——执行时发现的 fixture 勘误);
+        // refresh 前注册,initMessageSource 即采用之,getBean(MessageSource.class) 恰一个 bean
+        GenericApplicationContext ctx = new GenericApplicationContext();
         ctx.getBeanFactory().registerSingleton("messageSource", ms);
         ctx.refresh();
         SpringContextHolder.setApplicationContextManually(ctx);
@@ -471,7 +474,14 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 ## 验收清单(P5 出口)
 
-- [ ] `mvn test` 全绿,561 个用例(P4 450 + locale 14 + async 90 + 装配 7),0 失败 0 跳过
+- [ ] `mvn test` 全绿,563 个用例(P4 450 + locale 14 + async 90 + 装配 7 + 补盲集成 2——终审后补,75dee59),0 失败 0 跳过
+
+> 终审移交 P6 的两条继承性 Important(零编辑纪律保真,rework 票):
+> ① FacilityAsyncAutoConfiguration 字母序先于 Boot TaskExecutionAutoConfiguration 评估,
+>   静默压制 applicationTaskExecutor(spring.task.execution.* 失效)——需 @AutoConfigureAfter
+>   + 联合 runner 测试,或 ADR-0002 勘误声明接管为有意;
+> ② Async.executor() 流式设置器无效(of() 即时解析 executor,submit 不读字段)——TDD rework
+>   (executor 解析移入 submit;强化 executor_setsExecutor 断言实际执行线程)。
 - [ ] `LocaleUtil.localize(FacilityErrorType.X, args, ENGLISH)` 经真实 bundle 命中英文文案(集成用例在绿名单)——C1 决策 2 落地
 - [ ] imports 文件恰好 5 行;非 web 装配全部就位;ArchUnit 四规则绿(error 纯度不受 locale→error 影响——方向正确)
 - [ ] locale/async 两个 package-info 依赖声明与 import 实况一致(async 陈旧三项已纠)
