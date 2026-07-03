@@ -2,6 +2,7 @@ package cn.code91.facility.locale;
 
 import cn.code91.facility.common.NullSafe;
 import cn.code91.facility.context.SpringContextHolder;
+import cn.code91.facility.error.ErrorTypeInterface;
 import lombok.experimental.UtilityClass;
 import org.springframework.context.MessageSource;
 import org.springframework.context.NoSuchMessageException;
@@ -149,6 +150,35 @@ public class LocaleUtil {
             return resolved;
         }
         return fallbackPattern == null ? messageKey : renderFallback(fallbackPattern, args);
+    }
+
+    // ==================== ErrorTypeInterface 边界本地化(C1,ADR-0010) ====================
+
+    /**
+     * <b>错误类型的边界本地化解析</b>
+     * <p>C1 断环(ADR-0010)后 error 包不做 i18n;需要本地化消息的边界(如 P6 的全局异常处理器)
+     * 经此入口解析:MessageSource 命中返回本地化文案,未命中回退 {@code errorType.getDefaultMessage()}
+     * 模板渲染——语义即 {@link #translateMessageWithFallback} 的等价旧行为。</p>
+     *
+     * @param errorType 错误类型(不能为 null)
+     * @param args      消息参数
+     * @param locale    目标语言环境
+     * @return 本地化消息,或默认模板渲染结果
+     */
+    public static String localize(ErrorTypeInterface errorType, Object[] args, Locale locale) {
+        java.util.Objects.requireNonNull(errorType, "errorType cannot be null");
+        return translateMessageWithFallback(errorType.getMessageKey(), args, errorType.getDefaultMessage(), locale);
+    }
+
+    /**
+     * <b>错误类型的边界本地化解析(当前线程 Locale)</b>
+     *
+     * @param errorType 错误类型(不能为 null)
+     * @param args      消息参数
+     * @return 本地化消息,或默认模板渲染结果
+     */
+    public static String localize(ErrorTypeInterface errorType, Object... args) {
+        return localize(errorType, args, getLocale());
     }
 
     private static String renderFallback(String pattern, Object[] args) {
