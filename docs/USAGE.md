@@ -195,9 +195,15 @@ facility:
   同一 JVM 内多个 `ApplicationContext`(如测试并行、多模块)共享同一套 ObjectMapper 命名空间 ——
   这是刻意设计(门面无状态、零上下文耦合),但若你在不同上下文注册了不同的 Jackson 定制,注意它们
   作用于同一注册表。
-- **`@ConditionalOnMissingBean` 全量回退**:6 个自动装配的每个 bean 都可被同名/同类型的消费方 bean
-  覆盖 —— 包括 `messageSource`、`facilityAsyncExecutor`、异常处理器、各 Web 过滤器/拦截器。facility
-  只填空缺,从不抢占你声明的实现。
+- **两类让位机制(勿混淆)**:
+  - ① **`@ConditionalOnMissingBean` 真回退**:`messageSource`、`facilityAsyncExecutor`(按 `TaskExecutor`
+    类型)、全局异常处理器(按 `AbstractGlobalExceptionHandler` 类型)、三个 `WebMvcConfigurer`(按 bean 名)
+    —— 你声明同类/同名 bean 即让位,facility 只填空缺。
+  - ② **Web 过滤器/拦截器靠开关,不靠竞争 bean**:`TraceIdFilter`、`RepeatableRequestFilter`、
+    `AccessLogInterceptor`、`SessionUserClearInterceptor` **不走** `@ConditionalOnMissingBean`(仅
+    `@ConditionalOnProperty(...enabled, matchIfMissing=true)`,SessionUserClear 无门控恒装)。声明同类型的
+    filter/interceptor **不会**顶替 facility 的(两者并存,双重入链);要替换请先 `facility.web.*.enabled=false`
+    关掉 facility 的,再注册自己的。
 - **配置属性无校验 provider 依赖**:properties 类不用 `@Validated`(ADR-0013),即便消费方 classpath
   没有 Bean Validation provider 也能正常启动;取值约束(如 worker-id 范围)在组件构造器兜底。
 

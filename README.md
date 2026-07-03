@@ -18,7 +18,7 @@
 </dependency>
 ```
 
-放到 classpath 即通过 Spring Boot 自动装配生效(6 个 `@AutoConfiguration`,全部 `@ConditionalOnMissingBean` 兜底 —— 你声明的同类 bean 永远优先)。Web / XSS / MIME 探测等能力依赖 optional 依赖,按需自行引入(见 [USAGE](docs/USAGE.md#optional-依赖矩阵))。
+放到 classpath 即通过 Spring Boot 自动装配生效(6 个 `@AutoConfiguration`)。核心 bean(`messageSource`、异步执行器、全局异常处理器等)`@ConditionalOnMissingBean` 兜底,你声明的同类 bean 优先;Web 过滤器/拦截器则由 `facility.web.*` 开关控制(见[装配开关](#装配开关),非靠竞争 bean 覆盖)。Web / XSS / MIME 探测等能力依赖 optional 依赖,按需自行引入(见 [USAGE](docs/USAGE.md#optional-依赖矩阵))。
 
 ## 5 分钟上手
 
@@ -34,9 +34,9 @@ String uuid = IdUtil.uuidSimpleStr();
 // 3) JSON:序列化返回 Result,不抛异常
 Result<String, WrappedError> json = JsonUtil.serialize(user);
 
-// 4) 日志:SLF4J 风格静态门面(Throwable 末位,占位符 {})
+// 4) 日志:SLF4J 风格静态门面(Throwable 显式置于 msg 后、占位符参数前)
 LogUtil.info("user {} logged in", userId);
-LogUtil.error("load failed: {}", ex, resourceId);   // Throwable 在参数区,不误吞
+LogUtil.error("load failed: {}", ex, resourceId);   // ex 在 msg 与参数之间,不被当占位符实参吞掉
 
 // 5) 异步:惰性 pipeline,结果落到 Result
 Result<String, Throwable> out = Async.supply(() -> httpGet(url))
@@ -53,6 +53,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `error` | `WrappedError` / `FacilityErrorType` / `ErrorTypeInterface` | 错误码 + i18n 消息键 + 可扩展错误类型;error 包纯 JDK(C1 断环) |
 | `structure` | `Tuple` / `Triple` | 轻量二/三元值容器 |
 | `common` | `NullSafe` / `Collects` | 空安全与集合便捷 |
+| `context` | `SpringContextHolder` | 静态持有 ApplicationContext(AtomicReference + CAS 单次发布) |
 | `id` | `IdUtil` | 雪花 ID(可配 worker/dataCenter)+ UUID 多形态 |
 | `json` | `JsonUtil` | 多命名空间(DEFAULT/GENERIC/CANONICAL/PRETTY)Jackson;序列化返回 Result |
 | `log` | `LogUtil` | SLF4J 门面;Throwable 末位对齐(ADR-0005),主源零 logback 依赖(ADR-0011) |

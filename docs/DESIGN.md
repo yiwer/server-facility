@@ -19,7 +19,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 2. 包簇依赖地图
 
-21 个功能子包按责任聚类,依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
+20 个顶层功能子包按责任聚类(另有 `id.support`/`json.support`/`web.*` 等下层子包),依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
 
 ```
               autoconfigure  ← Spring Boot 装配入口(6 个 @AutoConfiguration)

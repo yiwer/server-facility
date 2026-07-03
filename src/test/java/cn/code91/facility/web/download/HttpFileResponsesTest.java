@@ -26,7 +26,7 @@ class HttpFileResponsesTest {
     }
 
     @Test
-    @DisplayName("download 中文名:Content-Disposition = attachment + filename*=utf-8'' 百分号编码")
+    @DisplayName("download 中文名:Content-Disposition = attachment + filename*=UTF-8'' 百分号编码")
     void download_chineseName_contentDisposition() throws Exception {
         MockHttpServletResponse resp = new MockHttpServletResponse();
         var result = HttpFileResponses.download(resp, file("data.bin", "hello world"), "报告.pdf");

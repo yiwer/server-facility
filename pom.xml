@@ -273,16 +273,9 @@
                         <configuration>
                             <failOnWarning>true</failOnWarning>
                             <ignoredUnusedDeclaredDependencies>
-                                <!-- Jackson 模块经 ObjectMapper 运行时 SPI 注册,字节码不直接 import -->
-                                <dep>com.fasterxml.jackson.datatype:jackson-datatype-jdk8</dep>
-                                <dep>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</dep>
-                                <dep>com.fasterxml.jackson.module:jackson-module-parameter-names</dep>
-                                <!-- tika-core optional,MimeTyping 用;analyze 对 optional 误判 unused -->
-                                <dep>org.apache.tika:tika-core</dep>
-                                <!-- test 运行时/聚合/SPI:starter-test 聚合 POM、logback 运行时、
-                                     hibernate-validator FilteredClassLoader 回归、archunit-junit5 引擎 -->
+                                <!-- 聚合 POM / 运行时引擎:字节码不直接引用但功能必需
+                                     (starter-test 聚合、hibernate-validator FilteredClassLoader 回归、archunit-junit5 引擎) -->
                                 <dep>org.springframework.boot:spring-boot-starter-test</dep>
-                                <dep>ch.qos.logback:logback-classic</dep>
                                 <dep>org.hibernate.validator:hibernate-validator</dep>
                                 <dep>com.tngtech.archunit:archunit-junit5</dep>
                             </ignoredUnusedDeclaredDependencies>
