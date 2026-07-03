@@ -3,7 +3,11 @@ package cn.code91.facility.pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("CommonPatterns - 预制谓词")
 class CommonPatternsTest {
@@ -68,5 +72,17 @@ class CommonPatternsTest {
     void nullInput_alwaysFalse() {
         assertThat(CommonPatterns.isUuid(null)).isFalse();
         assertThat(CommonPatterns.containsChinese(null)).isFalse();
+    }
+
+    // ==================== 私有构造函数 ====================
+
+    @Test
+    @DisplayName("私有构造函数反射调用抛 UnsupportedOperationException")
+    void privateConstructor_throwsUnsupportedOperationException() throws NoSuchMethodException {
+        Constructor<CommonPatterns> constructor = CommonPatterns.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        assertThatThrownBy(constructor::newInstance)
+                .isInstanceOf(InvocationTargetException.class)
+                .hasCauseInstanceOf(UnsupportedOperationException.class);
     }
 }
