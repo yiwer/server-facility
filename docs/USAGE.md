@@ -200,10 +200,11 @@ facility:
     类型)、全局异常处理器(按 `AbstractGlobalExceptionHandler` 类型)、三个 `WebMvcConfigurer`(按 bean 名)
     —— 你声明同类/同名 bean 即让位,facility 只填空缺。
   - ② **Web 过滤器/拦截器靠开关,不靠竞争 bean**:`TraceIdFilter`、`RepeatableRequestFilter`、
-    `AccessLogInterceptor`、`SessionUserClearInterceptor` **不走** `@ConditionalOnMissingBean`(仅
-    `@ConditionalOnProperty(...enabled, matchIfMissing=true)`,SessionUserClear 无门控恒装)。声明同类型的
-    filter/interceptor **不会**顶替 facility 的(两者并存,双重入链);要替换请先 `facility.web.*.enabled=false`
-    关掉 facility 的,再注册自己的。
+    `AccessLogInterceptor` **不走** `@ConditionalOnMissingBean`,仅
+    `@ConditionalOnProperty(...enabled, matchIfMissing=true)` —— 声明同类型的 filter/interceptor **不会**顶替
+    facility 的(两者并存,双重入链),要停用请 `facility.web.{trace|repeatable-request|access-log}.enabled=false`,
+    再注册自己的。`SessionUserClearInterceptor` 无 `enabled` 开关、恒装,要抑制其入链需声明同名的
+    `facilitySessionWebMvcConfigurer` bean(归 ① 的按名回退)。
 - **配置属性无校验 provider 依赖**:properties 类不用 `@Validated`(ADR-0013),即便消费方 classpath
   没有 Bean Validation provider 也能正常启动;取值约束(如 worker-id 范围)在组件构造器兜底。
 
