@@ -25,7 +25,14 @@
 
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+        <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+        <maven-dependency-plugin.version>3.7.1</maven-dependency-plugin.version>
         <jacoco.version>0.8.12</jacoco.version>
+
+        <!-- JaCoCo 覆盖率门(P7 实测 line 81.9%/instruction 82.3%/branch 69.8% 后设立防退化门) -->
+        <jacoco.line.min>0.80</jacoco.line.min>
+        <jacoco.instruction.min>0.80</jacoco.instruction.min>
+        <jacoco.branch.min>0.65</jacoco.branch.min>
 
         <!-- JaCoCo prepare-agent 未执行时(如 -Djacoco.skip=true)保证 surefire 的 @{argLine} 可解析 -->
         <argLine></argLine>
@@ -89,6 +96,16 @@
         </dependency>
 
         <!-- ===== P4 序列化簇所需 ===== -->
+        <!-- jackson-core / jackson-annotations 直接使用(Jsons/JsonUtil 引用 JsonProcessingException 等、
+             JsonConfig 引用 @JsonInclude 等注解),显式声明而非依赖 databind 传递 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -204,6 +221,83 @@
                         <id>report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.instruction.min}</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.line.min}</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.branch.min}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- 生命周期插件版本 pin,消除"使用默认版本"告警,构建可复现 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+            </plugin>
+            <!-- 依赖账目守卫:analyze-only 绑 verify,failOnWarning 强制账目干净;
+                 ignore 列表为运行时/SPI/聚合传递依赖(字节码不直接引用但功能必需) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${maven-dependency-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>analyze</id>
+                        <phase>verify</phase>
+                        <goals><goal>analyze-only</goal></goals>
+                        <configuration>
+                            <failOnWarning>true</failOnWarning>
+                            <ignoredUnusedDeclaredDependencies>
+                                <!-- Jackson 模块经 ObjectMapper 运行时 SPI 注册,字节码不直接 import -->
+                                <dep>com.fasterxml.jackson.datatype:jackson-datatype-jdk8</dep>
+                                <dep>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</dep>
+                                <dep>com.fasterxml.jackson.module:jackson-module-parameter-names</dep>
+                                <!-- tika-core optional,MimeTyping 用;analyze 对 optional 误判 unused -->
+                                <dep>org.apache.tika:tika-core</dep>
+                                <!-- test 运行时/聚合/SPI:starter-test 聚合 POM、logback 运行时、
+                                     hibernate-validator FilteredClassLoader 回归、archunit-junit5 引擎 -->
+                                <dep>org.springframework.boot:spring-boot-starter-test</dep>
+                                <dep>ch.qos.logback:logback-classic</dep>
+                                <dep>org.hibernate.validator:hibernate-validator</dep>
+                                <dep>com.tngtech.archunit:archunit-junit5</dep>
+                            </ignoredUnusedDeclaredDependencies>
+                            <ignoredUsedUndeclaredDependencies>
+                                <!-- test 依赖经 starter-test / archunit-junit5 聚合传递,惯例不单列 -->
+                                <dep>org.junit.jupiter:junit-jupiter-api</dep>
+                                <dep>org.mockito:mockito-core</dep>
+                                <dep>org.assertj:assertj-core</dep>
+                                <dep>org.springframework:spring-test</dep>
+                                <dep>org.springframework.boot:spring-boot-test</dep>
+                                <dep>ch.qos.logback:logback-core</dep>
+                                <dep>com.tngtech.archunit:archunit</dep>
+                                <dep>com.tngtech.archunit:archunit-junit5-api</dep>
+                            </ignoredUsedUndeclaredDependencies>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
