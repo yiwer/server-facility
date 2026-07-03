@@ -29,10 +29,10 @@
         <maven-dependency-plugin.version>3.7.1</maven-dependency-plugin.version>
         <jacoco.version>0.8.12</jacoco.version>
 
-        <!-- JaCoCo 覆盖率门(P7 实测 line 81.9%/instruction 82.3%/branch 69.8% 后设立防退化门) -->
-        <jacoco.line.min>0.80</jacoco.line.min>
-        <jacoco.instruction.min>0.80</jacoco.instruction.min>
-        <jacoco.branch.min>0.65</jacoco.branch.min>
+        <!-- JaCoCo 覆盖率门(债4 补测后实测 line 87.8%/instruction 87.5%/branch 76.2%,提门防退化) -->
+        <jacoco.line.min>0.85</jacoco.line.min>
+        <jacoco.instruction.min>0.85</jacoco.instruction.min>
+        <jacoco.branch.min>0.70</jacoco.branch.min>
 
         <!-- JaCoCo prepare-agent 未执行时(如 -Djacoco.skip=true)保证 surefire 的 @{argLine} 可解析 -->
         <argLine></argLine>
