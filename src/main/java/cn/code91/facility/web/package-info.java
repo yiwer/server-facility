@@ -10,8 +10,8 @@
  * <p><b>Entry classes:</b> Sub-packages:
  * {@code web.filter} (trace id, repeatable request body),
  * {@code web.interceptor} (access log, session-user clear),
- * {@code web.exception} (global exception handling — handler/business classes land in
- * T5; only {@code FacilityWebExceptionProperties} lives here as of T4),
+ * {@code web.exception} (typed exceptions, {@code AbstractGlobalExceptionHandler},
+ * and {@code FacilityWebExceptionProperties}),
  * {@code web.session} (session-user holder, constants),
  * {@code web.response} (base response shapes),
  * {@code web.argument} (pageable query),

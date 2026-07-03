@@ -14,8 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SpringContextHolderTest {
 
     /**
-     * 前后双向复位:LogUtilTest(log 包)无法调用本包私有 clear(),
-     * 只能把 holder 置为空上下文——若其先于本类运行,@BeforeEach 兜底保证"未初始化"用例成立。
+     * 前后双向复位:跨类运行顺序下,任何在本类之前污染 holder 的测试
+     * (如 LogUtilTest,现经 SpringContextHolderTestSupport 桥调本包私有 clear())
+     * 都由 @BeforeEach 兜底,保证"未初始化"用例成立;@AfterEach 防本类污染他人。
      */
     @BeforeEach
     @AfterEach
