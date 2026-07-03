@@ -222,9 +222,11 @@ Strategy,第二实现出现再升 real seam。
 | P4 IO 与序列化 | `io` `path` `mime` `json` ~~`convert`~~ `copy` + Json 装配 | CopyUtil 拆分(已执行);zip-slip 不适用;C2 收尾(Wrapped* **drop** 落定);convert **drop** 改判;`FacilityJsonAutoConfiguration` |
 | P5 运行期服务 | `locale` `async` + Core/Locale/Async 装配 | C1 断环之 locale 侧(错误消息解析衔接+集成测试);i18n 资源迁移;`FacilityCoreAutoConfiguration` 跨簇 bean 齐装 |
 | P6 Web 簇 | `web` 全部 + Web 装配 | 安全默认值逐类复核;servlet API 依赖决议;5 个 web properties 归位(C3) |
-| P7 收口 | 文档 / 覆盖率 / 对账 | README/DESIGN/USAGE 全新撰写;JaCoCo gate 生效;`dependency:analyze` 清零;§5 verdict 对账;§10 roadmap 落档 |
+| P7 收口 | 文档 / 覆盖率 / 对账 | ✅ **已完成**:README/DESIGN/USAGE 撰写;JaCoCo gate ≥0.80 生效(实测 line 81.9%/instr 82.3%,**真达目标,无需降级**);`dependency:analyze` 零 warning;§5 verdict 100% 对账(见 `docs/superpowers/P7-verdict-reconciliation.md`);`.gitattributes`;Filenames 安全加固;文档真实性勘误;i18n base bundle 回落 |
 
 粒度说明:P1-P6 每簇内部"先迁移后 rework",迁移 commit 与 rework commit 分开,保证每个 rework 可独立回溯。
+
+**迁移工程收官(2026-07-03)**:P0-P7 全部合并 master,775 测试绿(含 4 ArchUnit),三组断环 ArchUnit 锁定,质量门达标。P7 观察项(FacilityErrorType 占位符、Jsons null 不对称、formatSize 边界、覆盖率提门至 0.85)移交 §10 roadmap。
 
 ---
 
@@ -257,6 +259,15 @@ server-facility/
 | 缓存门面 cache | 薄封装 Spring Cache | 装配范式 |
 | Excel/CSV | 新子包 + poi/easyexcel optional | ADR-0001 optional 范式 |
 | HTTP client 门面 | RestClient 薄封装 | 静态门面 + 装配 |
+
+### P7 遗留技术债(收口对账产出,详见 P7-verdict-reconciliation.md §5)
+
+| 项 | 形态 |
+|---|---|
+| FacilityErrorType 内置消息带上下文占位符 | 需统一 ~15 处传参/不传参混合调用点,行为增强 |
+| `Jsons`/`JsonUtil` deserialize null 入参统一失败通道 | String/byte[] 返 err 而 InputStream 抛 NPE,收敛为一致语义 |
+| `NumberFormat.formatSize` 边界(<1KB / >PB) | 补 B 单位或明确 clamp 语义 + 补测 |
+| 覆盖率提门 0.80 → 0.85 | copy(51%)、web 过滤链等逐簇补测后提 gate |
 
 ---
 
