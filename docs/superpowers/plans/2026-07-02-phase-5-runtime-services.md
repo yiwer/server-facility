@@ -92,6 +92,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.context.support.StaticApplicationContext;
 
@@ -125,8 +126,10 @@ class LocaleUtilTest {
         ms.setBasename("i18n/facility-messages");
         ms.setDefaultEncoding("UTF-8");
         ms.setFallbackToSystemLocale(false);
-        StaticApplicationContext ctx = new StaticApplicationContext();
-        // refresh 前以内置名 "messageSource" 注册,顶替容器默认——避免与内置 bean 撞类型
+        // GenericApplicationContext 不预绑 messageSource(StaticApplicationContext 构造器会预绑
+        // StaticMessageSource 致 registerSingleton 抛 ISE——执行时发现的 fixture 勘误);
+        // refresh 前注册,initMessageSource 即采用之,getBean(MessageSource.class) 恰一个 bean
+        GenericApplicationContext ctx = new GenericApplicationContext();
         ctx.getBeanFactory().registerSingleton("messageSource", ms);
         ctx.refresh();
         SpringContextHolder.setApplicationContextManually(ctx);
