@@ -51,9 +51,9 @@ public class BaseResponse<T> implements Serializable {
     private static final int SUCCESS_CODE = 200;
 
     /**
-     * 成功默认消息
+     * 成功默认消息(package-private:{@link PageBaseResponse} 构造复用,保持 ok 工厂语义一致)
      */
-    private static final String SUCCESS_MESSAGE = "success";
+    static final String SUCCESS_MESSAGE = "success";
 
     // ==================== 字段 ====================
 

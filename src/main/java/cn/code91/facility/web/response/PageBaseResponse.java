@@ -52,7 +52,7 @@ public class PageBaseResponse<T> extends BaseResponse<List<T>> {
     // ==================== 构造函数 ====================
 
     private PageBaseResponse(List<T> data, long total, int pageNum, int pageSize) {
-        super(200, "", data, "SUCCESS");
+        super(200, SUCCESS_MESSAGE, data, "");
         this.total = total;
         this.pageNum = pageNum;
         this.pageSize = pageSize;
