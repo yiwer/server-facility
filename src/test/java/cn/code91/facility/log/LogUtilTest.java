@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import cn.code91.facility.context.SpringContextHolder;
+import cn.code91.facility.context.SpringContextHolderTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,12 +41,10 @@ class LogUtilTest {
     }
 
     private static void springClear() {
-        // clear() 是 context 包私有(RP-12),本测试在 log 包不可见;
-        // 用公开 API 把 holder 置为空上下文,防止本类注册的 composite 泄漏到其他测试;
-        // SpringContextHolderTest 侧有 @BeforeEach clear() 兜底跨类运行顺序污染。
-        StaticApplicationContext empty = new StaticApplicationContext();
-        empty.refresh();
-        SpringContextHolder.setApplicationContextManually(empty);
+        // 经 context 包 test 桥调用包私有 clear()(RP-12),把 holder 置回 null——
+        // 不可置入活的空上下文:refresh 过的上下文自带空 messageSource 单例,对一切键抛
+        // NoSuchMessage,会毒化后续测试;SpringContextHolderTest 的 @BeforeEach clear() 兜底。
+        SpringContextHolderTestSupport.reset();
     }
 
     private ILoggingEvent lastEvent() {

@@ -152,7 +152,7 @@ public sealed interface Async<T> permits DefaultAsync {
     // ==================== 变换（惰性 pipeline，不触发执行）====================
 
     /**
-     * 设置执行器
+     * 设置执行器（{@link #submit()} 时生效，覆盖工厂方法给定的执行器）
      */
     Async<T> executor(Executor executor);
 

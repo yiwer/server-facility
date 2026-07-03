@@ -4,6 +4,7 @@ import cn.code91.facility.async.DefaultAsync;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.task.TaskExecutor;
 
@@ -52,5 +53,24 @@ class FacilityAsyncAutoConfigurationTest {
             Executor executor = ctx.getBean("facilityAsyncExecutor", Executor.class);
             assertThat(executor).isNotNull();
         });
+    }
+
+    /**
+     * 与 Spring Boot {@code TaskExecutionAutoConfiguration} 联合装配时，字母序
+     * cn.code91.* 先于 org.springframework.*，若无 {@code @AutoConfigureAfter} 约束，
+     * facility 会先注册裸 Executor bean，导致 Boot 的 applicationTaskExecutor
+     * （@ConditionalOnMissingBean(Executor.class)）条件不满足而缺席——"只兜底不抢占"
+     * 的 ADR-0002 本意被打破。
+     */
+    @Test
+    @DisplayName("联合 Boot TaskExecutionAutoConfiguration 时，Boot applicationTaskExecutor 胜出（不被字母序抢注压制）")
+    void combinedWithBootTaskExecution_bootApplicationTaskExecutorWins() {
+        new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                FacilityAsyncAutoConfiguration.class, TaskExecutionAutoConfiguration.class))
+            .run(ctx -> {
+                assertThat(ctx).hasBean(TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME);
+                assertThat(ctx).doesNotHaveBean("facilityAsyncExecutor");
+            });
     }
 }

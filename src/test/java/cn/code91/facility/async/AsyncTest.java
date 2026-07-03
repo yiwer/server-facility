@@ -552,7 +552,7 @@ class AsyncTest {
         @Test
         @DisplayName("executor 设置执行器")
         void executor_setsExecutor() {
-            var executor = Executors.newSingleThreadExecutor();
+            var executor = Executors.newSingleThreadExecutor(r -> new Thread(r, "async-custom-executor"));
             try {
                 AtomicReference<String> threadName = new AtomicReference<>();
                 Async.supply(() -> {
@@ -560,9 +560,42 @@ class AsyncTest {
                     return "value";
                 }).executor(executor).awaitValue();
 
-                assertThat(threadName.get()).isNotNull();
+                assertThat(threadName.get()).isEqualTo("async-custom-executor");
             } finally {
                 executor.shutdown();
+            }
+        }
+
+        @Test
+        @DisplayName("executor 覆盖工厂方法传入的执行器")
+        void executor_overridesFactoryExecutor() {
+            var poolA = Executors.newSingleThreadExecutor(r -> new Thread(r, "factory-executor"));
+            var poolB = Executors.newSingleThreadExecutor(r -> new Thread(r, "fluent-executor"));
+            try {
+                String threadName = Async.supply(() -> Thread.currentThread().getName(), poolA)
+                        .executor(poolB)
+                        .awaitValue();
+
+                assertThat(threadName).isEqualTo("fluent-executor");
+            } finally {
+                poolA.shutdown();
+                poolB.shutdown();
+            }
+        }
+
+        @Test
+        @DisplayName("map 之后设置 executor 仍路由至最内层计算")
+        void executor_afterMap_routesUpstreamComputation() {
+            var pool = Executors.newSingleThreadExecutor(r -> new Thread(r, "async-custom-executor"));
+            try {
+                String threadName = Async.supply(() -> Thread.currentThread().getName())
+                        .map(n -> n)
+                        .executor(pool)
+                        .awaitValue();
+
+                assertThat(threadName).isEqualTo("async-custom-executor");
+            } finally {
+                pool.shutdown();
             }
         }
 

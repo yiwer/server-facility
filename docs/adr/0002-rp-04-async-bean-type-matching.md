@@ -61,6 +61,14 @@ public Executor facilityAsyncExecutor() { ... }
 - 若 phase-4+ 有 consumer 需 facility executor 与 `@Async` 集成且需 TaskExecutor 类型，新建 facility-managed TaskExecutor wrapper bean（保留 Executor bean 兼容旧调用方）
 - bean 返回类型 Executor → TaskExecutor 升级留待"facility executor 公开 API 大重构" phase
 
+## 补记（P6）
+
+- **发现**：`FacilityAsyncAutoConfiguration` 原先无 `@AutoConfigureAfter` 约束。Spring Boot 按包名字母序解析自动装配候选时，`cn.code91.*` 先于 `org.springframework.*`，导致 facility 的 `facilityAsyncExecutor`（裸 `Executor` bean）先于 Boot 的 `TaskExecutionAutoConfiguration#applicationTaskExecutor` 注册。`applicationTaskExecutor` 的条件是 `@ConditionalOnMissingBean(Executor.class)`——facility 先注册的 `Executor` bean 使该条件不满足，`applicationTaskExecutor` 静默缺席。consumer 因此丢失 Boot 的默认线程池，且不易察觉（无异常、无告警）。
+- **本 ADR 的类型匹配条件（`@ConditionalOnMissingBean(TaskExecutor.class)`）并不能防住这个陷阱**：条件匹配的方向没错，但装配*顺序*未被约束，facility 可能先于 Boot 跑，届时 Boot 视角看到的是"facility 已抢先注册了一个 `Executor`"，而 facility 视角的条件（"没有 `TaskExecutor`"）在那一刻确实满足——两边条件各自成立，谁先跑谁赢，字母序把赢面判给了 facility，与"只兜底不抢占"的本意相反。
+- **修复**：`FacilityAsyncAutoConfiguration` 增加 `@AutoConfigureAfter(TaskExecutionAutoConfiguration.class)`，显式约束 Boot 先装配。Boot 先注册 `applicationTaskExecutor`（`TaskExecutor` 类型）→ facility 的 `@ConditionalOnMissingBean(TaskExecutor.class)` 回避 → `facilityAsyncExecutor` 不装配，"只兜底不抢占"达成。
+- **实证**：`FacilityAsyncAutoConfigurationTest#combinedWithBootTaskExecution_bootApplicationTaskExecutorWins` 用联合 `ApplicationContextRunner`（`AutoConfigurations.of(FacilityAsyncAutoConfiguration.class, TaskExecutionAutoConfiguration.class)`）断言 `applicationTaskExecutor` 存在且 `facilityAsyncExecutor` 缺席；修复前 RED（`applicationTaskExecutor` 缺席），修复后 GREEN。
+- **教训**：`@ConditionalOnMissingBean` 的类型匹配只保证"结果正确"（不会有两个同类型 bean 共存），不保证"哪一方胜出"符合设计意图——后者取决于装配顺序，需要 `@AutoConfigureAfter`/`@AutoConfigureBefore` 显式声明，尤其当己方包名字母序恰好排在目标框架自动装配类之前时。
+
 ## References
 
 1. Spring Framework 6 Reference §1.9.4 (Conditional Bean). https://docs.spring.io/spring-framework/docs/6.x/reference/htmlsingle/#beans-java-conditional
