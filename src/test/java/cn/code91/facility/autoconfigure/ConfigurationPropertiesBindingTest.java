@@ -1,6 +1,7 @@
 package cn.code91.facility.autoconfigure;
 
 import cn.code91.facility.id.FacilityIdProperties;
+import cn.code91.facility.web.filter.FacilityWebRepeatableRequestProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -12,7 +13,7 @@ class ConfigurationPropertiesBindingTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
         .withUserConfiguration(EnableProps.class);
 
-    @EnableConfigurationProperties(FacilityIdProperties.class)
+    @EnableConfigurationProperties({FacilityIdProperties.class, FacilityWebRepeatableRequestProperties.class})
     static class EnableProps {}
 
     @Test
@@ -51,6 +52,17 @@ class ConfigurationPropertiesBindingTest {
             .run(ctx -> {
                 assertThat(ctx).hasNotFailed();
                 assertThat(ctx.getBean(FacilityIdProperties.class).getWorkerId()).isEqualTo(4);
+            });
+    }
+
+    @Test
+    void repeatableRequestPropertiesParsesByteSize() {
+        runner
+            .withPropertyValues("facility.web.repeatable-request.max-body-bytes=20971520")
+            .run(ctx -> {
+                FacilityWebRepeatableRequestProperties p =
+                    ctx.getBean(FacilityWebRepeatableRequestProperties.class);
+                assertThat(p.getMaxBodyBytes()).isEqualTo(20_971_520L);
             });
     }
 }
