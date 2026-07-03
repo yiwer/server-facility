@@ -83,3 +83,6 @@ roadmap 技术债处理轮次(分支 feat/roadmap-tech-debt)对下列项逐一�
 spec §5 全部 23 包判定 **100% 落实对账**(20 keep + 3 drop 包 + 3 drop 成员);三组断环 ArchUnit
 锁定;依赖收敛达成;6 装配 + C3 归位闭合。质量门(775 绿 + JaCoCo 0.80 + dependency:analyze 零 warning)
 与文档三件套齐备。**server-facility 迁移工程收口完成。**
+
+> 注:本节为 **P7 收口时点快照**(775 绿 / gate 0.80)。收官后的 roadmap 技术债处理轮(2026-07-03,见 §5)
+> 将测试提至 **848 绿**、覆盖率 gate 提至 **0.85**(line 87.8%)。
