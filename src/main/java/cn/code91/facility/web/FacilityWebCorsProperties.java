@@ -14,7 +14,7 @@ public class FacilityWebCorsProperties {
     /**
      * 允许跨域的来源列表。
      * 默认空列表 = 不开 CORS。生产部署须显式列举允许来源（例如 ["https://example.com"]）。
-     * 若需开发期全开，配置 beacon.facility.web.cors.allowed-origins=*。
+     * 若需开发期全开，配置 facility.web.cors.allowed-origins=*。
      */
     private List<String> allowedOrigins = List.of();
     private List<String> allowedMethods = List.of("GET", "POST", "PUT", "DELETE", "OPTIONS");
