@@ -11,17 +11,16 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * {@link Async} 的默认实现类。
  * <p>
- * 由静态工厂方法创建，封装单次惰性计算。支持通过 Spring DI 注入执行器与拦截器。
+ * 由静态工厂方法创建，封装单次惰性计算。
  * </p>
  * <p>
  * 核心字段：
  * <ul>
- *   <li>{@code computation} — 惰性计算描述，调用时返回 CompletableFuture</li>
+ *   <li>{@code computation} — 惰性计算描述，提交时注入生效执行器</li>
  *   <li>{@code interceptors} — 不可变拦截器列表</li>
  *   <li>{@code executor} — 执行器（null 时使用虚拟线程）</li>
  *   <li>{@code context} — 任务上下文（名称 + 属性袋）</li>
@@ -30,40 +29,15 @@ import java.util.function.Supplier;
  */
 public final class DefaultAsync<T> implements Async<T> {
 
-    private final Supplier<CompletableFuture<Result<T, Throwable>>> computation;
+    private final Function<Executor, CompletableFuture<Result<T, Throwable>>> computation;
     private final List<AsyncInterceptor> interceptors;
     private final Executor executor;
     private final AsyncContext context;
 
-    // ==================== DI-friendly constructors ====================
-
-    /**
-     * No-arg constructor for legacy / testing callers.
-     * Equivalent to {@code new DefaultAsync(null, List.of())}.
-     */
-    public DefaultAsync() {
-        this(null, List.of());
-    }
-
-    /**
-     * DI constructor: creates an instance pre-configured with an executor and default interceptors.
-     *
-     * @param executor     executor to use (null = virtual-thread-per-task)
-     * @param interceptors default interceptors applied to every created task
-     */
-    public DefaultAsync(Executor executor, List<AsyncInterceptor> interceptors) {
-        this.computation = null;
-        this.executor = executor;
-        this.interceptors = interceptors != null
-                ? Collections.unmodifiableList(new ArrayList<>(interceptors))
-                : List.of();
-        this.context = null;
-    }
-
     // ==================== Internal full constructor ====================
 
     private DefaultAsync(
-            Supplier<CompletableFuture<Result<T, Throwable>>> computation,
+            Function<Executor, CompletableFuture<Result<T, Throwable>>> computation,
             List<AsyncInterceptor> interceptors,
             Executor executor,
             AsyncContext context) {
@@ -76,8 +50,7 @@ public final class DefaultAsync<T> implements Async<T> {
     // ==================== 包内工厂（供 Async 接口调用）====================
 
     static <T> DefaultAsync<T> of(ThrowableSupplier<T> supplier, Executor executor) {
-        Executor eff = executor != null ? executor : Executors.newVirtualThreadPerTaskExecutor();
-        Supplier<CompletableFuture<Result<T, Throwable>>> computation = () ->
+        Function<Executor, CompletableFuture<Result<T, Throwable>>> computation = exec ->
                 CompletableFuture.supplyAsync(
                         () -> {
                             try {
@@ -86,14 +59,14 @@ public final class DefaultAsync<T> implements Async<T> {
                                 return Result.<T, Throwable>err(e);
                             }
                         },
-                        eff
+                        exec != null ? exec : Executors.newVirtualThreadPerTaskExecutor()
                 );
         return new DefaultAsync<>(computation, new ArrayList<>(), executor, AsyncContext.empty());
     }
 
     static <T> DefaultAsync<T> completed(T value) {
         return new DefaultAsync<>(
-                () -> CompletableFuture.completedFuture(Result.ok(value)),
+                exec -> CompletableFuture.completedFuture(Result.ok(value)),
                 new ArrayList<>(),
                 null,
                 AsyncContext.empty()
@@ -102,7 +75,7 @@ public final class DefaultAsync<T> implements Async<T> {
 
     static <T> DefaultAsync<T> failed(Throwable throwable) {
         return new DefaultAsync<>(
-                () -> CompletableFuture.completedFuture(Result.err(throwable)),
+                exec -> CompletableFuture.completedFuture(Result.err(throwable)),
                 new ArrayList<>(),
                 null,
                 AsyncContext.empty()
@@ -113,7 +86,7 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @SuppressWarnings("unchecked")
     static <T> DefaultAsync<List<T>> all(List<? extends Async<T>> tasks) {
-        Supplier<CompletableFuture<Result<List<T>, Throwable>>> computation = () -> {
+        Function<Executor, CompletableFuture<Result<List<T>, Throwable>>> computation = exec -> {
             if (tasks.isEmpty()) {
                 return CompletableFuture.completedFuture(Result.ok(List.of()));
             }
@@ -150,7 +123,7 @@ public final class DefaultAsync<T> implements Async<T> {
     }
 
     static <T> DefaultAsync<T> any(List<? extends Async<T>> tasks) {
-        Supplier<CompletableFuture<Result<T, Throwable>>> computation = () -> {
+        Function<Executor, CompletableFuture<Result<T, Throwable>>> computation = exec -> {
             if (tasks.isEmpty()) {
                 return CompletableFuture.completedFuture(
                         Result.err(new IllegalArgumentException("any() requires at least one task")));
@@ -218,8 +191,8 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @Override
     public <U> Async<U> map(Function<? super T, ? extends U> mapper) {
-        Supplier<CompletableFuture<Result<U, Throwable>>> newComp = () ->
-                computation.get().thenApply(result -> {
+        Function<Executor, CompletableFuture<Result<U, Throwable>>> newComp = exec ->
+                computation.apply(exec).thenApply(result -> {
                     if (result.isErr()) {
                         @SuppressWarnings("unchecked")
                         Result<U, Throwable> err = (Result<U, Throwable>) result;
@@ -236,8 +209,8 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @Override
     public <U> Async<U> flatMap(Function<? super T, ? extends Async<U>> mapper) {
-        Supplier<CompletableFuture<Result<U, Throwable>>> newComp = () ->
-                computation.get().thenCompose(result -> {
+        Function<Executor, CompletableFuture<Result<U, Throwable>>> newComp = exec ->
+                computation.apply(exec).thenCompose(result -> {
                     if (result.isErr()) {
                         @SuppressWarnings("unchecked")
                         Result<U, Throwable> err = (Result<U, Throwable>) result;
@@ -256,8 +229,8 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @Override
     public Async<T> recover(Function<? super Throwable, ? extends T> recovery) {
-        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
-                computation.get().thenApply(result -> {
+        Function<Executor, CompletableFuture<Result<T, Throwable>>> newComp = exec ->
+                computation.apply(exec).thenApply(result -> {
                     if (result.isOk()) {
                         return result;
                     }
@@ -272,8 +245,8 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @Override
     public Async<T> recoverWith(Function<? super Throwable, ? extends Async<T>> recovery) {
-        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
-                computation.get().thenCompose(result -> {
+        Function<Executor, CompletableFuture<Result<T, Throwable>>> newComp = exec ->
+                computation.apply(exec).thenCompose(result -> {
                     if (result.isOk()) {
                         return CompletableFuture.completedFuture(result);
                     }
@@ -288,8 +261,8 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @Override
     public Async<T> timeout(Duration duration) {
-        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
-                computation.get()
+        Function<Executor, CompletableFuture<Result<T, Throwable>>> newComp = exec ->
+                computation.apply(exec)
                         .orTimeout(duration.toNanos(), TimeUnit.NANOSECONDS)
                         .exceptionally(ex -> {
                             Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
@@ -304,8 +277,8 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @Override
     public Async<T> peek(Consumer<? super T> action) {
-        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
-                computation.get().thenApply(result -> {
+        Function<Executor, CompletableFuture<Result<T, Throwable>>> newComp = exec ->
+                computation.apply(exec).thenApply(result -> {
                     if (result.isOk()) {
                         try {
                             action.accept(result.get());
@@ -322,8 +295,8 @@ public final class DefaultAsync<T> implements Async<T> {
 
     @Override
     public Async<T> peekErr(Consumer<? super Throwable> action) {
-        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
-                computation.get().thenApply(result -> {
+        Function<Executor, CompletableFuture<Result<T, Throwable>>> newComp = exec ->
+                computation.apply(exec).thenApply(result -> {
                     if (result.isErr()) {
                         try {
                             action.accept(result.getErr());
@@ -342,8 +315,10 @@ public final class DefaultAsync<T> implements Async<T> {
         List<AsyncInterceptor> sorted = new ArrayList<>(interceptors);
         sorted.sort((a, b) -> Integer.compare(a.order(), b.order()));
 
-        // 从内到外构建责任链：最内层 = 实际 computation
-        AsyncInvocation<T> chain = computation::get;
+        // 最内层 = 实际 computation：注入当前 executor 字段（可为 null——of() 构造的
+        // computation 在 apply 时刻自行兜底虚拟线程，completed/failed/all/any 的
+        // computation 忽略该参数）。fluent executor() 覆盖工厂方法给定的执行器由此生效。
+        AsyncInvocation<T> chain = () -> computation.apply(executor);
         for (int i = sorted.size() - 1; i >= 0; i--) {
             AsyncInterceptor interceptor = sorted.get(i);
             AsyncInvocation<T> next = chain;
