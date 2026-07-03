@@ -1,0 +1,355 @@
+package cn.code91.facility.async;
+
+import cn.code91.facility.result.Result;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+/**
+ * {@link Async} 的默认实现类。
+ * <p>
+ * 由静态工厂方法创建，封装单次惰性计算。支持通过 Spring DI 注入执行器与拦截器。
+ * </p>
+ * <p>
+ * 核心字段：
+ * <ul>
+ *   <li>{@code computation} — 惰性计算描述，调用时返回 CompletableFuture</li>
+ *   <li>{@code interceptors} — 不可变拦截器列表</li>
+ *   <li>{@code executor} — 执行器（null 时使用虚拟线程）</li>
+ *   <li>{@code context} — 任务上下文（名称 + 属性袋）</li>
+ * </ul>
+ * </p>
+ */
+public final class DefaultAsync<T> implements Async<T> {
+
+    private final Supplier<CompletableFuture<Result<T, Throwable>>> computation;
+    private final List<AsyncInterceptor> interceptors;
+    private final Executor executor;
+    private final AsyncContext context;
+
+    // ==================== DI-friendly constructors ====================
+
+    /**
+     * No-arg constructor for legacy / testing callers.
+     * Equivalent to {@code new DefaultAsync(null, List.of())}.
+     */
+    public DefaultAsync() {
+        this(null, List.of());
+    }
+
+    /**
+     * DI constructor: creates an instance pre-configured with an executor and default interceptors.
+     *
+     * @param executor     executor to use (null = virtual-thread-per-task)
+     * @param interceptors default interceptors applied to every created task
+     */
+    public DefaultAsync(Executor executor, List<AsyncInterceptor> interceptors) {
+        this.computation = null;
+        this.executor = executor;
+        this.interceptors = interceptors != null
+                ? Collections.unmodifiableList(new ArrayList<>(interceptors))
+                : List.of();
+        this.context = null;
+    }
+
+    // ==================== Internal full constructor ====================
+
+    private DefaultAsync(
+            Supplier<CompletableFuture<Result<T, Throwable>>> computation,
+            List<AsyncInterceptor> interceptors,
+            Executor executor,
+            AsyncContext context) {
+        this.computation = computation;
+        this.interceptors = Collections.unmodifiableList(interceptors);
+        this.executor = executor;
+        this.context = context;
+    }
+
+    // ==================== 包内工厂（供 Async 接口调用）====================
+
+    static <T> DefaultAsync<T> of(ThrowableSupplier<T> supplier, Executor executor) {
+        Executor eff = executor != null ? executor : Executors.newVirtualThreadPerTaskExecutor();
+        Supplier<CompletableFuture<Result<T, Throwable>>> computation = () ->
+                CompletableFuture.supplyAsync(
+                        () -> {
+                            try {
+                                return Result.<T, Throwable>ok(supplier.get());
+                            } catch (Exception e) {
+                                return Result.<T, Throwable>err(e);
+                            }
+                        },
+                        eff
+                );
+        return new DefaultAsync<>(computation, new ArrayList<>(), executor, AsyncContext.empty());
+    }
+
+    static <T> DefaultAsync<T> completed(T value) {
+        return new DefaultAsync<>(
+                () -> CompletableFuture.completedFuture(Result.ok(value)),
+                new ArrayList<>(),
+                null,
+                AsyncContext.empty()
+        );
+    }
+
+    static <T> DefaultAsync<T> failed(Throwable throwable) {
+        return new DefaultAsync<>(
+                () -> CompletableFuture.completedFuture(Result.err(throwable)),
+                new ArrayList<>(),
+                null,
+                AsyncContext.empty()
+        );
+    }
+
+    // ==================== 配置（惰性，返回新实例）====================
+
+    @SuppressWarnings("unchecked")
+    static <T> DefaultAsync<List<T>> all(List<? extends Async<T>> tasks) {
+        Supplier<CompletableFuture<Result<List<T>, Throwable>>> computation = () -> {
+            if (tasks.isEmpty()) {
+                return CompletableFuture.completedFuture(Result.ok(List.of()));
+            }
+
+            List<CompletableFuture<Result<T, Throwable>>> futures = new ArrayList<>();
+            for (Async<T> task : tasks) {
+                futures.add(task.submit());
+            }
+
+            @SuppressWarnings("rawtypes")
+            CompletableFuture<Void> allDone =
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+            return allDone.thenApply(v -> {
+                List<T> results = new ArrayList<>();
+                List<Throwable> errors = new ArrayList<>();
+                for (CompletableFuture<Result<T, Throwable>> f : futures) {
+                    Result<T, Throwable> r = f.join();
+                    if (r.isErr()) {
+                        errors.add(r.getErr());
+                    } else {
+                        results.add(r.get());
+                    }
+                }
+                if (!errors.isEmpty()) {
+                    Throwable err = errors.size() == 1 ? errors.get(0) : new AggregateException(errors);
+                    return Result.<List<T>, Throwable>err(err);
+                }
+                return Result.<List<T>, Throwable>ok(results);
+            });
+        };
+
+        return new DefaultAsync<>(computation, new ArrayList<>(), null, AsyncContext.empty());
+    }
+
+    static <T> DefaultAsync<T> any(List<? extends Async<T>> tasks) {
+        Supplier<CompletableFuture<Result<T, Throwable>>> computation = () -> {
+            if (tasks.isEmpty()) {
+                return CompletableFuture.completedFuture(
+                        Result.err(new IllegalArgumentException("any() requires at least one task")));
+            }
+
+            CompletableFuture<Result<T, Throwable>> promise = new CompletableFuture<>();
+            AtomicInteger remaining = new AtomicInteger(tasks.size());
+            // 使用线程安全列表收集所有失败原因，而非只保留最后一个
+            List<Throwable> errors = Collections.synchronizedList(new ArrayList<>());
+
+            for (Async<T> task : tasks) {
+                task.submit().whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        errors.add(ex);
+                    } else if (result.isOk()) {
+                        // 第一个成功立即完成 promise，后续结果被忽略
+                        promise.complete(result);
+                    } else {
+                        errors.add(result.getErr());
+                    }
+                    if (remaining.decrementAndGet() == 0) {
+                        // 全部完成且 promise 未被成功完成，说明全部失败
+                        Throwable err = errors.size() == 1 ? errors.get(0) : new AggregateException(errors);
+                        promise.complete(Result.err(err));
+                    }
+                });
+            }
+
+            return promise;
+        };
+
+        return new DefaultAsync<>(computation, new ArrayList<>(), null, AsyncContext.empty());
+    }
+
+    @Override
+    public Async<T> name(String name) {
+        return new DefaultAsync<>(computation, interceptors, executor, context.withName(name));
+    }
+
+    @Override
+    public Async<T> executor(Executor executor) {
+        return new DefaultAsync<>(computation, interceptors, executor, context);
+    }
+
+    @Override
+    public Async<T> intercept(AsyncInterceptor... interceptors) {
+        List<AsyncInterceptor> merged = new ArrayList<>(this.interceptors);
+        merged.addAll(Arrays.asList(interceptors));
+        return new DefaultAsync<>(computation, merged, executor, context);
+    }
+
+    // ==================== 变换（惰性 pipeline）====================
+
+    @Override
+    public Async<T> intercept(List<AsyncInterceptor> interceptors) {
+        List<AsyncInterceptor> merged = new ArrayList<>(this.interceptors);
+        merged.addAll(interceptors);
+        return new DefaultAsync<>(computation, merged, executor, context);
+    }
+
+    @Override
+    public Async<T> attribute(String key, Object value) {
+        return new DefaultAsync<>(computation, interceptors, executor, context.with(key, value));
+    }
+
+    @Override
+    public <U> Async<U> map(Function<? super T, ? extends U> mapper) {
+        Supplier<CompletableFuture<Result<U, Throwable>>> newComp = () ->
+                computation.get().thenApply(result -> {
+                    if (result.isErr()) {
+                        @SuppressWarnings("unchecked")
+                        Result<U, Throwable> err = (Result<U, Throwable>) result;
+                        return err;
+                    }
+                    try {
+                        return Result.<U, Throwable>ok(mapper.apply(result.get()));
+                    } catch (Exception e) {
+                        return Result.<U, Throwable>err(e);
+                    }
+                });
+        return new DefaultAsync<>(newComp, interceptors, executor, context);
+    }
+
+    @Override
+    public <U> Async<U> flatMap(Function<? super T, ? extends Async<U>> mapper) {
+        Supplier<CompletableFuture<Result<U, Throwable>>> newComp = () ->
+                computation.get().thenCompose(result -> {
+                    if (result.isErr()) {
+                        @SuppressWarnings("unchecked")
+                        Result<U, Throwable> err = (Result<U, Throwable>) result;
+                        return CompletableFuture.completedFuture(err);
+                    }
+                    try {
+                        Async<U> inner = mapper.apply(result.get());
+                        // 内层 Async 独立 submit，其拦截器会正常运行
+                        return inner.submit();
+                    } catch (Exception e) {
+                        return CompletableFuture.completedFuture(Result.<U, Throwable>err(e));
+                    }
+                });
+        return new DefaultAsync<>(newComp, interceptors, executor, context);
+    }
+
+    @Override
+    public Async<T> recover(Function<? super Throwable, ? extends T> recovery) {
+        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
+                computation.get().thenApply(result -> {
+                    if (result.isOk()) {
+                        return result;
+                    }
+                    try {
+                        return Result.<T, Throwable>ok(recovery.apply(result.getErr()));
+                    } catch (Exception e) {
+                        return Result.<T, Throwable>err(e);
+                    }
+                });
+        return new DefaultAsync<>(newComp, interceptors, executor, context);
+    }
+
+    @Override
+    public Async<T> recoverWith(Function<? super Throwable, ? extends Async<T>> recovery) {
+        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
+                computation.get().thenCompose(result -> {
+                    if (result.isOk()) {
+                        return CompletableFuture.completedFuture(result);
+                    }
+                    try {
+                        return recovery.apply(result.getErr()).submit();
+                    } catch (Exception e) {
+                        return CompletableFuture.completedFuture(Result.<T, Throwable>err(e));
+                    }
+                });
+        return new DefaultAsync<>(newComp, interceptors, executor, context);
+    }
+
+    @Override
+    public Async<T> timeout(Duration duration) {
+        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
+                computation.get()
+                        .orTimeout(duration.toNanos(), TimeUnit.NANOSECONDS)
+                        .exceptionally(ex -> {
+                            Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                            TimeoutException te = (cause instanceof TimeoutException t) ? t
+                                    : new TimeoutException(cause.getMessage());
+                            return Result.<T, Throwable>err(te);
+                        });
+        return new DefaultAsync<>(newComp, interceptors, executor, context);
+    }
+
+    // ==================== 终端操作（触发执行）====================
+
+    @Override
+    public Async<T> peek(Consumer<? super T> action) {
+        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
+                computation.get().thenApply(result -> {
+                    if (result.isOk()) {
+                        try {
+                            action.accept(result.get());
+                        } catch (Exception ignored) {
+                            // peek 是副作用，不影响主流程
+                        }
+                    }
+                    return result;
+                });
+        return new DefaultAsync<>(newComp, interceptors, executor, context);
+    }
+
+    // ==================== 并行组合 ====================
+
+    @Override
+    public Async<T> peekErr(Consumer<? super Throwable> action) {
+        Supplier<CompletableFuture<Result<T, Throwable>>> newComp = () ->
+                computation.get().thenApply(result -> {
+                    if (result.isErr()) {
+                        try {
+                            action.accept(result.getErr());
+                        } catch (Exception ignored) {
+                            // peek 是副作用，不影响主流程
+                        }
+                    }
+                    return result;
+                });
+        return new DefaultAsync<>(newComp, interceptors, executor, context);
+    }
+
+    @Override
+    public CompletableFuture<Result<T, Throwable>> submit() {
+        // 按 order 升序排序，order 小的在外层（先执行 before，后执行 after）
+        List<AsyncInterceptor> sorted = new ArrayList<>(interceptors);
+        sorted.sort((a, b) -> Integer.compare(a.order(), b.order()));
+
+        // 从内到外构建责任链：最内层 = 实际 computation
+        AsyncInvocation<T> chain = computation::get;
+        for (int i = sorted.size() - 1; i >= 0; i--) {
+            AsyncInterceptor interceptor = sorted.get(i);
+            AsyncInvocation<T> next = chain;
+            chain = () -> interceptor.intercept(context, next);
+        }
+
+        return chain.proceed();
+    }
+}
