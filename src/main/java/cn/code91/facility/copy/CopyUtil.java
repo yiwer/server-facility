@@ -300,8 +300,8 @@ public class CopyUtil {
      *     <li>实现 {@link CopyTrait} 的字段调用其 {@code copy()} 方法</li>
      *     <li>数组类型字段进行 clone（元素为 CopyTrait 时逐元素深拷贝）</li>
      *     <li>{@link Collection}&lt;CopyTrait&gt; 逐元素深拷贝</li>
-     *     <li>{@link Map} 中 CopyTrait 的键/值进行深拷贝</li>
-     *     <li>其他字段直接引用拷贝（适用于不可变类型如 String、BigDecimal 等）</li>
+     *     <li>{@link Map} 值实现 CopyTrait 时逐值深拷贝（键不拷贝，须为不可变类型）；键与值均实现 CopyTrait 时键值都深拷贝；仅键实现 CopyTrait（值不实现）则不生效，整体引用拷贝</li>
+     *     <li>其他字段直接引用拷贝（不可变类型如 String、BigDecimal 安全；非 CopyTrait 的可变集合/Map 将与源共享同一实例，注意可变性）</li>
      * </ul>
      * </p>
      * <p>

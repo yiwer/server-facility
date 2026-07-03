@@ -260,14 +260,14 @@ server-facility/
 | Excel/CSV | 新子包 + poi/easyexcel optional | ADR-0001 optional 范式 |
 | HTTP client 门面 | RestClient 薄封装 | 静态门面 + 装配 |
 
-### P7 遗留技术债(收口对账产出,详见 P7-verdict-reconciliation.md §5)
+### P7 遗留技术债(收口对账产出 → 2026-07-03 处理轮次已闭合;详见 P7-verdict-reconciliation.md §5)
 
-| 项 | 形态 |
+| 项 | 处置 |
 |---|---|
-| FacilityErrorType 内置消息带上下文占位符 | 需统一 ~15 处传参/不传参混合调用点,行为增强 |
-| `Jsons`/`JsonUtil` deserialize null 入参统一失败通道 | String/byte[] 返 err 而 InputStream 抛 NPE,收敛为一致语义 |
-| `NumberFormat.formatSize` 边界(<1KB / >PB) | 补 B 单位或明确 clamp 语义 + 补测 |
-| 覆盖率提门 0.80 → 0.85 | copy(51%)、web 过滤链等逐簇补测后提 gate |
+| FacilityErrorType 内置消息带上下文占位符 | ✅ **债1 决议关闭**:args 三路可用(getFormattedMessage 面向用户不含/toString 服务端日志含/getArgs getter);无差别进 message 泄漏服务器路径,维持文档收窄不改行为 |
+| `Jsons`/`JsonUtil` deserialize null 入参统一失败通道 | ✅ **债2 已修**(c706d5e):InputStream null→返 err,与 String/byte[] 对称;类型参数保持 requireNonNull |
+| `NumberFormat.formatSize` 边界(<1KB / >PB) | ✅ **债3 已修**(1a98f9d):补 EB 单位超 PB 进位;浮点实测无偏差;负数文档化 |
+| 覆盖率提门 0.80 → 0.85 | ✅ **债4 已修**(609a705/163f55c/f163233):copy/web +70 测,line 81.9%→87.8%,gate 提 0.85 |
 
 ---
 

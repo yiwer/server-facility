@@ -74,12 +74,13 @@ public class NumberFormat {
 
     /**
      * 字节数 → 可读形式，如 {@code "1.50 MB"}。
+     * <p>单位递进至 EB（{@code long} 上限约 8 EB，不会溢出单位表）；负字节按 {@code "-N B"} 原样返回，不进位。</p>
      */
     public static String formatSize(long bytes) {
         if (bytes < 1024) return bytes + " B";
-        String[] units = {"KB", "MB", "GB", "TB", "PB"};
+        String[] units = {"KB", "MB", "GB", "TB", "PB", "EB"};
         int exp = (int) (Math.log(bytes) / Math.log(1024));
-        if (exp > units.length) exp = units.length;   // clamp：units[exp-1] 最多 units[4]=PB
+        if (exp > units.length) exp = units.length;   // clamp：units[exp-1] 最多 units[5]=EB
         return String.format("%.2f %s", bytes / Math.pow(1024, exp), units[exp - 1]);
     }
 
