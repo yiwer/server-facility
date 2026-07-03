@@ -58,20 +58,25 @@
 | C2 common→structure→copy→common | ✅ Wrapped* drop,structure 纯值叶子 | `packages_are_cycle_free` |
 | C3 web→autoconfigure(properties) | ✅ 5 properties 归位组件同包 | `autoconfigure_is_not_depended_on_by_main_packages` |
 
-## 5. P7 观察项 → roadmap
+## 5. P7 观察项 → roadmap(2026-07-03 技术债处理已闭合)
 
-以下为 P7 各任务实施/终审中发现、判为"非收口范围行为改动或增强"的项,移交 roadmap:
+roadmap 技术债处理轮次(分支 feat/roadmap-tech-debt)对下列项逐一了结:
 
-1. **FacilityErrorType 模板无占位符**:26 个内置模板均无 `{0}`,`err(type, args)` 的 args 静默丢弃。
-   P7 判定为文档收窄(不改行为,args 供日志/自定义类型;面向用户消息不嵌路径,信息泄漏考量)。
-   若未来要让内置消息带上下文,需统一处理"传参/不传参"混合调用点(约 15 处无参调用),属行为增强。
-2. **`Jsons`/`JsonUtil` null 入参不对称**:`deserialize(String/byte[])` 返回 `Result.err`,
-   `deserialize(InputStream)` 抛 `NullPointerException`(`Objects.requireNonNull`)。同族重载失败通道不一。
-3. **`NumberFormat.formatSize` 边界**:units 从 KB 起(无 B/Bytes 单位),exp clamp 到 PB;
-   小于 1024 字节与超 PB 的边界表现值得复核(行为边界,非文档问题)。
-4. **`Jsons` 残留 9 行 catch 分支未测**(91.2%,已远超门):serializeToBytes/safeToString 的极端异常路径。
-5. **覆盖率 roadmap 目标 0.85**:P7 达 line 81.9%/instruction 82.3%;copy(51%)、web 过滤链、
-   date 之外仍有提升空间。gate 现设防退化门 0.80,后续可逐簇提门。
+1. **FacilityErrorType 模板无占位符 —— ✅ 债1 决议关闭(不改行为)**:审视确认 args 三路可用 ——
+   `getFormattedMessage()` 不含 args(面向用户 message 稳定、不泄漏路径)、`toString()` 已含
+   `args=[...]`(服务端日志排障)、`getArgs()`/`getArgsList()` getter(编程访问)。无差别让 args 进
+   面向用户 message 会泄漏 `FILE_NOT_FOUND`/`FILE_DELETE_ERROR`/`FILE_WRITE_ERROR` 的服务器路径
+   (`file.getPath()`/`dir.toString()`),违反 ADR-0010 边界文案稳定原则。**维持 P7 文档收窄,现状完备无缺口**。
+2. **`Jsons`/`JsonUtil` null 入参不对称 —— ✅ 债2 已修**(c706d5e):`deserialize(InputStream)` null 入参
+   改为返 `Result.err`(与 String/byte[] 对称);类型参数 target/typeReference 保持 requireNonNull 编程契约。
+3. **`NumberFormat.formatSize` 边界 —— ✅ 债3 已修**(1a98f9d):`<1024` 本已有 B 单位;浮点 exp 实测
+   1024^n 无偏差;真问题超 PB 不进位已补 EB 单位(1 EB→"1.00 EB");负数走 B 分支不崩溃已文档化。
+4. **覆盖率提门 —— ✅ 债4 已修**(609a705/163f55c/f163233):copy(CopyUtil 20%→98%、AutoCopyEngine 68%→98%)
+   + web.util(RequestUtil/CookieUtil →100%)补测 +70,全局 line 81.9%→87.8%;gate 提至 0.85(branch 0.70)。
+5. **`Jsons` 残留 catch 分支 / 其余低覆盖(LogUtil 62%、AbstractGlobalExceptionHandler 67%、Patterns 79%)**:
+   非阻断,gate 0.85 已留缓冲;后续可继续逐簇补测。
+6. **新发现:`AutoCopyEngine` Map key-only CopyTrait 回落 DIRECT**(30ad504 已修 javadoc):仅键实现 CopyTrait
+   (值不实现)时无匹配策略、整体引用拷贝;javadoc 已精确化(非行为改动,记录设计边界)。
 
 ## 6. 收口结论
 
