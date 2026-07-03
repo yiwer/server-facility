@@ -138,8 +138,13 @@ public final class Jsons {
     }
 
     public <T> Result<T, WrappedError> deserialize(InputStream input, Class<T> target) {
-        Objects.requireNonNull(input, "input cannot be null");
         Objects.requireNonNull(target, "target cannot be null");
+        if (input == null) {
+            return Result.err(WrappedError.of(
+                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
+                    new IllegalArgumentException("input cannot be null"),
+                    target.getName()));
+        }
         try {
             return Result.ok(objectMapper.readValue(input, target));
         } catch (IOException e) {
@@ -148,8 +153,13 @@ public final class Jsons {
     }
 
     public <T> Result<T, WrappedError> deserialize(InputStream input, TypeReference<T> typeReference) {
-        Objects.requireNonNull(input, "input cannot be null");
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
+        if (input == null) {
+            return Result.err(WrappedError.of(
+                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
+                    new IllegalArgumentException("input cannot be null"),
+                    typeReference.getType().getTypeName()));
+        }
         try {
             return Result.ok(objectMapper.readValue(input, typeReference));
         } catch (IOException e) {

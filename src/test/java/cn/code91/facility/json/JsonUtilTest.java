@@ -424,6 +424,21 @@ class JsonUtilTest {
                     JsonUtil.deserialize(broken, new TypeReference<List<Integer>>() {});
             assertThat(result.isErr()).isTrue();
         }
+
+        @Test
+        @DisplayName("deserialize(InputStream, Class) null 流 → err(与 String/byte[] 对称,债2)")
+        void deserializeStreamClass_nullInput_err() {
+            Result<Map, WrappedError> result = JsonUtil.deserialize((InputStream) null, Map.class);
+            assertThat(result.isErr()).isTrue();
+        }
+
+        @Test
+        @DisplayName("deserialize(InputStream, TypeReference) null 流 → err(与 String/byte[] 对称,债2)")
+        void deserializeStreamTypeReference_nullInput_err() {
+            Result<List<Integer>, WrappedError> result =
+                    JsonUtil.deserialize((InputStream) null, new TypeReference<List<Integer>>() {});
+            assertThat(result.isErr()).isTrue();
+        }
     }
 
     // ==================== JsonNode: parseTree / valueToTree / treeToValue ====================
