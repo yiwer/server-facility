@@ -176,13 +176,13 @@ public abstract class AbstractGlobalExceptionHandler {
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
         }
-        return buildResponse(400, LocaleUtil.translateMessage("error.message_not_readable"), e);
+        return buildResponse(400, LocaleUtil.translateMessage("facility.web.error.message_not_readable"), e);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public Object handleMissingServletRequestParameterException(MissingServletRequestParameterException e, WebRequest request) {
         String message = LocaleUtil.translateMessageWithArgs(
-                "error.missing_parameter", new Object[]{e.getParameterName()});
+                "facility.web.error.missing_parameter", new Object[]{e.getParameterName()});
         LogUtil.warn("缺少请求参数: {}, path={}", e.getParameterName(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
@@ -193,7 +193,7 @@ public abstract class AbstractGlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestPartException.class)
     public Object handleMissingServletRequestPartException(MissingServletRequestPartException e, WebRequest request) {
         String message = LocaleUtil.translateMessageWithArgs(
-                "error.missing_part", new Object[]{e.getRequestPartName()});
+                "facility.web.error.missing_part", new Object[]{e.getRequestPartName()});
         LogUtil.warn("缺少请求部分: {}, path={}", e.getRequestPartName(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
@@ -206,7 +206,7 @@ public abstract class AbstractGlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public Object handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e, WebRequest request) {
         String message = LocaleUtil.translateMessageWithArgs(
-                "error.method_not_supported", new Object[]{e.getMethod()});
+                "facility.web.error.method_not_supported", new Object[]{e.getMethod()});
         LogUtil.warn("请求方法不支持: {}, path={}", e.getMethod(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.METHOD_NOT_ALLOWED, request);
@@ -217,7 +217,7 @@ public abstract class AbstractGlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public Object handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException e, WebRequest request) {
         String message = LocaleUtil.translateMessageWithArgs(
-                "error.media_type_not_supported", new Object[]{e.getContentType()});
+                "facility.web.error.media_type_not_supported", new Object[]{e.getContentType()});
         LogUtil.warn("媒体类型不支持: {}, path={}", e.getContentType(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.UNSUPPORTED_MEDIA_TYPE, request);
@@ -233,7 +233,7 @@ public abstract class AbstractGlobalExceptionHandler {
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.PAYLOAD_TOO_LARGE, request);
         }
-        return buildResponse(400, LocaleUtil.translateMessage("error.multipart"), e);
+        return buildResponse(400, LocaleUtil.translateMessage("facility.web.error.multipart"), e);
     }
 
     // ==================== 兜底异常 ====================
@@ -244,7 +244,7 @@ public abstract class AbstractGlobalExceptionHandler {
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.INTERNAL_SERVER_ERROR, request);
         }
-        return buildResponse(500, LocaleUtil.translateMessage("error.system"), e);
+        return buildResponse(500, LocaleUtil.translateMessage("facility.web.error.system"), e);
     }
 
     // ==================== 可覆盖的工具方法 ====================

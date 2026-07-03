@@ -196,7 +196,7 @@ class GlobalExceptionHandlerTest {
 
             assertThat(response.getCode()).isEqualTo(405);
             // 无 Spring Context 时回退为 messageKey
-            assertThat(response.getMessage()).isEqualTo("error.method_not_supported");
+            assertThat(response.getMessage()).isEqualTo("facility.web.error.method_not_supported");
         }
     }
 
@@ -218,7 +218,7 @@ class GlobalExceptionHandlerTest {
 
             assertThat(response.getCode()).isEqualTo(500);
             // 无 Spring Context 时回退为 messageKey
-            assertThat(response.getMessage()).isEqualTo("error.system");
+            assertThat(response.getMessage()).isEqualTo("facility.web.error.system");
             assertThat(response.getData()).isNull();
         }
 
@@ -233,7 +233,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(500);
-            assertThat(response.getMessage()).isEqualTo("error.system");
+            assertThat(response.getMessage()).isEqualTo("facility.web.error.system");
         }
 
         @Test
@@ -247,7 +247,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(500);
-            assertThat(response.getMessage()).isEqualTo("error.system");
+            assertThat(response.getMessage()).isEqualTo("facility.web.error.system");
         }
     }
 
