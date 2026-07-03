@@ -45,7 +45,7 @@ public final class HttpFileResponses {
 
         String encodedFileName = UriUtils.encode(downloadName, StandardCharsets.UTF_8);
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+                "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
 
         try (InputStream in = new FileInputStream(file);
              ServletOutputStream out = response.getOutputStream()) {
@@ -94,7 +94,7 @@ public final class HttpFileResponses {
 
         String encodedFileName = UriUtils.encode(fileName, StandardCharsets.UTF_8);
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+                "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
 
         try (ServletOutputStream out = response.getOutputStream()) {
             out.write(data);

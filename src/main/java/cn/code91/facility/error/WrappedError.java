@@ -80,6 +80,7 @@ public final class WrappedError implements Serializable {
 
     /**
      * 创建包含错误类型、异常和参数的错误
+     * <p>args 语义见 {@link ErrorTypeInterface#format(Object...)}:内置 FacilityErrorType 模板无占位符时 args 不进格式化消息。</p>
      *
      * @param errorType 错误类型（不能为 null）
      * @param exception 异常对象（可以为 null）
@@ -114,6 +115,7 @@ public final class WrappedError implements Serializable {
 
     /**
      * 创建包含错误类型和参数的错误
+     * <p>args 语义见 {@link ErrorTypeInterface#format(Object...)}:内置 FacilityErrorType 模板无占位符时 args 不进格式化消息。</p>
      *
      * @param errorType 错误类型（不能为 null）
      * @param args      错误参数（可变参数）

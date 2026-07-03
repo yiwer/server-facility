@@ -62,6 +62,23 @@ class FilenamesTest {
     }
 
     @Test
+    void isDangerousExtension_serverScripts_returnsTrue() {
+        assertThat(Filenames.isDangerousExtension("a.jsp")).isTrue();
+        assertThat(Filenames.isDangerousExtension("x.jspx")).isTrue();
+        assertThat(Filenames.isDangerousExtension("y.php")).isTrue();
+        assertThat(Filenames.isDangerousExtension("z.phtml")).isTrue();
+        assertThat(Filenames.isDangerousExtension("w.asp")).isTrue();
+        assertThat(Filenames.isDangerousExtension("v.aspx")).isTrue();
+        assertThat(Filenames.isDangerousExtension("u.jsf")).isTrue();
+        assertThat(Filenames.isDangerousExtension("t.cgi")).isTrue();
+        assertThat(Filenames.isDangerousExtension("s.pl")).isTrue();
+        assertThat(Filenames.isDangerousExtension("r.py")).isTrue();
+        assertThat(Filenames.isDangerousExtension("q.rb")).isTrue();
+        assertThat(Filenames.isDangerousExtension("normal.txt")).isFalse();
+        assertThat(Filenames.isDangerousExtension("report.xlsx")).isFalse();
+    }
+
+    @Test
     void checkExtension_varargs_caseInsensitive() {
         assertThat(Filenames.checkExtension("a.PNG", "jpg", "png")).isTrue();
         assertThat(Filenames.checkExtension("a.gif", "jpg", "png")).isFalse();

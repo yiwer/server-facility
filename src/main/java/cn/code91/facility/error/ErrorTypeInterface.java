@@ -127,6 +127,9 @@ public interface ErrorTypeInterface {
      * 有参时用 {@link MessageFormat#format} 渲染；模板为 null 时返回 {@link #getMessageKey()}。
      * 需要本地化消息的场景在边界调用 locale 包的解析入口。
      * </p>
+     * <p>仅当 {@link #getDefaultMessage()} 含 MessageFormat 占位符时 args 才被注入;facility 内置
+     * {@link FacilityErrorType} 模板均无占位符,此时 args 被忽略(供日志/调试上下文与消费方自定义类型使用,
+     * 不进面向用户消息,见 ADR-0010)。</p>
      *
      * @param args 消息参数
      * @return 渲染后的消息

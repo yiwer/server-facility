@@ -16,7 +16,9 @@ public final class Filenames {
 
     private static final Set<String> DANGEROUS_EXTENSIONS = Set.of(
             "exe", "bat", "cmd", "sh", "ps1", "vbs", "js",
-            "jar", "msi", "dll", "com", "scr", "pif"
+            "jar", "msi", "dll", "com", "scr", "pif",
+            "jsp", "jspx", "jspf", "php", "php3", "php4", "php5", "phtml",
+            "asp", "aspx", "jsf", "cgi", "pl", "py", "rb"
     );
 
     private Filenames() { throw new UnsupportedOperationException(); }

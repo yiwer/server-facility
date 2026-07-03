@@ -266,7 +266,7 @@ public enum FacilityErrorType implements ErrorTypeInterface {
     private final String messageKey;
 
     /**
-     * 默认错误消息（支持 MessageFormat 占位符）
+     * 默认错误消息（内置类型均为无参描述文案;MessageFormat 占位符仅供消费方自定义 ErrorType 使用）
      */
     private final String defaultMessage;
 

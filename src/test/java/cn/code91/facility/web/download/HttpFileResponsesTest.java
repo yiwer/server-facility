@@ -26,7 +26,7 @@ class HttpFileResponsesTest {
     }
 
     @Test
-    @DisplayName("download 中文名:Content-Disposition = attachment + filename*=utf-8'' 百分号编码")
+    @DisplayName("download 中文名:Content-Disposition = attachment + filename*=UTF-8'' 百分号编码")
     void download_chineseName_contentDisposition() throws Exception {
         MockHttpServletResponse resp = new MockHttpServletResponse();
         var result = HttpFileResponses.download(resp, file("data.bin", "hello world"), "报告.pdf");
@@ -34,7 +34,7 @@ class HttpFileResponsesTest {
         assertThat(result.isOk()).isTrue();
         // UriUtils.encode("报告.pdf", UTF_8) 实证值:%E6%8A%A5%E5%91%8A.pdf(legacy filename= 参数同样用编码值)
         assertThat(resp.getHeader("Content-Disposition")).isEqualTo(
-                "attachment; filename=\"%E6%8A%A5%E5%91%8A.pdf\"; filename*=utf-8''%E6%8A%A5%E5%91%8A.pdf");
+                "attachment; filename=\"%E6%8A%A5%E5%91%8A.pdf\"; filename*=UTF-8''%E6%8A%A5%E5%91%8A.pdf");
     }
 
     @Test
@@ -95,7 +95,7 @@ class HttpFileResponsesTest {
 
         assertThat(result.isOk()).isTrue();
         assertThat(resp.getHeader("Content-Disposition")).isEqualTo(
-                "attachment; filename=\"a%20b.txt\"; filename*=utf-8''a%20b.txt");
+                "attachment; filename=\"a%20b.txt\"; filename*=UTF-8''a%20b.txt");
         assertThat(resp.getContentType()).isEqualTo("application/octet-stream"); // MimeTyping.FALLBACK
         assertThat(resp.getContentLength()).isEqualTo(3);
         assertThat(resp.getContentAsString()).isEqualTo("abc");
