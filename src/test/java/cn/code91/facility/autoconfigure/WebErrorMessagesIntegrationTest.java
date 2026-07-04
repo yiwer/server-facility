@@ -42,4 +42,13 @@ class WebErrorMessagesIntegrationTest {
                     .contains("userId");
         });
     }
+
+    @Test
+    void rateLimitedKey_resolvesInEn() {
+        runner.run(ctx -> {
+            MessageSource primary = ctx.getBean("messageSource", MessageSource.class);
+            assertThat(primary.getMessage("facility.web.error.rate_limited", null, Locale.ENGLISH))
+                    .isEqualTo("Too many requests");
+        });
+    }
 }
