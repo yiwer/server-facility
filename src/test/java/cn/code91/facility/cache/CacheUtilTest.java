@@ -107,6 +107,25 @@ class CacheUtilTest {
     }
 
     @Test
+    @DisplayName("CacheManager 存在但 cacheName 未配置(getCache 返 null)→ get 空、put/evict/clear no-op")
+    void cacheManagerPresent_butCacheNameAbsent_degradesGracefully() {
+        // ConcurrentMapCacheManager 固定 cache 名(禁动态创建),未知名 getCache 返 null → 命中 c==null 降级分支
+        ConcurrentMapCacheManager cm = new ConcurrentMapCacheManager("known");
+        cm.setCacheNames(java.util.List.of("known"));
+        GenericApplicationContext ctx = new GenericApplicationContext();
+        ctx.getBeanFactory().registerSingleton("cacheManager", cm);
+        ctx.refresh();
+        SpringContextHolder.setApplicationContextManually(ctx);
+
+        assertThat(CacheUtil.get("absent", "k", String.class)).isEmpty();
+        // put/evict/clear 对不存在的 cache 均 no-op,不抛异常
+        CacheUtil.put("absent", "k", "v");
+        CacheUtil.evict("absent", "k");
+        CacheUtil.clear("absent");
+        assertThat(CacheUtil.get("absent", "k", String.class)).isEmpty();
+    }
+
+    @Test
     @DisplayName("私有构造器不可实例化(工具类契约)")
     void privateConstructor_throws() throws Exception {
         var ctor = CacheUtil.class.getDeclaredConstructor();
