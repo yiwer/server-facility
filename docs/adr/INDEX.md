@@ -17,3 +17,5 @@
 | [0011](0011-logutil-setlevel-removal.md) | Accepted | 删除 LogUtil.setLevel,主源码零 logback 依赖 |
 | [0012](0012-logutil-slf4j-messageformatter.md) | Accepted | formatMessage 委托 SLF4J MessageFormatter(RV2-17 翻案) |
 | [0013](0013-properties-validation-constructor-guard.md) | Accepted | 配置属性不用 @Validated,构造器兜底(消费方无 provider 可启动) |
+| [0014](0014-ratelimit-token-bucket-seam.md) | Accepted | 限流令牌桶 + RateLimiter SPI(Seam 可替换),web 集成分离 web.ratelimit 避环 |
+| [0015](0015-cache-facade-cachemanager.md) | Accepted | 缓存 CacheUtil 门面复用 Spring CacheManager,Caffeine+spring-context-support 成对 optional |

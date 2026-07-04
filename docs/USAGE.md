@@ -9,6 +9,8 @@
 - [i18n:LocaleUtil](#i18nlocaleutil)
 - [异步:Async](#异步async)
 - [Web 簇](#web-簇)
+- [限流:RateLimiterUtil / @RateLimit](#限流ratelimiterutil--ratelimit)
+- [缓存:CacheUtil / @Cacheable](#缓存cacheutil--cacheable)
 - [装配开关全表](#装配开关全表)
 - [消费方须知](#消费方须知)
 - [optional 依赖矩阵](#optional-依赖矩阵)
@@ -148,6 +150,53 @@ CompletableFuture<Result<String, Throwable>> f = task.submit();   // 非阻塞
 - **会话**:`SessionUtil` / `SessionUserHolder`(ThreadLocal 当前用户,请求结束由 `SessionUserClearInterceptor` 清理)。
 - **工具**:`RequestUtil`(客户端 IP 等)、`ResponseUtil`(写 JSON / 下载头)、`CookieUtil`、`XssUtil`(jsoup allowlist)。
 
+## 限流:RateLimiterUtil / @RateLimit
+
+通用限流(`ratelimit` 包,令牌桶,零 web 依赖)+ web 集成(`web.ratelimit` 包,注解 + 拦截器)。
+
+```java
+// 编程式(任意场景,含非 web):无 RateLimiter bean 时降级放行 true
+if (RateLimiterUtil.tryAcquire("order:" + userId)) {
+    // 放行
+} else {
+    // 超限
+}
+RateLimitResult r = RateLimiterUtil.acquire("k", 1, 100, 10);  // 显式 cap=100/rate=10/s
+
+// 声明式(Spring MVC controller 方法):超限自动 429 + Retry-After
+@RateLimit(capacity = 20, permitsPerSecond = 5)   // key 空 = 类#方法#clientIp(按 IP 限流)
+@GetMapping("/api/report")
+public BaseResponse<Report> report() { ... }
+
+@RateLimit(key = "global-export", capacity = 2, permitsPerSecond = 0.5)  // 固定 key = 全局限流
+@GetMapping("/api/export")
+public BaseResponse<Void> export() { ... }
+```
+
+- **算法**:令牌桶(容量 + 每秒填充速率,允许突发);默认单机 `ConcurrentHashMap` 桶存储,`max-buckets` 防无界。
+- **SPI 替换**:声明自己的 `RateLimiter` bean(如 Redis 实现)即整体替换(`@ConditionalOnMissingBean`)。默认实现适合有界 key 集(IP/用户/接口);海量唯一 key 应经 SPI 注入 Caffeine/Redis 实现。
+- **降级**:无 `RateLimiter` bean 时 `RateLimiterUtil` 放行(限流不可用不阻断业务)。
+- **⚠ 安全(默认 IP 维度)**:空 `key()` 时按 `clientIp` 限流,IP 取自 `X-Forwarded-For` 头,**该头可被客户端伪造**。若服务可被公网直连(前面无覆写 XFF 的受信反代),攻击者可轮换伪造 IP **绕过**按 IP 限流,或伪造海量唯一 IP 顶到 `max-buckets` 触发桶集合清空、**抹掉合法用户限流状态**(放大攻击)。**公网直连服务请设显式 `key()`(如已认证用户 ID),或仅在前置受信反代覆写 XFF 的部署下依赖默认 IP 维度。**
+
+## 缓存:CacheUtil / @Cacheable
+
+```java
+// 编程门面(委托 Spring CacheManager;无 CacheManager 时优雅降级)
+Optional<User> u = CacheUtil.get("users", id, User.class);
+CacheUtil.put("users", id, user);
+CacheUtil.evict("users", id);
+User loaded = CacheUtil.getOrCompute("users", id, User.class, () -> userRepo.findById(id));  // 穿透便捷
+
+// Spring 注解(装配 CacheManager 后 + 消费方 @EnableCaching 即可用)
+@Cacheable("users")
+public User findById(Long id) { ... }
+```
+
+- **后端**:Caffeine 在 classpath → `CaffeineCacheManager`(`facility.cache.default-ttl` / `maximum-size` 生效);否则 `ConcurrentMapCacheManager`(无 TTL、无界)。
+- **TTL**:Spring 原生 `@Cacheable` 无 per-cache TTL;经 `CaffeineCacheManager` 全局 `expireAfterWrite` 实现。
+- **SPI 替换**:`CacheManager` 是 Spring 标准 SPI,声明 Redis `CacheManager` 即替换。
+- **降级**:无 `CacheManager` 时 `get` 返空、`getOrCompute` 直调 loader(缓存不可用不阻断业务)。
+
 ## 装配开关全表
 
 ```yaml
@@ -182,6 +231,15 @@ facility:
     exception:
       include-trace-profiles: [dev, test, local]   # 仅这些 profile 暴露堆栈摘要
       use-problem-detail: false                     # true = RFC 7807
+  ratelimit:
+    enabled: true
+    default-capacity: 100                # 令牌桶容量(未被 @RateLimit 覆盖时的默认)
+    default-permits-per-second: 10       # 每秒填充速率
+    max-buckets: 100000                  # 桶上限(防无界 key 增长,超限清空)
+  cache:
+    enabled: true
+    default-ttl: 10m                     # 仅 Caffeine 后端生效(expireAfterWrite)
+    maximum-size: 10000                  # 仅 Caffeine 后端生效
 ```
 
 ## 消费方须知
@@ -217,5 +275,6 @@ facility 把重依赖声明为 Maven `optional`,消费方按用到的能力自�
 | 全部 Web 簇(filter/interceptor/exception/response/session/download/argument/util) | `org.springframework:spring-web`、`spring-webmvc`、`jakarta.servlet:jakarta.servlet-api` |
 | `XssUtil`(HTML 清洗) | `org.jsoup:jsoup` |
 | `MimeTyping` / `SafeUpload` 的 MIME 魔数探测 | `org.apache.tika:tika-core` |
+| 缓存 TTL/maxSize(`CaffeineCacheManager`) | `com.github.ben-manes.caffeine:caffeine` **+** `org.springframework:spring-context-support`(**成对**——`CaffeineCacheManager` 在 context-support 而非 spring-context;缺任一则回退 `ConcurrentMapCacheManager`) |
 
 未引入对应 optional 依赖时,相关自动装配因 `@ConditionalOnClass` 不生效,不影响其余簇。

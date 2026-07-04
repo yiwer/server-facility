@@ -91,6 +91,8 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 | 0011 | 删除 `LogUtil.setLevel`,主源码零 logback 依赖 |
 | 0012 | `formatMessage` 委托 SLF4J `MessageFormatter` |
 | 0013 | 配置属性不用 `@Validated`,构造器兜底 |
+| 0014 | 限流令牌桶 + `RateLimiter` SPI(Seam),web 集成分离 `web.ratelimit` 避环 |
+| 0015 | 缓存 `CacheUtil` 门面复用 Spring `CacheManager`,Caffeine + spring-context-support 成对 optional |
 
 ## 6. 质量门
 

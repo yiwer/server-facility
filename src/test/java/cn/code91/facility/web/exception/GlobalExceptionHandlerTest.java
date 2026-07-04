@@ -1,6 +1,7 @@
 package cn.code91.facility.web.exception;
 
 import cn.code91.facility.error.ErrorTypeInterface;
+import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -740,6 +741,49 @@ class GlobalExceptionHandlerTest {
 
             assertThat(response.getCode()).isEqualTo(400);
             assertThat(response.getMessage()).isEqualTo("facility.web.error.multipart");
+        }
+    }
+
+    // ==================== RateLimitExceededException 测试(429) ====================
+
+    @Nested
+    @DisplayName("handleRateLimitExceeded - 处理限流超限异常(429)")
+    class HandleRateLimitExceededTests {
+
+        @Test
+        @DisplayName("默认包络：返回 ResponseEntity 429，Retry-After 头，body 为 BaseResponse code 429")
+        void handleRateLimitExceeded_returns429WithRetryAfter() {
+            RateLimitExceededException ex = new RateLimitExceededException("k", 3000);
+
+            Object responseObj = handler.handleRateLimitExceeded(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            ResponseEntity<?> re = (ResponseEntity<?>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(429);
+            assertThat(re.getHeaders().getFirst("Retry-After")).isEqualTo("3");
+            assertThat(re.getBody()).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> body = (BaseResponse<?>) re.getBody();
+            assertThat(body.getCode()).isEqualTo(429);
+        }
+
+        @Test
+        @DisplayName("useProblemDetail=true：返回 ProblemDetail，status=429，含 Retry-After 头")
+        void handleRateLimitExceeded_problemDetail() {
+            FacilityWebExceptionProperties props = new FacilityWebExceptionProperties();
+            props.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(props, new MockEnvironment());
+            RateLimitExceededException ex = new RateLimitExceededException("k", 3000);
+
+            Object responseObj = pdHandler.handleRateLimitExceeded(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            ResponseEntity<?> re = (ResponseEntity<?>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(429);
+            assertThat(re.getHeaders().getFirst("Retry-After")).isEqualTo("3");
+            assertThat(re.getBody()).isInstanceOf(ProblemDetail.class);
+            ProblemDetail pd = (ProblemDetail) re.getBody();
+            assertThat(pd.getTitle()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase());
         }
     }
 

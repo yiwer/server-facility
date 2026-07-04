@@ -2,6 +2,7 @@ package cn.code91.facility.web.exception;
 
 import cn.code91.facility.locale.LocaleUtil;
 import cn.code91.facility.log.LogUtil;
+import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -234,6 +235,32 @@ public abstract class AbstractGlobalExceptionHandler {
             return buildProblemDetail(e, HttpStatus.PAYLOAD_TOO_LARGE, request);
         }
         return buildResponse(400, LocaleUtil.translateMessage("facility.web.error.multipart"), e);
+    }
+
+    // ==================== 限流异常 ====================
+
+    /**
+     * <b>限流超限处理(429)</b>
+     * <p>处理 {@link RateLimitExceededException}(由 {@code RateLimitInterceptor}
+     * 在 {@code @RateLimit} 超限时抛出),返回 HTTP 429 并附带 {@code Retry-After} 头
+     * (单位:秒,至少 1 秒)。</p>
+     *
+     * @since phase-ratelimit
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public Object handleRateLimitExceeded(RateLimitExceededException e, WebRequest request) {
+        LogUtil.warn("限流触发: {}, retryAfter={}ms, path={}", e.getMessage(), e.getRetryAfterMillis(), getRequestURI(request));
+        long retryAfterSeconds = Math.max(1, e.getRetryAfterMillis() / 1000);
+        if (props.isUseProblemDetail()) {
+            ResponseEntity<ProblemDetail> pd = buildProblemDetail(e, HttpStatus.TOO_MANY_REQUESTS, request);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(retryAfterSeconds))
+                    .body(pd.getBody());
+        }
+        BaseResponse<Void> body = buildResponse(429, LocaleUtil.translateMessage("facility.web.error.rate_limited"), e);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(retryAfterSeconds))
+                .body(body);
     }
 
     // ==================== 兜底异常 ====================

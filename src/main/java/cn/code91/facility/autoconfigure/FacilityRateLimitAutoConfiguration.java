@@ -1,0 +1,60 @@
+package cn.code91.facility.autoconfigure;
+
+import cn.code91.facility.ratelimit.FacilityRateLimitProperties;
+import cn.code91.facility.ratelimit.RateLimiter;
+import cn.code91.facility.ratelimit.TokenBucketRateLimiter;
+import cn.code91.facility.web.ratelimit.RateLimitInterceptor;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+/**
+ * 限流自动装配(ADR-0014)。
+ * <p>
+ * {@code facilityRateLimiter}(SPI 默认实现)不带 web 条件——非 web 场景(批处理、
+ * 定时任务)可直接注入 {@link RateLimiter} 或经 {@code RateLimiterUtil} 编程式使用;
+ * {@link RateLimitInterceptor} 与其 {@link WebMvcConfigurer} 注册仅在 servlet 栈
+ * web 应用中装配。三个 bean 均 {@code @ConditionalOnMissingBean}——消费方声明同类型
+ * (或同名)bean 即可整体覆盖默认实现。
+ * </p>
+ *
+ * @author yvvb
+ * @since 1.0.0
+ */
+@AutoConfiguration
+@EnableConfigurationProperties(FacilityRateLimitProperties.class)
+@ConditionalOnProperty(prefix = "facility.ratelimit", name = "enabled", havingValue = "true", matchIfMissing = true)
+public class FacilityRateLimitAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean(RateLimiter.class)
+    public RateLimiter facilityRateLimiter(FacilityRateLimitProperties props) {
+        return new TokenBucketRateLimiter(
+                props.getDefaultCapacity(), props.getDefaultPermitsPerSecond(), props.getMaxBuckets());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    public RateLimitInterceptor rateLimitInterceptor(RateLimiter rateLimiter, FacilityRateLimitProperties props) {
+        return new RateLimitInterceptor(rateLimiter, props.getDefaultCapacity(), props.getDefaultPermitsPerSecond());
+    }
+
+    @Bean("facilityRateLimitWebMvcConfigurer")
+    @ConditionalOnMissingBean(name = "facilityRateLimitWebMvcConfigurer")
+    @ConditionalOnBean(RateLimitInterceptor.class)
+    public WebMvcConfigurer facilityRateLimitWebMvcConfigurer(RateLimitInterceptor interceptor) {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addInterceptors(InterceptorRegistry registry) {
+                registry.addInterceptor(interceptor);
+            }
+        };
+    }
+}

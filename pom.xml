@@ -153,6 +153,20 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- ===== 缓存簇所需 ===== -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- CaffeineCacheManager 位于 spring-context-support(非 spring-context)——与 caffeine 成对 optional,
+             缺其一时 caffeineCacheManager 装配条件不满足,回退 concurrentMapCacheManager(ADR-0015) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- ===== test ===== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
