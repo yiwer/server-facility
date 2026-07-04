@@ -1,4 +1,6 @@
-package cn.code91.facility.ratelimit;
+package cn.code91.facility.web.ratelimit;
+
+import cn.code91.facility.ratelimit.TokenBucketRateLimiter;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

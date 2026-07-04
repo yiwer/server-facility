@@ -1,4 +1,4 @@
-package cn.code91.facility.ratelimit;
+package cn.code91.facility.web.ratelimit;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

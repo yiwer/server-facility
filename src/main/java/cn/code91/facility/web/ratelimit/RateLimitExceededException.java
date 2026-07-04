@@ -1,4 +1,4 @@
-package cn.code91.facility.ratelimit;
+package cn.code91.facility.web.ratelimit;
 
 /**
  * <b>限流超限异常</b>

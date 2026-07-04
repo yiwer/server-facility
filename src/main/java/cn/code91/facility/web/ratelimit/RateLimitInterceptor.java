@@ -1,5 +1,7 @@
-package cn.code91.facility.ratelimit;
+package cn.code91.facility.web.ratelimit;
 
+import cn.code91.facility.ratelimit.RateLimitResult;
+import cn.code91.facility.ratelimit.RateLimiter;
 import cn.code91.facility.web.util.RequestUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
