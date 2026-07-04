@@ -68,6 +68,9 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `locale` | `LocaleUtil` | i18n 消息翻译 + 聚合 MessageSource |
 | `async` | `Async<T>` | 惰性异步计算,结果落 `Result`;虚拟线程默认执行器 |
 | `web.*` | filter / interceptor / exception / session / response / argument / util / download / upload | Servlet 栈:traceId、可重复读请求体、访问日志、全局异常、统一响应、安全上传下载、XSS(optional:jsoup) |
+| `ratelimit` | `RateLimiterUtil` / `RateLimiter`(SPI) | 令牌桶限流:纯 JDK 默认实现 + SPI 可替换(Redis);编程门面 + 无 bean 降级放行 |
+| `web.ratelimit` | `@RateLimit` | 方法级声明式限流(拦截器);超限 429 + `Retry-After` |
+| `cache` | `CacheUtil` | 缓存门面委托 Spring `CacheManager`;`@Cacheable` 自然可用;Caffeine optional 支持 TTL/maxSize |
 
 ## 装配开关
 
@@ -81,6 +84,8 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `facility.web.access-log` | 访问日志拦截器:`log-headers` / `slow-threshold-millis` |
 | `facility.web.cors` | CORS:`allowed-origins`(默认空 = 不开)/ `allowed-methods` / `allow-credentials` |
 | `facility.web.exception` | 全局异常:`include-trace-profiles` / `use-problem-detail`(RFC 7807) |
+| `facility.ratelimit` | 限流:`default-capacity` / `default-permits-per-second` / `max-buckets` |
+| `facility.cache` | 缓存:`default-ttl` / `maximum-size`(仅 Caffeine 后端生效) |
 
 ## 文档
 

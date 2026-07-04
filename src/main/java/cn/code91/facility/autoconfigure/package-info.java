@@ -1,16 +1,17 @@
 /**
  * <h2>cn.code91.facility.autoconfigure</h2>
  *
- * <p><b>Purpose:</b> Spring Boot 3 {@code @AutoConfiguration} composition root — the six
+ * <p><b>Purpose:</b> Spring Boot 3 {@code @AutoConfiguration} composition root — the eight
  * entry points that wire facility beans into a host application without an explicit
- * {@code @Import}: Core, Id, Json, Locale, Async, Web. Discovered via
+ * {@code @Import}: Core, Id, Json, Locale, Async, Web, RateLimit, Cache. Discovered via
  * {@code META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports}
- * (six lines, one fully-qualified class name each).</p>
+ * (eight lines, one fully-qualified class name each).</p>
  *
  * <p><b>Entry classes:</b> {@code FacilityCoreAutoConfiguration},
  * {@code FacilityIdAutoConfiguration}, {@code FacilityJsonAutoConfiguration},
  * {@code FacilityLocaleAutoConfiguration}, {@code FacilityAsyncAutoConfiguration},
- * {@code FacilityWebAutoConfiguration}.</p>
+ * {@code FacilityWebAutoConfiguration}, {@code FacilityRateLimitAutoConfiguration},
+ * {@code FacilityCacheAutoConfiguration}.</p>
  *
  * <p><b>Every bean defers to the host application:</b> nearly all beans here are guarded by
  * {@code @ConditionalOnMissingBean}, by type ({@code SnowIdGenerator}, {@code JsonsRegistry})
@@ -29,13 +30,25 @@
  * {@code @ConfigurationProperties} class this layer enables lives beside its component
  * consumer instead of in a sibling configuration package: {@code FacilityIdProperties} in
  * {@code id}; the five web properties split across {@code web}, {@code web.filter},
- * {@code web.interceptor}, and {@code web.exception} per their own consumers. This package
- * imports each of them from its component's home — it declares none of its own.</p>
+ * {@code web.interceptor}, and {@code web.exception} per their own consumers, plus
+ * {@code FacilityRateLimitProperties} in {@code ratelimit} and {@code FacilityCacheProperties}
+ * in {@code cache}. This package imports each of them from its component's home — it declares
+ * none of its own.</p>
+ *
+ * <p><b>RateLimit and Cache assembly:</b> {@code FacilityRateLimitAutoConfiguration} registers a
+ * {@code RateLimiter} (default {@code TokenBucketRateLimiter}) with no web condition — usable
+ * from non-web contexts via {@code RateLimiterUtil} — and gates the {@code RateLimitInterceptor}
+ * plus its {@code WebMvcConfigurer} behind {@code @ConditionalOnWebApplication(SERVLET)}.
+ * {@code FacilityCacheAutoConfiguration} registers a {@code CacheManager} via two mutually
+ * exclusive beans: {@code CaffeineCacheManager} when Caffeine is on the classpath (TTL/maxSize
+ * from properties), else {@code ConcurrentMapCacheManager} — both {@code @ConditionalOnMissingBean}.</p>
  *
  * <p><b>Depends on:</b> {@code context}, {@code log} (Core — {@code SpringContextHolder},
  * {@code LogPostHandlerComposite}); {@code id} (Id); {@code json} (Json); {@code locale}
  * (Locale — {@code AggregatedMessageSource}); {@code web}, {@code web.filter},
- * {@code web.interceptor}, {@code web.exception} (Web). {@code FacilityAsyncAutoConfiguration}
+ * {@code web.interceptor}, {@code web.exception} (Web); {@code ratelimit},
+ * {@code web.ratelimit} (RateLimit — {@code RateLimiter}/{@code RateLimitInterceptor});
+ * {@code cache} (Cache — {@code CacheManager} factory). {@code FacilityAsyncAutoConfiguration}
  * depends on none of facility's own packages: it registers a bare JDK
  * {@code java.util.concurrent.Executor} for the host to discover, independent of the
  * {@code async} package's {@code Async} facade, which takes its executor through explicit
