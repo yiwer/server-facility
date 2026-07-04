@@ -74,7 +74,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 5. ADR 索引
 
-13 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+18 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
 
 | ADR | 决策 |
 |---|---|
@@ -99,8 +99,8 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 6. 质量门
 
-- **测试**:775 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
-- **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.80、BRANCH ≥0.65
-  (实测 82.3% / 81.9% / 69.8%),达标即门,退化即红。
+- **测试**:1024 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
+  (实测约 92% / 92% / 84%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
