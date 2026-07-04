@@ -47,6 +47,7 @@ import java.util.Optional;
 public class IdempotencyInterceptor implements HandlerInterceptor {
 
     private static final String ATTR_KEY = "facility.idempotency.key";
+    private static final String ATTR_TTL = "facility.idempotency.ttl";
 
     private final IdempotencyStore store;
     private final long defaultTtlMillis;
@@ -91,6 +92,7 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
             return false;
         }
         request.setAttribute(ATTR_KEY, key);
+        request.setAttribute(ATTR_TTL, ttl);   // afterCompletion 写 DONE 记录时复用同一 ttl(含 @Idempotent.ttlSeconds 覆盖)
         return true;
     }
 
@@ -106,8 +108,9 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         }
         if (response instanceof ContentCachingResponseWrapper wrapper) {
             byte[] body = wrapper.getContentAsByteArray();
+            long ttl = (long) request.getAttribute(ATTR_TTL);   // 与 preHandle 占位同一 ttl,尊重 @Idempotent.ttlSeconds
             store.complete(key, IdempotencyRecord.done(wrapper.getStatus(), wrapper.getContentType(), body,
-                    System.currentTimeMillis() + defaultTtlMillis));
+                    System.currentTimeMillis() + ttl));
         }
     }
 

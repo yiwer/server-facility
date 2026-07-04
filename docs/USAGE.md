@@ -300,8 +300,7 @@ facility:
     maximum-size: 10000                  # 仅 Caffeine 后端生效
   lock:
     enabled: true
-    max-locks: 100000                    # 锁上限(防无界 key 增长)
-    default-lease: 30s                   # 默认租约(单机=tryLock 等待超时)
+    max-locks: 100000                    # 锁上限(防无界 key 增长);租约时长由各 executeWithLock/tryLock 调用显式传入
   http:
     connect-timeout: 5s                  # RestClient 连接超时
     read-timeout: 10s                    # RestClient 读超时

@@ -4,8 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.time.Duration;
-
 /**
  * {@link FacilityLockAutoConfiguration 分布式锁自动装配} 默认参数。
  * <p>
@@ -31,10 +29,4 @@ public class FacilityLockProperties {
      * (声明性约束:&gt;0;绑定不校验——ADR-0013)
      */
     private int maxLocks = 100_000;
-
-    /**
-     * 编程式/声明式调用未显式指定租约时长时使用的默认值。默认 30 秒。
-     * (声明性约束:&gt;0;绑定不校验——ADR-0013)
-     */
-    private Duration defaultLease = Duration.ofSeconds(30);
 }

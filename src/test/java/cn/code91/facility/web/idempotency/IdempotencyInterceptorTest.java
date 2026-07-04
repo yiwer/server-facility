@@ -28,6 +28,10 @@ class IdempotencyInterceptorTest {
         public void annotated() {
         }
 
+        @Idempotent(ttlSeconds = 3600)
+        public void annotatedLongTtl() {
+        }
+
         public void notAnnotated() {
         }
     }
@@ -174,6 +178,27 @@ class IdempotencyInterceptorTest {
         assertThat(found).isPresent();
         assertThat(found.get().state()).isEqualTo(IdempotencyRecord.State.DONE);
         assertThat(found.get().body()).isEqualTo("result".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    @DisplayName("afterCompletion 写 DONE 记录用 @Idempotent.ttlSeconds 覆盖 defaultTtl(Critical-1 回归)")
+    void afterCompletion_usesAnnotationTtl_notDefault() throws Exception {
+        InMemoryIdempotencyStore store = new InMemoryIdempotencyStore(1000);
+        IdempotencyInterceptor interceptor = new IdempotencyInterceptor(store, 50);   // defaultTtl 极小 50ms
+        HandlerMethod hm = handlerMethodFor("annotatedLongTtl");                        // @Idempotent(ttlSeconds=3600)
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Idempotency-Key", "key-ttl");
+        ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(new MockHttpServletResponse());
+
+        assertThat(interceptor.preHandle(request, wrapper, hm)).isTrue();
+        wrapper.setStatus(200);
+        wrapper.getOutputStream().write("paid".getBytes(StandardCharsets.UTF_8));
+        interceptor.afterCompletion(request, wrapper, hm, null);
+
+        Thread.sleep(120);   // 远超 defaultTtl(50ms),远小于注解 ttl(3600s)
+        Optional<IdempotencyRecord> found = store.find("key-ttl");
+        assertThat(found).as("DONE 记录应按注解 ttl(1h)存活,而非 defaultTtl(50ms)——bug 未修则此处已过期").isPresent();
+        assertThat(found.get().state()).isEqualTo(IdempotencyRecord.State.DONE);
     }
 
     @Test

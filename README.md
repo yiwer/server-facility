@@ -6,7 +6,7 @@
 
 - **坐标**:`cn.code91:server-facility:0.1.0-SNAPSHOT`
 - **要求**:Java 21+、Spring Boot 3.5.x(依赖版本经 `spring-boot-dependencies` BOM 收敛)
-- **测试**:775 项(含 4 条 ArchUnit 架构守护);行覆盖率 81.9%,JaCoCo check gate ≥0.80
+- **测试**:1024 项(含 4 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
 
 ## 引入
 
@@ -18,7 +18,7 @@
 </dependency>
 ```
 
-放到 classpath 即通过 Spring Boot 自动装配生效(6 个 `@AutoConfiguration`)。核心 bean(`messageSource`、异步执行器、全局异常处理器等)`@ConditionalOnMissingBean` 兜底,你声明的同类 bean 优先;Web 过滤器/拦截器则由 `facility.web.*` 开关控制(见[装配开关](#装配开关),非靠竞争 bean 覆盖)。Web / XSS / MIME 探测等能力依赖 optional 依赖,按需自行引入(见 [USAGE](docs/USAGE.md#optional-依赖矩阵))。
+放到 classpath 即通过 Spring Boot 自动装配生效(11 个 `@AutoConfiguration`)。核心 bean(`messageSource`、异步执行器、全局异常处理器等)`@ConditionalOnMissingBean` 兜底,你声明的同类 bean 优先;Web 过滤器/拦截器则由 `facility.web.*` 开关控制(见[装配开关](#装配开关),非靠竞争 bean 覆盖)。Web / XSS / MIME 探测等能力依赖 optional 依赖,按需自行引入(见 [USAGE](docs/USAGE.md#optional-依赖矩阵))。
 
 ## 5 分钟上手
 
@@ -90,7 +90,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `facility.web.exception` | 全局异常:`include-trace-profiles` / `use-problem-detail`(RFC 7807) |
 | `facility.ratelimit` | 限流:`default-capacity` / `default-permits-per-second` / `max-buckets` |
 | `facility.cache` | 缓存:`default-ttl` / `maximum-size`(仅 Caffeine 后端生效) |
-| `facility.lock` | 分布式锁:`max-locks` / `default-lease` |
+| `facility.lock` | 分布式锁:`max-locks`(锁集合无界防护上限) |
 | `facility.http` | HTTP client:`connect-timeout` / `read-timeout` |
 | `facility.idempotency` | 幂等:`default-ttl` / `max-entries` |
 
@@ -98,6 +98,6 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 - **[USAGE](docs/USAGE.md)** —— 各门面用法、装配开关全表、消费方须知(i18n 抢注模型、JsonUtil 单例语义、optional 依赖矩阵)
 - **[DESIGN](docs/DESIGN.md)** —— deep module 哲学、包簇依赖地图、三组断环 C1/C2/C3、装配范式
-- **[ADR 索引](docs/adr/INDEX.md)** —— 13 条架构决策记录
+- **[ADR 索引](docs/adr/INDEX.md)** —— 18 条架构决策记录
 - **[设计规格](docs/superpowers/specs/2026-07-02-server-facility-migration-design.md)** —— 迁移工程 spec
 - **[域术语](CONTEXT.md)**

@@ -22,7 +22,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 20 个顶层功能子包按责任聚类(另有 `id.support`/`json.support`/`web.*` 等下层子包),依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
 
 ```
-              autoconfigure  ← Spring Boot 装配入口(6 个 @AutoConfiguration)
+              autoconfigure  ← Spring Boot 装配入口(11 个 @AutoConfiguration)
                    │  依赖各组件包,自身不被任何主包依赖(ArchUnit 守护)
    ┌───────────────┼─────────────────────────────────────────┐
  web.*           async        json / copy / date / number / …  ← 组件层
@@ -56,8 +56,8 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 4. 自动装配范式
 
-6 个 `@AutoConfiguration` 经 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-注册:`Core`、`Id`、`Json`、`Locale`、`Async`、`Web`。共同约定:
+11 个 `@AutoConfiguration` 经 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+注册:`Core`、`Id`、`Json`、`Locale`、`Async`、`Web`、`RateLimit`、`Cache`、`Lock`、`Http`、`Idempotency`。共同约定:
 
 - **兜底不抢占**:每个 bean `@ConditionalOnMissingBean`(按类型或名称),消费方声明的同名/
   同类型 bean 永远优先。
