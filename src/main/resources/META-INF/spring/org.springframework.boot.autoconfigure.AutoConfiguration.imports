@@ -8,3 +8,4 @@ cn.code91.facility.autoconfigure.FacilityRateLimitAutoConfiguration
 cn.code91.facility.autoconfigure.FacilityCacheAutoConfiguration
 cn.code91.facility.autoconfigure.FacilityLockAutoConfiguration
 cn.code91.facility.autoconfigure.FacilityHttpAutoConfiguration
+cn.code91.facility.autoconfigure.FacilityIdempotencyAutoConfiguration
