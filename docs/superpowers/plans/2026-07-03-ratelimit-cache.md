@@ -17,7 +17,9 @@
 
 ---
 
-## 簇 A:限流 ratelimit(包 `cn.code91.facility.ratelimit`)
+> **架构勘误(实施中,commit 8eae58a)**:ArchUnit slice 按顶层子包 `facility.(*)..` 聚合,`web.*` 全归 `web` slice。若限流全放 `ratelimit` 包,拦截器 `ratelimit→web.util`(IP)加 handler `web.exception→ratelimit`(异常)会成 `web↔ratelimit` 环。**修正(关注点分离)**:通用限流(`RateLimiter` SPI / `RateLimitResult` / `TokenBucket` / `TokenBucketRateLimiter` / `RateLimiterUtil`)留 `ratelimit` 包(零 web 依赖,可非 web 复用);web 集成(`@RateLimit` 注解 / `RateLimitInterceptor` / `RateLimitExceededException`)移 **`cn.code91.facility.web.ratelimit`** 子包。下文 A3/A4/A5 中 `RateLimitInterceptor`/`RateLimitExceededException`/`@RateLimit` 的包路径均以 `web.ratelimit` 为准;`web.exception→web.ratelimit`(异常)属 web slice 内部,不构成跨 slice 环。
+
+## 簇 A:限流 ratelimit(通用 `cn.code91.facility.ratelimit` + web 集成 `cn.code91.facility.web.ratelimit`)
 
 ### Task A1:RateLimiter SPI + TokenBucket 算法 + TokenBucketRateLimiter 默认实现
 
