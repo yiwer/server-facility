@@ -22,7 +22,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 20 个顶层功能子包按责任聚类(另有 `id.support`/`json.support`/`web.*` 等下层子包),依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
 
 ```
-              autoconfigure  ← Spring Boot 装配入口(6 个 @AutoConfiguration)
+              autoconfigure  ← Spring Boot 装配入口(11 个 @AutoConfiguration)
                    │  依赖各组件包,自身不被任何主包依赖(ArchUnit 守护)
    ┌───────────────┼─────────────────────────────────────────┐
  web.*           async        json / copy / date / number / …  ← 组件层
@@ -56,8 +56,8 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 4. 自动装配范式
 
-6 个 `@AutoConfiguration` 经 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-注册:`Core`、`Id`、`Json`、`Locale`、`Async`、`Web`。共同约定:
+11 个 `@AutoConfiguration` 经 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+注册:`Core`、`Id`、`Json`、`Locale`、`Async`、`Web`、`RateLimit`、`Cache`、`Lock`、`Http`、`Idempotency`。共同约定:
 
 - **兜底不抢占**:每个 bean `@ConditionalOnMissingBean`(按类型或名称),消费方声明的同名/
   同类型 bean 永远优先。
@@ -74,7 +74,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 5. ADR 索引
 
-13 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+18 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
 
 | ADR | 决策 |
 |---|---|
@@ -93,11 +93,14 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 | 0013 | 配置属性不用 `@Validated`,构造器兜底 |
 | 0014 | 限流令牌桶 + `RateLimiter` SPI(Seam),web 集成分离 `web.ratelimit` 避环 |
 | 0015 | 缓存 `CacheUtil` 门面复用 Spring `CacheManager`,Caffeine + spring-context-support 成对 optional |
+| 0016 | 分布式锁 `DistributedLock` SPI + 单机 `InMemory`,real seam Redisson 升级示范 |
+| 0017 | 完整幂等(同 key 返首次响应)+ 响应捕获,通用/web 分离避环 |
+| 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
 
 ## 6. 质量门
 
-- **测试**:775 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
-- **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.80、BRANCH ≥0.65
-  (实测 82.3% / 81.9% / 69.8%),达标即门,退化即红。
+- **测试**:1024 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
+  (实测约 92% / 92% / 84%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。

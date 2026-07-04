@@ -146,6 +146,15 @@ public enum FacilityErrorType implements ErrorTypeInterface {
             "期望的响应类型不能为空"
     ),
 
+    /**
+     * HTTP 请求返回错误状态
+     */
+    HTTP_STATUS_ERROR(
+            500304,
+            "facility.http.status_error",
+            "HTTP 请求返回错误状态"
+    ),
+
     // ==================== Web相关错误 (500500-500599) ====================
 
     /**

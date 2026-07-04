@@ -19,3 +19,6 @@
 | [0013](0013-properties-validation-constructor-guard.md) | Accepted | 配置属性不用 @Validated,构造器兜底(消费方无 provider 可启动) |
 | [0014](0014-ratelimit-token-bucket-seam.md) | Accepted | 限流令牌桶 + RateLimiter SPI(Seam 可替换),web 集成分离 web.ratelimit 避环 |
 | [0015](0015-cache-facade-cachemanager.md) | Accepted | 缓存 CacheUtil 门面复用 Spring CacheManager,Caffeine+spring-context-support 成对 optional |
+| [0016](0016-distributed-lock-seam.md) | Accepted | 分布式锁 DistributedLock SPI + 默认单机 InMemory,real seam 升级 Redisson 示范 |
+| [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted | 完整幂等(同 key 返首次响应),Filter 捕获响应 + 拦截器状态机,通用/web 分离 |
+| [0018](0018-http-client-restclient-result.md) | Accepted | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |

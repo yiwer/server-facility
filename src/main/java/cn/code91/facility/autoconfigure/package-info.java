@@ -1,17 +1,26 @@
 /**
  * <h2>cn.code91.facility.autoconfigure</h2>
  *
- * <p><b>Purpose:</b> Spring Boot 3 {@code @AutoConfiguration} composition root — the eight
+ * <p><b>Purpose:</b> Spring Boot 3 {@code @AutoConfiguration} composition root — the eleven
  * entry points that wire facility beans into a host application without an explicit
- * {@code @Import}: Core, Id, Json, Locale, Async, Web, RateLimit, Cache. Discovered via
- * {@code META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports}
- * (eight lines, one fully-qualified class name each).</p>
+ * {@code @Import}: Core, Id, Json, Locale, Async, Web, RateLimit, Cache, Lock, Http, Idempotency.
+ * Discovered via {@code META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports}
+ * (eleven lines, one fully-qualified class name each).</p>
  *
  * <p><b>Entry classes:</b> {@code FacilityCoreAutoConfiguration},
  * {@code FacilityIdAutoConfiguration}, {@code FacilityJsonAutoConfiguration},
  * {@code FacilityLocaleAutoConfiguration}, {@code FacilityAsyncAutoConfiguration},
  * {@code FacilityWebAutoConfiguration}, {@code FacilityRateLimitAutoConfiguration},
- * {@code FacilityCacheAutoConfiguration}.</p>
+ * {@code FacilityCacheAutoConfiguration}, {@code FacilityLockAutoConfiguration},
+ * {@code FacilityHttpAutoConfiguration}, {@code FacilityIdempotencyAutoConfiguration}.</p>
+ *
+ * <p><b>Lock / Http / Idempotency assembly:</b> {@code FacilityLockAutoConfiguration} registers a
+ * {@code DistributedLock} (default {@code InMemoryDistributedLock}) with no web condition — usable
+ * from non-web contexts via {@code LockUtil}. {@code FacilityHttpAutoConfiguration} registers a
+ * timeout-configured {@code RestClient} (gated on {@code RestClient} being on the classpath) for
+ * {@code HttpClients} to delegate to. {@code FacilityIdempotencyAutoConfiguration} registers an
+ * {@code IdempotencyStore} (no web condition) plus the {@code IdempotencyInterceptor} and
+ * {@code IdempotencyFilter} behind {@code @ConditionalOnWebApplication(SERVLET)}.</p>
  *
  * <p><b>Every bean defers to the host application:</b> nearly all beans here are guarded by
  * {@code @ConditionalOnMissingBean}, by type ({@code SnowIdGenerator}, {@code JsonsRegistry})
