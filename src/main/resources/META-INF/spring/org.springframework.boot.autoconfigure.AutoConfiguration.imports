@@ -5,3 +5,4 @@ cn.code91.facility.autoconfigure.FacilityLocaleAutoConfiguration
 cn.code91.facility.autoconfigure.FacilityAsyncAutoConfiguration
 cn.code91.facility.autoconfigure.FacilityWebAutoConfiguration
 cn.code91.facility.autoconfigure.FacilityRateLimitAutoConfiguration
+cn.code91.facility.autoconfigure.FacilityCacheAutoConfiguration
