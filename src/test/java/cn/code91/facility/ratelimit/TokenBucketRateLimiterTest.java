@@ -113,4 +113,14 @@ class TokenBucketRateLimiterTest {
         assertThat(second.allowed()).isFalse();
         assertThat(second.retryAfterMillis()).isGreaterThan(0);
     }
+
+    @Test
+    @DisplayName("public clear() 清空所有桶，key 重建为满桶")
+    void clear_resetsAllBuckets() {
+        TokenBucketRateLimiter limiter = new TokenBucketRateLimiter(1, 0.0001, 10);
+        assertThat(limiter.tryAcquire("k")).isTrue();    // 建桶并耗尽
+        assertThat(limiter.tryAcquire("k")).isFalse();   // 耗尽(rate 极小,窗口内不 refill)
+        limiter.clear();                                 // public clear()
+        assertThat(limiter.tryAcquire("k")).isTrue();    // 清空后 k 重建为满桶
+    }
 }
