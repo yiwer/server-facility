@@ -22,6 +22,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * （{@code FacilityRateLimitAutoConfiguration}）从 {@code FacilityRateLimitProperties}
  * 取值后传入这两个默认值。
  * </p>
+ * <p>
+ * <b>安全警告</b>：空 {@link RateLimit#key()} 时 key 含 {@code RequestUtil.getClientIp}，其取自
+ * 可伪造的 {@code X-Forwarded-For}。公网直连服务（无覆写 XFF 的受信反代）默认 IP 维度限流可被
+ * 轮换伪造 IP 绕过,或被伪造海量 IP 顶爆 {@code max-buckets} 放大——见 {@link RateLimit#key()}。
+ * </p>
  *
  * @author yvvb
  * @see RateLimit

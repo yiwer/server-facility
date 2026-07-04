@@ -23,6 +23,14 @@
  * ({@code web.ratelimit}→{@code web.util} and {@code web.exception}→{@code web.ratelimit}),
  * so the top-level slice graph stays acyclic (architecture erratum, commit 8eae58a).</p>
  *
+ * <p><b>Security (default IP key):</b> the blank-{@code key()} default embeds {@code clientIp}
+ * from {@code RequestUtil.getClientIp}, which trusts the spoofable {@code X-Forwarded-For}
+ * header. On a publicly-reachable service without a trusted reverse proxy that overwrites XFF,
+ * the default IP-dimension limit can be bypassed by rotating forged IPs, or amplified by forging
+ * many unique IPs to overflow {@code max-buckets} and trigger a full bucket clear (wiping all
+ * legitimate limit state). Set an explicit {@code @RateLimit.key()} (e.g. authenticated user id)
+ * for public services, or rely on the default only behind a trusted XFF-overwriting proxy.</p>
+ *
  * <p><b>Depends on:</b> {@code ratelimit} ({@code RateLimiter} SPI, {@code RateLimitResult}),
  * {@code web.util} ({@code RequestUtil.getClientIp} for the default key), spring-webmvc
  * ({@code HandlerInterceptor}, {@code HandlerMethod}).</p>

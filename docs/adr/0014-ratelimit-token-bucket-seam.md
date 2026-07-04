@@ -48,6 +48,14 @@ server-facility 定位为通用组件库,消费方既有单机部署也有多实
    在 `ratelimit`/`web` 这对顶层 slice 之间成环。拆分后两条边分别改写为
    `web.ratelimit→web.util` 与 `web.exception→web.ratelimit`,都落在 `web` slice
    **内部**,不再跨顶层 slice,`packages_are_cycle_free` 保持绿。
+6. **默认 IP key 的受信代理假设(安全边界)**:`@RateLimit` 空 `key()` 时按 `类#方法#clientIp`
+   限流,`clientIp` 取自 `RequestUtil.getClientIp`——它信任 `X-Forwarded-For` 头,而该头**可被
+   客户端伪造**。因此默认 IP 维度限流**仅在前置受信反向代理覆写 XFF 的部署下可靠**。公网直连服务
+   若依赖默认 IP key,存在两个后果:①**绕过**——攻击者轮换伪造 IP,每个伪造 IP 获得独立满桶;
+   ②**放大**——伪造海量唯一 IP 顶到 `maxBuckets` 触发决策 4 的 `clear()`,抹掉所有合法用户的限流
+   状态,且可重复。缓解:公网服务设显式 `key()`(如已认证用户 ID),或经 SPI 注入受信代理感知的 key
+   策略。此边界已在 `@RateLimit.key()` / `RateLimitInterceptor` / `web.ratelimit` package-info /
+   USAGE 限流节标注。
 
 ## 备选(否决)
 
