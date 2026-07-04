@@ -71,6 +71,10 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `ratelimit` | `RateLimiterUtil` / `RateLimiter`(SPI) | 令牌桶限流:纯 JDK 默认实现 + SPI 可替换(Redis);编程门面 + 无 bean 降级放行 |
 | `web.ratelimit` | `@RateLimit` | 方法级声明式限流(拦截器);超限 429 + `Retry-After` |
 | `cache` | `CacheUtil` | 缓存门面委托 Spring `CacheManager`;`@Cacheable` 自然可用;Caffeine optional 支持 TTL/maxSize |
+| `lock` | `LockUtil` / `DistributedLock`(SPI) | 分布式锁:高阶 `executeWithLock` 自动获取释放 + `tryLock`/`unlock`;默认单机 ReentrantLock,SPI 可替换 Redisson |
+| `http` | `HttpClients` | HTTP client 门面:委托 RestClient,`get`/`post`/`put`/`delete`→`Result`;超时可配 |
+| `idempotency` | `IdempotencyStore`(SPI) | 幂等存储:PROCESSING/DONE 状态机 + TTL,默认内存,SPI 可替换 Redis |
+| `web.idempotency` | `@Idempotent` | 完整幂等:同 key 返首次响应,拦截器 + Filter 捕获响应,PROCESSING→409 |
 
 ## 装配开关
 
@@ -86,6 +90,9 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `facility.web.exception` | 全局异常:`include-trace-profiles` / `use-problem-detail`(RFC 7807) |
 | `facility.ratelimit` | 限流:`default-capacity` / `default-permits-per-second` / `max-buckets` |
 | `facility.cache` | 缓存:`default-ttl` / `maximum-size`(仅 Caffeine 后端生效) |
+| `facility.lock` | 分布式锁:`max-locks` / `default-lease` |
+| `facility.http` | HTTP client:`connect-timeout` / `read-timeout` |
+| `facility.idempotency` | 幂等:`default-ttl` / `max-entries` |
 
 ## 文档
 

@@ -11,6 +11,9 @@
 - [Web 簇](#web-簇)
 - [限流:RateLimiterUtil / @RateLimit](#限流ratelimiterutil--ratelimit)
 - [缓存:CacheUtil / @Cacheable](#缓存cacheutil--cacheable)
+- [分布式锁:LockUtil](#分布式锁lockutil)
+- [HTTP client:HttpClients](#http-clienthttpclients)
+- [幂等:@Idempotent](#幂等idempotent)
 - [装配开关全表](#装配开关全表)
 - [消费方须知](#消费方须知)
 - [optional 依赖矩阵](#optional-依赖矩阵)
@@ -197,6 +200,61 @@ public User findById(Long id) { ... }
 - **SPI 替换**:`CacheManager` 是 Spring 标准 SPI,声明 Redis `CacheManager` 即替换。
 - **降级**:无 `CacheManager` 时 `get` 返空、`getOrCompute` 直调 loader(缓存不可用不阻断业务)。
 
+## 分布式锁:LockUtil
+
+通用分布式锁(`lock` 包,零 web 依赖,批处理/定时任务也可用)。默认单机 `InMemoryDistributedLock`(ReentrantLock),SPI 可替换 Redisson 等分布式实现。
+
+```java
+// 高阶(推荐):try-finally 自动获取释放,防忘记 unlock 死锁
+String result = LockUtil.executeWithLock("order:" + orderId, Duration.ofSeconds(10), () -> {
+    // 临界区:同 key 串行执行
+    return processOrder(orderId);
+});
+LockUtil.executeWithLock("job:daily", Duration.ofSeconds(30), () -> runDailyJob());  // Runnable 重载
+
+// 命令式:灵活但须自己 try-finally
+if (LockUtil.tryLock("resource", Duration.ofSeconds(5))) {
+    try { /* 临界区 */ } finally { LockUtil.unlock("resource"); }
+}
+```
+
+- **默认单机语义**:`InMemoryDistributedLock` 用 JDK `ReentrantLock`;`leaseTime` 是 `tryLock` **等待超时**,非持锁后自动过期释放(单机无真租约);可重入(同线程);仅进程内互斥。
+- **升级分布式(real seam,ADR-0016)**:多实例部署须声明自己的 `DistributedLock` bean(如基于 Redisson),`@ConditionalOnMissingBean` 自动让位。
+- **⚠ 降级**:无 `DistributedLock` bean 时 `executeWithLock` 退化为**直接执行 + WARN**(单实例可接受,但**多实例部署必须确保 bean 在场**,否则退化无锁破坏跨实例互斥)。
+
+## HTTP client:HttpClients
+
+通用 HTTP 调用门面(`http` 包),委托 Spring `RestClient`,返回 `Result`(不抛异常)。
+
+```java
+Result<User, WrappedError> r = HttpClients.get("https://api.example.com/users/1", User.class);
+Result<Order, WrappedError> o = HttpClients.post("https://api.example.com/orders", newOrder, Order.class);
+Result<Void, WrappedError> d = HttpClients.delete("https://api.example.com/users/1");
+Result<User, WrappedError> h = HttpClients.get(url, Map.of("Authorization", "Bearer " + token), User.class);
+```
+
+- **错误映射**:4xx/5xx 响应 → `Result.err`(`FacilityErrorType.HTTP_STATUS_ERROR`,args[0]=HTTP 状态码);网络/超时异常 → `err`(`HTTP_SEND_AND_PARSE_ERROR`,args[0]=url)。
+- **超时**:经 `facility.http.connect-timeout` / `read-timeout` 配置(装配的 `RestClient` bean);消费方可声明自己的 `RestClient` bean 替换(换 Apache HttpComponents/OkHttp requestFactory)。
+
+## 幂等:@Idempotent
+
+完整幂等(`web.idempotency` 集成 + `idempotency` 通用存储):同幂等 key 的重复请求返回**首次的响应**,业务方法只执行一次。
+
+```java
+@Idempotent                                        // header 默认 Idempotency-Key
+@PostMapping("/pay")
+public BaseResponse<PayResult> pay(@RequestBody PayRequest req) {
+    return BaseResponse.ok(paymentService.charge(req));   // 同 key 重复请求不会再次扣款
+}
+@Idempotent(headerName = "X-Request-Id", ttlSeconds = 600)   // 自定义 header + TTL
+@PostMapping("/order")
+public BaseResponse<Order> createOrder(...) { ... }
+```
+
+- **语义**:客户端每次业务请求带唯一 `Idempotency-Key` 头。首次 → 处理并缓存响应(status+body);重复(同 key,TTL 内)→ 直接返回首次缓存的响应,业务方法**不再执行**;首次仍处理中的并发重复 → **409**;缺 key 头 → **400**。
+- **存储**:默认内存 `InMemoryIdempotencyStore`(PROCESSING/DONE 状态机 + TTL);SPI 可替换 Redis(多实例共享)。
+- **机制**:`IdempotencyFilter` 包装响应捕获 body,`IdempotencyInterceptor` 读 `@Idempotent` 执行状态机(ADR-0017)。
+
 ## 装配开关全表
 
 ```yaml
@@ -240,6 +298,17 @@ facility:
     enabled: true
     default-ttl: 10m                     # 仅 Caffeine 后端生效(expireAfterWrite)
     maximum-size: 10000                  # 仅 Caffeine 后端生效
+  lock:
+    enabled: true
+    max-locks: 100000                    # 锁上限(防无界 key 增长)
+    default-lease: 30s                   # 默认租约(单机=tryLock 等待超时)
+  http:
+    connect-timeout: 5s                  # RestClient 连接超时
+    read-timeout: 10s                    # RestClient 读超时
+  idempotency:
+    enabled: true
+    default-ttl: 5m                      # 幂等记录保留时长
+    max-entries: 100000                  # 记录上限(防无界 key 增长)
 ```
 
 ## 消费方须知

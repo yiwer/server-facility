@@ -93,6 +93,9 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 | 0013 | 配置属性不用 `@Validated`,构造器兜底 |
 | 0014 | 限流令牌桶 + `RateLimiter` SPI(Seam),web 集成分离 `web.ratelimit` 避环 |
 | 0015 | 缓存 `CacheUtil` 门面复用 Spring `CacheManager`,Caffeine + spring-context-support 成对 optional |
+| 0016 | 分布式锁 `DistributedLock` SPI + 单机 `InMemory`,real seam Redisson 升级示范 |
+| 0017 | 完整幂等(同 key 返首次响应)+ 响应捕获,通用/web 分离避环 |
+| 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
 
 ## 6. 质量门
 
