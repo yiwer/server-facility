@@ -4,8 +4,13 @@ import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 
 /**
  * <b>加解密静态门面</b>
@@ -100,5 +105,84 @@ public final class CryptoUtil {
             out[i] = (byte) ((hi << 4) | lo);
         }
         return Result.ok(out);
+    }
+
+    // ==================== 对称加解密(AES-256-GCM) ====================
+
+    /**
+     * AES-256-GCM 加密（UTF-8 明文）。IV 每次随机 12 字节前置拼进密文，整体 Base64 输出。
+     *
+     * @param plaintext UTF-8 明文
+     * @param key       AES 密钥（见 {@link #generateAesKey()} / {@link #aesKeyFromBytes(byte[])}）
+     * @return {@code Base64(IV ‖ ciphertext+tag)}；失败 → {@link FacilityErrorType#CRYPTO_ENCRYPT_ERROR}
+     */
+    public static Result<String, WrappedError> encrypt(String plaintext, SecretKey key) {
+        if (plaintext == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_ENCRYPT_ERROR));
+        }
+        return encrypt(plaintext.getBytes(StandardCharsets.UTF_8), key);
+    }
+
+    /**
+     * AES-256-GCM 加密（字节明文）。
+     *
+     * @param plaintext 明文字节
+     * @param key       AES 密钥
+     * @return {@code Base64(IV ‖ ciphertext+tag)}；null 入参/失败 → {@link FacilityErrorType#CRYPTO_ENCRYPT_ERROR}
+     */
+    public static Result<String, WrappedError> encrypt(byte[] plaintext, SecretKey key) {
+        if (plaintext == null || key == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_ENCRYPT_ERROR));
+        }
+        try {
+            byte[] iv = new byte[GCM_IV_BYTES];
+            SECURE_RANDOM.nextBytes(iv);
+            Cipher cipher = Cipher.getInstance(AES_GCM);
+            cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
+            byte[] ct = cipher.doFinal(plaintext);
+            byte[] out = new byte[iv.length + ct.length];
+            System.arraycopy(iv, 0, out, 0, iv.length);
+            System.arraycopy(ct, 0, out, iv.length, ct.length);
+            return Result.ok(Base64.getEncoder().encodeToString(out));
+        } catch (Exception e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_ENCRYPT_ERROR, e));
+        }
+    }
+
+    /**
+     * AES-256-GCM 解密为 UTF-8 明文。
+     *
+     * @param base64Cipher {@link #encrypt} 的输出
+     * @param key          AES 密钥
+     * @return 明文；失败（错误密钥/篡改/畸形/null）→ {@link FacilityErrorType#CRYPTO_DECRYPT_ERROR}
+     */
+    public static Result<String, WrappedError> decrypt(String base64Cipher, SecretKey key) {
+        return decryptToBytes(base64Cipher, key).map(bytes -> new String(bytes, StandardCharsets.UTF_8));
+    }
+
+    /**
+     * AES-256-GCM 解密为字节。
+     *
+     * @param base64Cipher {@link #encrypt} 的输出
+     * @param key          AES 密钥
+     * @return 明文字节；失败 → {@link FacilityErrorType#CRYPTO_DECRYPT_ERROR}（粗粒度，不泄漏原因）
+     */
+    public static Result<byte[], WrappedError> decryptToBytes(String base64Cipher, SecretKey key) {
+        if (base64Cipher == null || key == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR));
+        }
+        try {
+            byte[] all = Base64.getDecoder().decode(base64Cipher);
+            if (all.length <= GCM_IV_BYTES) {
+                return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR));
+            }
+            byte[] iv = Arrays.copyOfRange(all, 0, GCM_IV_BYTES);
+            byte[] ct = Arrays.copyOfRange(all, GCM_IV_BYTES, all.length);
+            Cipher cipher = Cipher.getInstance(AES_GCM);
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
+            return Result.ok(cipher.doFinal(ct));
+        } catch (Exception e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR, e));
+        }
     }
 }
