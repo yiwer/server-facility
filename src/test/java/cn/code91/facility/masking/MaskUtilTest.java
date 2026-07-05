@@ -222,4 +222,116 @@ class MaskUtilTest {
         assertThat(MaskUtil.mask("phone=13800138000 mail=zhangsan@example.com"))
                 .isEqualTo("phone=138****8000 mail=z***@example.com");
     }
+
+    // ==================== SECRET 键值 ====================
+
+    @Nested
+    @DisplayName("键值秘密:值全遮蔽固定 ******(不保长)")
+    class Secret {
+
+        @Test
+        void mask_keyEquals_masked() {
+            assertThat(MaskUtil.mask("password=P@ssw0rd123 ok"))
+                    .isEqualTo("password=****** ok");
+        }
+
+        @Test
+        void mask_keyColonSpace_masked() {
+            assertThat(MaskUtil.mask("pwd: hello,world"))
+                    .isEqualTo("pwd: ******,world");
+        }
+
+        @Test
+        void mask_jsonQuotedPair_keepsQuoteStructure() {
+            assertThat(MaskUtil.mask("{\"token\":\"abc-def_123\",\"a\":1}"))
+                    .isEqualTo("{\"token\":\"******\",\"a\":1}");
+        }
+
+        @Test
+        void mask_bearerAuthorization_wholeValueMasked() {
+            assertThat(MaskUtil.mask("Authorization: Bearer eyJhbGciOi.eyJzdWIi.sig"))
+                    .isEqualTo("Authorization: ******");
+        }
+
+        @Test
+        void mask_camelCaseKeyVariants_masked() {
+            assertThat(MaskUtil.mask("accessToken=aaa apiKey=bbb clientSecret=ccc"))
+                    .isEqualTo("accessToken=****** apiKey=****** clientSecret=******");
+        }
+
+        @Test
+        void mask_urlQueryToken_stopsAtAmpersand() {
+            assertThat(MaskUtil.mask("GET /cb?token=abc123&next=1"))
+                    .isEqualTo("GET /cb?token=******&next=1");
+        }
+
+        @Test
+        void mask_lengthNotPreserved() {
+            // 不保长:长度本身是秘密信息
+            assertThat(MaskUtil.mask("secret=ab")).isEqualTo("secret=******");
+            assertThat(MaskUtil.mask("secret=abcdefghijklmnopqrstuvwxyz"))
+                    .isEqualTo("secret=******");
+        }
+
+        @Test
+        void mask_singleQuotedValue_keepsQuoteStructure() {
+            assertThat(MaskUtil.mask("token='abc 123'"))
+                    .isEqualTo("token='******'");
+        }
+
+        @Test
+        void mask_singleCharValue_masked() {
+            assertThat(MaskUtil.mask("pwd=a")).isEqualTo("pwd=******");
+        }
+
+        @Test
+        void maskSecrets_singleGroup_ignoresPhone() {
+            assertThat(MaskUtil.maskSecrets("13800138000 password=x"))
+                    .isEqualTo("13800138000 password=******");
+        }
+    }
+
+    // ==================== JWT ====================
+
+    @Nested
+    @DisplayName("裸 JWT:整体遮蔽")
+    class Jwt {
+
+        @Test
+        void mask_bareJwt_masked() {
+            assertThat(MaskUtil.mask(
+                    "sig eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c end"))
+                    .isEqualTo("sig ****** end");
+        }
+
+        @Test
+        void maskSecrets_coversJwt() {
+            assertThat(MaskUtil.maskSecrets("eyJhbGci.eyJzdWIi.c2ln"))
+                    .isEqualTo("******");
+        }
+    }
+
+    // ==================== 幂等与全组合 ====================
+
+    @Nested
+    @DisplayName("幂等与全组合(锁定测试)")
+    class Idempotence {
+
+        @Test
+        void mask_isIdempotent() {
+            String text = "u=13800138000 id=110101199003070011 card=4111111111111111"
+                    + " m=zhangsan@example.com password=abc jwt=eyJa.eyJb.c2ln";
+            String once = MaskUtil.mask(text);
+            assertThat(MaskUtil.mask(once)).isEqualTo(once);
+        }
+
+        @Test
+        void mask_allSixRules_inOneMessage() {
+            String text = "phone=13800138000, id=110101199003070011, card=4111111111111111,"
+                    + " mail=zhangsan@example.com, password=P@ss, t=eyJhbGci.eyJzdWIi.c2ln";
+            assertThat(MaskUtil.mask(text)).isEqualTo(
+                    "phone=138****8000, id=110101********0011, card=************1111,"
+                    + " mail=z***@example.com, password=******, t=******");
+        }
+    }
 }

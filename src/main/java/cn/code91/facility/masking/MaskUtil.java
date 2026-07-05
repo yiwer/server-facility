@@ -28,6 +28,10 @@ public final class MaskUtil {
      * 内置规则。声明序即引擎 dispatch 序;合并 Pattern 的 alternation 序见 {@code ALL_PATTERN}。
      */
     private enum Rule {
+        /** 键值秘密:password/token/secret/apiKey/authorization 等,值全遮蔽固定 ******(不保长) */
+        SECRET,
+        /** 裸 JWT(eyJ 三段式):整体遮蔽 */
+        JWT,
         /** 身份证 18 位:前 6 后 4,mod11-2 校验通过才遮;全规则上下文中不过则级联试 Luhn */
         IDCARD,
         /** 银行卡 15-19 位:仅留后 4,Luhn 校验通过才遮 */
@@ -37,6 +41,19 @@ public final class MaskUtil {
         /** 大陆手机号:前 3 后 4 */
         PHONE
     }
+
+    /** 秘密类统一遮蔽串:固定长度,长度本身是信息故不保长(spec §5.1) */
+    private static final String MASKED_SECRET = "******";
+
+    private static final String SECRET_REGEX =
+            "(?<SECRET>(?<SKEY>[\"']?(?i:password|passwd|pwd|access[-_]?token|token|secret|api[-_]?key|authorization)[\"']?)"
+                    + "(?<SSEP>\\s*[=:]\\s*)"
+                    + "(?<SVAL>(?i:Bearer|Basic)\\s+[^\\s,;&\"'})\\]]+|\"[^\"]*\"|'[^']*'|[^\\s,;&\"'})\\]]+))";
+    private static final String JWT_REGEX =
+            "(?<JWT>eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)";
+
+    private static final Pattern SECRETS_PATTERN =
+            Pattern.compile(String.join("|", SECRET_REGEX, JWT_REGEX));
 
     private static final String IDCARD_REGEX =
             "(?<IDCARD>(?<!\\d)\\d{17}[0-9Xx](?!\\d))";
@@ -53,8 +70,8 @@ public final class MaskUtil {
     private static final Pattern PHONE_PATTERN = Pattern.compile(PHONE_REGEX);
 
     /** 全规则合并 Pattern:alternation 顺序 = 遮蔽优先序(同起点先列者胜;IDCARD 必须先于 BANKCARD) */
-    private static final Pattern ALL_PATTERN = Pattern.compile(
-            String.join("|", IDCARD_REGEX, BANKCARD_REGEX, EMAIL_REGEX, PHONE_REGEX));
+    private static final Pattern ALL_PATTERN = Pattern.compile(String.join("|",
+            SECRET_REGEX, JWT_REGEX, IDCARD_REGEX, BANKCARD_REGEX, EMAIL_REGEX, PHONE_REGEX));
 
     private static final EnumSet<Rule> ALL_RULES = EnumSet.allOf(Rule.class);
 
@@ -68,6 +85,18 @@ public final class MaskUtil {
      */
     public static String mask(String text) {
         return apply(ALL_PATTERN, ALL_RULES, text);
+    }
+
+    /**
+     * 仅脱敏秘密类:键值形态(password/passwd/pwd/token/accessToken/secret/apiKey/authorization,
+     * 支持 {@code k=v}、{@code k: v}、JSON 引号、{@code Bearer/Basic} 值)与裸 JWT。
+     * 值一律替换为固定 {@code ******}(不保长——长度本身是秘密信息),键与分隔符结构保留。
+     *
+     * @param text 任意文本(可 null)
+     * @return 脱敏后文本;null → null,无命中 → 原实例
+     */
+    public static String maskSecrets(String text) {
+        return apply(SECRETS_PATTERN, EnumSet.of(Rule.SECRET, Rule.JWT), text);
     }
 
     /**
@@ -155,6 +184,8 @@ public final class MaskUtil {
 
     private static String maskFor(Rule rule, String hit, Matcher m, EnumSet<Rule> rules) {
         return switch (rule) {
+            case SECRET -> maskSecretMatch(m);
+            case JWT -> MASKED_SECRET;
             case IDCARD -> maskIdCardHit(hit, rules.contains(Rule.BANKCARD));
             case BANKCARD -> luhnOk(hit) ? maskBankCardHit(hit) : hit;
             case EMAIL -> maskEmailHit(hit);
@@ -165,6 +196,20 @@ public final class MaskUtil {
     private static String maskEmailHit(String hit) {
         int at = hit.indexOf('@');
         return hit.charAt(0) + "***" + hit.substring(at);
+    }
+
+    /** 键值秘密遮蔽:键与分隔符原样,值换 MASKED_SECRET;值带引号则保留引号结构。 */
+    private static String maskSecretMatch(Matcher m) {
+        String value = m.group("SVAL");
+        char first = value.charAt(0);
+        char last = value.charAt(value.length() - 1);
+        String maskedValue;
+        if (value.length() >= 2 && ((first == '"' && last == '"') || (first == '\'' && last == '\''))) {
+            maskedValue = first + MASKED_SECRET + last;
+        } else {
+            maskedValue = MASKED_SECRET;
+        }
+        return m.group("SKEY") + m.group("SSEP") + maskedValue;
     }
 
     /**
