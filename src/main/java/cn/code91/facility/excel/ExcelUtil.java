@@ -14,8 +14,11 @@ import java.util.List;
  * <p>
  * 依赖 Apache POI(optional):{@code poi} + {@code poi-ooxml} 成对引入时能力可用;
  * 缺失时所有方法返回 {@link FacilityErrorType#EXCEL_LIB_MISSING} 的 err——经缓存的
- * {@code Class.forName} 探针判定,POI 类型全部隔离于包私有 {@code ExcelSupport},
- * 本类加载永不触发 {@code NoClassDefFoundError}(ADR-0021)。
+ * **双类** {@code Class.forName} 探针判定(poi 核心 + poi-ooxml 各一次,两者都在场
+ * 才判定可用;半拉子 classpath——只引 poi 漏引 poi-ooxml——下单探针会让委托时的
+ * {@code NoClassDefFoundError} 逃逸 never-throw 契约,故成对探测,对齐 cache 簇
+ * Caffeine+spring-context-support 的双类探测范式),POI 类型全部隔离于包私有
+ * {@code ExcelSupport},本类加载永不触发 {@code NoClassDefFoundError}(ADR-0021)。
  * </p>
  * <p>
  * 读:usermodel + WorkbookFactory,自动识别 xls/xlsx,仅第一个 sheet,单元格经
@@ -29,8 +32,11 @@ import java.util.List;
  */
 public final class ExcelUtil {
 
-    /** POI 探针类(usermodel 核心;缺它则 Excel 能力不可用) */
-    private static final String POI_PROBE_CLASS = "org.apache.poi.ss.usermodel.Workbook";
+    /** POI 核心探针类(usermodel;缺它则 Excel 能力不可用) */
+    private static final String POI_CORE_PROBE_CLASS = "org.apache.poi.ss.usermodel.Workbook";
+
+    /** POI ooxml 探针类(streaming/xssf;与核心成对约定,单探针会让半拉子 classpath 下的 NCDFE 逃逸 never-throw) */
+    private static final String POI_OOXML_PROBE_CLASS = "org.apache.poi.xssf.streaming.SXSSFWorkbook";
 
     /** 探测缓存:null=未探测;测试可经 {@link #overridePoiPresent} 覆盖 */
     private static volatile Boolean poiPresent;
@@ -39,7 +45,43 @@ public final class ExcelUtil {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
     }
 
-    // ==================== 读(Task 4 落地) ====================
+    // ==================== 读 ====================
+
+    /**
+     * 读取 Excel 文件(xls/xlsx 自动识别;仅第一个 sheet;单元格经 DataFormatter
+     * 全字符串化,公式取计算值;空单元格 → 空串;整行缺失 → 空 List;行宽按行自身末列)。
+     * <p>整簿载入内存(usermodel):行数上限受堆约束,超大文件请等待流式读(ADR-0021 roadmap)。</p>
+     *
+     * @param file 源文件
+     * @return 行集;POI 缺失 → {@link FacilityErrorType#EXCEL_LIB_MISSING};
+     *         file 为 null、畸形文件或 IO 失败 → {@link FacilityErrorType#EXCEL_READ_ERROR}
+     */
+    public static Result<List<List<String>>, WrappedError> read(Path file) {
+        if (file == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_READ_ERROR));
+        }
+        if (!isPoiPresent()) {
+            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        }
+        return ExcelSupport.read(file);
+    }
+
+    /**
+     * 从输入流读取 Excel(xls/xlsx 自动识别)。流由调用方关闭。
+     *
+     * @param in 源流
+     * @return 行集;POI 缺失 → {@link FacilityErrorType#EXCEL_LIB_MISSING};
+     *         in 为 null、畸形内容或 IO 失败 → {@link FacilityErrorType#EXCEL_READ_ERROR}
+     */
+    public static Result<List<List<String>>, WrappedError> read(InputStream in) {
+        if (in == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_READ_ERROR));
+        }
+        if (!isPoiPresent()) {
+            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        }
+        return ExcelSupport.read(in);
+    }
 
     // ==================== 写 ====================
 
@@ -109,9 +151,18 @@ public final class ExcelUtil {
         return present;
     }
 
+    /**
+     * 双类探测:poi 核心与 poi-ooxml 各探一次,两者都在才判定可用。
+     * 成对约定缺一(如只引 poi 漏引 poi-ooxml 的半拉子 classpath)即降级为不可用,
+     * 避免委托进 {@code ExcelSupport} 后触发未受检的 {@code NoClassDefFoundError}。
+     */
     private static boolean probePoi() {
+        return classExists(POI_CORE_PROBE_CLASS) && classExists(POI_OOXML_PROBE_CLASS);
+    }
+
+    private static boolean classExists(String className) {
         try {
-            Class.forName(POI_PROBE_CLASS, false, ExcelUtil.class.getClassLoader());
+            Class.forName(className, false, ExcelUtil.class.getClassLoader());
             return true;
         } catch (ClassNotFoundException e) {
             return false;

@@ -26,7 +26,7 @@
 ### 4.1 `cn.code91.facility.excel.ExcelUtil`(静态门面,POI optional)
 
 - `public final class` + 私有构造 `throw UnsupportedOperationException`(house 范式);可失败方法一律返 `Result<T, WrappedError>`,从不抛异常;null 入参 → err(非 NPE)。
-- **运行时探测降级(本组件的范式新点,ADR 记录)**:静态门面无装配、无 bean,`@ConditionalOnClass` 不适用;改为**入口类探测**——缓存的 `Class.forName("org.apache.poi.ss.usermodel.Workbook")` 探针(`volatile Boolean` 惰性单次),缺失 → `err(EXCEL_LIB_MISSING)`。
+- **运行时探测降级(本组件的范式新点,ADR 记录)**:静态门面无装配、无 bean,`@ConditionalOnClass` 不适用;改为**入口类探测**——缓存的**双类** `Class.forName` 探针(`volatile Boolean` 惰性单次):`org.apache.poi.ss.usermodel.Workbook`(poi 核心)与 `org.apache.poi.xssf.streaming.SXSSFWorkbook`(poi-ooxml)各探一次,**两者都在场才判定可用**,任一缺失 → `err(EXCEL_LIB_MISSING)`。**勘误(Task 4 审查裁定)**:v1 曾仅探 poi 核心单类,但半拉子 classpath(消费方只引 `poi` 漏引 `poi-ooxml`,违反 §7 成对约定)下单探针会探测通过,委托到 `ExcelSupport` 后触发 `NoClassDefFoundError`(`Error` 不被 `catch (Exception e)` 捕获,逃逸 never-throw 契约)——改为双类探测堵住该缺口,对齐 cache 簇 Caffeine + spring-context-support 的双类探测范式。
 - **POI 类型隔离**:所有 POI import 收进包私有实现类 `ExcelSupport`(同包),门面 `ExcelUtil` 自身零 POI 引用——保证门面类加载/校验永不触发 `NoClassDefFoundError`,探测为真后才委托 `ExcelSupport`。
 - 缺库分支可测性:探测结果经包私有 setter 覆盖(测试强制 false 断言 err 且不触碰 POI),`@AfterEach` 复原(毒化纪律)。
 
