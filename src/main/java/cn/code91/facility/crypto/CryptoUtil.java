@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
@@ -292,5 +293,41 @@ public final class CryptoUtil {
         } catch (IllegalArgumentException e) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR, e));
         }
+    }
+
+    // ==================== 消息认证码(HMAC-SHA256) ====================
+
+    /**
+     * HMAC-SHA256（字节输入），hex 小写输出。
+     *
+     * @param data 消息字节
+     * @param key  密钥字节（非空）
+     * @return 小写 hex MAC；null 入参/空密钥/失败 → {@link FacilityErrorType#CRYPTO_MAC_ERROR}
+     */
+    public static Result<String, WrappedError> hmacSha256(byte[] data, byte[] key) {
+        if (data == null || key == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_MAC_ERROR));
+        }
+        try {
+            Mac mac = Mac.getInstance(HMAC_SHA256);
+            mac.init(new SecretKeySpec(key, HMAC_SHA256));
+            return Result.ok(hexEncode(mac.doFinal(data)));
+        } catch (Exception e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_MAC_ERROR, e));
+        }
+    }
+
+    /**
+     * HMAC-SHA256（UTF-8 字符串输入），hex 小写输出。
+     *
+     * @param data 消息
+     * @param key  密钥
+     * @return 小写 hex MAC；null 入参 → {@link FacilityErrorType#CRYPTO_MAC_ERROR}
+     */
+    public static Result<String, WrappedError> hmacSha256(String data, String key) {
+        if (data == null || key == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_MAC_ERROR));
+        }
+        return hmacSha256(data.getBytes(StandardCharsets.UTF_8), key.getBytes(StandardCharsets.UTF_8));
     }
 }

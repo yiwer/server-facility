@@ -252,4 +252,31 @@ class CryptoUtilTest {
         assertThat(CryptoUtil.importKey("!!!bad!!!").isErr()).isTrue();
         assertThat(CryptoUtil.importKey(null).isErr()).isTrue();
     }
+
+    // ==================== HMAC ====================
+
+    @Test
+    @DisplayName("HmacSHA256 匹配 RFC 4231 Test Case 2 已知答案")
+    void hmacSha256_rfc4231_knownAnswer() {
+        // RFC 4231 §4.3: key="Jefe", data="what do ya want for nothing?"
+        Result<String, ?> mac = CryptoUtil.hmacSha256("what do ya want for nothing?", "Jefe");
+        assertThat(mac.isOk()).isTrue();
+        assertThat(mac.get()).isEqualTo("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843");
+    }
+
+    @Test
+    @DisplayName("HmacSHA256 稳定、不同密钥不同、null → CRYPTO_MAC_ERROR")
+    void hmacSha256_stableAndKeyed() {
+        byte[] data = "msg".getBytes(StandardCharsets.UTF_8);
+        byte[] k1 = "k1".getBytes(StandardCharsets.UTF_8);
+        byte[] k2 = "k2".getBytes(StandardCharsets.UTF_8);
+        String a = CryptoUtil.hmacSha256(data, k1).get();
+        assertThat(CryptoUtil.hmacSha256(data, k1).get()).isEqualTo(a);      // 稳定
+        assertThat(CryptoUtil.hmacSha256(data, k2).get()).isNotEqualTo(a);   // 密钥敏感
+        Result<String, ?> bad = CryptoUtil.hmacSha256((byte[]) null, k1);
+        assertThat(bad.isErr()).isTrue();
+        assertThat(((cn.code91.facility.error.WrappedError) bad.getErr()).getErrorType())
+                .isEqualTo(FacilityErrorType.CRYPTO_MAC_ERROR);
+        assertThat(CryptoUtil.hmacSha256("d", (String) null).isErr()).isTrue();
+    }
 }
