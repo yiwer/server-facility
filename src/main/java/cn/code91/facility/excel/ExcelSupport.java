@@ -102,7 +102,7 @@ final class ExcelSupport {
         } finally {
             // close() 已含临时文件清理:POI 5.3.0 字节码内 SXSSFWorkbook.close() 对每个
             // sheet 关闭 SheetDataWriter 后调用 dispose(),再关闭底层 XSSFWorkbook——
-            // 显式 dispose() 冗余且 dispose() 是 @Deprecated API,故不再调用。
+            // 显式 dispose() 属冗余,故不再调用。
             try {
                 wb.close();
             } catch (IOException ignored) {

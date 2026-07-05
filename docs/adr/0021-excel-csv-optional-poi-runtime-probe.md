@@ -93,8 +93,8 @@ CR/LF/CRLF 容忍)——几十行状态机换来零依赖恒可用,不必为此�
 写:`SXSSFWorkbook` 恒定内存(默认滚动窗口),仅产出 xlsx,单 sheet(`Sheet1`)。写完调用
 `close()` 清理临时文件——POI 5.3.0 的 `SXSSFWorkbook.close()` 字节码内部对每个 sheet 关闭
 `SheetDataWriter` 后即调用 `dispose()`,再关闭底层 `XSSFWorkbook`,即 **close 已经内含
-dispose 语义**;显式再调用 `dispose()` 是冗余的,且 `dispose()` 本身是 `@Deprecated` API,
-故门面统一只调用 `close()`。
+dispose 语义**;显式再调用 `dispose()` 是冗余的(注:5.3.0 字节码中 `dispose()` 并无
+ACC_DEPRECATED 标志,冗余性是唯一依据),故门面统一只调用 `close()`。
 
 读:`WorkbookFactory.create` 自动识别 xls/xlsx,走 usermodel 整簿载入内存——行数上限受堆
 约束(万行级常规堆可用,十万行级需等待 SAX 流式读,留 roadmap)。仅读第一个 sheet;写仅
@@ -129,8 +129,8 @@ CRLF(RFC 4180 建议);裸 CR/LF/CRLF 三种行分隔在读侧均容忍;未闭合
   否决,详见决策 1);
 - **CSV 写默认不带 BOM**(更符合 Unix 工具链偏好,但与本组件面向的业务导出场景——Excel
   直接打开——冲突,否决,详见决策 5);
-- **SXSSF 写完显式调用 `dispose()`**(POI 5.x `close()` 已内含 dispose 语义且 `dispose()`
-  已 `@Deprecated`,显式调用冗余,否决)。
+- **SXSSF 写完显式调用 `dispose()`**(POI 5.x `close()` 已内含 dispose 语义,显式调用
+  冗余,否决)。
 
 ## 后果
 
