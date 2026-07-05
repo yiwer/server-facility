@@ -91,7 +91,7 @@ public static Result<Void, WrappedError> write(OutputStream out, List<List<Strin
 - pom:`poi` + `poi-ooxml` **成对显式 optional**(版本 5.3.0 自 pin,Boot BOM 不管 POI;对齐 cache 轮 caffeine+context-support 成对范式——门面实现同时字节码引用 poi 核心与 xssf,两者都是 used-declared);test scope 下 POI 可用(真实 xlsx 往返测试)。
 - `maven-dependency-plugin` failOnWarning:ignore 列表按实际 `javap`/analyze 输出实测,勿凭旧输出堆(house 教训)。
 - 自动装配保持 **11**(两包均零装配、零 properties;对标 crypto/masking 的零装配决策)。
-- ArchUnit 4/4 保持绿(两包仅依赖 error/result,单向)。
+- ArchUnit 保持绿(两包仅依赖 error/result,单向);收口时新增第 5 条规则 `excel_facade_does_not_depend_on_poi` 永久锁定门面零 POI(4→5 条,T4 审查 durability 建议)。
 
 ## 8. 测试策略(TDD,由简到繁)
 
@@ -115,5 +115,5 @@ public static Result<Void, WrappedError> write(OutputStream out, List<List<Strin
 
 ## 11. 验收
 
-- 全量 `mvn -o clean verify` 绿(基线 1099 + 新增);coverage met;analyze 零问题(ignore 实测);ArchTest 4/4;
+- 全量 `mvn -o clean verify` 绿(基线 1099 + 新增);coverage met;analyze 零问题(ignore 实测);ArchTest 5/5(含收口新增的门面零 POI 规则);
 - 终审锚点:doc-truth(USAGE 示例逐一核签名)、缺库降级不崩、CSV RFC 4180 边界(内嵌换行往返)、SXSSF 临时文件清理(close)。
