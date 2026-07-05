@@ -65,7 +65,7 @@ final class ExcelSupport {
                 continue;
             }
             int lastCell = row.getLastCellNum(); // -1 表示无单元格
-            List<String> out = new ArrayList<>(Math.max(lastCell, 0));
+            List<String> out = new ArrayList<>(Math.max(lastCell, 0)); // Math.max 防 -1 时 new ArrayList(-1) IAE
             for (int c = 0; c < lastCell; c++) {
                 Cell cell = row.getCell(c);
                 out.add(cell == null ? "" : formatter.formatCellValue(cell, evaluator));

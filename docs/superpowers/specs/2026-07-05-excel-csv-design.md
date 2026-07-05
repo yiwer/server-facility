@@ -62,7 +62,7 @@ public static Result<Void, WrappedError> write(OutputStream out, List<List<Strin
 
 ### 5.2 写(Excel)
 
-- `SXSSFWorkbook`(恒定内存,默认窗口),仅产出 xlsx;`rows` 内 null 单元格写为 `""`,null 行 → err;写完 `dispose()` 清理临时文件。
+- `SXSSFWorkbook`(恒定内存,默认窗口),仅产出 xlsx;`rows` 内 null 单元格写为 `""`,null 行 → err;写完 `close()` 清理临时文件(POI 5.x close 已含 dispose 语义,ADR-0021)。
 - 目标 I/O 失败 → `err(EXCEL_WRITE_ERROR)`。
 
 ### 5.3 CSV 读写
@@ -116,4 +116,4 @@ public static Result<Void, WrappedError> write(OutputStream out, List<List<Strin
 ## 11. 验收
 
 - 全量 `mvn -o clean verify` 绿(基线 1099 + 新增);coverage met;analyze 零问题(ignore 实测);ArchTest 4/4;
-- 终审锚点:doc-truth(USAGE 示例逐一核签名)、缺库降级不崩、CSV RFC 4180 边界(内嵌换行往返)、SXSSF 临时文件清理(dispose)。
+- 终审锚点:doc-truth(USAGE 示例逐一核签名)、缺库降级不崩、CSV RFC 4180 边界(内嵌换行往返)、SXSSF 临时文件清理(close)。

@@ -16,6 +16,7 @@
 - [幂等:@Idempotent](#幂等idempotent)
 - [加解密:CryptoUtil](#加解密cryptoutil)
 - [日志脱敏:MaskUtil](#日志脱敏maskutil)
+- [CSV / Excel:CsvUtil / ExcelUtil](#csv--excelcsvutil--excelutil)
 - [装配开关全表](#装配开关全表)
 - [消费方须知](#消费方须知)
 - [optional 依赖矩阵](#optional-依赖矩阵)
@@ -361,6 +362,59 @@ String phone   = MaskUtil.maskPhone("13800138000");               // → "138***
   片段)三种 `SVAL` 分支均不命中,整段原样输出——若值本身不含 JWT/数字等其他规则形态则完全
   裸奔(详见 ADR-0020)。
 
+## CSV / Excel:CsvUtil / ExcelUtil
+
+两个门面同形对称:读 → `Result<List<List<String>>, WrappedError>`,写 ←
+`List<List<String>>`(裸行集,无表头/POJO 语义,首行是否为表头由调用方自行处理);所有
+可失败方法返回 `Result`,从不抛异常,null 入参 → err。设计取舍见 ADR-0021。
+
+```java
+// ---- CSV(csv 包,纯 JDK,零依赖恒可用)----
+var okW1 = CsvUtil.write(Path.of("out.csv"), List.of(List.of("h1", "h2"), List.of("v1", "v2")));
+var okW2 = CsvUtil.write(outputStream, List.of(List.of("a", "b,c")));   // 含逗号字段自动加引号
+Result<List<List<String>>, WrappedError> r1 = CsvUtil.read(Path.of("in.csv"));
+Result<List<List<String>>, WrappedError> r2 = CsvUtil.read(inputStream);
+List<List<String>> rows = r1.orElse(List.of());
+
+// ---- Excel(excel 包,POI optional)----
+var okW3 = ExcelUtil.write(Path.of("out.xlsx"), List.of(List.of("h1", "h2"), List.of("v1", "v2")));
+var okW4 = ExcelUtil.write(outputStream, List.of(List.of("a", "b")));
+Result<List<List<String>>, WrappedError> r3 = ExcelUtil.read(Path.of("in.xlsx"));  // xls/xlsx 均可
+Result<List<List<String>>, WrappedError> r4 = ExcelUtil.read(inputStream);
+```
+
+- **CSV 写**:UTF-8 编码,前置 BOM(Excel 双击打开不乱码,ADR-0021 记录取舍);行尾 CRLF;
+  最小引号策略(字段含逗号/引号/换行/首尾空格才加引号,内嵌引号翻倍);行内 `null` 单元格
+  写为空串;`rows` 含 `null` 行 → `err(CSV_WRITE_ERROR)`。
+- **CSV 读**:兼容剥离 UTF-8 BOM;裸 CR/LF/CRLF 三种行分隔均容忍;引号字段内的逗号/换行/
+  成对引号(`""`→`"`)按 RFC 4180 解析;引号未闭合到 EOF → `err(CSV_READ_ERROR)`。
+- **Excel 写**:`SXSSFWorkbook` 恒定内存,仅产出 xlsx,单 sheet(`Sheet1`),写完 `close()`
+  即清理临时文件;行内 `null` 单元格写为空串;`rows` 含 `null` 行 → `err(EXCEL_WRITE_ERROR)`。
+- **Excel 读**:`WorkbookFactory` 自动识别 xls/xlsx;仅读**第一个** sheet;单元格经
+  `DataFormatter` 全字符串化(公式取计算值);空单元格 → 空串;整行缺失 → 空 `List`;
+  畸形文件/IO 失败 → `err(EXCEL_READ_ERROR)`。
+- **缺库降级(`EXCEL_LIB_MISSING`)**:`ExcelUtil` 无需任何装配开关——引入 `poi` +
+  `poi-ooxml`(成对,见 [optional 依赖矩阵](#optional-依赖矩阵))即自动启用;缺失(或只引
+  其中一个,违反成对约定)时,四个 API 全部返回 `err(EXCEL_LIB_MISSING)`,不会抛
+  `NoClassDefFoundError`,也不影响 facility 其余能力。`CsvUtil` 无 optional 依赖,恒可用。
+
+**局限须知**:
+
+- **Excel 读为整簿内存模型**:`WorkbookFactory` 整簿载入,行数上限受堆约束(万行级常规堆
+  可用;十万行级建议等待 SAX 流式读,ADR-0021 roadmap)。
+- **仅第一个 sheet / 单 sheet**:Excel 读只处理第一个 sheet,写只产出一个 sheet
+  (`Sheet1`);不支持样式、合并单元格、多 sheet(留 roadmap)。
+- **全字符串化语义**:Excel 单元格经 `DataFormatter` 忠实还原 Excel 显示效果——
+  `General` 格式的大整数会按 Excel 自身规则显示为科学计数法(如 `1.23457E+15`),这是
+  `DataFormatter` 复刻 Excel 桌面版行为而非 bug;需要保留精确大数值,请在源文件把目标
+  单元格设为文本格式,不要依赖门面做额外数值探测。
+- **CSV 默认带 BOM**:面向业务导出场景(Excel 直接打开)选择前置 BOM;纯 Unix 工具链消费
+  场景如需无 BOM,请自行处理(ADR-0021 记录该取舍非普适最优)。
+- **CSV 空行写读不对称**:写出一个空 `List`(无字段)产出一行仅 CRLF 的空行;该空行回读
+  时按 CSV"行至少一个字段"的表达能力,会解析为**一个空字符串字段**的行(即
+  `List.of("")` 而非原始的空 `List`)——这是格式表达能力边界,不是实现缺陷。
+- **CSV 分隔符固定逗号**:分号/Tab 等变体分隔符留 roadmap。
+
 ## 装配开关全表
 
 ```yaml
@@ -450,5 +504,7 @@ facility 把重依赖声明为 Maven `optional`,消费方按用到的能力自�
 | `XssUtil`(HTML 清洗) | `org.jsoup:jsoup` |
 | `MimeTyping` / `SafeUpload` 的 MIME 魔数探测 | `org.apache.tika:tika-core` |
 | 缓存 TTL/maxSize(`CaffeineCacheManager`) | `com.github.ben-manes.caffeine:caffeine` **+** `org.springframework:spring-context-support`(**成对**——`CaffeineCacheManager` 在 context-support 而非 spring-context;缺任一则回退 `ConcurrentMapCacheManager`) |
+| `ExcelUtil`(Excel 读写) | `org.apache.poi:poi` **+** `org.apache.poi:poi-ooxml`(**成对**,版本 5.3.0 自 pin;缺任一(或两者都缺)则运行时探测降级,四个 API 全返 `err(EXCEL_LIB_MISSING)`,ADR-0021) |
 
-未引入对应 optional 依赖时,相关自动装配因 `@ConditionalOnClass` 不生效,不影响其余簇。
+未引入对应 optional 依赖时,相关自动装配因 `@ConditionalOnClass` 不生效,不影响其余簇;
+`ExcelUtil` 不走自动装配,缺失时走运行时探测降级(同一效果,不同机制,详见 ADR-0021)。

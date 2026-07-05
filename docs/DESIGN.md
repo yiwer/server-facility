@@ -19,7 +19,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 2. 包簇依赖地图
 
-27 个顶层功能子包按责任聚类(另有 `id.support`/`json.support`/`web.*` 等下层子包),依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
+29 个顶层功能子包按责任聚类(另有 `id.support`/`json.support`/`web.*` 等下层子包),依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
 
 ```
               autoconfigure  ← Spring Boot 装配入口(11 个 @AutoConfiguration)
@@ -50,9 +50,11 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 | **C2** `common → structure → copy → common` | `WrappedContainer`/`WrappedDataType` 横跨 structure 与 copy | 二者零消费者,直接 drop;structure 退为纯值叶子 |
 | **C3** `web → autoconfigure`(properties 反向边) | 5 个 web properties 曾住 `autoconfigure.properties`,web 组件依赖它 → 又被 autoconfigure 依赖 | properties 归位到各自消费组件同包(trace/repeatable→`web.filter`,access-log→`web.interceptor`,exception→`web.exception`,cors→`web`);`autoconfigure.properties` 包消亡 |
 
-四条 ArchUnit 规则(`ArchitectureTest`,随测试套运行):`packages_are_cycle_free`、
+五条 ArchUnit 规则(`ArchitectureTest`,随测试套运行):`packages_are_cycle_free`、
 `error_package_depends_only_on_jdk`、`main_code_does_not_depend_on_logback`、
-`autoconfigure_is_not_depended_on_by_main_packages`。
+`autoconfigure_is_not_depended_on_by_main_packages`、
+`excel_facade_does_not_depend_on_poi`(ADR-0021:锁定 `ExcelUtil` 门面零 POI 类型引用,
+POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 4. 自动装配范式
 
@@ -72,17 +74,22 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 - **Web 条件门**:`FacilityWebAutoConfiguration` 整体 `@ConditionalOnWebApplication(SERVLET)`,
   各组件再由 `facility.web.*.enabled` 单独 `@ConditionalOnProperty` 开关。
 - **并非所有能力簇都装配**:11 是「需要 bean/配置属性」的子集数,不是能力簇总数——无状态、无可
-  替换策略的静态门面型能力(`hash`/`crypto`/`masking`)不注册 `@AutoConfiguration`、无 `facility.*`
-  properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020)。`masking` 的
-  引擎是单个预编译合并 `Pattern`(六规则 alternation)+ 单遍 `Matcher` 扫描 + 按命中组 dispatch
-  到对应遮蔽函数 + 身份证/银行卡的校验位级联(mod11-2/Luhn 通过才遮,详见 ADR-0020);`log` 包
-  在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖 `log → masking`,由 `MaskUtil`
-  零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit `packages_are_cycle_free` 守护的是
-  未来出现反向边时立即报警,而非断言方向本身),`masking` 自身零依赖、零装配、零 bean。
+  替换策略的静态门面型能力(`hash`/`crypto`/`masking`/`csv`/`excel`)不注册 `@AutoConfiguration`、
+  无 `facility.*` properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020、
+  ADR-0021)。`masking` 的引擎是单个预编译合并 `Pattern`(六规则 alternation)+ 单遍 `Matcher`
+  扫描 + 按命中组 dispatch 到对应遮蔽函数 + 身份证/银行卡的校验位级联(mod11-2/Luhn 通过才遮,
+  详见 ADR-0020);`log` 包在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖
+  `log → masking`,由 `MaskUtil` 零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit
+  `packages_are_cycle_free` 守护的是未来出现反向边时立即报警,而非断言方向本身),`masking`
+  自身零依赖、零装配、零 bean。`csv`/`excel` 同属这一类:`CsvUtil` 纯 JDK 零依赖恒可用;
+  `ExcelUtil` 依赖 POI(optional),但装配开关的角色由**运行时探测**(而非
+  `@ConditionalOnClass`)承担——静态门面无 bean 无从条件化,改为缓存的双类 `Class.forName`
+  探针,POI 缺失时四个 API 全返 `err(EXCEL_LIB_MISSING)` 而非崩溃(ADR-0021);两包均零
+  properties、零 `@AutoConfiguration`。
 
 ## 5. ADR 索引
 
-20 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+21 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
 
 | ADR | 决策 |
 |---|---|
@@ -106,10 +113,11 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 | 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
 | 0019 | crypto 加解密门面——安全默认 AES-256-GCM、内管 IV、不透明失败通道、纯 JDK |
 | 0020 | 日志脱敏——`LogUtil` 写前集成(`LogPostHandler` 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
+| 0021 | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
 
 ## 6. 质量门
 
-- **测试**:1099 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **测试**:1147 项,含 5 条 ArchUnit 架构守护;`mvn verify` 全绿。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (实测约 92% / 92% / 84%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
