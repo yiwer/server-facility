@@ -1,16 +1,29 @@
 /**
- * <b>脱敏门面</b>——固定规则集的敏感信息遮蔽。
+ * <h2>cn.code91.facility.masking</h2>
  *
- * <p>核心类 {@link cn.code91.facility.masking.MaskUtil}:纯 JDK 正则单遍扫描,内置六类规则
- * (键值秘密/裸 JWT/身份证/银行卡/邮箱/手机号);身份证经 GB 11643 mod 11-2、银行卡经 Luhn
- * 校验通过才遮蔽,雪花 ID、时间戳等长数字串免于误遮。纯变换契约:从不抛异常,null 透传,
- * 无有效命中返回原实例。</p>
+ * <p><b>Purpose:</b> Sensitive-data masking over arbitrary text with a fixed
+ * built-in rule set — key-value secrets (password/token/secret/apiKey/...,
+ * substring key semantics), bare JWTs, CN resident ID cards (GB 11643
+ * mod 11-2), bank cards (Luhn), emails, and CN mobile numbers. ID-card and
+ * bank-card masking is checksum-gated, so snowflake IDs, epoch timestamps and
+ * other long digit runs are spared from false positives.</p>
  *
- * <p>与 log 簇的关系:{@link cn.code91.facility.log.LogUtil} 在消息写盘与 LogPostHandler
- * 分发之前默认调用 {@code MaskUtil.mask}(写前脱敏,单向依赖 log → masking);本包自身
- * 零依赖、无 Spring 装配、无错误码。设计取舍见 ADR-0020。</p>
+ * <p><b>Entry classes:</b> {@code MaskUtil}.</p>
  *
- * @author yvvb
- * @since 1.0.0
+ * <p><b>Design (ADR-0020):</b> pure-JDK static facade — a single pre-compiled
+ * alternation {@code Pattern} scanned in one pass; never throws, {@code null}
+ * passes through, and when nothing is effectively masked the original string
+ * instance is returned. No Spring bean / no autoconfiguration / no properties
+ * / no error codes. {@code LogUtil} masks every message via
+ * {@code MaskUtil.mask} by default, before both the disk write and the
+ * {@code LogPostHandler} dispatch (a one-way dependency from {@code log} to
+ * {@code masking}); {@code Throwable} messages and stack traces are not
+ * masked (honest limit).</p>
+ *
+ * <p><b>Depends on:</b> nothing beyond the JDK ({@code java.util.regex}) —
+ * no facility package, no third-party library.</p>
+ *
+ * <p><b>Depended on by:</b> {@code log} ({@code LogUtil} pre-write masking)
+ * and downstream application code (ad-hoc text masking).</p>
  */
 package cn.code91.facility.masking;
