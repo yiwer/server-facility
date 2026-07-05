@@ -176,4 +176,69 @@ class CryptoUtilTest {
         String ct = CryptoUtil.encrypt(new byte[0], key).get();
         assertThat(CryptoUtil.decryptToBytes(ct, key).get()).isEmpty();
     }
+
+    // ==================== 密钥生命周期 ====================
+
+    @Test
+    @DisplayName("generateAesKey 为 256-bit 且两次不同")
+    void generateAesKey_256bit_unique() {
+        SecretKey a = CryptoUtil.generateAesKey();
+        SecretKey b = CryptoUtil.generateAesKey();
+        assertThat(a.getEncoded()).hasSize(32);            // 256-bit
+        assertThat(a.getEncoded()).isNotEqualTo(b.getEncoded());
+    }
+
+    @Test
+    @DisplayName("生成密钥 → 加密 → 解密 端到端往返")
+    void generatedKey_endToEnd() {
+        SecretKey key = CryptoUtil.generateAesKey();
+        String ct = CryptoUtil.encrypt("端到端", key).get();
+        assertThat(CryptoUtil.decrypt(ct, key).get()).isEqualTo("端到端");
+    }
+
+    @Test
+    @DisplayName("aesKeyFromBytes 合法 16/24/32 字节成功、非法长度 → CRYPTO_KEY_ERROR")
+    void aesKeyFromBytes_lengthValidation() {
+        assertThat(CryptoUtil.aesKeyFromBytes(new byte[16]).isOk()).isTrue();
+        assertThat(CryptoUtil.aesKeyFromBytes(new byte[24]).isOk()).isTrue();
+        assertThat(CryptoUtil.aesKeyFromBytes(new byte[32]).isOk()).isTrue();
+        Result<?, ?> bad = CryptoUtil.aesKeyFromBytes(new byte[10]);
+        assertThat(bad.isErr()).isTrue();
+        assertThat(((cn.code91.facility.error.WrappedError) bad.getErr()).getErrorType())
+                .isEqualTo(FacilityErrorType.CRYPTO_KEY_ERROR);
+        assertThat(CryptoUtil.aesKeyFromBytes(null).isErr()).isTrue();
+    }
+
+    @Test
+    @DisplayName("deriveKey 同 password+salt 确定、不同 salt 不同、null → err")
+    void deriveKey_deterministic() {
+        byte[] salt = CryptoUtil.generateSalt();
+        SecretKey k1 = CryptoUtil.deriveKey("pw", salt).get();
+        SecretKey k2 = CryptoUtil.deriveKey("pw", salt).get();
+        assertThat(k1.getEncoded()).isEqualTo(k2.getEncoded());          // 确定
+        assertThat(k1.getEncoded()).hasSize(32);                          // 256-bit
+        SecretKey k3 = CryptoUtil.deriveKey("pw", CryptoUtil.generateSalt()).get();
+        assertThat(k3.getEncoded()).isNotEqualTo(k1.getEncoded());        // 不同 salt
+        assertThat(CryptoUtil.deriveKey(null, salt).isErr()).isTrue();
+        assertThat(CryptoUtil.deriveKey("pw", new byte[0]).isErr()).isTrue();
+    }
+
+    @Test
+    @DisplayName("generateSalt 为 16 字节且两次不同")
+    void generateSalt_16bytes_unique() {
+        assertThat(CryptoUtil.generateSalt()).hasSize(16);
+        assertThat(CryptoUtil.generateSalt()).isNotEqualTo(CryptoUtil.generateSalt());
+    }
+
+    @Test
+    @DisplayName("exportKey → importKey 密钥往返相等；畸形 → CRYPTO_KEY_ERROR")
+    void exportImport_roundTrip() {
+        SecretKey key = CryptoUtil.generateAesKey();
+        String exported = CryptoUtil.exportKey(key);
+        Result<SecretKey, ?> imported = CryptoUtil.importKey(exported);
+        assertThat(imported.isOk()).isTrue();
+        assertThat(imported.get().getEncoded()).isEqualTo(key.getEncoded());
+        assertThat(CryptoUtil.importKey("!!!bad!!!").isErr()).isTrue();
+        assertThat(CryptoUtil.importKey(null).isErr()).isTrue();
+    }
 }

@@ -5,12 +5,18 @@ import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
 
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.spec.KeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * <b>加解密静态门面</b>
@@ -192,6 +198,96 @@ public final class CryptoUtil {
             // equals 相等且不含 cause 的错误对象,杜绝调用方经 WrappedError.getException()/getFullMessage()
             // 区分失败模式(oracle 加固,ADR-0019)。encrypt 刻意保留 cause——非 oracle 向量,便于诊断。
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR));
+        }
+    }
+
+    // ==================== 密钥生命周期 ====================
+
+    /**
+     * 生成 256-bit AES 密钥（{@link SecureRandom}）。
+     *
+     * @return 新 AES 密钥
+     */
+    public static SecretKey generateAesKey() {
+        try {
+            KeyGenerator kg = KeyGenerator.getInstance(AES);
+            kg.init(AES_KEY_BITS, SECURE_RANDOM);
+            return kg.generateKey();
+        } catch (NoSuchAlgorithmException e) {
+            // AES 是 JDK 强制算法，理论上不发生
+            throw new IllegalStateException("AES KeyGenerator unavailable", e);
+        }
+    }
+
+    /**
+     * 用原始字节包装为 AES 密钥（fail-fast 校验长度）。
+     *
+     * @param raw 16/24/32 字节原始密钥
+     * @return AES 密钥；null 或非法长度 → {@link FacilityErrorType#CRYPTO_KEY_ERROR}
+     */
+    public static Result<SecretKey, WrappedError> aesKeyFromBytes(byte[] raw) {
+        if (raw == null || (raw.length != 16 && raw.length != 24 && raw.length != 32)) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
+        }
+        return Result.ok(new SecretKeySpec(raw, AES));
+    }
+
+    /**
+     * 口令派生 256-bit AES 密钥（PBKDF2WithHmacSHA256，210_000 迭代）。盐须与密文一同持久化。
+     *
+     * @param password 口令
+     * @param salt     盐（见 {@link #generateSalt()}）
+     * @return 派生密钥；null 入参/空盐/失败 → {@link FacilityErrorType#CRYPTO_KEY_ERROR}
+     */
+    public static Result<SecretKey, WrappedError> deriveKey(String password, byte[] salt) {
+        if (password == null || salt == null || salt.length == 0) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
+        }
+        try {
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(PBKDF2);
+            KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, AES_KEY_BITS);
+            byte[] keyBytes = factory.generateSecret(spec).getEncoded();
+            return Result.ok(new SecretKeySpec(keyBytes, AES));
+        } catch (Exception e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR, e));
+        }
+    }
+
+    /**
+     * 生成 16 字节随机盐（{@link SecureRandom}）。
+     *
+     * @return 盐字节
+     */
+    public static byte[] generateSalt() {
+        byte[] salt = new byte[SALT_BYTES];
+        SECURE_RANDOM.nextBytes(salt);
+        return salt;
+    }
+
+    /**
+     * 导出密钥为 Base64（持久化/传输）。
+     *
+     * @param key 非 null 密钥
+     * @return Base64 字符串
+     */
+    public static String exportKey(SecretKey key) {
+        return Base64.getEncoder().encodeToString(key.getEncoded());
+    }
+
+    /**
+     * 从 Base64 导入 AES 密钥（{@link #exportKey} 逆操作）。
+     *
+     * @param base64Key Base64 密钥
+     * @return AES 密钥；null/畸形 Base64/非法长度 → {@link FacilityErrorType#CRYPTO_KEY_ERROR}
+     */
+    public static Result<SecretKey, WrappedError> importKey(String base64Key) {
+        if (base64Key == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
+        }
+        try {
+            return aesKeyFromBytes(Base64.getDecoder().decode(base64Key));
+        } catch (IllegalArgumentException e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR, e));
         }
     }
 }
