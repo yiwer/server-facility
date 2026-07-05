@@ -109,9 +109,125 @@ class CsvUtilTest {
             assertThat(r.getErr().getErrorType()).isEqualTo(FacilityErrorType.CSV_WRITE_ERROR);
         }
 
+        @Test
+        void write_path_nullRow_err_andFileNotCreated() {
+            Path f = tempDir.resolve("never-created.csv");
+            var r = CsvUtil.write(f, Arrays.asList(List.of("a"), null));
+            assertThat(r.getErr().getErrorType()).isEqualTo(FacilityErrorType.CSV_WRITE_ERROR);
+            // 拒绝发生在开流之前:不残留空文件
+            assertThat(Files.exists(f)).isFalse();
+        }
+
         private String bodyOf(ByteArrayOutputStream out) {
             byte[] bytes = out.toByteArray();
             return new String(bytes, 3, bytes.length - 3, StandardCharsets.UTF_8);
+        }
+    }
+
+    @Nested
+    @DisplayName("read:RFC 4180 解析")
+    class Read {
+
+        @Test
+        void read_plainRows() {
+            assertThat(parse("a,b\r\n1,2\r\n"))
+                    .containsExactly(List.of("a", "b"), List.of("1", "2"));
+        }
+
+        @Test
+        void read_quotedField_withCommaQuoteNewline() {
+            assertThat(parse("\"has,comma\",\"has\"\"quote\",\"line1\nline2\"\r\n"))
+                    .containsExactly(List.of("has,comma", "has\"quote", "line1\nline2"));
+        }
+
+        @Test
+        void read_mixedLineEndings_tolerated() {
+            assertThat(parse("a\nb\rc\r\nd"))
+                    .containsExactly(List.of("a"), List.of("b"), List.of("c"), List.of("d"));
+        }
+
+        @Test
+        void read_bom_stripped() {
+            assertThat(parse("\uFEFF" + "a,b\r\n"))
+                    .containsExactly(List.of("a", "b"));
+        }
+
+        @Test
+        void read_blankLine_isSingleEmptyField() {
+            assertThat(parse("a\r\n\r\nb\r\n"))
+                    .containsExactly(List.of("a"), List.of(""), List.of("b"));
+        }
+
+        @Test
+        void read_trailingNewline_noExtraRow() {
+            assertThat(parse("a\r\n")).containsExactly(List.of("a"));
+        }
+
+        @Test
+        void read_noTrailingNewline_lastRowKept() {
+            assertThat(parse("a,b")).containsExactly(List.of("a", "b"));
+        }
+
+        @Test
+        void read_trailingComma_yieldsEmptyLastField() {
+            assertThat(parse("a,\r\n")).containsExactly(List.of("a", ""));
+        }
+
+        @Test
+        void read_raggedRows_asIs() {
+            assertThat(parse("a,b,c\r\nx\r\n"))
+                    .containsExactly(List.of("a", "b", "c"), List.of("x"));
+        }
+
+        @Test
+        void read_emptyInput_emptyList() {
+            assertThat(parse("")).isEmpty();
+        }
+
+        @Test
+        void read_quoteAfterClosingQuote_lenientAppend() {
+            // RFC 之外的宽容:闭合引号后跟普通字符按续写处理
+            assertThat(parse("\"ab\"x,c\r\n")).containsExactly(List.of("abx", "c"));
+        }
+
+        @Test
+        void read_unterminatedQuote_err() {
+            var r = CsvUtil.read(new java.io.ByteArrayInputStream(
+                    "\"never closed".getBytes(StandardCharsets.UTF_8)));
+            assertThat(r.isErr()).isTrue();
+            assertThat(r.getErr().getErrorType()).isEqualTo(FacilityErrorType.CSV_READ_ERROR);
+        }
+
+        @Test
+        void read_writeReadRoundTrip() {
+            List<List<String>> rows = List.of(
+                    List.of("plain", "has,comma", "has\"quote", "多行\n值"),
+                    List.of("", " lead", "trail "));
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            assertThat(CsvUtil.write(out, rows).isOk()).isTrue();
+            var back = CsvUtil.read(new java.io.ByteArrayInputStream(out.toByteArray()));
+            assertThat(back.get()).isEqualTo(rows);
+        }
+
+        @Test
+        void read_path_works() throws Exception {
+            Path f = tempDir.resolve("in.csv");
+            Files.writeString(f, "k,v\r\n1,一\r\n", StandardCharsets.UTF_8);
+            assertThat(CsvUtil.read(f).get())
+                    .containsExactly(List.of("k", "v"), List.of("1", "一"));
+        }
+
+        @Test
+        void read_nullArguments_err() {
+            assertThat(CsvUtil.read((Path) null).getErr().getErrorType())
+                    .isEqualTo(FacilityErrorType.CSV_READ_ERROR);
+            assertThat(CsvUtil.read((java.io.InputStream) null).getErr().getErrorType())
+                    .isEqualTo(FacilityErrorType.CSV_READ_ERROR);
+        }
+
+        private List<List<String>> parse(String csv) {
+            return CsvUtil.read(new java.io.ByteArrayInputStream(
+                    csv.getBytes(StandardCharsets.UTF_8))).get();
         }
     }
 

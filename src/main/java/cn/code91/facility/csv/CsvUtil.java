@@ -4,14 +4,19 @@ import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,6 +58,9 @@ public final class CsvUtil {
         if (file == null || rows == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
+        if (containsNullRow(rows)) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
+        }
         try (OutputStream out = Files.newOutputStream(file)) {
             return write(out, rows);
         } catch (IOException e) {
@@ -72,10 +80,8 @@ public final class CsvUtil {
         if (out == null || rows == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
-        for (List<String> row : rows) {
-            if (row == null) {
-                return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
-            }
+        if (containsNullRow(rows)) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
         try {
             Writer w = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
@@ -106,5 +112,117 @@ public final class CsvUtil {
             return s;
         }
         return '"' + s.replace("\"", "\"\"") + '"';
+    }
+
+    /** rows 是否含 null 行(两个 write 重载共用;Path 重载在开流之前拒绝,避免残留空文件)。 */
+    private static boolean containsNullRow(List<List<String>> rows) {
+        for (List<String> row : rows) {
+            if (row == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ==================== 读 ====================
+
+    /**
+     * 读取 CSV 文件(UTF-8;兼容剥 BOM;容忍 CR/LF/CRLF;ragged 行如实返回)。
+     *
+     * @param file 源文件
+     * @return 行集;file 为 null、IO 失败或引号未闭合 →
+     *         {@link FacilityErrorType#CSV_READ_ERROR}
+     */
+    public static Result<List<List<String>>, WrappedError> read(Path file) {
+        if (file == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR));
+        }
+        try (InputStream in = Files.newInputStream(file)) {
+            return read(in);
+        } catch (IOException e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR, e));
+        }
+    }
+
+    /**
+     * 从输入流读取 CSV(UTF-8;兼容剥 BOM)。流由调用方关闭。
+     *
+     * @param in 源流
+     * @return 行集;in 为 null、IO 失败或引号未闭合 →
+     *         {@link FacilityErrorType#CSV_READ_ERROR}
+     */
+    public static Result<List<List<String>>, WrappedError> read(InputStream in) {
+        if (in == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR));
+        }
+        try {
+            Reader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return Result.ok(parse(reader));
+        } catch (IOException e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR, e));
+        }
+    }
+
+    /**
+     * RFC 4180 状态机:引号字段(内嵌逗号/换行/成对引号)、CR/LF/CRLF 行分隔、
+     * 换行无条件结行(连续换行产出单空字段行)、EOF 仅当行内有内容才结行
+     * (尾部换行不产生多余空行)。引号未闭合到 EOF 抛 IOException 由调用方转 err。
+     */
+    private static List<List<String>> parse(Reader reader) throws IOException {
+        List<List<String>> rows = new ArrayList<>();
+        List<String> row = new ArrayList<>();
+        StringBuilder field = new StringBuilder();
+        boolean inQuotes = false;
+        int c = reader.read();
+        if (c == BOM) {
+            c = reader.read();
+        }
+        while (c != -1) {
+            char ch = (char) c;
+            if (inQuotes) {
+                if (ch == '"') {
+                    int next = reader.read();
+                    if (next == '"') {
+                        field.append('"');
+                        c = reader.read();
+                    } else {
+                        inQuotes = false;
+                        c = next;
+                    }
+                } else {
+                    field.append(ch);
+                    c = reader.read();
+                }
+            } else if (ch == '"' && field.length() == 0) {
+                inQuotes = true;
+                c = reader.read();
+            } else if (ch == ',') {
+                row.add(field.toString());
+                field.setLength(0);
+                c = reader.read();
+            } else if (ch == '\r' || ch == '\n') {
+                if (ch == '\r') {
+                    int next = reader.read();
+                    c = (next == '\n') ? reader.read() : next;
+                } else {
+                    c = reader.read();
+                }
+                row.add(field.toString());
+                field.setLength(0);
+                rows.add(row);
+                row = new ArrayList<>();
+            } else {
+                field.append(ch);
+                c = reader.read();
+            }
+        }
+        if (inQuotes) {
+            throw new IOException("Unterminated quoted field at end of input");
+        }
+        if (field.length() > 0 || !row.isEmpty()) {
+            row.add(field.toString());
+            rows.add(row);
+        }
+        return rows;
     }
 }
