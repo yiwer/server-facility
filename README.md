@@ -6,7 +6,7 @@
 
 - **坐标**:`cn.code91:server-facility:0.1.0-SNAPSHOT`
 - **要求**:Java 21+、Spring Boot 3.5.x(依赖版本经 `spring-boot-dependencies` BOM 收敛)
-- **测试**:1048 项(含 4 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
+- **测试**:1099 项(含 4 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
 
 ## 引入
 
@@ -76,6 +76,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `idempotency` | `IdempotencyStore`(SPI) | 幂等存储:PROCESSING/DONE 状态机 + TTL,默认内存,SPI 可替换 Redis |
 | `web.idempotency` | `@Idempotent` | 完整幂等:同 key 返首次响应,拦截器 + Filter 捕获响应,PROCESSING→409 |
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex(静态门面,纯 JDK,无需配置) |
+| `masking` | `MaskUtil` | 日志脱敏(默认开启):秘密/JWT/身份证/银行卡/邮箱/手机号六规则,校验位(mod11-2/Luhn)抑误伤;`LogUtil` 写前集成,`setMaskingEnabled(false)` 可关(静态门面,纯 JDK,无需配置) |
 
 ## 装配开关
 
@@ -99,6 +100,6 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 - **[USAGE](docs/USAGE.md)** —— 各门面用法、装配开关全表、消费方须知(i18n 抢注模型、JsonUtil 单例语义、optional 依赖矩阵)
 - **[DESIGN](docs/DESIGN.md)** —— deep module 哲学、包簇依赖地图、三组断环 C1/C2/C3、装配范式
-- **[ADR 索引](docs/adr/INDEX.md)** —— 19 条架构决策记录
+- **[ADR 索引](docs/adr/INDEX.md)** —— 20 条架构决策记录
 - **[设计规格](docs/superpowers/specs/2026-07-02-server-facility-migration-design.md)** —— 迁移工程 spec
 - **[域术语](CONTEXT.md)**

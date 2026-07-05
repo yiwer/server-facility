@@ -1,6 +1,7 @@
 package cn.code91.facility.log;
 
 import cn.code91.facility.context.SpringContextHolder;
+import cn.code91.facility.masking.MaskUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -21,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
  *     <li><b>性能优化</b>：先检查日志级别再获取调用者信息</li>
  *     <li><b>线程安全</b>：改进的缓存策略</li>
  *     <li><b>实例缓存</b>：ConcurrentHashMap 缓存 Logger(键为 logger 名称,集合有界,不随用户输入增长);如需手动清理见 {@link #clearLoggerCache()}</li>
+ *     <li><b>写前脱敏</b>:消息经 {@link cn.code91.facility.masking.MaskUtil} 默认脱敏,
+ *         见 {@link #setMaskingEnabled(boolean)} 与 ADR-0020</li>
  * </ul>
  *
  * <h3>使用示例：</h3>
@@ -54,6 +57,13 @@ public final class LogUtil {
      */
     private static final AtomicReference<LogPostHandlerComposite> HANDLER_CACHE = new AtomicReference<>();
 
+    /**
+     * 写前脱敏总开关(ADR-0020):默认开启——消息最终化后、写盘与 post handler 之前
+     * 经 {@link MaskUtil#mask} 脱敏。仅覆盖消息体;Throwable 的 message/stack trace
+     * 不脱敏(重写异常对象不可行,诚实局限)。
+     */
+    private static volatile boolean maskingEnabled = true;
+
     // ==================== 日志输出方法 ====================
 
     /**
@@ -71,7 +81,7 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isTraceEnabled()) {
-            final String msg = formatMessage(msgTemp, args);
+            final String msg = maskIfEnabled(formatMessage(msgTemp, args));
             logger.trace(msg);
             invokePostHandler(msg, Level.TRACE, callerClassName, null);
         }
@@ -92,7 +102,7 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isDebugEnabled()) {
-            final String msg = formatMessage(msgTemp, args);
+            final String msg = maskIfEnabled(formatMessage(msgTemp, args));
             logger.debug(msg);
             invokePostHandler(msg, Level.DEBUG, callerClassName, null);
         }
@@ -113,7 +123,7 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isInfoEnabled()) {
-            final String msg = formatMessage(msgTemp, args);
+            final String msg = maskIfEnabled(formatMessage(msgTemp, args));
             logger.info(msg);
             invokePostHandler(msg, Level.INFO, callerClassName, null);
         }
@@ -134,7 +144,7 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isWarnEnabled()) {
-            final String msg = formatMessage(msgTemp, args);
+            final String msg = maskIfEnabled(formatMessage(msgTemp, args));
             logger.warn(msg);
             invokePostHandler(msg, Level.WARN, callerClassName, null);
         }
@@ -159,8 +169,9 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isWarnEnabled()) {
-            logger.warn(msg, t);
-            invokePostHandler(msg, Level.WARN, callerClassName, t);
+            final String masked = maskIfEnabled(msg);
+            logger.warn(masked, t);
+            invokePostHandler(masked, Level.WARN, callerClassName, t);
         }
     }
 
@@ -183,7 +194,7 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isWarnEnabled()) {
-            final String msg = formatMessage(msgPattern, args);
+            final String msg = maskIfEnabled(formatMessage(msgPattern, args));
             logger.warn(msg, t);
             invokePostHandler(msg, Level.WARN, callerClassName, t);
         }
@@ -204,7 +215,7 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isErrorEnabled()) {
-            final String msg = formatMessage(msgTemp, args);
+            final String msg = maskIfEnabled(formatMessage(msgTemp, args));
             logger.error(msg);
             invokePostHandler(msg, Level.ERROR, callerClassName, null);
         }
@@ -227,8 +238,9 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isErrorEnabled()) {
-            logger.error(msg, t);
-            invokePostHandler(msg, Level.ERROR, callerClassName, t);
+            final String masked = maskIfEnabled(msg);
+            logger.error(masked, t);
+            invokePostHandler(masked, Level.ERROR, callerClassName, t);
         }
     }
 
@@ -249,7 +261,7 @@ public final class LogUtil {
         final Logger logger = getLogger(callerClassName);
 
         if (logger.isErrorEnabled()) {
-            final String msg = formatMessage(msgPattern, args);
+            final String msg = maskIfEnabled(formatMessage(msgPattern, args));
             logger.error(msg, t);
             invokePostHandler(msg, Level.ERROR, callerClassName, t);
         }
@@ -304,6 +316,13 @@ public final class LogUtil {
     }
 
     /**
+     * <b>写前脱敏</b>:开关开启时委托 {@link MaskUtil#mask};null 透传。
+     */
+    private static String maskIfEnabled(String msg) {
+        return maskingEnabled ? MaskUtil.mask(msg) : msg;
+    }
+
+    /**
      * <b>获取或创建Logger实例</b>
      *
      * @param className 类名
@@ -351,6 +370,26 @@ public final class LogUtil {
             // 后处理器失败不应影响日志输出
             DEFAULT_LOGGER.error("Failed to invoke log post handler", e);
         }
+    }
+
+    /**
+     * <b>设置写前脱敏开关</b>
+     * <p>默认 {@code true}(安全默认)。仅在排障且环境可控时才应关闭;测试中修改后必须复位。</p>
+     * <p>注意:脱敏仅覆盖消息体;Throwable 的 message/stack trace 不脱敏(见类文档与 ADR-0020)。</p>
+     *
+     * @param enabled 是否启用脱敏
+     */
+    public static void setMaskingEnabled(boolean enabled) {
+        maskingEnabled = enabled;
+    }
+
+    /**
+     * <b>查询写前脱敏开关状态</b>
+     *
+     * @return 当前是否启用脱敏
+     */
+    public static boolean isMaskingEnabled() {
+        return maskingEnabled;
     }
 
     /**
