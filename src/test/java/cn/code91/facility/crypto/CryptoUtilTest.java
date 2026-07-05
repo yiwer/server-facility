@@ -1,6 +1,7 @@
 package cn.code91.facility.crypto;
 
 import cn.code91.facility.error.FacilityErrorType;
+import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
 
 import org.junit.jupiter.api.DisplayName;
@@ -151,5 +152,28 @@ class CryptoUtilTest {
         assertThat(r.isErr()).isTrue();
         assertThat(((cn.code91.facility.error.WrappedError) r.getErr()).getErrorType())
                 .isEqualTo(FacilityErrorType.CRYPTO_DECRYPT_ERROR);
+    }
+
+    @Test
+    @DisplayName("解密失败模式不可区分(畸形 vs 篡改产生相等且无异常的错误——oracle 加固)")
+    void aesGcm_decryptFailures_indistinguishable() {
+        SecretKey key = key32();
+        WrappedError malformed = CryptoUtil.decrypt("!!!not base64!!!", key).getErr();
+        byte[] raw = Base64.getDecoder().decode(CryptoUtil.encrypt("x", key).get());
+        raw[raw.length - 1] ^= 0x01;                       // 认证失败(篡改)
+        WrappedError tampered = CryptoUtil.decrypt(Base64.getEncoder().encodeToString(raw), key).getErr();
+        assertThat(malformed.getException()).isNull();
+        assertThat(tampered.getException()).isNull();
+        assertThat(malformed.getErrorType()).isEqualTo(tampered.getErrorType());
+        assertThat(malformed.getFullMessage()).isEqualTo(tampered.getFullMessage());
+        assertThat(malformed).isEqualTo(tampered);          // WrappedError.equals 全等
+    }
+
+    @Test
+    @DisplayName("空明文加解密往返(0 字节 + 16 字节 tag)")
+    void aesGcm_emptyPlaintext() {
+        SecretKey key = key32();
+        String ct = CryptoUtil.encrypt(new byte[0], key).get();
+        assertThat(CryptoUtil.decryptToBytes(ct, key).get()).isEmpty();
     }
 }

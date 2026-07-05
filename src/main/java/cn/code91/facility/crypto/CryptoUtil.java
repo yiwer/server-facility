@@ -152,6 +152,9 @@ public final class CryptoUtil {
     /**
      * AES-256-GCM 解密为 UTF-8 明文。
      *
+     * <p>安全:所有失败返回 equals 相等且<b>不含底层异常</b>的 {@code CRYPTO_DECRYPT_ERROR},调用方无从
+     * 区分失败模式(oracle 加固);与 {@link #encrypt} 刻意不对称——加密失败非 oracle 向量,保留 cause 便于诊断。</p>
+     *
      * @param base64Cipher {@link #encrypt} 的输出
      * @param key          AES 密钥
      * @return 明文；失败（错误密钥/篡改/畸形/null）→ {@link FacilityErrorType#CRYPTO_DECRYPT_ERROR}
@@ -162,6 +165,9 @@ public final class CryptoUtil {
 
     /**
      * AES-256-GCM 解密为字节。
+     *
+     * <p>安全:所有失败返回 equals 相等且<b>不含底层异常</b>的 {@code CRYPTO_DECRYPT_ERROR},调用方无从
+     * 区分失败模式(oracle 加固);与 {@link #encrypt} 刻意不对称——加密失败非 oracle 向量,保留 cause 便于诊断。</p>
      *
      * @param base64Cipher {@link #encrypt} 的输出
      * @param key          AES 密钥
@@ -182,7 +188,10 @@ public final class CryptoUtil {
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
             return Result.ok(cipher.doFinal(ct));
         } catch (Exception e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR, e));
+            // 刻意不附加底层异常:让全部解密失败(畸形 Base64 / IV 不足 / 错误密钥 / 篡改 / null)产生
+            // equals 相等且不含 cause 的错误对象,杜绝调用方经 WrappedError.getException()/getFullMessage()
+            // 区分失败模式(oracle 加固,ADR-0019)。encrypt 刻意保留 cause——非 oracle 向量,便于诊断。
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR));
         }
     }
 }
