@@ -375,6 +375,7 @@ public final class LogUtil {
     /**
      * <b>设置写前脱敏开关</b>
      * <p>默认 {@code true}(安全默认)。仅在排障且环境可控时才应关闭;测试中修改后必须复位。</p>
+     * <p>注意:脱敏仅覆盖消息体;Throwable 的 message/stack trace 不脱敏(见类文档与 ADR-0020)。</p>
      *
      * @param enabled 是否启用脱敏
      */

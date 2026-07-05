@@ -99,6 +99,25 @@ class LogUtilMaskingTest {
     }
 
     @Test
+    void postHandler_bareThrowableOverload_receivesMaskedMessage() {
+        List<LogContext> received = new ArrayList<>();
+        LogPostHandler probe = received::add;
+        StaticApplicationContext ctx = new StaticApplicationContext();
+        ctx.refresh();
+        ctx.getBeanFactory().registerSingleton(
+                "composite", new LogPostHandlerComposite(List.of(probe)));
+        SpringContextHolder.setApplicationContextManually(ctx);
+        LogUtil.clearHandlerCache();
+
+        RuntimeException boom = new RuntimeException("x");
+        LogUtil.warn("token=abc123", boom);
+
+        assertThat(received).hasSize(1);
+        assertThat(received.get(0).getMessage()).isEqualTo("token=******");
+        assertThat(received.get(0).getThrowable()).isSameAs(boom);
+    }
+
+    @Test
     void maskingDisabled_passesThrough() {
         LogUtil.setMaskingEnabled(false);
         LogUtil.info("用户 {} 下单", "13800138000");
