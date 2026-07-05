@@ -289,6 +289,19 @@ class MaskUtilTest {
             assertThat(MaskUtil.maskSecrets("13800138000 password=x"))
                     .isEqualTo("13800138000 password=******");
         }
+
+        @Test
+        void mask_keywordAsSuffixOfIdentifier_masked_bySubstringSemantics() {
+            // 有意的 substring 语义:键名含关键词紧邻分隔符即命中(宁多遮不漏遮)
+            assertThat(MaskUtil.mask("mypassword=x")).isEqualTo("mypassword=******");
+        }
+
+        @Test
+        void mask_keywordNotAdjacentToSeparator_untouched() {
+            // 误报面受「关键词须紧邻分隔符」约束:tokenizer 的 izer 隔断,不命中
+            String text = "tokenizer=whitespace";
+            assertThat(MaskUtil.mask(text)).isSameAs(text);
+        }
     }
 
     // ==================== JWT ====================

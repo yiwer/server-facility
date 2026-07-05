@@ -65,7 +65,7 @@ public static String maskEmail(String text)     // 仅邮箱
 
 | 序 | 规则 | 匹配 | 遮蔽 | 校验 |
 |----|------|------|------|------|
-| 1 | SECRET(键值秘密) | key ∈ {password, passwd, pwd, token, access[-_]?token, secret, api[-_]?key, authorization}(大小写不敏感,可带引号),分隔符 `=` 或 `:`,值为带/不带引号的 token;`Authorization` 值支持 `Bearer/Basic <token>` 整体 | 值内容 → 固定 `******`(**不保长**——长度本身是秘密信息);保留 key、分隔符、引号结构(JSON 形态 `"password":"******"`) | — |
+| 1 | SECRET(键值秘密) | key ∈ {password, passwd, pwd, token, access[-_]?token, secret, api[-_]?key, authorization}(大小写不敏感,可带引号)(键名匹配为 substring 语义:键名中含关键词且紧邻分隔符即命中,覆盖 camelCase 复合键;见 §5.1),分隔符 `=` 或 `:`,值为带/不带引号的 token;`Authorization` 值支持 `Bearer/Basic <token>` 整体 | 值内容 → 固定 `******`(**不保长**——长度本身是秘密信息);保留 key、分隔符、引号结构(JSON 形态 `"password":"******"`) | — |
 | 2 | JWT(裸 token) | `eyJ` 开头的三段 base64url(`eyJx.y.z` 形) | 整体 → `******` | — |
 | 3 | IDCARD(身份证 18 位) | `(?<!\d)\d{17}[\dXx](?!\d)`(前后非数字边界) | 前 6 + `********` + 后 4(保长) | **ISO 7064 mod 11-2** 校验位通过才遮 |
 | 4 | BANKCARD(银行卡) | `(?<!\d)\d{15,19}(?!\d)` | 仅留后 4,前段逐位 `*`(保长) | **Luhn** 通过才遮 |
@@ -80,6 +80,7 @@ public static String maskEmail(String text)     // 仅邮箱
 - **秘密类不保长、标识符类保长**:秘密的长度是信息(口令位数);标识符部分保留供排障对账(尾 4 位核对)。
 - **幂等**:遮蔽产物含 `*`,不再命中任何规则 → `mask(mask(x)) == mask(x)`(锁定测试)。
 - **误遮优于漏遮**:残余误伤(如恰过 Luhn 的 16 位数)只损可读性不泄数据;总开关是逃生舱。
+- **SECRET 键名 substring 语义**:不设左词边界,accessToken/clientSecret/mypassword 等含关键词的复合键一并命中(camelCase 覆盖的必要条件——Secret 前一字符是字母,词边界断言会漏掉);代价是 notatoken= 这类无关前缀词也被遮,方向为宁多遮不漏遮。误报面受「关键词紧邻分隔符」硬约束(tokenizer=x 不命中)。
 
 ### 5.2 诚实局限(v1 不覆盖,文档 + ADR 记录)
 

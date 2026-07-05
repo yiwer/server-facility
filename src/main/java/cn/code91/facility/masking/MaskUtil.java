@@ -45,6 +45,8 @@ public final class MaskUtil {
     /** 秘密类统一遮蔽串:固定长度,长度本身是信息故不保长(spec §5.1) */
     private static final String MASKED_SECRET = "******";
 
+    // SKEY 有意不设左词边界:键名中含关键词且紧邻分隔符即命中(覆盖 accessToken/clientSecret 等复合键;
+    // 代价是 mypassword= 这类前缀词同样命中——宁多遮不漏遮,spec §5.1)
     private static final String SECRET_REGEX =
             "(?<SECRET>(?<SKEY>[\"']?(?i:password|passwd|pwd|access[-_]?token|token|secret|api[-_]?key|authorization)[\"']?)"
                     + "(?<SSEP>\\s*[=:]\\s*)"
