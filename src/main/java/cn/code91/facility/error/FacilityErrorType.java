@@ -301,6 +301,53 @@ public enum FacilityErrorType implements ErrorTypeInterface {
             500609,
             "facility.file.delete_error",
             "文件删除异常"
+    ),
+
+    // ==================== 表格文件错误 (500700-500799) ====================
+
+    /**
+     * Excel 能力不可用（POI 不在 classpath，见 ADR-0021 运行时探测降级）
+     */
+    EXCEL_LIB_MISSING(
+            500700,
+            "facility.excel.lib_missing",
+            "Excel 能力不可用（缺少 POI 依赖）"
+    ),
+
+    /**
+     * Excel 读取失败（畸形文件/IO）
+     */
+    EXCEL_READ_ERROR(
+            500701,
+            "facility.excel.read_error",
+            "Excel 读取失败"
+    ),
+
+    /**
+     * Excel 写出失败
+     */
+    EXCEL_WRITE_ERROR(
+            500702,
+            "facility.excel.write_error",
+            "Excel 写出失败"
+    ),
+
+    /**
+     * CSV 读取失败（IO/未闭合引号）
+     */
+    CSV_READ_ERROR(
+            500703,
+            "facility.csv.read_error",
+            "CSV 读取失败"
+    ),
+
+    /**
+     * CSV 写出失败
+     */
+    CSV_WRITE_ERROR(
+            500704,
+            "facility.csv.write_error",
+            "CSV 写出失败"
     );
 
     // ======================== 模块标识 ========================

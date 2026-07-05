@@ -95,7 +95,7 @@ class ErrorTypeInterfaceTest {
             for (FacilityErrorType type : FacilityErrorType.values()) {
                 assertThat(type.getCode())
                         .as("Code for %s", type.name())
-                        .isBetween(500000, 500699);
+                        .isBetween(500000, 500799);
             }
         }
 
