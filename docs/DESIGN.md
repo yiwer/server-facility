@@ -71,10 +71,13 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
   使非中英 locale 确定性回落英文 base)。
 - **Web 条件门**:`FacilityWebAutoConfiguration` 整体 `@ConditionalOnWebApplication(SERVLET)`,
   各组件再由 `facility.web.*.enabled` 单独 `@ConditionalOnProperty` 开关。
+- **并非所有能力簇都装配**:11 是「需要 bean/配置属性」的子集数,不是能力簇总数——无状态、无可
+  替换策略的静态门面型能力(`hash`/`crypto`)不注册 `@AutoConfiguration`、无 `facility.*`
+  properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019)。
 
 ## 5. ADR 索引
 
-18 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+19 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
 
 | ADR | 决策 |
 |---|---|
@@ -96,10 +99,11 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 | 0016 | 分布式锁 `DistributedLock` SPI + 单机 `InMemory`,real seam Redisson 升级示范 |
 | 0017 | 完整幂等(同 key 返首次响应)+ 响应捕获,通用/web 分离避环 |
 | 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
+| 0019 | crypto 加解密门面——安全默认 AES-256-GCM、内管 IV、不透明失败通道、纯 JDK |
 
 ## 6. 质量门
 
-- **测试**:1024 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **测试**:1048 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (实测约 92% / 92% / 84%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——

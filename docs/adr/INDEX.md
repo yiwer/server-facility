@@ -22,3 +22,4 @@
 | [0016](0016-distributed-lock-seam.md) | Accepted | 分布式锁 DistributedLock SPI + 默认单机 InMemory,real seam 升级 Redisson 示范 |
 | [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted | 完整幂等(同 key 返首次响应),Filter 捕获响应 + 拦截器状态机,通用/web 分离 |
 | [0018](0018-http-client-restclient-result.md) | Accepted | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
+| [0019](0019-crypto-facade-safe-defaults.md) | Accepted | crypto 加解密门面——安全默认 AES-GCM、内管 IV、不透明失败通道、纯 JDK |
