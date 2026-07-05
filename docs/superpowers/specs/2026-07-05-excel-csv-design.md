@@ -56,7 +56,7 @@ public static Result<Void, WrappedError> write(OutputStream out, List<List<Strin
 ### 5.1 读(Excel)
 
 - `WorkbookFactory.create` 自动识别 xls/xlsx;仅读**第一个** sheet。
-- 单元格**全字符串化**:经 POI `DataFormatter`(避免数字科学计数法/保留显示格式);公式单元格取**计算值**(`FormulaEvaluator`)再格式化;空单元格 → `""`。
+- 单元格**全字符串化**:经 POI `DataFormatter`,**忠实 Excel 显示语义**(数字随单元格格式;General 格式大整数按 Excel 行为呈科学计数——精确数值请在源文件用文本格式单元格,ADR-0021 如实记录);公式单元格取**计算值**(`FormulaEvaluator`)再格式化;空单元格 → `""`。
 - **行宽按行自身末列**(不跨行补齐,ragged rows 如实返回;文档记录)。空行 → 空 `List`。
 - 畸形/非表格文件 → `err(EXCEL_READ_ERROR)`(含 cause)。
 
