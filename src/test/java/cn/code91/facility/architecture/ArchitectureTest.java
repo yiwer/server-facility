@@ -52,4 +52,13 @@ class ArchitectureTest {
             noClasses().that().resideOutsideOfPackage("cn.code91.facility.autoconfigure..")
                     .should().dependOnClassesThat()
                     .resideInAPackage("cn.code91.facility.autoconfigure..");
+
+    /**
+     * ADR-0021:ExcelUtil 门面必须可在 POI 缺失的 classpath 上安全加载——
+     * POI 类型只允许出现在包私有 ExcelSupport(探测通过才委托)。
+     */
+    @ArchTest
+    static final ArchRule excel_facade_does_not_depend_on_poi =
+            noClasses().that().haveFullyQualifiedName("cn.code91.facility.excel.ExcelUtil")
+                    .should().dependOnClassesThat().resideInAnyPackage("org.apache.poi..");
 }
