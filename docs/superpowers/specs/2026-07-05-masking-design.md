@@ -88,6 +88,7 @@ public static String maskEmail(String text)     // 仅邮箱
 - 绕过 LogUtil 直接用 slf4j 的日志不覆盖(含本工程内部少量直连 slf4j 的类);
 - 15 位老身份证无专属规则(纯数字 15 位若恰过 Luhn 会被 BANKCARD 附带遮蔽,非专属样式);带分隔符卡号(`6222 0202 ...`)、`+86` 前缀手机号不识别;
 - 姓名/地址/IP 不做(正则不可靠 / 运维排障需要 IP)。
+- 未闭合引号的 SECRET 值不遮蔽(`token="abc123` 三种 SVAL 分支均不命中,截断 JSON 片段整段裸奔)。
 
 ## 6. 性能
 

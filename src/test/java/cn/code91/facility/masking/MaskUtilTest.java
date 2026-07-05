@@ -302,6 +302,14 @@ class MaskUtilTest {
             String text = "tokenizer=whitespace";
             assertThat(MaskUtil.mask(text)).isSameAs(text);
         }
+
+        @Test
+        void mask_unterminatedQuotedValue_untouched_documentedLimit() {
+            // 诚实局限锁定(ADR-0020):未闭合引号值 SVAL 三分支均不命中——
+            // 配对引号分支要求闭合、裸值分支排除引号起始;截断 JSON 片段不被 SECRET 遮蔽
+            String text = "token=\"abc123";
+            assertThat(MaskUtil.mask(text)).isSameAs(text);
+        }
     }
 
     // ==================== JWT ====================

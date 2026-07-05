@@ -76,8 +76,9 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
   properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020)。`masking` 的
   引擎是单个预编译合并 `Pattern`(六规则 alternation)+ 单遍 `Matcher` 扫描 + 按命中组 dispatch
   到对应遮蔽函数 + 身份证/银行卡的校验位级联(mod11-2/Luhn 通过才遮,详见 ADR-0020);`log` 包
-  在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖 `log → masking`),`masking`
-  自身零依赖、零装配、零 bean。
+  在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖 `log → masking`,由 `MaskUtil`
+  零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit `packages_are_cycle_free` 守护的是
+  未来出现反向边时立即报警,而非断言方向本身),`masking` 自身零依赖、零装配、零 bean。
 
 ## 5. ADR 索引
 

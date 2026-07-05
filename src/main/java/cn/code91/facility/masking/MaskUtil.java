@@ -216,16 +216,16 @@ public final class MaskUtil {
     }
 
     /**
-     * 身份证遮蔽:mod11-2 通过 → 前 6 后 4;不过且允许级联(全规则上下文)且为纯数字 →
-     * 试 Luhn 按银行卡样式遮;均不过 → 原样(spec §5.1)。
+     * 身份证遮蔽:mod11-2 通过 → 前 6 后 4;不过且允许级联(全规则上下文)且末位为数字
+     * (前 17 位由正则 {@code \d{17}} 保证)→ 试 Luhn 按银行卡样式遮;均不过 → 原样(spec §5.1)。
      */
     private static String maskIdCardHit(String hit, boolean bankCardCascade) {
         if (idChecksumOk(hit)) {
             return hit.substring(0, 6) + "********" + hit.substring(14);
         }
         char last = hit.charAt(17);
-        boolean allDigits = last >= '0' && last <= '9';
-        return (bankCardCascade && allDigits && luhnOk(hit)) ? maskBankCardHit(hit) : hit;
+        boolean tailIsDigit = last >= '0' && last <= '9';
+        return (bankCardCascade && tailIsDigit && luhnOk(hit)) ? maskBankCardHit(hit) : hit;
     }
 
     private static String maskBankCardHit(String hit) {
