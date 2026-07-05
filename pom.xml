@@ -219,7 +219,11 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <argLine>@{argLine} -Dfile.encoding=UTF-8</argLine>
+                    <!-- jdk.net.unixdomain.tmpdir:JDK NIO Selector 的 wakeup pipe 优先用 AF_UNIX socket,
+                         隐式绑定目录取该属性,缺省取 env TEMP(优先于 java.io.tmpdir)。部分安全软件会破坏
+                         用户 AppData\Local 下的 afunix reparse point(bind 假成功、connect 报 WSAEINVAL),
+                         致 Selector.open()/JDK HttpClient 构造失败;收敛进 target/ 既规避又更 hermetic。 -->
+                    <argLine>@{argLine} -Dfile.encoding=UTF-8 -Djdk.net.unixdomain.tmpdir=${project.build.directory}</argLine>
                 </configuration>
             </plugin>
             <plugin>
