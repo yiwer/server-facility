@@ -166,13 +166,15 @@ public final class CsvUtil {
     /**
      * RFC 4180 状态机:引号字段(内嵌逗号/换行/成对引号)、CR/LF/CRLF 行分隔、
      * 换行无条件结行(连续换行产出单空字段行)、EOF 仅当行内有内容才结行
-     * (尾部换行不产生多余空行)。引号未闭合到 EOF 抛 IOException 由调用方转 err。
+     * (尾部换行不产生多余空行;引号定界的空字段也算内容)。引号未闭合到 EOF
+     * 抛 IOException 由调用方转 err。
      */
     private static List<List<String>> parse(Reader reader) throws IOException {
         List<List<String>> rows = new ArrayList<>();
         List<String> row = new ArrayList<>();
         StringBuilder field = new StringBuilder();
         boolean inQuotes = false;
+        boolean fieldWasQuoted = false;
         int c = reader.read();
         if (c == BOM) {
             c = reader.read();
@@ -195,10 +197,12 @@ public final class CsvUtil {
                 }
             } else if (ch == '"' && field.length() == 0) {
                 inQuotes = true;
+                fieldWasQuoted = true;
                 c = reader.read();
             } else if (ch == ',') {
                 row.add(field.toString());
                 field.setLength(0);
+                fieldWasQuoted = false;
                 c = reader.read();
             } else if (ch == '\r' || ch == '\n') {
                 if (ch == '\r') {
@@ -209,6 +213,7 @@ public final class CsvUtil {
                 }
                 row.add(field.toString());
                 field.setLength(0);
+                fieldWasQuoted = false;
                 rows.add(row);
                 row = new ArrayList<>();
             } else {
@@ -219,7 +224,7 @@ public final class CsvUtil {
         if (inQuotes) {
             throw new IOException("Unterminated quoted field at end of input");
         }
-        if (field.length() > 0 || !row.isEmpty()) {
+        if (field.length() > 0 || !row.isEmpty() || fieldWasQuoted) {
             row.add(field.toString());
             rows.add(row);
         }

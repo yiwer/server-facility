@@ -199,6 +199,23 @@ class CsvUtilTest {
         }
 
         @Test
+        void read_closedEmptyQuoteAtEof_keptAsEmptyFieldRow() {
+            // 闭合空引号字段直接 EOF:引号定界即内容,不得静默丢行(审查修复锁定)
+            assertThat(parse("\"\"")).containsExactly(List.of(""));
+        }
+
+        @Test
+        void read_closedEmptyQuoteThenNewline_noPhantomExtraRow() {
+            // 换行结行后标志复位:EOF 不得再补幽灵空行
+            assertThat(parse("\"\"\r\n")).containsExactly(List.of(""));
+        }
+
+        @Test
+        void read_trailingClosedEmptyQuoteAfterComma_kept() {
+            assertThat(parse("a,\"\"")).containsExactly(List.of("a", ""));
+        }
+
+        @Test
         void read_writeReadRoundTrip() {
             List<List<String>> rows = List.of(
                     List.of("plain", "has,comma", "has\"quote", "多行\n值"),
