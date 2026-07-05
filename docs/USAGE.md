@@ -15,6 +15,7 @@
 - [HTTP client:HttpClients](#http-clienthttpclients)
 - [幂等:@Idempotent](#幂等idempotent)
 - [加解密:CryptoUtil](#加解密cryptoutil)
+- [日志脱敏:MaskUtil](#日志脱敏maskutil)
 - [装配开关全表](#装配开关全表)
 - [消费方须知](#消费方须知)
 - [optional 依赖矩阵](#optional-依赖矩阵)
@@ -298,6 +299,64 @@ String hex = CryptoUtil.hexEncode(bytes);
   清零 `PBEKeySpec` 内部口令副本;但入参 `String password` 本身**不可清零**(JVM 字符串不可变)——
   调用方应避免长期持有明文口令 `String`(用完即弃引用,不缓存、不打日志)。
 - **国密 SM 系列未内置**:如需 SM2/SM3/SM4,须自行引入 BouncyCastle(本组件纯 JDK,不含)。
+
+## 日志脱敏:MaskUtil
+
+纯 JDK 静态门面(`masking` 包),无需任何配置(无 bean、无 properties),恒可用。为
+[`LogUtil`](#日志logutil) 写前脱敏提供引擎,也可独立用于任意文本。设计取舍与规则清单见
+ADR-0020。
+
+**默认开启,`LogUtil` 自动生效**:引入依赖后,`LogUtil` 的全部日志方法在消息写盘与
+`LogPostHandler` 分发之前会自动调用 `MaskUtil.mask` 脱敏,无需任何额外配置。需要关闭时(如
+受控环境下排障需要原始值):
+
+```java
+LogUtil.setMaskingEnabled(false);   // 关闭写前脱敏(全局开关,默认 true)
+boolean on = LogUtil.isMaskingEnabled();
+```
+
+`MaskUtil` 本身也可独立调用,直接对任意字符串脱敏:
+
+```java
+String masked = MaskUtil.mask("card=4111111111111111");   // → "card=************1111"
+```
+
+`mask` 应用全部六类内置规则;若只需其中一类,可用对应的单规则方法:
+
+```java
+String secrets = MaskUtil.maskSecrets("token=abc123");           // → "token=******"
+String idCard  = MaskUtil.maskIdCard("110101199003070011");      // → "110101********0011"
+String card    = MaskUtil.maskBankCard("4111111111111111");      // → "************1111"
+String email   = MaskUtil.maskEmail("zhangsan@example.com");     // → "z***@example.com"
+String phone   = MaskUtil.maskPhone("13800138000");               // → "138****8000"
+```
+
+**六规则一览**(alternation 顺序即遮蔽优先序;完整设计理由见 ADR-0020):
+
+| 规则 | 匹配 | 遮蔽 | 校验 |
+|---|---|---|---|
+| SECRET(键值秘密) | password/passwd/pwd/token/accessToken/secret/apiKey/authorization 等键名(大小写不敏感),`=` 或 `:` 分隔,值可带引号;`Authorization: Bearer/Basic <token>` 整体识别 | 值 → 固定 `******`(**不保长**) | — |
+| JWT(裸 token) | `eyJ` 开头三段 base64url | 整体 → `******` | — |
+| IDCARD(身份证 18 位) | 18 位数字(末位可 X) | 前 6 + `********` + 后 4(保长) | GB 11643 mod 11-2 |
+| BANKCARD(银行卡) | 15-19 位连续数字 | 仅留后 4(保长) | Luhn |
+| EMAIL | `local@domain.tld` | 首字符 + `***` + 完整域名 | — |
+| PHONE(大陆手机号) | `1[3-9]` 开头 11 位 | 前 3 + `****` + 后 4 | — |
+
+**局限须知**:
+
+- **`Throwable` 不脱敏**:`LogUtil.warn(msg, t)` / `error(msg, t)` 中,`msg` 部分经过脱敏,但
+  `t` 的 message 与 stack trace 原样输出——重写异常对象不可行,若异常消息可能携带敏感数据,
+  请在抛出前避免写入。
+- **绕过 `LogUtil` 直连 slf4j 不覆盖**:直接调用 `org.slf4j.Logger` 的代码路径(含本工程内部
+  少量直连 slf4j 的类)不经过写前脱敏。
+- **校验不过的号码不遮**:IDCARD/BANKCARD 依赖 mod11-2/Luhn 校验位抑制对雪花 ID、epoch 毫秒等
+  长数字串的误伤;校验不过的伪造/测试假号(本非真实敏感数据)不会被遮蔽,真实证/卡号定义上必过
+  校验故不受影响。
+- **SECRET 键名为 substring 语义**:不设左词边界,`accessToken`/`clientSecret`/`mypassword` 等
+  含关键词的复合键一并命中(覆盖 camelCase 复合键的必要条件);代价是 `mypassword=` 这类前缀词
+  也会命中,方向是宁多遮不漏遮,`tokenizer=` 因关键词未紧邻分隔符而不命中(详见 ADR-0020)。
+- **带分隔符卡号、`+86` 前缀手机号、15 位老身份证、姓名/地址/IP** 均不识别或不做处理(设计
+  取舍见 ADR-0020 诚实局限)。
 
 ## 装配开关全表
 

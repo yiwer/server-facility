@@ -92,6 +92,7 @@ public final class MaskUtil {
     /**
      * 仅脱敏秘密类:键值形态(password/passwd/pwd/token/accessToken/secret/apiKey/authorization,
      * 支持 {@code k=v}、{@code k: v}、JSON 引号、{@code Bearer/Basic} 值)与裸 JWT。
+     * 含关键词的复合键(accessToken/clientSecret 等)一并命中——键名匹配为 substring 语义,详见 ADR-0020。
      * 值一律替换为固定 {@code ******}(不保长——长度本身是秘密信息),键与分隔符结构保留。
      *
      * @param text 任意文本(可 null)

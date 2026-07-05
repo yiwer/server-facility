@@ -19,7 +19,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 2. 包簇依赖地图
 
-20 个顶层功能子包按责任聚类(另有 `id.support`/`json.support`/`web.*` 等下层子包),依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
+27 个顶层功能子包按责任聚类(另有 `id.support`/`json.support`/`web.*` 等下层子包),依赖自底向上单向流动(ArchUnit `packages_are_cycle_free` 守护):
 
 ```
               autoconfigure  ← Spring Boot 装配入口(11 个 @AutoConfiguration)
@@ -72,12 +72,16 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 - **Web 条件门**:`FacilityWebAutoConfiguration` 整体 `@ConditionalOnWebApplication(SERVLET)`,
   各组件再由 `facility.web.*.enabled` 单独 `@ConditionalOnProperty` 开关。
 - **并非所有能力簇都装配**:11 是「需要 bean/配置属性」的子集数,不是能力簇总数——无状态、无可
-  替换策略的静态门面型能力(`hash`/`crypto`)不注册 `@AutoConfiguration`、无 `facility.*`
-  properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019)。
+  替换策略的静态门面型能力(`hash`/`crypto`/`masking`)不注册 `@AutoConfiguration`、无 `facility.*`
+  properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020)。`masking` 的
+  引擎是单个预编译合并 `Pattern`(六规则 alternation)+ 单遍 `Matcher` 扫描 + 按命中组 dispatch
+  到对应遮蔽函数 + 身份证/银行卡的校验位级联(mod11-2/Luhn 通过才遮,详见 ADR-0020);`log` 包
+  在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖 `log → masking`),`masking`
+  自身零依赖、零装配、零 bean。
 
 ## 5. ADR 索引
 
-19 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+20 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
 
 | ADR | 决策 |
 |---|---|
@@ -100,10 +104,11 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 | 0017 | 完整幂等(同 key 返首次响应)+ 响应捕获,通用/web 分离避环 |
 | 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
 | 0019 | crypto 加解密门面——安全默认 AES-256-GCM、内管 IV、不透明失败通道、纯 JDK |
+| 0020 | 日志脱敏——`LogUtil` 写前集成(`LogPostHandler` 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
 
 ## 6. 质量门
 
-- **测试**:1048 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **测试**:1098 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (实测约 92% / 92% / 84%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
