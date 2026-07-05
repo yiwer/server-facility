@@ -130,6 +130,91 @@ class MaskUtilTest {
         }
     }
 
+    // ==================== IDCARD ====================
+
+    @Nested
+    @DisplayName("身份证 18 位:前6后4,mod11-2 通过才遮")
+    class IdCard {
+
+        @Test
+        void mask_validIdCard_masked() {
+            // 110101199003070011:校验位经 GB 11643 mod11-2 计算为 1(见 Task 2 Step 1 注)
+            assertThat(MaskUtil.mask("身份证 110101199003070011 已核验"))
+                    .isEqualTo("身份证 110101********0011 已核验");
+        }
+
+        @Test
+        void mask_validIdCardEndingX_masked() {
+            // 11010119900307002X:尾位 X(sum%11==2),大小写均识别
+            assertThat(MaskUtil.mask("11010119900307002X"))
+                    .isEqualTo("110101********002X");
+            assertThat(MaskUtil.mask("11010119900307002x"))
+                    .isEqualTo("110101********002x");
+        }
+
+        @Test
+        void mask_checksumFailing18Digits_untouched() {
+            // 18 个 1:mod11-2 校验位应为 0 ≠ 1,Luhn 和 27 亦不过——双拒,原样保留(雪花 ID 保护)
+            String text = "traceId=111111111111111111";
+            assertThat(MaskUtil.mask(text)).isSameAs(text);
+        }
+
+        @Test
+        void mask_idCardEndingX_checksumFails_untouched() {
+            // 11010119900307003X:sum%11==4 应为 8 ≠ X——校验不过且尾 X 非纯数字,无 Luhn 级联,原样
+            String text = "11010119900307003X";
+            assertThat(MaskUtil.mask(text)).isSameAs(text);
+        }
+
+        @Test
+        void maskIdCard_singleRule_noBankCardCascade() {
+            // 单规则 helper 无 BANKCARD 级联:mod11-2 不过、Luhn 过的 18 位串在 maskIdCard 下原样
+            String text = "566683211356647666";
+            assertThat(MaskUtil.maskIdCard(text)).isSameAs(text);
+        }
+    }
+
+    // ==================== BANKCARD ====================
+
+    @Nested
+    @DisplayName("银行卡 15-19 位:仅留后4,Luhn 通过才遮")
+    class BankCard {
+
+        @Test
+        void mask_visa16_masked() {
+            assertThat(MaskUtil.mask("card=4111111111111111 ok"))
+                    .isEqualTo("card=************1111 ok");
+        }
+
+        @Test
+        void mask_unionPay19_masked() {
+            // 6222020000000000000:末位 0 为 Luhn 校验位(基串加权和 20)
+            assertThat(MaskUtil.mask("6222020000000000000"))
+                    .isEqualTo("***************0000");
+        }
+
+        @Test
+        void mask_longMax19_luhnFails_untouched() {
+            // Long.MAX_VALUE:Luhn 和 78 不过——典型雪花/序列号形态保留
+            String text = "id=9223372036854775807";
+            assertThat(MaskUtil.mask(text)).isSameAs(text);
+        }
+
+        @Test
+        void mask_luhnValid18Digits_idChecksumFails_cascadesToBankCard() {
+            // 566683211356647666:mod11-2 余 8(应为 4 号位字符 8 ≠ 6)不过、Luhn 和 70 过
+            // → 按银行卡样式遮(spec §5.1 级联)
+            assertThat(MaskUtil.mask("566683211356647666"))
+                    .isEqualTo("**************7666");
+        }
+
+        @Test
+        void maskBankCard_singleRule_ignoresPhone() {
+            assertThat(MaskUtil.maskBankCard("13800138000 4111111111111111"))
+                    .isEqualTo("13800138000 ************1111");
+        }
+    }
+
     // ==================== 组合 ====================
 
     @Test

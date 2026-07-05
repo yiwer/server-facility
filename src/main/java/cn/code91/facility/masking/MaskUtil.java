@@ -28,23 +28,33 @@ public final class MaskUtil {
      * 内置规则。声明序即引擎 dispatch 序;合并 Pattern 的 alternation 序见 {@code ALL_PATTERN}。
      */
     private enum Rule {
+        /** 身份证 18 位:前 6 后 4,mod11-2 校验通过才遮;全规则上下文中不过则级联试 Luhn */
+        IDCARD,
+        /** 银行卡 15-19 位:仅留后 4,Luhn 校验通过才遮 */
+        BANKCARD,
         /** 邮箱:留首字符 + 完整域名(先于 PHONE,spec §5.1) */
         EMAIL,
         /** 大陆手机号:前 3 后 4 */
         PHONE
     }
 
+    private static final String IDCARD_REGEX =
+            "(?<IDCARD>(?<!\\d)\\d{17}[0-9Xx](?!\\d))";
+    private static final String BANKCARD_REGEX =
+            "(?<BANKCARD>(?<!\\d)\\d{15,19}(?!\\d))";
     private static final String EMAIL_REGEX =
             "(?<EMAIL>[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+)";
     private static final String PHONE_REGEX =
             "(?<PHONE>(?<!\\d)1[3-9]\\d{9}(?!\\d))";
 
+    private static final Pattern IDCARD_PATTERN = Pattern.compile(IDCARD_REGEX);
+    private static final Pattern BANKCARD_PATTERN = Pattern.compile(BANKCARD_REGEX);
     private static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
     private static final Pattern PHONE_PATTERN = Pattern.compile(PHONE_REGEX);
 
-    /** 全规则合并 Pattern:alternation 顺序 = 遮蔽优先序(同起点先列者胜) */
-    private static final Pattern ALL_PATTERN =
-            Pattern.compile(String.join("|", EMAIL_REGEX, PHONE_REGEX));
+    /** 全规则合并 Pattern:alternation 顺序 = 遮蔽优先序(同起点先列者胜;IDCARD 必须先于 BANKCARD) */
+    private static final Pattern ALL_PATTERN = Pattern.compile(
+            String.join("|", IDCARD_REGEX, BANKCARD_REGEX, EMAIL_REGEX, PHONE_REGEX));
 
     private static final EnumSet<Rule> ALL_RULES = EnumSet.allOf(Rule.class);
 
@@ -58,6 +68,28 @@ public final class MaskUtil {
      */
     public static String mask(String text) {
         return apply(ALL_PATTERN, ALL_RULES, text);
+    }
+
+    /**
+     * 仅脱敏身份证 18 位(前 6 + {@code ********} + 后 4)。GB 11643 mod 11-2 校验位
+     * 通过才遮——真实证号定义上必过,校验不过的 18 位数字串(如雪花 ID)原样保留。
+     *
+     * @param text 任意文本(可 null)
+     * @return 脱敏后文本;null → null,无有效命中 → 原实例
+     */
+    public static String maskIdCard(String text) {
+        return apply(IDCARD_PATTERN, EnumSet.of(Rule.IDCARD), text);
+    }
+
+    /**
+     * 仅脱敏银行卡 15-19 位连续数字(仅留后 4)。Luhn 校验通过才遮——真实卡号定义上必过;
+     * 下限 15 排除 13 位 epoch 毫秒时间戳(设计取舍见 ADR-0020)。
+     *
+     * @param text 任意文本(可 null)
+     * @return 脱敏后文本;null → null,无有效命中 → 原实例
+     */
+    public static String maskBankCard(String text) {
+        return apply(BANKCARD_PATTERN, EnumSet.of(Rule.BANKCARD), text);
     }
 
     /**
@@ -123,6 +155,8 @@ public final class MaskUtil {
 
     private static String maskFor(Rule rule, String hit, Matcher m, EnumSet<Rule> rules) {
         return switch (rule) {
+            case IDCARD -> maskIdCardHit(hit, rules.contains(Rule.BANKCARD));
+            case BANKCARD -> luhnOk(hit) ? maskBankCardHit(hit) : hit;
             case EMAIL -> maskEmailHit(hit);
             case PHONE -> hit.substring(0, 3) + "****" + hit.substring(7);
         };
@@ -131,5 +165,52 @@ public final class MaskUtil {
     private static String maskEmailHit(String hit) {
         int at = hit.indexOf('@');
         return hit.charAt(0) + "***" + hit.substring(at);
+    }
+
+    /**
+     * 身份证遮蔽:mod11-2 通过 → 前 6 后 4;不过且允许级联(全规则上下文)且为纯数字 →
+     * 试 Luhn 按银行卡样式遮;均不过 → 原样(spec §5.1)。
+     */
+    private static String maskIdCardHit(String hit, boolean bankCardCascade) {
+        if (idChecksumOk(hit)) {
+            return hit.substring(0, 6) + "********" + hit.substring(14);
+        }
+        char last = hit.charAt(17);
+        boolean allDigits = last >= '0' && last <= '9';
+        return (bankCardCascade && allDigits && luhnOk(hit)) ? maskBankCardHit(hit) : hit;
+    }
+
+    private static String maskBankCardHit(String hit) {
+        return "*".repeat(hit.length() - 4) + hit.substring(hit.length() - 4);
+    }
+
+    /** GB 11643 身份证校验:前 17 位加权和 mod 11 查表比对第 18 位(X 大小写不敏感)。 */
+    private static final int[] ID_WEIGHTS = {7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2};
+    private static final char[] ID_CHECK = {'1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'};
+
+    private static boolean idChecksumOk(String s) {
+        int sum = 0;
+        for (int i = 0; i < 17; i++) {
+            sum += (s.charAt(i) - '0') * ID_WEIGHTS[i];
+        }
+        return Character.toUpperCase(s.charAt(17)) == ID_CHECK[sum % 11];
+    }
+
+    /** Luhn 校验(ISO/IEC 7812):右起偶数位×2 逢十减九,总和整除 10。 */
+    private static boolean luhnOk(String s) {
+        int sum = 0;
+        boolean doubling = false;
+        for (int i = s.length() - 1; i >= 0; i--) {
+            int d = s.charAt(i) - '0';
+            if (doubling) {
+                d *= 2;
+                if (d > 9) {
+                    d -= 9;
+                }
+            }
+            sum += d;
+            doubling = !doubling;
+        }
+        return sum % 10 == 0;
     }
 }
