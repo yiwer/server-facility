@@ -269,11 +269,13 @@ String plain  = CryptoUtil.decrypt(cipher, key).orElse("");            // 失败
 
 // 口令派生密钥(PBKDF2)
 byte[] salt  = CryptoUtil.generateSalt();                             // 16 字节,须与密文一同持久化
-SecretKey dk = CryptoUtil.deriveKey("用户口令", salt).orElseGet(CryptoUtil::generateAesKey);
+SecretKey dk = CryptoUtil.deriveKey("用户口令", salt)
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage()));
 
 // 密钥导出/导入
 String exported     = CryptoUtil.exportKey(key);                     // Base64,写入密钥库
-SecretKey restored  = CryptoUtil.importKey(exported).orElseThrow();
+SecretKey restored  = CryptoUtil.importKey(exported)
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage()));
 
 // HMAC 消息认证 / 编解码
 String mac = CryptoUtil.hmacSha256("body", "secret").orElse("");     // hex 小写
