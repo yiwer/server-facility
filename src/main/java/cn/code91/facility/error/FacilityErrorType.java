@@ -16,6 +16,7 @@ import lombok.Getter;
  * - 500100-500199: JSON序列化
  * - 500200-500299: 日期处理
  * - 500300-500399: HTTP请求
+ * - 500400-500499: 加解密
  * - 500500-500599: Web相关
  * - 500600-500699: 文件 / MIME / 哈希 / 上传 / 路径
  * </pre>
@@ -153,6 +154,53 @@ public enum FacilityErrorType implements ErrorTypeInterface {
             500304,
             "facility.http.status_error",
             "HTTP 请求返回错误状态"
+    ),
+
+    // ==================== 加解密错误 (500400-500499) ====================
+
+    /**
+     * 加密失败
+     */
+    CRYPTO_ENCRYPT_ERROR(
+            500400,
+            "facility.crypto.encrypt_error",
+            "加密失败"
+    ),
+
+    /**
+     * 解密失败（粗粒度：错误密钥/密文篡改/IV 不足/Base64 畸形均归此，不泄漏失败原因）
+     */
+    CRYPTO_DECRYPT_ERROR(
+            500401,
+            "facility.crypto.decrypt_error",
+            "解密失败"
+    ),
+
+    /**
+     * 密钥处理失败（口令派生/导入/长度非法）
+     */
+    CRYPTO_KEY_ERROR(
+            500402,
+            "facility.crypto.key_error",
+            "密钥处理失败"
+    ),
+
+    /**
+     * 消息认证码计算失败
+     */
+    CRYPTO_MAC_ERROR(
+            500403,
+            "facility.crypto.mac_error",
+            "消息认证码计算失败"
+    ),
+
+    /**
+     * 编码解析失败（Base64/Hex 畸形）
+     */
+    CRYPTO_DECODE_ERROR(
+            500404,
+            "facility.crypto.decode_error",
+            "编码解析失败"
     ),
 
     // ==================== Web相关错误 (500500-500599) ====================
