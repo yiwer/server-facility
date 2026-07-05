@@ -6,7 +6,7 @@
 
 - **坐标**:`cn.code91:server-facility:0.1.0-SNAPSHOT`
 - **要求**:Java 21+、Spring Boot 3.5.x(依赖版本经 `spring-boot-dependencies` BOM 收敛)
-- **测试**:1099 项(含 4 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
+- **测试**:1147 项(含 5 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
 
 ## 引入
 
@@ -18,7 +18,7 @@
 </dependency>
 ```
 
-放到 classpath 即通过 Spring Boot 自动装配生效(11 个 `@AutoConfiguration`)。核心 bean(`messageSource`、异步执行器、全局异常处理器等)`@ConditionalOnMissingBean` 兜底,你声明的同类 bean 优先;Web 过滤器/拦截器则由 `facility.web.*` 开关控制(见[装配开关](#装配开关),非靠竞争 bean 覆盖)。Web / XSS / MIME 探测等能力依赖 optional 依赖,按需自行引入(见 [USAGE](docs/USAGE.md#optional-依赖矩阵))。
+放到 classpath 即通过 Spring Boot 自动装配生效(11 个 `@AutoConfiguration`)。核心 bean(`messageSource`、异步执行器、全局异常处理器等)`@ConditionalOnMissingBean` 兜底,你声明的同类 bean 优先;Web 过滤器/拦截器则由 `facility.web.*` 开关控制(见[装配开关](#装配开关),非靠竞争 bean 覆盖)。Web / XSS / MIME 探测 / Excel 读写等能力依赖 optional 依赖(含 `poi`/`poi-ooxml`),按需自行引入(见 [USAGE](docs/USAGE.md#optional-依赖矩阵))。
 
 ## 5 分钟上手
 
@@ -77,6 +77,8 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `web.idempotency` | `@Idempotent` | 完整幂等:同 key 返首次响应,拦截器 + Filter 捕获响应,PROCESSING→409 |
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex(静态门面,纯 JDK,无需配置) |
 | `masking` | `MaskUtil` | 日志脱敏(默认开启):秘密/JWT/身份证/银行卡/邮箱/手机号六规则,校验位(mod11-2/Luhn)抑误伤;`LogUtil` 写前集成,`setMaskingEnabled(false)` 可关(静态门面,纯 JDK,无需配置) |
+| `csv` | `CsvUtil` | RFC 4180 CSV 读写(纯 JDK,零依赖恒可用):UTF-8+BOM 写出、CRLF、最小引号;读容忍 CR/LF/CRLF 并剥 BOM |
+| `excel` | `ExcelUtil` | Excel(xls/xlsx)读写(POI optional):写 SXSSF 恒定内存 xlsx,读 usermodel 全字符串化;POI 缺失时运行时探测降级返 err,不崩溃 |
 
 ## 装配开关
 
@@ -100,6 +102,6 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 - **[USAGE](docs/USAGE.md)** —— 各门面用法、装配开关全表、消费方须知(i18n 抢注模型、JsonUtil 单例语义、optional 依赖矩阵)
 - **[DESIGN](docs/DESIGN.md)** —— deep module 哲学、包簇依赖地图、三组断环 C1/C2/C3、装配范式
-- **[ADR 索引](docs/adr/INDEX.md)** —— 20 条架构决策记录
+- **[ADR 索引](docs/adr/INDEX.md)** —— 21 条架构决策记录
 - **[设计规格](docs/superpowers/specs/2026-07-02-server-facility-migration-design.md)** —— 迁移工程 spec
 - **[域术语](CONTEXT.md)**
