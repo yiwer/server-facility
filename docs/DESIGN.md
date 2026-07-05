@@ -109,7 +109,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 ## 6. 质量门
 
-- **测试**:1098 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **测试**:1099 项,含 4 条 ArchUnit 架构守护;`mvn verify` 全绿。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (实测约 92% / 92% / 84%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
