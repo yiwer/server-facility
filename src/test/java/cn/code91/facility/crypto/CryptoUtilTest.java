@@ -206,7 +206,18 @@ class CryptoUtilTest {
         assertThat(bad.isErr()).isTrue();
         assertThat(((cn.code91.facility.error.WrappedError) bad.getErr()).getErrorType())
                 .isEqualTo(FacilityErrorType.CRYPTO_KEY_ERROR);
+        assertThat(CryptoUtil.aesKeyFromBytes(new byte[0]).isErr()).isTrue();
+        assertThat(CryptoUtil.aesKeyFromBytes(new byte[31]).isErr()).isTrue();
+        assertThat(CryptoUtil.aesKeyFromBytes(new byte[33]).isErr()).isTrue();
         assertThat(CryptoUtil.aesKeyFromBytes(null).isErr()).isTrue();
+    }
+
+    @Test
+    @DisplayName("deriveKey 产出可加解密(派生密钥端到端往返)")
+    void deriveKey_endToEnd() {
+        SecretKey key = CryptoUtil.deriveKey("pw", CryptoUtil.generateSalt()).get();
+        String ct = CryptoUtil.encrypt("派生端到端", key).get();
+        assertThat(CryptoUtil.decrypt(ct, key).get()).isEqualTo("派生端到端");
     }
 
     @Test

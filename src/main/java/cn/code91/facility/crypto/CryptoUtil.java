@@ -7,7 +7,6 @@ import cn.code91.facility.result.Result;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.spec.KeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import javax.crypto.Cipher;
@@ -243,13 +242,17 @@ public final class CryptoUtil {
         if (password == null || salt == null || salt.length == 0) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
         }
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, AES_KEY_BITS);
         try {
             SecretKeyFactory factory = SecretKeyFactory.getInstance(PBKDF2);
-            KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, AES_KEY_BITS);
             byte[] keyBytes = factory.generateSecret(spec).getEncoded();
             return Result.ok(new SecretKeySpec(keyBytes, AES));
         } catch (Exception e) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR, e));
+        } finally {
+            // 及时清零 PBEKeySpec 内部口令副本,缩小口令在堆内可恢复的窗口(ADR-0019)。
+            // 注:入参 String password 本身不可清零(JVM 字符串不可变),口令根本清零需调用方配合。
+            spec.clearPassword();
         }
     }
 
