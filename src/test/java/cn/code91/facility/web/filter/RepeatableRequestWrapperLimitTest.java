@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,5 +35,18 @@ class RepeatableRequestWrapperLimitTest {
     void positiveStillRejects() {
         assertThatThrownBy(() -> new RepeatableRequestWrapper(req(100), 10L))
             .isInstanceOf(PayloadTooLargeException.class);
+    }
+
+    @Test @DisplayName("getInputStream().available():读前=缓存体长度,读尽=0,新流复位(F19)")
+    void available_reflectsRemainingBytes() throws Exception {
+        MockHttpServletRequest req = new MockHttpServletRequest("POST", "/x");
+        req.setContent("hello".getBytes(StandardCharsets.UTF_8));
+        RepeatableRequestWrapper wrapper = new RepeatableRequestWrapper(req, 100);
+
+        var in = wrapper.getInputStream();
+        assertThat(in.available()).isEqualTo(5);
+        assertThat(in.readAllBytes()).hasSize(5);
+        assertThat(in.available()).isZero();
+        assertThat(wrapper.getInputStream().available()).isEqualTo(5);
     }
 }
