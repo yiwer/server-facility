@@ -6,7 +6,7 @@
 
 ## 1. 宪法条款(落 docs/DESIGN.md 新章节「一致性宪法」)
 
-**C1 null 契约(F25)**:数据参数 null → null-safe(返回 null/空容器/回退值,按类型语义);函数型/必需依赖参数 null → fail-fast(requireNonNull);IO/解析/外部世界交互 → Result 通道。存量与条款不一致处(Numbers.setScale null→null vs NumberFormat.format null→"";MimeTyping detect(File) Result vs detect(byte[]) 裸 String 吞异常回退)**均已被测试锁定,不改行为**——在各类级 javadoc 如实汇总自家契约(Patterns 类级补 null-safe 汇总一句)。
+**C1 null 契约(F25)**:数据参数 null → null-safe(返回 null/空容器/回退值,按类型语义);函数型/必需依赖参数 null → fail-fast(requireNonNull);IO/解析/外部世界交互 → Result 通道。存量与条款不一致处(Numbers.setScale null→null vs NumberFormat.format null→"";MimeTyping detect(File) Result vs detect(byte[]) 返裸 String——null/空数组前置回退 FALLBACK,Tika.detect(byte[]) 无受检异常故无吞异常路径;吞 IOException 回退的是 detect(InputStream,String)。〔勘误 2026-07-06:findings F25 原文「detect(byte[]) 吞异常回退」失实,Task 3 实施对照源码+javap 纠正〕)**均已被测试锁定,不改行为**——在各类级 javadoc 如实汇总自家契约(Patterns 类级补 null-safe 汇总一句)。
 
 **C2 「无限制」拼法(F26)**:统一措辞「**≤0 = 不限制**」(properties javadoc/USAGE/注释全库同一拼法);`RepeatableRequestWrapper(HttpServletRequest)` 便利构造器 `Long.MAX_VALUE`→`0`(行为等价:限流判定为 `max > 0` 才限制;既有测试锁定负数=不限制继续成立)。不引入新公共常量(YAGNI)。
 

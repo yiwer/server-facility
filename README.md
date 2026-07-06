@@ -6,7 +6,7 @@
 
 - **坐标**:`cn.code91:server-facility:0.1.0-SNAPSHOT`
 - **要求**:Java 21+、Spring Boot 3.5.x(依赖版本经 `spring-boot-dependencies` BOM 收敛)
-- **测试**:1173 项(含 5 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
+- **测试**:1172 项(含 5 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
 
 ## 引入
 

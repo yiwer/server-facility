@@ -115,7 +115,7 @@
 
 ## P3-A 一致性宪法(建议单独 brainstorming,一次性统一;0.1.0-SNAPSHOT 是 breaking 最后窗口)
 
-**F25.** null 契约不统一:`Numbers.setScale(null)→null` vs 同包 `NumberFormat.format(null)→""`;`MimeTyping` 一门面两哲学(detect(File) 走 Result,detect(byte[]) 裸 String 吞异常回退 FALLBACK);`Patterns` 全员 null-safe 但类级 javadoc 未汇总契约。
+**F25.** null 契约不统一:`Numbers.setScale(null)→null` vs 同包 `NumberFormat.format(null)→""`;`MimeTyping` 一门面两哲学(detect(File) 走 Result,detect(byte[]) 裸 String 吞异常回退 FALLBACK)〔勘误 2026-07-06:detect(byte[]) 实无吞异常路径(Tika.detect(byte[]) 无受检异常,仅 null/空数组前置回退);吞 IOException 的是 detect(InputStream,String)——宪法批 Task 3 对照源码+javap 裁定〕;`Patterns` 全员 null-safe 但类级 javadoc 未汇总契约。
 **F26.** 「无限制」三种拼法(properties 文档 0 / 便利构造器 Long.MAX_VALUE / 测试锁定负数)→ 统一常量与语义。
 **F27.** 降级日志政策成文:哪些降级 WARN(现:锁 executeWithLock、三个清空防护)、哪些静默(现:tryLock/unlock/RateLimiterUtil/CacheUtil/HttpClients 全部)——定政策、对齐实现、写 DESIGN。
 **F28.** 门面命名家族收敛(XxxUtil / 复数名词 / @UtilityClass / 手写私构造)——至少 DESIGN 里宣布双家族边界规则;改名属 breaking,须用户拍板。
