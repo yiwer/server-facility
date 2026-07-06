@@ -46,6 +46,10 @@ import java.util.function.Consumer;
  *   <li>支持自定义 Jackson Module 扩展</li>
  * </ul>
  *
+ * <p><b>有意不含：</b>{@code ACCEPT_EMPTY_STRING_AS_NULL_OBJECT}(空串→null 的宽松反序列化)
+ * 四个预设(standard/prettyPrint/strict/canonical)均默认关闭——空串是合法值,静默转 null
+ * 会掩盖脏数据;{@link Builder#acceptEmptyStringAsNull()} 仍可显式开启。</p>
+ *
  * <p><b>使用示例：</b></p>
  * <pre>{@code
  * // 标准配置

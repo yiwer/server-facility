@@ -197,6 +197,10 @@ public final class Patterns {
         return Collections.emptyList();
     }
 
+    /**
+     * ⚠️ {@code groupNames} 仅对显式命名组 {@code (?<name>...)} 生效；对位置捕获组会静默返回
+     * 全 null 值的 map（异常被吸收）——按位置回填/抛错的增强记 roadmap。
+     */
     public static Map<String, String> findFirstAsMap(String content, String regex, String... groupNames) {
         if (content == null || regex == null || groupNames == null) return Collections.emptyMap();
         Matcher matcher = compile(regex).matcher(content);
@@ -251,6 +255,10 @@ public final class Patterns {
         return result;
     }
 
+    /**
+     * ⚠️ {@code groupNames} 仅对显式命名组 {@code (?<name>...)} 生效；对位置捕获组会静默返回
+     * 全 null 值的 map（异常被吸收）——按位置回填/抛错的增强记 roadmap。
+     */
     public static List<Map<String, String>> findAllAsMap(String content, String regex, String... groupNames) {
         if (content == null || regex == null || groupNames == null) return Collections.emptyList();
         Matcher matcher = compile(regex).matcher(content);

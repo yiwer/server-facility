@@ -26,6 +26,10 @@ import org.springframework.web.client.RestClient;
  * <p>
  * {@code facility.http.enabled=false} 可整体关闭(F22,与其余四簇开关对称;缺省 true)。
  * </p>
+ * <p>
+ * 无跨簇装配顺序依赖,故不声明 {@code @AutoConfigureAfter}(对比 Json/Async 的
+ * {@code @AutoConfigureAfter}、Locale 的 {@code @AutoConfigureBefore}——三者显式声明系确有依赖)。
+ * </p>
  *
  * @author yvvb
  * @since 1.0.0

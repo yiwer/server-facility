@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <b>拒绝占位</b>({@code tryBegin} 返 {@code false},web 侧表现为 409)并记 WARN——在途
  * PROCESSING/未过期 DONE 永不因防护被清(清空会打开并发重复执行窗口)。对照限流 clear-all
  * fail-open 的不对称有理:幂等是正确性组件(ADR-0016/0017)。
+ * 上限为 advisory bound:size 检查非原子,并发突发下可瞬时小幅越界(随后回到防护语义)。
  * </p>
  *
  * @author yvvb

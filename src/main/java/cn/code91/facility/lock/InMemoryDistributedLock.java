@@ -32,6 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <b>拒绝新建</b>({@code tryLock} 返 {@code false})并记 WARN——在途持锁互斥永不因防护被打破。
  * 集合无逐出:达上限后新 key 将持续被拒,须修正 key 设计或调高上限(对照限流 clear-all
  * fail-open 的不对称有理:锁是正确性组件,限流是保护组件——ADR-0016)。
+ * 上限为 advisory bound:size 检查非原子,并发突发下可瞬时小幅越界(随后回到防护语义)。
  * </p>
  *
  * @author yvvb

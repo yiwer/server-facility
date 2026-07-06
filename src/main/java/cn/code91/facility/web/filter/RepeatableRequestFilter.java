@@ -25,6 +25,8 @@ import java.util.List;
  */
 public class RepeatableRequestFilter extends OncePerRequestFilter {
 
+    // 有意隔离的私有 mapper(F18 决策 a):413 错误体是固定形状 {code,message},不随宿主 Jackson
+    // 定制漂移——确定性优先;勿改经 JsonUtil/上下文 ObjectMapper。
     private static final com.fasterxml.jackson.databind.ObjectMapper ERROR_MAPPER =
             new com.fasterxml.jackson.databind.ObjectMapper();
 
