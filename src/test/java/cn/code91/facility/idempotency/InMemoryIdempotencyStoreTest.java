@@ -12,9 +12,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("InMemoryIdempotencyStore - 幂等存储默认实现")
 class InMemoryIdempotencyStoreTest {
+
+    @Test
+    @DisplayName("F13:构造器守卫——maxEntries 非正数抛 IAE")
+    void constructorGuard_rejectsNonPositiveMaxEntries() {
+        assertThatThrownBy(() -> new InMemoryIdempotencyStore(0))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxEntries");
+        assertThatThrownBy(() -> new InMemoryIdempotencyStore(-1))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxEntries");
+        assertThatCode(() -> new InMemoryIdempotencyStore(1)).doesNotThrowAnyException();
+    }
 
     @Test
     @DisplayName("新 key tryBegin 返回 true,find 得到 PROCESSING 记录")

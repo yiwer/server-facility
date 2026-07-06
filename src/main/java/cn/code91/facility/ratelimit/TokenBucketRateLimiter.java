@@ -30,11 +30,23 @@ public final class TokenBucketRateLimiter implements RateLimiter {
     private final int maxBuckets;
 
     /**
+     * 参数范围守卫（F13/ADR-0013）：非正数启动期快速失败，消除 permitsPerSecond=0 的
+     * 除零→retryAfter=Long.MAX_VALUE（F3）。
+     *
      * @param defaultCapacity         默认桶容量（{@link #tryAcquire} 委托 {@link #acquire} 时使用）
      * @param defaultPermitsPerSecond 默认令牌填充速率（每秒）
      * @param maxBuckets              桶集合的无界防护上限
      */
     public TokenBucketRateLimiter(long defaultCapacity, double defaultPermitsPerSecond, int maxBuckets) {
+        if (defaultCapacity <= 0) {
+            throw new IllegalArgumentException("defaultCapacity must be > 0, got " + defaultCapacity);
+        }
+        if (!(defaultPermitsPerSecond > 0)) {   // 反向写法同时拦 NaN(与 NaN 的任何比较为 false)
+            throw new IllegalArgumentException("defaultPermitsPerSecond must be > 0, got " + defaultPermitsPerSecond);
+        }
+        if (maxBuckets <= 0) {
+            throw new IllegalArgumentException("maxBuckets must be > 0, got " + maxBuckets);
+        }
         this.defaultCapacity = defaultCapacity;
         this.defaultPermitsPerSecond = defaultPermitsPerSecond;
         this.maxBuckets = maxBuckets;
