@@ -6,7 +6,7 @@
 
 - **坐标**:`cn.code91:server-facility:0.1.0-SNAPSHOT`
 - **要求**:Java 21+、Spring Boot 3.5.x(依赖版本经 `spring-boot-dependencies` BOM 收敛)
-- **测试**:1147 项(含 5 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
+- **测试**:1152 项(含 5 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
 
 ## 引入
 
@@ -102,6 +102,6 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 - **[USAGE](docs/USAGE.md)** —— 各门面用法、装配开关全表、消费方须知(i18n 抢注模型、JsonUtil 单例语义、optional 依赖矩阵)
 - **[DESIGN](docs/DESIGN.md)** —— deep module 哲学、包簇依赖地图、三组断环 C1/C2/C3、装配范式
-- **[ADR 索引](docs/adr/INDEX.md)** —— 21 条架构决策记录
+- **[ADR 索引](docs/adr/INDEX.md)** —— 23 条架构决策记录
 - **[设计规格](docs/superpowers/specs/2026-07-02-server-facility-migration-design.md)** —— 迁移工程 spec
 - **[域术语](CONTEXT.md)**
