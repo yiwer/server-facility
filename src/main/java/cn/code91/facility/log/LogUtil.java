@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author yvvb
  * @since 2.0.0
- * @apiNote 重构版本，修复了栈分析和性能问题
+ * @apiNote 级别门控基于调用方 logger(per-package 配置生效);调用方经 StackWalker 惰性解析(ADR-0022)
  */
 public final class LogUtil {
 
