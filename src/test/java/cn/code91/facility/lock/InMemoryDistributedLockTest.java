@@ -120,18 +120,25 @@ class InMemoryDistributedLockTest {
     }
 
     @Test
-    @DisplayName("maxLocks 超限触发 clear 防护,旧 key 对应的锁被替换为新的未锁定实例")
-    void maxLocks_exceeded_clears() throws Exception {
+    @DisplayName("F8 决策 a:超限 fail-closed——新 key 拒绝(tryLock false),在途持锁互斥不破")
+    void maxLocksExceeded_failClosed_rejectsNewKeyAndPreservesHeldLocks() throws Exception {
         InMemoryDistributedLock lock = new InMemoryDistributedLock(2);
+        assertThat(lock.tryLock("k1", Duration.ofMillis(10))).isTrue();
+        assertThat(lock.tryLock("k2", Duration.ofMillis(10))).isTrue();   // 达上限 2
 
-        assertThat(lock.tryLock("k1", Duration.ofMillis(100))).isTrue();
-        assertThat(lock.tryLock("k2", Duration.ofMillis(100))).isTrue();
-        // locks size=2 已达 maxLocks(2),k3 未在 map 中 -> 触发 clear() 防护后再建锁
-        assertThat(lock.tryLock("k3", Duration.ofMillis(100))).isTrue();
+        // 新 key 拒绝,不清空
+        assertThat(lock.tryLock("k3", Duration.ofMillis(10))).isFalse();
 
-        // 证据:main 线程从未 unlock("k1")。若 map 未被清空,k1 仍被 main 线程持有,
-        // 其他线程 tryLock 应等待超时失败;clear() 后 k1 对应全新未锁定的 ReentrantLock,应立即成功。
-        assertThat(tryLockFromOtherThread(lock, "k1", Duration.ofMillis(50))).isTrue();
+        // 在途互斥不破:另一线程抢 k1 必失败(旧 clear-all 下 k1 的锁对象被清,新对象可得——互斥破)
+        java.util.concurrent.atomic.AtomicBoolean stolen = new java.util.concurrent.atomic.AtomicBoolean();
+        Thread thief = new Thread(() -> stolen.set(lock.tryLock("k1", Duration.ofMillis(50))));
+        thief.start();
+        thief.join(1_000);
+        assertThat(stolen).isFalse();
+
+        // 既有 key 的正常操作不受影响
+        lock.unlock("k1");
+        lock.unlock("k2");
     }
 
     @Test

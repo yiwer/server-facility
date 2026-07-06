@@ -28,11 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * 可直接序列化落地。
  * </p>
  *
- * <h3>无界防护：</h3>
+ * <h3>无界防护(fail-closed,F8):</h3>
  * <p>
- * key 基数不可控时，记录集合可能无界增长。当记录数达到 {@code maxEntries} 且待建 key
- * 尚不在集合中时，整体清空并记录 WARN 日志——以短暂的幂等状态重置换取内存安全
- * （同 ADR-0014 令牌桶防护策略）。
+ * 记录数达到 {@code maxEntries} 且待建 key 不在集合中时,先清除已过期条目;若仍达上限则
+ * <b>拒绝占位</b>({@code tryBegin} 返 {@code false},web 侧表现为 409)并记 WARN——在途
+ * PROCESSING/未过期 DONE 永不因防护被清(清空会打开并发重复执行窗口)。对照限流 clear-all
+ * fail-open 的不对称有理:幂等是正确性组件(ADR-0016/0017)。
  * </p>
  *
  * @author yvvb
@@ -60,8 +61,13 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore {
     public boolean tryBegin(String key, long ttlMillis) {
         long now = System.currentTimeMillis();
         if (store.size() >= maxEntries && !store.containsKey(key)) {
-            store.clear();
-            LogUtil.warn("idempotency entries exceeded {}, cleared", maxEntries);
+            // fail-closed(F8 决策 a):先清过期条目(防过期尸体致永久拒新),复查仍超限则拒绝——
+            // 清空会把在途 PROCESSING 一并抹掉,打开并发重复执行窗口(幂等是正确性组件,ADR-0017)。
+            store.entrySet().removeIf(e -> e.getValue().isExpired(now));
+            if (store.size() >= maxEntries) {
+                LogUtil.warn("idempotency entries exceeded {}, rejecting new key (fail-closed)", maxEntries);
+                return false;
+            }
         }
 
         IdempotencyRecord proc = IdempotencyRecord.processing(now + ttlMillis);
