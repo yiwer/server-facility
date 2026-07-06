@@ -18,6 +18,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * [ACCESS] GET /api/users 200 35ms 192.168.1.100
  * </pre>
  *
+ * <p>耗时 ≥ {@code slow-threshold-millis}(>0 生效,默认 1000)时升 WARN 并追加 {@code slow} 标记;
+ * 0 = 禁用。</p>
+ *
  * <p><b>⚠️ 安全:</b>日志中的客户端 IP 来自 {@link RequestUtil#getClientIp},该方法无条件信任
  * 可被客户端伪造的 {@code X-Forwarded-For} / {@code X-Real-IP} 代理头——公网直连(前面没有
  * 覆写 XFF 的受信反代)部署下,访问日志中的 IP 不可作为审计/取证依据。</p>
@@ -29,7 +32,6 @@ public class AccessLogInterceptor implements HandlerInterceptor {
 
     private static final String ATTR_START_TIME = "accessLog_startTime";
 
-    @SuppressWarnings("unused") // stored for future use (slow-request threshold, header logging)
     private final FacilityWebAccessLogProperties props;
 
     /**
@@ -53,11 +55,13 @@ public class AccessLogInterceptor implements HandlerInterceptor {
         long duration = startTime != null ? System.currentTimeMillis() - startTime : -1;
         String clientIp = RequestUtil.getClientIp(request);
 
-        LogUtil.info("[ACCESS] {} {} {} {}ms {}",
-                request.getMethod(),
-                request.getRequestURI(),
-                response.getStatus(),
-                duration,
-                clientIp);
+        long slowThreshold = props.getSlowThresholdMillis();
+        if (slowThreshold > 0 && duration >= slowThreshold) {
+            LogUtil.warn("[ACCESS] {} {} {} {}ms {} slow",
+                    request.getMethod(), request.getRequestURI(), response.getStatus(), duration, clientIp);
+        } else {
+            LogUtil.info("[ACCESS] {} {} {} {}ms {}",
+                    request.getMethod(), request.getRequestURI(), response.getStatus(), duration, clientIp);
+        }
     }
 }

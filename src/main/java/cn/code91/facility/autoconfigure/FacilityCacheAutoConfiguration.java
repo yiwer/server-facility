@@ -1,6 +1,7 @@
 package cn.code91.facility.autoconfigure;
 
 import cn.code91.facility.cache.FacilityCacheProperties;
+import cn.code91.facility.log.LogUtil;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -72,6 +73,9 @@ public class FacilityCacheAutoConfiguration {
     @ConditionalOnMissingBean(CacheManager.class)
     @ConditionalOnMissingClass("com.github.benmanes.caffeine.cache.Caffeine")
     public CacheManager concurrentMapCacheManager() {
+        // F15:回退分支装配期一次性提示——Caffeine 独有的 TTL/容量配置在此后端不生效
+        LogUtil.warn("facility.cache.default-ttl / maximum-size only apply to the Caffeine backend; "
+                + "falling back to ConcurrentMapCacheManager, these properties are ignored");
         return new ConcurrentMapCacheManager();
     }
 }
