@@ -198,7 +198,7 @@ User loaded = CacheUtil.getOrCompute("users", id, User.class, () -> userRepo.fin
 public User findById(Long id) { ... }
 ```
 
-- **后端**:Caffeine 在 classpath → `CaffeineCacheManager`(`facility.cache.default-ttl` / `maximum-size` 生效);否则 `ConcurrentMapCacheManager`(无 TTL、无界)。
+- **后端**:Caffeine 在 classpath → `CaffeineCacheManager`(`facility.cache.default-ttl` / `maximum-size` 生效);否则 `ConcurrentMapCacheManager`(无 TTL、无界;两项配置被忽略,装配期有 WARN 提示——F15)。
 - **TTL**:Spring 原生 `@Cacheable` 无 per-cache TTL;经 `CaffeineCacheManager` 全局 `expireAfterWrite` 实现。
 - **SPI 替换**:`CacheManager` 是 Spring 标准 SPI,声明 Redis `CacheManager` 即替换。
 - **降级**:无 `CacheManager` 时 `get` 返空、`getOrCompute` 直调 loader(缓存不可用不阻断业务)。
@@ -438,8 +438,7 @@ facility:
       exclude-paths: ["/actuator/**"]
     access-log:
       enabled: true
-      log-headers: false
-      slow-threshold-millis: 1000
+      slow-threshold-millis: 1000  # 超阈升 WARN 并标记 slow;0=禁用(F14)
     cors:
       enabled: true
       allowed-origins: []        # 默认空 = 不开 CORS;生产须显式列举
@@ -456,8 +455,8 @@ facility:
     max-buckets: 100000                  # 桶上限(防无界 key 增长,超限清空)
   cache:
     enabled: true
-    default-ttl: 10m                     # 仅 Caffeine 后端生效(expireAfterWrite)
-    maximum-size: 10000                  # 仅 Caffeine 后端生效
+    default-ttl: 10m                     # 仅 Caffeine 后端生效(expireAfterWrite);ConcurrentMap 回退时忽略+启动 WARN
+    maximum-size: 10000                  # 仅 Caffeine 后端生效;ConcurrentMap 回退时忽略+启动 WARN
   lock:
     enabled: true
     max-locks: 100000                    # 锁上限(防无界 key 增长);租约时长由各 executeWithLock/tryLock 调用显式传入
