@@ -42,16 +42,19 @@ public class RepeatableRequestFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+        RepeatableRequestWrapper wrappedRequest;
         try {
-            RepeatableRequestWrapper wrappedRequest = new RepeatableRequestWrapper(request, props.getMaxBodyBytes());
-            filterChain.doFilter(wrappedRequest, response);
+            wrappedRequest = new RepeatableRequestWrapper(request, props.getMaxBodyBytes());
         } catch (PayloadTooLargeException ex) {
+            // 413 仅对应本 filter 的包装构造超限;下游同型异常不在此网罗(F17)
             response.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
             response.setContentType("application/json;charset=UTF-8");
             byte[] body = ERROR_MAPPER.writeValueAsBytes(
                     java.util.Map.of("code", 413, "message", ex.getMessage()));
             response.getOutputStream().write(body);
+            return;
         }
+        filterChain.doFilter(wrappedRequest, response);
     }
 
     /**

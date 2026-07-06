@@ -9,6 +9,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * <b>链路追踪过滤器</b>
@@ -23,10 +24,22 @@ import java.util.UUID;
  * <pattern>%d{yyyy-MM-dd HH:mm:ss} [%X{traceId}] %-5level %logger - %msg%n</pattern>
  * }</pre>
  *
+ * <p><b>⚠️ 安全:</b>入站 trace id 仅在匹配 {@code [0-9A-Za-z_-]{1,64}} 时透传;
+ * 不匹配(含 CRLF、控制字符、超长、非 ASCII)一律按缺失处理——
+ * {@code generate-if-absent=true}(默认)时重新生成,{@code false} 时本请求不写 MDC 与响应头。
+ * 防止日志伪造与响应头注入。</p>
+ *
  * @author yvvb
  * @since 2.0.0
  */
 public class TraceIdFilter extends OncePerRequestFilter {
+
+    /**
+     * 入站 trace id 白名单:1-64 位 {@code [0-9A-Za-z_-]}。
+     * 不匹配(CRLF/控制字符/超长/非 ASCII/空白)按「缺失」处理(是否重新生成随
+     * generate-if-absent)——防止日志伪造与响应头注入(F7;与全库 XFF caveat 同一警惕口径)。
+     */
+    private static final Pattern VALID_INBOUND_TRACE_ID = Pattern.compile("[0-9A-Za-z_-]{1,64}");
 
     private final FacilityWebTraceProperties props;
 
@@ -39,7 +52,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String inboundTraceId = request.getHeader(props.getHeaderName());
         String traceId;
-        if (inboundTraceId != null && !inboundTraceId.isBlank()) {
+        if (inboundTraceId != null && VALID_INBOUND_TRACE_ID.matcher(inboundTraceId).matches()) {
             traceId = inboundTraceId;
         } else if (props.isGenerateIfAbsent()) {
             traceId = UUID.randomUUID().toString().replace("-", "");

@@ -88,6 +88,11 @@ public class RepeatableRequestWrapper extends HttpServletRequestWrapper {
             public int read() {
                 return bais.read();
             }
+
+            @Override
+            public int available() {
+                return bais.available();
+            }
         };
     }
 
