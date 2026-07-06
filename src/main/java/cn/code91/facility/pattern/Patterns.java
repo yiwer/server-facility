@@ -22,6 +22,16 @@ import java.util.stream.Stream;
 /**
  * <b>正则引擎</b>：编译缓存、校验、提取、替换、分割、流式 API、常用正则字面量。
  * 预制谓词（isEmail / isMobileCN 等）见 {@link CommonPatterns}。
+ * <p>null 契约：内容处理类方法（{@code content}/{@code regex} 数据参数）null-safe，
+ * 按返回类型各自回退——布尔判断类返回 {@code false}，{@code count} 返回 {@code 0}，
+ * {@code findFirst*} 返回 {@code Optional.empty()}，{@code findAll*}/{@code split*}
+ * 返回空集合/空 map，{@code replaceFirst}/{@code replaceAll}(content, regex, ...) 原样
+ * 返回 {@code content}，{@code stream} 返回 {@code Stream.empty()}，{@code escape}/
+ * {@code escapeReplacement} 对 null 输入返回 {@code null}（原样透传，非空集合）。
+ * 例外：{@link #compile(String)}/{@link #compile(String, int)} 是编译缓存的底层原语，
+ * 对 {@code regex} 走 fail-fast（{@code Objects.requireNonNull}，非 null-safe），
+ * 与本类"数据参数 null-safe"的整体契约刻意不同——上层 {@code isValidRegex}/
+ * {@code tryCompile} 已做前置 null 判断保护调用方。</p>
  */
 public final class Patterns {
 

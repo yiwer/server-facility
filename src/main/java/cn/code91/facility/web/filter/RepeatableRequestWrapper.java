@@ -19,8 +19,8 @@ import java.nio.charset.StandardCharsets;
  * <p>
  * 缓存请求体字节数组，使 {@link #getInputStream()} 和 {@link #getReader()} 可重复调用。
  * 适用于需要多次读取请求体的场景（如日志记录、签名验证）。
- * Body size is capped at {@code maxBodyBytes} — a {@link PayloadTooLargeException} is thrown
- * if the limit is exceeded.
+ * Body size is capped at {@code maxBodyBytes}（{@code ≤0 = 不限制}） — a
+ * {@link PayloadTooLargeException} is thrown if the limit is exceeded.
  * </p>
  *
  * @author yvvb
@@ -37,20 +37,20 @@ public class RepeatableRequestWrapper extends HttpServletRequestWrapper {
     // ==================== 构造函数 ====================
 
     /**
-     * 构造函数，读取并缓存请求体（无大小限制）
+     * 构造函数，读取并缓存请求体（≤0 = 不限制）
      *
      * @param request 原始请求
      * @throws IOException 读取失败时抛出
      */
     public RepeatableRequestWrapper(HttpServletRequest request) throws IOException {
-        this(request, Long.MAX_VALUE);
+        this(request, 0);
     }
 
     /**
      * 构造函数，读取并缓存请求体，超出 {@code maxBodyBytes} 时抛出 {@link PayloadTooLargeException}
      *
      * @param request      原始请求
-     * @param maxBodyBytes 允许的最大请求体字节数
+     * @param maxBodyBytes 允许的最大请求体字节数（{@code ≤0 = 不限制}）
      * @throws IOException              读取失败时抛出
      * @throws PayloadTooLargeException 请求体超出限制时抛出
      */

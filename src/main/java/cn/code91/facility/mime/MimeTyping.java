@@ -20,6 +20,12 @@ import java.util.Set;
  * 基于 Apache Tika 的魔数（magic number）检测，不依赖扩展名。所有需要识别文件类型的模块
  * 都应从这里取，禁止重复直接依赖 tika-core。
  * </p>
+ * <p>null 契约（各方法契约面不同，如实分述，行为均已被测试锁定）：
+ * {@link #detect(File)}/{@link #detect(InputStream)} 走 {@link Result} 通道，
+ * null 输入映射为 {@code Err}；{@link #detect(byte[])} 返回裸 {@code String}，
+ * null/空数组回退 {@link #FALLBACK}（此为入参前置守卫，非异常吞没——Tika 对内容本身
+ * 探测失败时的异常不由本方法捕获）；{@link #detect(InputStream, String)} 才是
+ * 吞 {@code IOException} 回退 {@link #FALLBACK} 的方法（与 stele-storage 历史行为兼容）。</p>
  */
 public final class MimeTyping {
 

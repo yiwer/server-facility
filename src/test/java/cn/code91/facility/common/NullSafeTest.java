@@ -39,8 +39,8 @@ class NullSafeTest {
         }
 
         @Test
-        void allNotNull_emptyArray_false() {
-            assertThat(NullSafe.allNotNull()).isFalse();
+        void allNotNull_emptyArray_true() {
+            assertThat(NullSafe.allNotNull()).isTrue();
         }
 
         @Test

@@ -10,6 +10,10 @@ import java.util.function.Supplier;
 /**
  * <b>数字核心工具</b>：解析、比较、null 安全、scale 设定。
  * 格式化能力在 {@link NumberFormat}，单位换算在 {@link NumberUnits}。
+ * <p>null 契约：数据参数（{@code BigDecimal}/{@code String}）null-safe——
+ * {@code parse*} 系列返回 {@code Optional.empty()}，比较/判断类返回 {@code false}
+ * 或按 null-等价语义处理，{@code setScale} 系列 {@code value == null} 时返回 {@code null}
+ * （null 输入 → null 输出，非回退值；行为已被测试锁定）。</p>
  */
 @UtilityClass
 public class Numbers {

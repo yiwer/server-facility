@@ -119,8 +119,45 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 6. 质量门
 
-- **测试**:1173 项,含 5 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **测试**:1172 项,含 5 条 ArchUnit 架构守护;`mvn verify` 全绿。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (实测约 92% / 92% / 84%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
+
+## 7. 一致性宪法(2026-07-06,九项拍板,评审批次 5)
+
+> 把全库隐性惯例升格为成文条款;新代码必须遵守,存量按「触碰即对齐」渐进。
+> 三个 breaking 修正(B1/B2/B3)已在 0.1.0-SNAPSHOT 窗口内落地。
+
+**C1 null 契约**:数据参数 null → null-safe(按返回类型语义回退:null / 空容器 / 回退值);
+函数型与必需依赖参数 null → fail-fast(`requireNonNull`);IO/解析/外部世界交互 → `Result`
+通道。存量差异已被测试锁定、不改行为,各类级 javadoc 如实自述(`Numbers` setScale(null)→null、
+`NumberFormat` format(null)→""、`MimeTyping` detect(byte[]) 仅 null/空数组前置回退
+FALLBACK(吞 IOException 的是 detect(InputStream,String))、`Patterns` 全员 null-safe 且
+`compile` 底层原语刻意 fail-fast)。
+
+**C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
+不引入公共常量。`RepeatableRequestWrapper` 便利构造器传 0(与旧 Long.MAX_VALUE 行为等价,
+限制判定为 `max > 0`)。
+
+**C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
+高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。现状审计(2026-07-06,
+全部符合):WARN 侧——锁 executeWithLock 无 bean 降级执行、锁/幂等溢出 fail-closed 拒绝、
+限流 maxBuckets clear-all、cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
+CopyUtil null key drop;静默侧——LockUtil.tryLock/unlock 无 bean、RateLimiterUtil 无 bean
+放行(remaining=-1 哨兵)、CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+
+**C4 门面命名双家族**:`XxxUtil` = 静态门面(可能有状态/参与 Spring 边缘/装配交互);
+复数名词 = 纯函数无状态工具。新组件按此归家族,存量零改名。历史例外:`HttpClients`
+复数名但依赖 `RestClient` bean,按门面对待(如实记载,不粉饰)。
+
+**C5 可空性标注**:公共 API 可空参数/返回值用 `jakarta.annotation.Nullable`;首批已补
+result/structure 簇(`Result`/`Tuple`/`Triple`);**error 包例外**——ADR-0010 纯 JDK 边界
+(ArchUnit `error_package_depends_only_on_jdk` 锁定)禁止 jakarta 依赖,`WrappedError`
+以 javadoc 散文表达可空性。其余存量触碰即补。
+
+**Breaking 记录(用户拍板 2026-07-06)**:B1 `ErrorTypeInterface.formatFallback`
+public default → 接口 private(契约面收缩);B2 删除 `getSeverity()`/`ErrorSeverity`
+(零消费 YAGNI),`getDetailedDescription` 改三段格式;B3 `NullSafe.allNotNull(空数组)`
+false → true(vacuous truth 对齐业界惯例;null 入参仍 false)。
