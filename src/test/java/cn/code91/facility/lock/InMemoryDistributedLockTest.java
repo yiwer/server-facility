@@ -17,6 +17,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class InMemoryDistributedLockTest {
 
     @Test
+    @DisplayName("F13:构造器守卫——maxLocks 非正数抛 IAE(0 的旧行为是每次先 clear 再建,守卫后消除)")
+    void constructorGuard_rejectsNonPositiveMaxLocks() {
+        assertThatThrownBy(() -> new InMemoryDistributedLock(0))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxLocks");
+        assertThatThrownBy(() -> new InMemoryDistributedLock(-5))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxLocks");
+        assertThatCode(() -> new InMemoryDistributedLock(1)).doesNotThrowAnyException();
+    }
+
+    @Test
     @DisplayName("tryLock 成功后 unlock,其他线程可对同 key 再次 tryLock 成功")
     void tryLock_thenUnlock_reacquirable() throws Exception {
         InMemoryDistributedLock lock = new InMemoryDistributedLock(10);

@@ -44,9 +44,15 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore {
     private final int maxEntries;
 
     /**
+     * 参数范围守卫（F13/ADR-0013）：非正数启动期快速失败，消除 maxEntries=0「每次先
+     * clear 再建」的荒谬行为。
+     *
      * @param maxEntries 记录集合的无界防护上限
      */
     public InMemoryIdempotencyStore(int maxEntries) {
+        if (maxEntries <= 0) {
+            throw new IllegalArgumentException("maxEntries must be > 0, got " + maxEntries);
+        }
         this.maxEntries = maxEntries;
     }
 

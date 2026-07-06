@@ -41,9 +41,15 @@ public final class InMemoryDistributedLock implements DistributedLock {
     private final int maxLocks;
 
     /**
+     * 参数范围守卫（F13/ADR-0013）：非正数启动期快速失败，消除 maxLocks=0「每次先 clear
+     * 再建」的荒谬行为。
+     *
      * @param maxLocks 锁集合的无界防护上限
      */
     public InMemoryDistributedLock(int maxLocks) {
+        if (maxLocks <= 0) {
+            throw new IllegalArgumentException("maxLocks must be > 0, got " + maxLocks);
+        }
         this.maxLocks = maxLocks;
     }
 

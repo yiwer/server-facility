@@ -10,9 +10,27 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("TokenBucketRateLimiter - 令牌桶限流默认实现")
 class TokenBucketRateLimiterTest {
+
+    @Test
+    @DisplayName("F3/F13:构造器守卫——capacity/permitsPerSecond/maxBuckets 非正数抛 IAE,合法最小值 1 通过")
+    void constructorGuards_rejectNonPositive() {
+        assertThatThrownBy(() -> new TokenBucketRateLimiter(0, 10, 100))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("defaultCapacity");
+        assertThatThrownBy(() -> new TokenBucketRateLimiter(100, 0, 100))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("defaultPermitsPerSecond");
+        assertThatThrownBy(() -> new TokenBucketRateLimiter(100, -1.5, 100))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("defaultPermitsPerSecond");
+        assertThatThrownBy(() -> new TokenBucketRateLimiter(100, Double.NaN, 100))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("defaultPermitsPerSecond");
+        assertThatThrownBy(() -> new TokenBucketRateLimiter(100, 10, 0))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxBuckets");
+        assertThatCode(() -> new TokenBucketRateLimiter(1, 0.001, 1)).doesNotThrowAnyException();
+    }
 
     @Test
     @DisplayName("容量3：连续3次放行，第4次拒绝")

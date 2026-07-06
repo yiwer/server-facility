@@ -24,7 +24,9 @@ public final class Filenames {
     private Filenames() { throw new UnsupportedOperationException(); }
 
     /**
-     * 清洗文件名：去掉路径前缀、检测 {@code ..}、替换不安全字符。
+     * 清洗文件名：去掉路径前缀、按路径段检测 {@code ..} 穿越(文件名内连续点不误伤，F4)、替换不安全字符。
+     * <p><b>不做 URL 解码</b>:{@code ..%2f} 等编码序列按字面字符处理——若调用方在本方法
+     * <b>之后</b>再做 URL 解码,{@code ..} 会重新物化,穿越检测即被绕过;解码必须在调用本方法之前完成。</p>
      */
     public static Result<String, WrappedError> sanitize(String fileName) {
         if (!StringUtils.hasText(fileName)) {
@@ -32,9 +34,13 @@ public final class Filenames {
         }
 
         String cleaned = StringUtils.cleanPath(fileName);
-        if (cleaned.contains("..")) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.FILE_NAME_INVALID, null, new Object[]{fileName}));
+        // 按路径段检测穿越(F4):cleanPath 已归一 \ 为 / 并折叠可解析的 a/.. 序列,
+        // 残留 .. 只能以独立段存在;段等值判定不误伤文件名内连续点(report..final.pdf)
+        for (String segment : cleaned.split("/")) {
+            if ("..".equals(segment)) {
+                return Result.err(WrappedError.of(
+                        FacilityErrorType.FILE_NAME_INVALID, null, new Object[]{fileName}));
+            }
         }
 
         int lastSeparator = Math.max(cleaned.lastIndexOf('/'), cleaned.lastIndexOf('\\'));

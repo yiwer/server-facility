@@ -44,6 +44,28 @@ class FacilityCacheAutoConfigurationTest {
     }
 
     @Test
+    @DisplayName("F15:回退 ConcurrentMap 时装配期 WARN(default-ttl/maximum-size 被忽略的信号)")
+    void concurrentMapFallback_emitsWarn() {
+        ch.qos.logback.classic.Logger root =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        root.addAppender(appender);
+        try {
+            runner.withClassLoader(new FilteredClassLoader(Caffeine.class)).run(context -> {
+                assertThat(context).hasSingleBean(org.springframework.cache.concurrent.ConcurrentMapCacheManager.class);
+                assertThat(appender.list).anySatisfy(e -> {
+                    assertThat(e.getLevel()).isEqualTo(ch.qos.logback.classic.Level.WARN);
+                    assertThat(e.getFormattedMessage()).contains("ConcurrentMapCacheManager");
+                });
+            });
+        } finally {
+            root.detachAppender(appender);
+        }
+    }
+
+    @Test
     @DisplayName("已存在用户 CacheManager bean → facility 不注册,沿用用户 bean")
     void userCacheManager_backsOff() {
         runner

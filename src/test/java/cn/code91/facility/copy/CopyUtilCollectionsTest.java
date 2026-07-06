@@ -296,6 +296,32 @@ class CopyUtilCollectionsTest {
         }
 
         @Test
+        @DisplayName("F5:宽容模式下 null key entry 丢弃但必须 WARN(不再静默),条目数 3 进 2 出")
+        void nullKey_droppedWithWarn_whenThrowFalse() {
+            ch.qos.logback.classic.Logger root =
+                    (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+            ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                    new ch.qos.logback.core.read.ListAppender<>();
+            appender.start();
+            root.addAppender(appender);
+            try {
+                Map<Item, Item> origin = new HashMap<>();
+                origin.put(null, new Item("v"));
+                origin.put(new Item("k2"), new Item("v2"));
+                origin.put(new Item("k3"), new Item("v3"));
+                Map<Item, Item> copy = CopyUtil.copyMapAll(origin,
+                        CopyUtil.CopyOptions.builder().throwOnNullCopy(false).build());
+                assertThat(copy).hasSize(2);
+                assertThat(appender.list).anySatisfy(e -> {
+                    assertThat(e.getLevel()).isEqualTo(ch.qos.logback.classic.Level.WARN);
+                    assertThat(e.getFormattedMessage()).contains("null map key entry dropped");
+                });
+            } finally {
+                root.detachAppender(appender);
+            }
+        }
+
+        @Test
         @DisplayName("value 为 null 且 skipNullElements=false(默认):key 仍深拷贝,value 保留 null")
         void nullValue_kept_whenSkipFalse() {
             Map<Item, Item> origin = new HashMap<>();

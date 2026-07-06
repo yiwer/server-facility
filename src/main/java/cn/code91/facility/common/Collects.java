@@ -14,7 +14,8 @@ import java.util.function.Function;
 
 /**
  * <b>集合与 Map 操作工具</b>
- * <p>null 安全：null 输入视为空集合处理，返回值永远不为 null。</p>
+ * <p>null 安全：null 输入视为空集合处理；除 {@code longListToLongArray}（null 入参返回
+ * null，行为已被测试锁定）外，返回值不为 null。</p>
  * <p>命名取动词形式（{@code Collects}），避免与 {@link java.util.Collections} 冲突。</p>
  */
 @UtilityClass

@@ -6,7 +6,7 @@
 
 - **坐标**:`cn.code91:server-facility:0.1.0-SNAPSHOT`
 - **要求**:Java 21+、Spring Boot 3.5.x(依赖版本经 `spring-boot-dependencies` BOM 收敛)
-- **测试**:1159 项(含 5 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
+- **测试**:1169 项(含 5 条 ArchUnit 架构守护);行覆盖率 ≥88%,JaCoCo check gate ≥0.88
 
 ## 引入
 
@@ -89,7 +89,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `facility.id` | 雪花 ID:`worker-id` / `data-center-id` / `clock-backwards-threshold-millis` |
 | `facility.web.trace` | TraceId 过滤器:`header-name` / `mdc-key` / `generate-if-absent` |
 | `facility.web.repeatable-request` | 可重复读请求体:`max-body-bytes` / `include-content-types` / `exclude-paths` |
-| `facility.web.access-log` | 访问日志拦截器:`log-headers` / `slow-threshold-millis` |
+| `facility.web.access-log` | 访问日志拦截器:`slow-threshold-millis`(超阈升 WARN 标记 slow;0=禁用) |
 | `facility.web.cors` | CORS:`allowed-origins`(默认空 = 不开)/ `allowed-methods` / `allow-credentials` |
 | `facility.web.exception` | 全局异常:`include-trace-profiles` / `use-problem-detail`(RFC 7807) |
 | `facility.ratelimit` | 限流:`default-capacity` / `default-permits-per-second` / `max-buckets` |

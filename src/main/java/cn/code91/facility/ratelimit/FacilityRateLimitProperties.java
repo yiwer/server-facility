@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * <p>
  * 校验策略(ADR-0013):不用 {@code @Validated}——避免强迫消费方引入 Bean Validation
  * provider(无 provider 的默认 Boot 应用会启动即崩);下列声明性约束仅供文档参考,
- * 绑定期不校验,真正的范围守卫留给具体限流实现(如 {@link TokenBucket} 对
- * capacity/rate 的运行期语义)。
+ * 绑定期不校验,真正的范围守卫在 {@link TokenBucketRateLimiter} 构造器兜底
+ * (启动期快速失败,任何 classpath 下生效——F13)。
  * </p>
  *
  * @author yvvb
