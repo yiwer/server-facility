@@ -490,6 +490,11 @@ facility:
   同一 JVM 内多个 `ApplicationContext`(如测试并行、多模块)共享同一套 ObjectMapper 命名空间 ——
   这是刻意设计(门面无状态、零上下文耦合),但若你在不同上下文注册了不同的 Jackson 定制,注意它们
   作用于同一注册表。
+- **SpringContextHolder 单例 × 多上下文(先到先得)**:静态持有的 `ApplicationContext` 以 CAS 只
+  注入一次——同一 JVM 内先后启动多个上下文时,第二个 context 的注入被忽略(仅 WARN 日志),
+  `getBean` 始终解析自第一个 context;第一个 context 关闭后(`DisposableBean.destroy()` 释放引用)
+  后续 context 方可接管。库内静态门面(LogUtil 的 post handler 发现、IdUtil、LockUtil、CacheUtil 等)
+  均经它取 bean——多 context 测试中出现「拿到别的上下文的 bean」或降级分支被意外触发时,先查此语义。
 - **两类让位机制(勿混淆)**:
   - ① **`@ConditionalOnMissingBean` 真回退**:`messageSource`、`facilityAsyncExecutor`(按 `TaskExecutor`
     类型)、全局异常处理器(按 `AbstractGlobalExceptionHandler` 类型)、三个 `WebMvcConfigurer`(按 bean 名)

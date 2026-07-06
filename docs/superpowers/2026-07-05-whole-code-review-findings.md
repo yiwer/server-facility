@@ -5,6 +5,16 @@
 > 行号为评审时点近似值,**以符号(类名/方法名)定位为准**。带【决策】标记的条目动手前先向用户呈现选项(AskUserQuestion,超时用推荐)。
 > 评审时全库状态:1147 测试绿 / ArchUnit 5 规则 / 覆盖 92.9(instr)/85.7(branch)/92.7(line) / 29 包 / 21 ADR / 11 装配。
 
+> **处置总账(2026-07-06 复审收口,本文档转历史存档)**:F1-F34 已全部落地——五批次 --no-ff 合并
+> master(批1 d3218df/批2 4f3164e/批3 24cf521/批4 02f3faa/批5 e864c9f),F37/F39/F40 随批次 4 落地;
+> 复审独立核验:1172 绿 / ArchTest 5/5 / 覆盖 93.7-87.0-93.5,批 2-4 对账 19/20、宪法批 12/12,
+> 复审残余(F21 的 USAGE 侧、DESIGN 覆盖率近似值、CHANGELOG 迁移须知)已随收口提交补齐。
+> **维持 defer 的 roadmap 篮**:F35(masking:error 路径 post-handler 对称测试/未闭合引号兜底/
+> per-type 开关/+86)、F36(excel-csv:SAX 流式读/Map-POJO 形态/分隔符可配/多 sheet)、F38
+> (ratelimit-cache:caffeine-only @Cacheable 边界/acquire 两段读折叠/per-call acquire 非正参数)、
+> C3 六 WARN 点 ListAppender 守护测试、Async 真取消(F6 已诚实化)、F4 对抗语料入测试库、
+> RateLimitResult record 自身 javadoc 补哨兵语义。后续工作以此篮为准,勿再整文档重扫。
+
 ---
 
 ## P0 功能性 bug(行为与文档/配置承诺矛盾,优先修)

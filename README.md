@@ -103,5 +103,6 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 - **[USAGE](docs/USAGE.md)** —— 各门面用法、装配开关全表、消费方须知(i18n 抢注模型、JsonUtil 单例语义、optional 依赖矩阵)
 - **[DESIGN](docs/DESIGN.md)** —— deep module 哲学、包簇依赖地图、三组断环 C1/C2/C3、装配范式
 - **[ADR 索引](docs/adr/INDEX.md)** —— 23 条架构决策记录
+- **[CHANGELOG](CHANGELOG.md)** —— 破坏性变更与行为变更的消费方迁移指引
 - **[设计规格](docs/superpowers/specs/2026-07-02-server-facility-migration-design.md)** —— 迁移工程 spec
 - **[域术语](CONTEXT.md)**

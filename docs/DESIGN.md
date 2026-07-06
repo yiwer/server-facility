@@ -121,7 +121,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 - **测试**:1172 项,含 5 条 ArchUnit 架构守护;`mvn verify` 全绿。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
-  (实测约 92% / 92% / 84%),达标即门,退化即红。
+  (实测约 93.7% / 93.5% / 87.0%,2026-07-06),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
 
