@@ -428,7 +428,7 @@ facility:
   web:
     trace:
       enabled: true
-      header-name: X-Trace-Id
+      header-name: X-Trace-Id     # 入站值须匹配 [0-9A-Za-z_-]{1,64},否则按缺失处理(F7)
       mdc-key: traceId
       generate-if-absent: true
     repeatable-request:

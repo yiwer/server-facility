@@ -25,7 +25,8 @@ import java.util.regex.Pattern;
  * }</pre>
  *
  * <p><b>⚠️ 安全:</b>入站 trace id 仅在匹配 {@code [0-9A-Za-z_-]{1,64}} 时透传;
- * 不匹配(含 CRLF、控制字符、超长、非 ASCII)一律按缺失处理并重新生成,
+ * 不匹配(含 CRLF、控制字符、超长、非 ASCII)一律按缺失处理——
+ * {@code generate-if-absent=true}(默认)时重新生成,{@code false} 时本请求不写 MDC 与响应头。
  * 防止日志伪造与响应头注入。</p>
  *
  * @author yvvb
@@ -35,8 +36,8 @@ public class TraceIdFilter extends OncePerRequestFilter {
 
     /**
      * 入站 trace id 白名单:1-64 位 {@code [0-9A-Za-z_-]}。
-     * 不匹配(CRLF/控制字符/超长/非 ASCII/空白)按「缺失」处理走重新生成——
-     * 防止日志伪造与响应头注入(F7;与全库 XFF caveat 同一警惕口径)。
+     * 不匹配(CRLF/控制字符/超长/非 ASCII/空白)按「缺失」处理(是否重新生成随
+     * generate-if-absent)——防止日志伪造与响应头注入(F7;与全库 XFF caveat 同一警惕口径)。
      */
     private static final Pattern VALID_INBOUND_TRACE_ID = Pattern.compile("[0-9A-Za-z_-]{1,64}");
 
