@@ -132,6 +132,73 @@ class SnowIdGeneratorTest {
             .hasMessageContaining("workerId");
     }
 
+    @Test
+    @DisplayName("F2:throwOnExceedThreshold=false + 大幅回拨 2s → 无界等待追上,绝不抛(决策 a)")
+    void falseConfig_largeBackwards_waitsUntilCaughtUp_neverThrows() {
+        FacilityIdProperties props = defaultProps();
+        props.setThrowOnClockBackwardsExceedThreshold(false);
+
+        // 步进时钟:首读 BASE_MS 建立 lastTimestamp;此后从回拨 2000ms 起每读前进 400ms,封顶 BASE_MS。
+        // 旧实现 spinUntil 以注入时钟测流逝,>1000ms 即抛——本测试在旧代码上必红。
+        AtomicLong reads = new AtomicLong();
+        SnowIdGenerator gen = new SnowIdGenerator(props, () -> {
+            long n = reads.getAndIncrement();
+            if (n == 0) {
+                return BASE_MS;
+            }
+            return Math.min(BASE_MS, BASE_MS - 2_000L + (n - 1) * 400L);
+        });
+
+        long first = gen.nextId();   // lastTimestamp = BASE_MS
+        long second = gen.nextId();  // 回拨 2000ms → 等待追上 → 不抛
+
+        assertThat(second).isGreaterThan(first);
+        assertThat(gen.parseTimestamp(second)).isEqualTo(BASE_MS);
+    }
+
+    @Test
+    @DisplayName("F2:throwOnExceedThreshold=false + 阈值内回拨 → 同样等待追上,不抛(锁定,旧新行为一致)")
+    void falseConfig_smallBackwards_waitsUntilCaughtUp() {
+        FacilityIdProperties props = defaultProps();
+        props.setThrowOnClockBackwardsExceedThreshold(false);
+
+        AtomicLong reads = new AtomicLong();
+        SnowIdGenerator gen = new SnowIdGenerator(props, () -> {
+            long n = reads.getAndIncrement();
+            if (n == 0) {
+                return BASE_MS;
+            }
+            return Math.min(BASE_MS, BASE_MS - 3L + (n - 1)); // 回拨 3ms(≤阈值 5),每读 +1ms
+        });
+
+        long first = gen.nextId();
+        long second = gen.nextId();
+
+        assertThat(second).isGreaterThan(first);
+    }
+
+    @Test
+    @DisplayName("F2 连带:true + 阈值 3s,阈内回拨 2.5s 的 spin 须越过旧 1s 硬上限追上(cap 随阈值放宽)")
+    void trueConfig_withinLargeThreshold_spinOutlastsLegacyOneSecondCap() {
+        FacilityIdProperties props = defaultProps();
+        props.setClockBackwardsThresholdMillis(3_000L);
+        props.setThrowOnClockBackwardsExceedThreshold(true);
+
+        AtomicLong reads = new AtomicLong();
+        SnowIdGenerator gen = new SnowIdGenerator(props, () -> {
+            long n = reads.getAndIncrement();
+            if (n == 0) {
+                return BASE_MS;
+            }
+            return Math.min(BASE_MS, BASE_MS - 2_500L + (n - 1) * 600L); // 回拨 2.5s ≤ 阈值 3s,每读 +600ms
+        });
+
+        long first = gen.nextId();
+        long second = gen.nextId();  // 旧实现:spin 流逝 1200ms>1000 抛;新实现 cap=max(1000,3000) 追上
+
+        assertThat(second).isGreaterThan(first);
+    }
+
     @Nested
     @DisplayName("parseTimestamp / parseInfo instance methods (phase-4 RP-15 / ADR-0008)")
     class InstanceParseMethodTests {

@@ -19,7 +19,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * <h3>重构改进：</h3>
  * <ul>
  *     <li><b>可靠的栈分析</b>：不依赖硬编码的栈深度</li>
- *     <li><b>性能优化</b>：先检查日志级别再获取调用者信息</li>
+ *     <li><b>per-package 级别生效</b>:级别门控基于调用方 logger,业务包的
+ *         {@code logging.level.*} 配置对 LogUtil 通道生效;调用方经 {@link StackWalker}
+ *         惰性解析(ADR-0022)</li>
  *     <li><b>线程安全</b>：改进的缓存策略</li>
  *     <li><b>实例缓存</b>：ConcurrentHashMap 缓存 Logger(键为 logger 名称,集合有界,不随用户输入增长);如需手动清理见 {@link #clearLoggerCache()}</li>
  *     <li><b>写前脱敏</b>:消息经 {@link cn.code91.facility.masking.MaskUtil} 默认脱敏,
@@ -34,7 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author yvvb
  * @since 2.0.0
- * @apiNote 重构版本，修复了栈分析和性能问题
+ * @apiNote 级别门控基于调用方 logger(per-package 配置生效);调用方经 StackWalker 惰性解析(ADR-0022)
  */
 public final class LogUtil {
 
@@ -48,9 +50,17 @@ public final class LogUtil {
     private static final Map<String, Logger> LOGGER_CACHE = new ConcurrentHashMap<>();
 
     /**
-     * 默认 Logger（用于快速级别检查）
+     * 内部兜底 Logger:仅用于 post handler 失败时的错误日志。
+     * 不参与级别门控——门控完全基于调用方 logger(per-package 级别生效,ADR-0022)。
      */
     private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(LogUtil.class);
+
+    /**
+     * 惰性栈遍历器(JDK 保证线程安全,可静态共享);RETAIN_CLASS_REFERENCE 使帧携带
+     * Class 引用,以引用比较精确跳过 LogUtil 自身帧(ADR-0022)。
+     */
+    private static final StackWalker STACK_WALKER =
+            StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 
     /**
      * 缓存的日志后处理器组合器
@@ -73,10 +83,6 @@ public final class LogUtil {
      * @param args    占位符参数
      */
     public static void trace(String msgTemp, Object... args) {
-        if (!DEFAULT_LOGGER.isTraceEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -94,10 +100,6 @@ public final class LogUtil {
      * @param args    占位符参数
      */
     public static void debug(String msgTemp, Object... args) {
-        if (!DEFAULT_LOGGER.isDebugEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -115,10 +117,6 @@ public final class LogUtil {
      * @param args    占位符参数
      */
     public static void info(String msgTemp, Object... args) {
-        if (!DEFAULT_LOGGER.isInfoEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -136,10 +134,6 @@ public final class LogUtil {
      * @param args    占位符参数
      */
     public static void warn(String msgTemp, Object... args) {
-        if (!DEFAULT_LOGGER.isWarnEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -161,10 +155,6 @@ public final class LogUtil {
      * @since phase-3
      */
     public static void warn(String msg, Throwable t) {
-        if (!DEFAULT_LOGGER.isWarnEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -186,10 +176,6 @@ public final class LogUtil {
      * @since phase-3
      */
     public static void warn(String msgPattern, Throwable t, Object... args) {
-        if (!DEFAULT_LOGGER.isWarnEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -207,10 +193,6 @@ public final class LogUtil {
      * @param args    占位符参数
      */
     public static void error(String msgTemp, Object... args) {
-        if (!DEFAULT_LOGGER.isErrorEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -230,10 +212,6 @@ public final class LogUtil {
      * @since phase-3
      */
     public static void error(String msg, Throwable t) {
-        if (!DEFAULT_LOGGER.isErrorEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -253,10 +231,6 @@ public final class LogUtil {
      * @since phase-3
      */
     public static void error(String msgPattern, Throwable t, Object... args) {
-        if (!DEFAULT_LOGGER.isErrorEnabled()) {
-            return;
-        }
-
         final String callerClassName = getCallerClassName();
         final Logger logger = getLogger(callerClassName);
 
@@ -272,32 +246,20 @@ public final class LogUtil {
     /**
      * <b>获取调用者的类名</b>
      * <p>
-     * 重构说明：不依赖硬编码的栈深度，通过遍历栈找到第一个非 LogUtil 的类。
+     * 基于 {@link StackWalker} 惰性遍历:按 Class 引用跳过 LogUtil 自身帧,返回第一个
+     * 外部调用方类名。相比 {@code Thread.currentThread().getStackTrace()} 的全栈快照,
+     * 惰性遍历只实体化前几帧;反射帧默认隐藏,反射调用方也能正确解析(ADR-0022)。
      * </p>
      *
      * @return 调用者的完整类名
      */
     private static String getCallerClassName() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-
-        // 跳过 getStackTrace、getCallerClassName 和 LogUtil 的方法
-        boolean foundLogUtil = false;
-        for (StackTraceElement element : stackTrace) {
-            String className = element.getClassName();
-
-            if (className.equals(LogUtil.class.getName())) {
-                foundLogUtil = true;
-                continue;
-            }
-
-            // 找到第一个非 LogUtil 的类
-            if (foundLogUtil) {
-                return className;
-            }
-        }
-
-        // 降级处理：返回默认类名
-        return LogUtil.class.getName();
+        return STACK_WALKER.walk(frames -> frames
+                .filter(frame -> frame.getDeclaringClass() != LogUtil.class)
+                .findFirst()
+                .map(StackWalker.StackFrame::getClassName)
+                // 防御回退:理论不可达(公共方法帧之外必有调用方)
+                .orElse(LogUtil.class.getName()));
     }
 
     /**

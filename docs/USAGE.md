@@ -421,10 +421,10 @@ Result<List<List<String>>, WrappedError> r4 = ExcelUtil.read(inputStream);
 facility:
   id:
     enabled: true
-    worker-id: 0                 # 0..31
-    data-center-id: 0            # 0..31
+    worker-id: 0                 # 0..3(2 bit,构造器守卫)
+    data-center-id: 0            # 0..3(2 bit,构造器守卫)
     clock-backwards-threshold-millis: 5
-    throw-on-clock-backwards-exceed-threshold: true
+    throw-on-clock-backwards-exceed-threshold: true   # false=回拨不抛,无界等待追上(阻塞,ADR-0023)
   web:
     trace:
       enabled: true

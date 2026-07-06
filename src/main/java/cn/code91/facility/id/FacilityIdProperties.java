@@ -34,11 +34,11 @@ public class FacilityIdProperties {
     @Min(0) @Max(3)
     private int dataCenterId = 0;
 
-    /** <= this many ms of clock-backwards is handled by spin; > this throws. Default 5. */
+    /** Clock-backwards ≤ this many ms is absorbed by bounded spin (cap = max(1s, threshold)). Above it, behavior follows throw-on-clock-backwards-exceed-threshold. Default 5. */
     @Min(0)
     private long clockBackwardsThresholdMillis = 5L;
 
-    /** Whether to throw on clock-backwards above threshold (otherwise spin with 1s cap). */
+    /** true: backwards above threshold throws ClockBackwardsException. false: NEVER throws — nextId() waits (unbounded, ~1ms park steps) until the clock catches up; ID generation blocks for the whole backwards span (ADR-0023). Default true. */
     private boolean throwOnClockBackwardsExceedThreshold = true;
 
     /** Epoch start (2025-01-01 00:00:00 UTC+8 by default). */

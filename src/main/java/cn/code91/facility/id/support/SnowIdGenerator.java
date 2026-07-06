@@ -1,6 +1,7 @@
 package cn.code91.facility.id.support;
 
 import cn.code91.facility.id.FacilityIdProperties;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 
 /**
@@ -19,7 +20,9 @@ import java.util.function.Supplier;
  *     <li>全局唯一：不同数据中心、工作节点生成的ID不会冲突</li>
  *     <li>趋势递增：基于时间戳生成，保证时间上的递增性</li>
  *     <li>高性能：每毫秒可生成1024个ID</li>
- *     <li>时钟回拨检测：小幅回拨自旋等待，大幅回拨抛出 {@link ClockBackwardsException}</li>
+ *     <li>时钟回拨:≤ 阈值自旋等待;超阈值时 throw-on-clock-backwards-exceed-threshold=true
+ *         抛出 {@link ClockBackwardsException},false 则无界等待直到时钟追上——绝不抛,
+ *         但阻塞 ID 生成整个回拨时长(ADR-0023)</li>
  *     <li>参数校验：防止无效配置导致的ID冲突</li>
  * </ul>
  *
@@ -130,12 +133,16 @@ public class SnowIdGenerator {
 
         if (now < lastTimestamp) {
             long delta = lastTimestamp - now;
-            if (delta <= clockBackwardsThresholdMillis) {
+            if (throwOnExceedThreshold) {
+                if (delta > clockBackwardsThresholdMillis) {
+                    throw new ClockBackwardsException(delta);
+                }
                 now = spinUntil(lastTimestamp);
-            } else if (throwOnExceedThreshold) {
-                throw new ClockBackwardsException(delta);
             } else {
-                now = spinUntil(lastTimestamp);
+                // throw-on-clock-backwards-exceed-threshold=false 的承诺是"不抛":
+                // 无论回拨多大都等待时钟追上(无界,阻塞 ID 生成整个回拨时长;
+                // 风险见 FacilityIdProperties javadoc 与 ADR-0023)
+                now = awaitClockCatchUp(lastTimestamp);
             }
         }
 
@@ -156,13 +163,33 @@ public class SnowIdGenerator {
             | sequence;
     }
 
+    /**
+     * 有界自旋(true 模式,阈值内回拨):上限取 {@link #SPIN_TIMEOUT_MILLIS} 与配置阈值的
+     * 较大者,保证「≤ 阈值的回拨被吸收」的承诺对大于 1s 的阈值同样成立;流逝以注入时钟测量,
+     * 病理时钟(自旋期间继续倒退)下超限抛出——true 模式允许抛。
+     */
     private long spinUntil(long target) {
         long spinStart = clock.get();
+        long cap = Math.max(SPIN_TIMEOUT_MILLIS, clockBackwardsThresholdMillis);
         long now = spinStart;
         while (now < target) {
-            if (now - spinStart > SPIN_TIMEOUT_MILLIS) {
+            if (now - spinStart > cap) {
                 throw new ClockBackwardsException(target - now);
             }
+            now = clock.get();
+        }
+        return now;
+    }
+
+    /**
+     * 无界等待(false 模式):以 1ms park 步进直到时钟追上,绝不抛出。
+     * 等待发生在 synchronized 内——回拨期间本生成器的所有 nextId() 调用整体阻塞;
+     * 中断不打断等待(park 被中断唤醒后循环重查,中断标志保留)。
+     */
+    private long awaitClockCatchUp(long target) {
+        long now = clock.get();
+        while (now < target) {
+            LockSupport.parkNanos(1_000_000L); // 1ms;虚假/中断唤醒无害,循环重查
             now = clock.get();
         }
         return now;
