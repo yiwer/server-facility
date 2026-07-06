@@ -176,7 +176,7 @@ public final class WrappedError implements Serializable {
      * 获取指定索引的参数
      *
      * @param index 参数索引（从 0 开始）
-     * @return 参数值
+     * @return 参数值（若该位置的参数本身是 null，返回 null）
      * @throws IndexOutOfBoundsException 如果索引超出范围
      */
     public Object getArg(int index) {
@@ -192,7 +192,7 @@ public final class WrappedError implements Serializable {
      * @param index 参数索引（从 0 开始）
      * @param type  目标类型
      * @param <T>   类型参数
-     * @return 转换后的参数值
+     * @return 转换后的参数值（若该位置的参数本身是 null，返回 null）
      * @throws IndexOutOfBoundsException 如果索引超出范围
      * @throws ClassCastException        如果类型转换失败
      */

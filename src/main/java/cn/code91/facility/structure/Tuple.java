@@ -1,5 +1,7 @@
 package cn.code91.facility.structure;
 
+import jakarta.annotation.Nullable;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Map;
@@ -43,7 +45,7 @@ import java.util.function.Function;
  * @author yvvb
  * @since 2025/5/4
  */
-public record Tuple<L, R>(L left, R right) implements Serializable {
+public record Tuple<L, R>(@Nullable L left, @Nullable R right) implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -53,10 +55,10 @@ public record Tuple<L, R>(L left, R right) implements Serializable {
     /**
      * 创建元组
      *
-     * @param left  左值
-     * @param right 右值
+     * @param left  左值（允许为 null）
+     * @param right 右值（允许为 null）
      */
-    public static <L, R> Tuple<L, R> of(L left, R right) {
+    public static <L, R> Tuple<L, R> of(@Nullable L left, @Nullable R right) {
         return new Tuple<>(left, right);
     }
 

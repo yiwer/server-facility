@@ -13,7 +13,7 @@ public class FacilityWebRepeatableRequestProperties {
     private boolean enabled = true;
 
     /**
-     * Reject requests whose body exceeds this size (bytes). 0 = no limit (NOT recommended).
+     * Reject requests whose body exceeds this size (bytes).{@code ≤0 = 不限制}(NOT recommended).
      * (声明性约束:≥0;绑定不校验——ADR-0013)
      */
     private long maxBodyBytes = 10L * 1024 * 1024;

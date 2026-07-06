@@ -1,5 +1,7 @@
 package cn.code91.facility.structure;
 
+import jakarta.annotation.Nullable;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
@@ -46,7 +48,7 @@ import java.util.function.Function;
  * @since 2025/5/4
  * @see Tuple
  */
-public record Triple<L, M, R>(L left, M middle, R right) implements Serializable {
+public record Triple<L, M, R>(@Nullable L left, @Nullable M middle, @Nullable R right) implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -56,26 +58,30 @@ public record Triple<L, M, R>(L left, M middle, R right) implements Serializable
     /**
      * 创建三元组
      *
-     * @param left   左值
-     * @param middle 中值
-     * @param right  右值
+     * @param left   左值（允许为 null）
+     * @param middle 中值（允许为 null）
+     * @param right  右值（允许为 null）
      */
-    public static <L, M, R> Triple<L, M, R> of(L left, M middle, R right) {
+    public static <L, M, R> Triple<L, M, R> of(@Nullable L left, @Nullable M middle, @Nullable R right) {
         return new Triple<>(left, middle, right);
     }
 
     /**
      * 从 Tuple 和附加值创建三元组（在右侧追加）
+     *
+     * @param right 附加的右值（允许为 null）
      */
-    public static <L, M, R> Triple<L, M, R> fromTuple(Tuple<L, M> tuple, R right) {
+    public static <L, M, R> Triple<L, M, R> fromTuple(Tuple<L, M> tuple, @Nullable R right) {
         Objects.requireNonNull(tuple);
         return new Triple<>(tuple.left(), tuple.right(), right);
     }
 
     /**
      * 从附加值和 Tuple 创建三元组（在左侧追加）
+     *
+     * @param left 附加的左值（允许为 null）
      */
-    public static <L, M, R> Triple<L, M, R> fromTuple(L left, Tuple<M, R> tuple) {
+    public static <L, M, R> Triple<L, M, R> fromTuple(@Nullable L left, Tuple<M, R> tuple) {
         Objects.requireNonNull(tuple);
         return new Triple<>(left, tuple.left(), tuple.right());
     }

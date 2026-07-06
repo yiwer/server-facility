@@ -1,5 +1,7 @@
 package cn.code91.facility.result;
 
+import jakarta.annotation.Nullable;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
@@ -63,7 +65,7 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
      *
      * @param value 成功值（允许为 null）
      */
-    static <T, E> Result<T, E> ok(T value) {
+    static <T, E> Result<T, E> ok(@Nullable T value) {
         return new Ok<>(value);
     }
 
@@ -153,7 +155,7 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
      * @param nullable    可能为 null 的值
      * @param errorIfNull 值为 null 时的错误
      */
-    static <T, E> Result<T, E> fromNullable(T nullable, Supplier<E> errorIfNull) {
+    static <T, E> Result<T, E> fromNullable(@Nullable T nullable, Supplier<E> errorIfNull) {
         Objects.requireNonNull(errorIfNull, "errorIfNull cannot be null");
         return nullable != null ? ok(nullable) : err(errorIfNull.get());
     }
@@ -242,9 +244,12 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
 
     /**
      * 获取成功值，失败时抛出异常
+     * <p>成功值本身允许为 null（如 {@link #ok(Object) ok(null)}/{@link #empty()}），
+     * 调用方需自行判空。</p>
      *
      * @throws NoSuchElementException 如果是失败结果
      */
+    @Nullable
     T get();
 
     /**
@@ -559,8 +564,10 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
 
     /**
      * 成功结果实现（不可变、线程安全）
+     *
+     * @param value 成功值（允许为 null）
      */
-    record Ok<T, E>(T value) implements Result<T, E> {
+    record Ok<T, E>(@Nullable T value) implements Result<T, E> {
 
         @Serial
         private static final long serialVersionUID = 2L;
@@ -571,6 +578,7 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
         }
 
         @Override
+        @Nullable
         public T get() {
             return value;
         }

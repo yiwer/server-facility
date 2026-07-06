@@ -9,7 +9,11 @@ import java.util.Optional;
 
 /**
  * <b>数字格式化</b>：BigDecimal → 字符串、金额、百分比、字节大小可读形式。
- * <p>所有方法 null 输入返回空字符串，永不抛 NPE。</p>
+ * <p>null 契约：{@code format}/{@code format2}/{@code format4}/{@code formatInt}/
+ * {@code formatSmart}/{@code formatMoney}/{@code formatPercent} 输入 null 时返回
+ * 空字符串 {@code ""}（空串回退），永不抛 NPE；{@link #parseSize(String)} 是解析方法，
+ * 走 {@code Optional} 通道——null/空白输入返回 {@code Optional.empty()}，并非空字符串
+ * （行为已被测试锁定）。</p>
  */
 @UtilityClass
 public class NumberFormat {
