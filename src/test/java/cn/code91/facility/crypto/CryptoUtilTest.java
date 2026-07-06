@@ -279,4 +279,27 @@ class CryptoUtilTest {
                 .isEqualTo(FacilityErrorType.CRYPTO_MAC_ERROR);
         assertThat(CryptoUtil.hmacSha256("d", (String) null).isErr()).isTrue();
     }
+
+    @Test
+    @DisplayName("F37:HMAC 空密钥(byte[0])→ CRYPTO_MAC_ERROR(javadoc 既载,补测锁定)")
+    void hmacSha256_emptyKey_returnsMacError() {
+        Result<String, ?> result = CryptoUtil.hmacSha256("data".getBytes(StandardCharsets.UTF_8), new byte[0]);
+        assertThat(result.isErr()).isTrue();
+        assertThat(((cn.code91.facility.error.WrappedError) result.getErr()).getErrorType())
+                .isEqualTo(FacilityErrorType.CRYPTO_MAC_ERROR);
+    }
+
+    @Test
+    @DisplayName("F37:null 覆盖跨重载对称——byte[] 变体 key null + String 变体 data null(补既有不对称缺口)")
+    void hmacSha256_nullCoverage_symmetricAcrossOverloads() {
+        Result<String, ?> byKeyNull = CryptoUtil.hmacSha256("d".getBytes(StandardCharsets.UTF_8), (byte[]) null);
+        assertThat(byKeyNull.isErr()).isTrue();
+        assertThat(((cn.code91.facility.error.WrappedError) byKeyNull.getErr()).getErrorType())
+                .isEqualTo(FacilityErrorType.CRYPTO_MAC_ERROR);
+
+        Result<String, ?> byDataNull = CryptoUtil.hmacSha256((String) null, "k");
+        assertThat(byDataNull.isErr()).isTrue();
+        assertThat(((cn.code91.facility.error.WrappedError) byDataNull.getErr()).getErrorType())
+                .isEqualTo(FacilityErrorType.CRYPTO_MAC_ERROR);
+    }
 }
