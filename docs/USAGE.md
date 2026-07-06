@@ -468,14 +468,15 @@ facility:
     maximum-size: 10000                  # 仅 Caffeine 后端生效;ConcurrentMap 回退时忽略+启动 WARN
   lock:
     enabled: true
-    max-locks: 100000                    # 锁上限(防无界 key 增长);租约时长由各 executeWithLock/tryLock 调用显式传入
+    max-locks: 100000                    # 锁上限(超限拒新 key,fail-closed,F8);租约时长由各 executeWithLock/tryLock 调用显式传入
   http:
+    enabled: true                        # F22:五簇开关对称;false 整体关闭 http 装配
     connect-timeout: 5s                  # RestClient 连接超时
     read-timeout: 10s                    # RestClient 读超时
   idempotency:
     enabled: true
     default-ttl: 5m                      # 幂等记录保留时长
-    max-entries: 100000                  # 记录上限(防无界 key 增长)
+    max-entries: 100000                  # 记录上限(超限先清过期再拒新,fail-closed,F8)
 ```
 
 ## 消费方须知

@@ -31,8 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * <h3>无界防护(fail-closed,F8):</h3>
  * <p>
  * 记录数达到 {@code maxEntries} 且待建 key 不在集合中时,先清除已过期条目;若仍达上限则
- * <b>拒绝占位</b>({@code tryBegin} 返 {@code false},web 侧表现为 409)并记 WARN——在途
- * PROCESSING/未过期 DONE 永不因防护被清(清空会打开并发重复执行窗口)。对照限流 clear-all
+ * <b>拒绝占位</b>({@code tryBegin} 返 {@code false},web 侧表现为 409)并记 WARN——<b>未过期的</b>
+ * PROCESSING/DONE 记录永不因防护被清(已过期的 PROCESSING 尸体会被清除,{@code find} 本就视其为
+ * 不存在;清空未过期在途会打开并发重复执行窗口)。对照限流 clear-all
  * fail-open 的不对称有理:幂等是正确性组件(ADR-0016/0017)。
  * 上限为 advisory bound:size 检查非原子,并发突发下可瞬时小幅越界(随后回到防护语义)。
  * </p>

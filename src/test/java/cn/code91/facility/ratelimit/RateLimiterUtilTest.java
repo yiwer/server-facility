@@ -40,8 +40,8 @@ class RateLimiterUtilTest {
     }
 
     @Test
-    @DisplayName("acquire 无 bean → 降级 RateLimitResult(allowed, remaining=MAX, retryAfter=0)")
-    void acquire_noBean_degradesToAllowedWithMaxRemaining() {
+    @DisplayName("acquire 无 bean → 降级 RateLimitResult(allowed, remaining=-1 哨兵, retryAfter=0)(F10)")
+    void acquire_noBean_degradesToAllowedWithSentinelRemaining() {
         RateLimitResult r = RateLimiterUtil.acquire("k", 1, 10, 5);
         assertThat(r.allowed()).isTrue();
         assertThat(r.remaining()).isEqualTo(-1L);
