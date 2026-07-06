@@ -29,6 +29,24 @@ class FilenamesTest {
     }
 
     @Test
+    @DisplayName("F4:文件名内连续点不是穿越——report..final.pdf 等放行")
+    void sanitize_doubleDotsWithinName_allowed() {
+        assertThat(Filenames.sanitize("report..final.pdf").get()).isEqualTo("report..final.pdf");
+        assertThat(Filenames.sanitize("..hidden").get()).isEqualTo("..hidden");
+        assertThat(Filenames.sanitize("a..b.txt").get()).isEqualTo("a..b.txt");
+    }
+
+    @Test
+    @DisplayName("F4:各种穿越形态仍全部拦截(拦截面不缩小)")
+    void sanitize_traversalForms_stillRejected() {
+        assertThat(Filenames.sanitize("../etc/passwd").isErr()).isTrue();
+        assertThat(Filenames.sanitize("..\\evil.txt").isErr()).isTrue();
+        assertThat(Filenames.sanitize("x/../../y.txt").isErr()).isTrue();   // cleanPath 折叠后残留首段 ..
+        assertThat(Filenames.sanitize("..").isErr()).isTrue();
+        assertThat(Filenames.sanitize("./..").isErr()).isTrue();
+    }
+
+    @Test
     void sanitize_replacesUnsafeChars() {
         assertThat(Filenames.sanitize("a<b>c:d\"e|f?g*h.txt").get()).isEqualTo("a_b_c_d_e_f_g_h.txt");
     }
