@@ -44,7 +44,7 @@ class RateLimiterUtilTest {
     void acquire_noBean_degradesToAllowedWithMaxRemaining() {
         RateLimitResult r = RateLimiterUtil.acquire("k", 1, 10, 5);
         assertThat(r.allowed()).isTrue();
-        assertThat(r.remaining()).isEqualTo(Long.MAX_VALUE);
+        assertThat(r.remaining()).isEqualTo(-1L);
         assertThat(r.retryAfterMillis()).isZero();
     }
 

@@ -4,6 +4,7 @@ import cn.code91.facility.http.FacilityHttpProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -22,6 +23,9 @@ import org.springframework.web.client.RestClient;
  * {@code ClientHttpRequestFactory},或整体自定义 {@code RestClient})即可整体覆盖默认实例,
  * {@code HttpClients} 门面调用点不变。
  * </p>
+ * <p>
+ * {@code facility.http.enabled=false} 可整体关闭(F22,与其余四簇开关对称;缺省 true)。
+ * </p>
  *
  * @author yvvb
  * @since 1.0.0
@@ -29,6 +33,7 @@ import org.springframework.web.client.RestClient;
 @AutoConfiguration
 @EnableConfigurationProperties(FacilityHttpProperties.class)
 @ConditionalOnClass(name = "org.springframework.web.client.RestClient")
+@ConditionalOnProperty(prefix = "facility.http", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class FacilityHttpAutoConfiguration {
 
     @Bean

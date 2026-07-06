@@ -22,6 +22,9 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "facility.http")
 public class FacilityHttpProperties {
 
+    /** 是否启用 HTTP client 自动装配。默认 {@code true}。 */
+    private boolean enabled = true;
+
     /**
      * 默认 {@link org.springframework.web.client.RestClient} 建立连接的超时时长。默认 5 秒。
      * (声明性约束:&gt;0;绑定不校验——ADR-0013)
