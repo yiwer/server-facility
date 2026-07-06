@@ -13,7 +13,9 @@ import java.util.function.Supplier;
 
 /**
  * <b>null / 空检查与默认值工具</b>
- * <p>所有方法 null 安全：永远不抛 NPE，集合返回方法永远不返回 null（返回空集合）。</p>
+ * <p>null 安全：<b>数据</b>参数 null 不抛 NPE，集合返回方法不返回 null（返回空集合）；
+ * <b>函数型</b>参数除外——{@code computeOrElse} 的 {@code dataSupplier} 为 null 时
+ * fail-fast 抛 NPE（全类唯一 requireNonNull，行为已被测试锁定）。</p>
  */
 @UtilityClass
 public class NullSafe {

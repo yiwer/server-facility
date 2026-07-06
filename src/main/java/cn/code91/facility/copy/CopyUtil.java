@@ -2,6 +2,7 @@ package cn.code91.facility.copy;
 
 import cn.code91.facility.common.Collects;
 import cn.code91.facility.common.NullSafe;
+import cn.code91.facility.log.LogUtil;
 import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 
@@ -254,6 +255,10 @@ public class CopyUtil {
      * <p>
      * 对 Map 中的每个键值都进行深拷贝，要求键值类型都实现 {@link CopyTrait} 接口。
      * </p>
+     * <p>
+     * 宽容模式（throwOnNullCopy=false）下，null key 的 entry 会被<b>丢弃并记 WARN</b>
+     * （F5，决策 a）；严格模式抛 {@link CopyException}。
+     * </p>
      *
      * @param originMap 原始 Map（可为 null）
      * @param <K>       键类型，必须实现 CopyTrait
@@ -269,6 +274,10 @@ public class CopyUtil {
 
     /**
      * Map 深拷贝 ALL（指定选项）
+     * <p>
+     * 宽容模式（throwOnNullCopy=false）下，null key 的 entry 会被<b>丢弃并记 WARN</b>
+     * （F5，决策 a）；严格模式抛 {@link CopyException}。
+     * </p>
      *
      * @param originMap 原始 Map（可为 null）
      * @param options   拷贝选项（不能为 null）
@@ -422,6 +431,8 @@ public class CopyUtil {
             if (options.throwOnNullCopy) {
                 throw new CopyException("Map key cannot be null");
             }
+            // 决策 F5-a(2026-07-05):宽容模式保持丢弃语义(行为不变),但不再静默
+            LogUtil.warn("[CopyUtil] null map key entry dropped (throwOnNullCopy=false)");
             return;
         }
 
