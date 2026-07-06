@@ -25,6 +25,8 @@ public final class Filenames {
 
     /**
      * 清洗文件名：去掉路径前缀、按路径段检测 {@code ..} 穿越(文件名内连续点不误伤，F4)、替换不安全字符。
+     * <p><b>不做 URL 解码</b>:{@code ..%2f} 等编码序列按字面字符处理——若调用方在本方法
+     * <b>之后</b>再做 URL 解码,{@code ..} 会重新物化,穿越检测即被绕过;解码必须在调用本方法之前完成。</p>
      */
     public static Result<String, WrappedError> sanitize(String fileName) {
         if (!StringUtils.hasText(fileName)) {
