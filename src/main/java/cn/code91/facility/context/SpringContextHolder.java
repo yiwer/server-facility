@@ -38,6 +38,13 @@ import java.util.concurrent.atomic.AtomicReference;
  *     .ifOk(service -> service.process());
  * }</pre>
  *
+ * <h3>多 context 语义：</h3>
+ * <p>
+ * 先到先得——第二个 context 注入被忽略（仅 WARN）。测试中需要重置时用 test 桥
+ * {@code SpringContextHolderTestSupport.reset()}（置 null，勿注入活空上下文——refresh
+ * 过的上下文自带空 messageSource，会毒化 LocaleUtil）。
+ * </p>
+ *
  * @author yvvb
  * @see Result
  * @see WrappedError

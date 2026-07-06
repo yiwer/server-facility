@@ -26,10 +26,13 @@ import java.util.concurrent.locks.ReentrantLock;
  * （如基于 Redisson），详见 ADR-0016 的 real seam 升级示范。
  * </p>
  *
- * <h3>无界防护：</h3>
+ * <h3>无界防护(fail-closed,F8):</h3>
  * <p>
- * key 基数不可控时，锁集合可能无界增长。当锁数达到 {@code maxLocks} 且待建 key 尚不在集合中时，
- * 整体清空并记录 WARN 日志——以短暂的失锁风险换取内存安全（同 ADR-0014 令牌桶防护策略）。
+ * key 基数不可控时,锁集合可能无界增长。锁数达到 {@code maxLocks} 且待建 key 不在集合中时,
+ * <b>拒绝新建</b>({@code tryLock} 返 {@code false})并记 WARN——在途持锁互斥永不因防护被打破。
+ * 集合无逐出:达上限后新 key 将持续被拒,须修正 key 设计或调高上限(对照限流 clear-all
+ * fail-open 的不对称有理:锁是正确性组件,限流是保护组件——ADR-0016)。
+ * 上限为 advisory bound:size 检查非原子,并发突发下可瞬时小幅越界(随后回到防护语义)。
  * </p>
  *
  * @author yvvb
@@ -56,8 +59,11 @@ public final class InMemoryDistributedLock implements DistributedLock {
     @Override
     public boolean tryLock(String key, Duration leaseTime) {
         if (locks.size() >= maxLocks && !locks.containsKey(key)) {
-            locks.clear();
-            LogUtil.warn("locks exceeded {}, cleared", maxLocks);
+            // fail-closed(F8 决策 a):拒绝新建而非清空——清空会打破在途持锁互斥。
+            // 锁是正确性组件;ReentrantLock 无法安全逐出(判定"未持有"与移除之间存在竞态)。
+            // 达上限意味着 key 设计失当或上限过低,持续 WARN 使故障显性(ADR-0016)。
+            LogUtil.warn("locks exceeded {}, rejecting new lock key (fail-closed)", maxLocks);
+            return false;
         }
 
         ReentrantLock lock = locks.computeIfAbsent(key, k -> new ReentrantLock());

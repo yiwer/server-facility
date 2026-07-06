@@ -25,7 +25,7 @@ public class FacilityLockProperties {
 
     /**
      * {@link InMemoryDistributedLock} 锁集合的无界防护上限——锁数达到该值且待建 key
-     * 不在集合中时整体清空(详见 ADR-0016)。
+     * 不在集合中时拒绝新建——fail-closed,在途互斥不破(F8;详见 ADR-0016 修订段)。
      * (声明性约束:&gt;0;绑定不校验——ADR-0013)
      */
     private int maxLocks = 100_000;

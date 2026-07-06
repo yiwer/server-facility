@@ -48,4 +48,11 @@ class FacilityHttpAutoConfigurationTest {
                 assertThat(props.getReadTimeout()).isEqualTo(Duration.ofSeconds(3));
             });
     }
+
+    @Test
+    @DisplayName("F22 决策 a:facility.http.enabled=false 整体关闭 http 装配(缺省 true 保持现状)")
+    void enabledFalse_disablesHttpAutoConfiguration() {
+        runner.withPropertyValues("facility.http.enabled=false")
+                .run(context -> assertThat(context).doesNotHaveBean(RestClient.class));
+    }
 }

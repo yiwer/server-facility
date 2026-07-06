@@ -259,6 +259,10 @@ public final class DefaultAsync<T> implements Async<T> {
         return new DefaultAsync<>(newComp, interceptors, executor, context);
     }
 
+    /**
+     * 超时仅影响观察侧：返回的 future 按时超时，但底层计算不被中断，会继续跑完
+     * （虚拟线程静默占用）——资源密集/长任务慎用；真取消需可取消句柄，记 roadmap。
+     */
     @Override
     public Async<T> timeout(Duration duration) {
         Function<Executor, CompletableFuture<Result<T, Throwable>>> newComp = exec ->

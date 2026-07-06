@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * key 基数不可控时（如按用户 ID、按 IP 限流），桶集合可能无界增长。
  * 当桶数达到 {@code maxBuckets} 且待建 key 尚不在集合中时，整体清空并记录 WARN 日志——
  * 以短暂的限流状态重置换取内存安全（详见 ADR-0014）。
+ * 上限为 advisory bound：size 检查非原子，并发突发下可瞬时小幅越界（随后回到防护语义）。
  * </p>
  *
  * @author yvvb

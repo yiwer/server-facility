@@ -115,17 +115,26 @@ class InMemoryIdempotencyStoreTest {
     }
 
     @Test
-    @DisplayName("maxEntries 达到上限且待建 key 不在集合中时,触发 clear 防护,旧记录被清空")
-    void maxEntries_exceeded_clears() {
+    @DisplayName("F8 决策 a:超限且无过期可清 → tryBegin 拒绝(false),在途记录不被清")
+    void maxEntriesExceeded_failClosed_rejectsNewKey_preservesInFlight() {
         InMemoryIdempotencyStore store = new InMemoryIdempotencyStore(2);
+        assertThat(store.tryBegin("a", 60_000)).isTrue();
+        assertThat(store.tryBegin("b", 60_000)).isTrue();   // 达上限,均未过期
 
-        assertThat(store.tryBegin("k1", 5_000)).isTrue();
-        assertThat(store.tryBegin("k2", 5_000)).isTrue();
-        // store size=2 已达 maxEntries(2),k3 未在 map 中 -> 触发 clear() 防护后再建记录
-        assertThat(store.tryBegin("k3", 5_000)).isTrue();
+        assertThat(store.tryBegin("c", 60_000)).isFalse();  // 拒绝新 key
+        assertThat(store.find("a")).isPresent();            // 在途 PROCESSING 未被清
+        assertThat(store.find("b")).isPresent();
+    }
 
-        // 证据:k1 的 ttl=5000ms 远未过期,若未被 clear,find("k1") 应仍返回 PROCESSING;
-        // clear() 后 k1 记录被整体清空,find 应返回 empty。
-        assertThat(store.find("k1")).isEmpty();
+    @Test
+    @DisplayName("F8:超限但存在过期条目 → 先清过期再放行新 key(防过期尸体致永久拒新)")
+    void maxEntriesExceeded_purgesExpiredThenAdmits() throws Exception {
+        InMemoryIdempotencyStore store = new InMemoryIdempotencyStore(2);
+        assertThat(store.tryBegin("stale1", 1)).isTrue();   // 1ms TTL,立即过期
+        assertThat(store.tryBegin("stale2", 1)).isTrue();
+        Thread.sleep(10);                                    // 让两条过期(≤10ms,非长 sleep)
+
+        assertThat(store.tryBegin("fresh", 60_000)).isTrue(); // 清过期后放行
+        assertThat(store.find("fresh")).isPresent();
     }
 }

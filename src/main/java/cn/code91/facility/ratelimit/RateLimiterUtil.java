@@ -58,11 +58,12 @@ public final class RateLimiterUtil {
      * @param capacity         桶容量（该 key 首次建桶时生效）
      * @param permitsPerSecond 令牌填充速率（每秒，该 key 首次建桶时生效）
      * @return 限流结果；无 {@link RateLimiter} bean 时降级为放行结果
-     *         （{@code remaining = Long.MAX_VALUE}，{@code retryAfterMillis = 0}）
+     *         （{@code remaining = -1}(未知/降级哨兵——负值不可当真实配额透出,如需响应头请先判负)，
+     *         {@code retryAfterMillis = 0}）
      */
     public static RateLimitResult acquire(String key, int permits, long capacity, double permitsPerSecond) {
         return SpringContextHolder.getBean(RateLimiter.class)
                 .map(rl -> rl.acquire(key, permits, capacity, permitsPerSecond))
-                .orElse(new RateLimitResult(true, Long.MAX_VALUE, 0));
+                .orElse(new RateLimitResult(true, -1, 0));
     }
 }

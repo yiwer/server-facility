@@ -29,7 +29,7 @@ import java.util.Optional;
  *     <li>key 已有 {@link IdempotencyRecord.State#DONE} 记录 —— 直接写回首次响应
  *     （状态码/Content-Type/body），方法体不执行；</li>
  *     <li>key 已有 {@link IdempotencyRecord.State#PROCESSING} 记录，或
- *     {@code IdempotencyStore#tryBegin} 竞态落败 —— HTTP 409，方法体不执行；</li>
+ *     {@code IdempotencyStore#tryBegin} 竞态落败,或存储容量 fail-closed 拒绝(F8) —— HTTP 409，方法体不执行；</li>
  *     <li>其余情况 —— 占位成功，放行方法体执行，key 记入请求属性供 {@link #afterCompletion}
  *     使用。</li>
  * </ul>

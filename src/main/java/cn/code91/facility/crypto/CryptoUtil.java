@@ -116,7 +116,8 @@ public final class CryptoUtil {
     // ==================== 对称加解密(AES-256-GCM) ====================
 
     /**
-     * AES-256-GCM 加密（UTF-8 明文）。IV 每次随机 12 字节前置拼进密文，整体 Base64 输出。
+     * AES-GCM 加密（UTF-8 明文）。IV 每次随机 12 字节前置拼进密文，整体 Base64 输出。
+     * 密钥强度随 {@link SecretKey}：16/24/32 字节即 AES-128/192/256；{@link #generateAesKey()} 产 256 位。
      *
      * @param plaintext UTF-8 明文
      * @param key       AES 密钥（见 {@link #generateAesKey()} / {@link #aesKeyFromBytes(byte[])}）
@@ -130,7 +131,8 @@ public final class CryptoUtil {
     }
 
     /**
-     * AES-256-GCM 加密（字节明文）。
+     * AES-GCM 加密（字节明文）。密钥强度随 {@link SecretKey}：16/24/32 字节即 AES-128/192/256；
+     * {@link #generateAesKey()} 产 256 位。
      *
      * @param plaintext 明文字节
      * @param key       AES 密钥
@@ -156,7 +158,8 @@ public final class CryptoUtil {
     }
 
     /**
-     * AES-256-GCM 解密为 UTF-8 明文。
+     * AES-GCM 解密为 UTF-8 明文。密钥强度随 {@link SecretKey}：16/24/32 字节即 AES-128/192/256；
+     * {@link #generateAesKey()} 产 256 位。
      *
      * <p>安全:所有失败返回 equals 相等且<b>不含底层异常</b>的 {@code CRYPTO_DECRYPT_ERROR},调用方无从
      * 区分失败模式(oracle 加固);与 {@link #encrypt} 刻意不对称——加密失败非 oracle 向量,保留 cause 便于诊断。</p>
@@ -170,7 +173,8 @@ public final class CryptoUtil {
     }
 
     /**
-     * AES-256-GCM 解密为字节。
+     * AES-GCM 解密为字节。密钥强度随 {@link SecretKey}：16/24/32 字节即 AES-128/192/256；
+     * {@link #generateAesKey()} 产 256 位。
      *
      * <p>安全:所有失败返回 equals 相等且<b>不含底层异常</b>的 {@code CRYPTO_DECRYPT_ERROR},调用方无从
      * 区分失败模式(oracle 加固);与 {@link #encrypt} 刻意不对称——加密失败非 oracle 向量,保留 cause 便于诊断。</p>
