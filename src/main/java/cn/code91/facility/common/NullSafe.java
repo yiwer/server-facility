@@ -31,11 +31,12 @@ public class NullSafe {
     }
 
     /**
-     * 所有元素都非 null（数组本身为 null 或长度 0 返回 false）。
+     * 所有元素都非 null；空数组返回 true（空集上的全称命题为真，对齐业界惯例；B3/宪法批）；
+     * null 入参返回 false（null-safe）。
      */
     @SafeVarargs
     public static <E> boolean allNotNull(E... elements) {
-        if (elements == null || elements.length == 0) return false;
+        if (elements == null) return false;
         for (E e : elements) if (e == null) return false;
         return true;
     }
