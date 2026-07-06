@@ -90,6 +90,40 @@ class LogUtilTest {
     }
 
     @Test
+    @DisplayName("F1:root=WARN + 调用方 logger DEBUG → LogUtil.debug 必须产出事件(per-package 级别生效)")
+    void perPackageDebugLevel_effectiveThroughLogUtil_whenRootIsWarn() {
+        Logger callerLogger = (Logger) LoggerFactory.getLogger(LogUtilTest.class);
+        root.setLevel(ch.qos.logback.classic.Level.WARN);
+        callerLogger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+        try {
+            LogUtil.debug("per-package gating {}", "works");
+
+            assertThat(appender.list).hasSize(1);
+            assertThat(appender.list.get(0).getLevel()).isEqualTo(ch.qos.logback.classic.Level.DEBUG);
+            assertThat(appender.list.get(0).getFormattedMessage()).isEqualTo("per-package gating works");
+            assertThat(appender.list.get(0).getLoggerName()).isEqualTo(LogUtilTest.class.getName());
+        } finally {
+            callerLogger.setLevel(null); // 复位为继承 root,防毒化
+        }
+    }
+
+    @Test
+    @DisplayName("F1:root=WARN + 调用方 logger TRACE → LogUtil.trace 必须产出事件(修复须覆盖全部方法)")
+    void perPackageTraceLevel_effectiveThroughLogUtil_whenRootIsWarn() {
+        Logger callerLogger = (Logger) LoggerFactory.getLogger(LogUtilTest.class);
+        root.setLevel(ch.qos.logback.classic.Level.WARN);
+        callerLogger.setLevel(ch.qos.logback.classic.Level.TRACE);
+        try {
+            LogUtil.trace("per-package trace {}", "works");
+
+            assertThat(appender.list).hasSize(1);
+            assertThat(appender.list.get(0).getLevel()).isEqualTo(ch.qos.logback.classic.Level.TRACE);
+        } finally {
+            callerLogger.setLevel(null);
+        }
+    }
+
+    @Test
     void warn_withThrowable_capturesStackTrace() {
         LogUtil.warn("failed", new IllegalStateException("boom"));
         ILoggingEvent event = lastEvent();
