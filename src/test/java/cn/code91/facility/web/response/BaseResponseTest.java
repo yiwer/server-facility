@@ -60,7 +60,7 @@ class BaseResponseTest {
         // getDetailedDescription 探针实证精确串
         assertThat(r.getDescription()).isEqualTo(
                 "ErrorType{fullCode='FACILITY-500600', messageKey='facility.file.not_found', "
-                        + "defaultMessage='文件不存在', severity='INFO'}");
+                        + "defaultMessage='文件不存在'}");
     }
 
     @Test

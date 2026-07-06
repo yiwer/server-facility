@@ -51,12 +51,6 @@ class ErrorTypeInterfaceTest {
         }
 
         @Test
-        void getSeverity_defaultIsInfo() {
-            assertThat(FacilityErrorType.JSON_SERIALIZE_ERROR.getSeverity())
-                    .isEqualTo(ErrorTypeInterface.ErrorSeverity.INFO);
-        }
-
-        @Test
         void getModule_default_returnsUnknown() {
             ErrorTypeInterface custom = new ErrorTypeInterface() {
                 @Override public int getCode() { return 1; }
@@ -82,7 +76,6 @@ class ErrorTypeInterfaceTest {
             assertThat(desc).contains("FACILITY-500101");
             assertThat(desc).contains("facility.json.serialize_error");
             assertThat(desc).contains("对象序列化异常");
-            assertThat(desc).contains("INFO");
         }
     }
 

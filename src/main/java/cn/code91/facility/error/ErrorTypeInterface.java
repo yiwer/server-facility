@@ -164,7 +164,7 @@ public interface ErrorTypeInterface {
      * @param e    格式化异常
      * @return 降级后的消息
      */
-    default String formatFallback(Object[] args, IllegalArgumentException e) {
+    private String formatFallback(Object[] args, IllegalArgumentException e) {
         StringBuilder sb = new StringBuilder();
         sb.append(getDefaultMessage());
         sb.append(" [格式化失败: ").append(e.getMessage());
@@ -189,56 +189,16 @@ public interface ErrorTypeInterface {
     }
 
     /**
-     * 获取错误严重程度（可选扩展）
-     * <p>
-     * 默认实现返回 INFO 级别，子类可以根据错误码范围返回不同级别。
-     * </p>
-     *
-     * @return 错误级别
-     */
-    default ErrorSeverity getSeverity() {
-        return ErrorSeverity.INFO;
-    }
-
-    /**
      * 获取详细的错误描述（用于调试）
      *
      * @return 包含完整错误码、消息键和默认消息的描述
      */
     default String getDetailedDescription() {
         return String.format(
-                "ErrorType{fullCode='%s', messageKey='%s', defaultMessage='%s', severity='%s'}",
+                "ErrorType{fullCode='%s', messageKey='%s', defaultMessage='%s'}",
                 getFullCode(),
                 getMessageKey(),
-                getDefaultMessage(),
-                getSeverity()
+                getDefaultMessage()
         );
-    }
-
-    // ==================== 错误严重程度枚举 ====================
-
-    /**
-     * 错误严重程度
-     */
-    enum ErrorSeverity {
-        /**
-         * 致命错误 - 系统级错误，需要立即处理
-         */
-        FATAL,
-
-        /**
-         * 错误 - 业务逻辑错误，影响功能正常运行
-         */
-        ERROR,
-
-        /**
-         * 警告 - 可能存在问题但不影响主流程
-         */
-        WARN,
-
-        /**
-         * 信息 - 正常的业务提示
-         */
-        INFO
     }
 }
