@@ -4,8 +4,11 @@ import cn.code91.facility.idempotency.IdempotencyRecord;
 import cn.code91.facility.idempotency.IdempotencyStore;
 import cn.code91.facility.idempotency.InMemoryIdempotencyStore;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
@@ -232,5 +235,37 @@ class IdempotencyInterceptorTest {
         ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(mockResponse);
 
         assertThatCode(() -> interceptor.afterCompletion(request, wrapper, hm, null)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("失配:响应非 ContentCachingResponseWrapper(Filter 未装配/顺序错)→ WARN + 不崩,记录保持 PROCESSING(F16)")
+    void afterCompletion_withoutWrapper_warnsAndLeavesProcessing() throws Exception {
+        InMemoryIdempotencyStore store = new InMemoryIdempotencyStore(1000);
+        IdempotencyInterceptor interceptor = new IdempotencyInterceptor(store, 60_000);
+        HandlerMethod hm = handlerMethodFor("annotated");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Idempotency-Key", "k-mismatch");
+        MockHttpServletResponse response = new MockHttpServletResponse(); // 刻意不包 ContentCachingResponseWrapper
+
+        ch.qos.logback.classic.Logger root =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        root.addAppender(appender);
+        try {
+            assertThat(interceptor.preHandle(request, response, hm)).isTrue();
+            assertThatCode(() -> interceptor.afterCompletion(request, response, hm, null))
+                    .doesNotThrowAnyException();
+
+            assertThat(appender.list).anySatisfy(e -> {
+                assertThat(e.getLevel()).isEqualTo(ch.qos.logback.classic.Level.WARN);
+                assertThat(e.getLoggerName()).isEqualTo(IdempotencyInterceptor.class.getName());
+                assertThat(e.getFormattedMessage()).contains("ContentCachingResponseWrapper").contains("k-mismatch");
+            });
+            assertThat(store.find("k-mismatch")).isPresent();
+            assertThat(store.find("k-mismatch").get().state()).isEqualTo(IdempotencyRecord.State.PROCESSING);
+        } finally {
+            root.detachAppender(appender);
+        }
     }
 }

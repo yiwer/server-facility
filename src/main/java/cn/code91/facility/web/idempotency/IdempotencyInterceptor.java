@@ -2,6 +2,7 @@ package cn.code91.facility.web.idempotency;
 
 import cn.code91.facility.idempotency.IdempotencyRecord;
 import cn.code91.facility.idempotency.IdempotencyStore;
+import cn.code91.facility.log.LogUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,6 +38,7 @@ import java.util.Optional;
  * {@link ContentCachingResponseWrapper}（由 {@code IdempotencyFilter} 包装，可读取完整响应体）
  * 时才写入终态记录；异常场景刻意不缓存——占位记录到期后允许重试，而非把一次失败永久固化为
  * "首次响应"。
+ * 响应未被包装(Filter 未装配/顺序错)时记 WARN 并跳过缓存——该场景是配置故障信号。
  * </p>
  *
  * @author yvvb
@@ -111,6 +113,12 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
             long ttl = (long) request.getAttribute(ATTR_TTL);   // 与 preHandle 占位同一 ttl,尊重 @Idempotent.ttlSeconds
             store.complete(key, IdempotencyRecord.done(wrapper.getStatus(), wrapper.getContentType(), body,
                     System.currentTimeMillis() + ttl));
+        } else {
+            // 配置故障信号:IdempotencyFilter 未装配或顺序错乱,响应未被包装——无法捕获响应体,
+            // 本次结果不落 DONE 记录;占位 PROCESSING 存续至 TTL 到期(期间同 key 一律 409)。
+            LogUtil.warn("[Idempotency] response is not ContentCachingResponseWrapper "
+                    + "(IdempotencyFilter missing or misordered); key={} left PROCESSING until TTL expiry, "
+                    + "response not cached", key);
         }
     }
 
