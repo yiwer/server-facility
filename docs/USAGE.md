@@ -426,6 +426,8 @@ Result<List<List<String>>, WrappedError> r4 = ExcelUtil.read(inputStream);
 
 ## 装配开关全表
 
+> 可直接复制的带详注样例:`src/main/resources/application.example.yaml`(全部键 = 源码默认值)。
+
 ```yaml
 facility:
   id:
@@ -434,6 +436,7 @@ facility:
     data-center-id: 0            # 0..3(2 bit,构造器守卫)
     clock-backwards-threshold-millis: 5
     throw-on-clock-backwards-exceed-threshold: true   # false=回拨不抛,无界等待追上(阻塞,ADR-0023)
+    start-timestamp: 1735660800000  # 纪元起点(2025-01-01 00:00:00 UTC+8);投产后勿改,否则既有 ID 时间解析/排序错乱
   web:
     trace:
       enabled: true
@@ -452,6 +455,7 @@ facility:
       enabled: true
       allowed-origins: []        # 默认空 = 不开 CORS;生产须显式列举
       allowed-methods: [GET, POST, PUT, DELETE, OPTIONS]
+      allowed-headers: ["*"]
       allow-credentials: false
       max-age: 3600
     exception:
