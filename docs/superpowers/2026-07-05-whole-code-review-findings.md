@@ -15,6 +15,13 @@
 > C3 六 WARN 点 ListAppender 守护测试、Async 真取消(F6 已诚实化)、F4 对抗语料入测试库、
 > RateLimitResult record 自身 javadoc 补哨兵语义。后续工作以此篮为准,勿再整文档重扫。
 
+> **补记(2026-07-09,post-collector 新发现并落地,不在原 F1-F40 扫描范围)**:**未匹配路由 404 语义修正**。
+> `NoResourceFoundException`(SF 6.1+ 未匹配路由/静态资源默认抛)与 `NoHandlerFoundException` 原落兜底
+> `@ExceptionHandler(Exception.class)` 被判 `code=500`(统一模式 HTTP 200)/HTTP 500(problemDetail)且以
+> ERROR 记「系统异常」——扫描/探测/拼错 URL 污染错误日志。新增 `AbstractGlobalExceptionHandler.handleNotFound`
+> 按真实语义归 404(双模式)+ i18n `facility.web.error.not_found`(四语)+ 测试 4 例(`HandleNotFoundTests`×3、
+> `notFoundKey_resolvesInEnAndZh`×1),日志降 WARN。commit `00c96e0`,全量 **1176 绿**。单独记录以存真。
+
 ---
 
 ## P0 功能性 bug(行为与文档/配置承诺矛盾,优先修)

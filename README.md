@@ -34,7 +34,7 @@
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **快照（2026-07-06）**：测试 1172 项全绿（含 5 条 ArchUnit）；覆盖率实测约 instruction 93.7% / line 93.5% / branch 87.0%。
+- **快照（2026-07-09）**：测试 1176 项全绿（含 5 条 ArchUnit）；覆盖率实测约 instruction 93.7% / line 93.5% / branch 87.0%。
 
 ## 仓库地图
 

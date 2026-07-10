@@ -20,6 +20,13 @@
 
 ### Behavior changes(无 API 变更,语义修正)
 
+- **未匹配路由归 404,不再被兜底误判为 500**:`NoResourceFoundException`(Spring 6.1+ 未匹配路由/
+  静态资源默认抛)与 `NoHandlerFoundException` 此前落入兜底 `@ExceptionHandler(Exception.class)`,返回
+  `code=500`(统一模式 HTTP 200)/HTTP 500(problemDetail),并以 **ERROR** 级记「系统异常」——扫描/探测/
+  拼错 URL 污染错误日志、可能误触告警。新增 `handleNotFound` 按真实语义归 404(统一模式 HTTP 200 +
+  `code=404`;problemDetail HTTP 404),日志降为 **WARN**「未匹配路由」;新增 i18n 键
+  `facility.web.error.not_found`(en/zh_CN/zh_TW/base 四语)。
+  - 影响:依赖旧「未匹配路由返 code=500」的客户端判断需改按 404;监控中这类事件由 ERROR 降为 WARN。
 - **LogUtil 级别门控改按调用方 logger 判定**(ADR-0022):`logging.level.<调用方包>` 的 per-package
   配置对 LogUtil 通道生效(旧实现按 LogUtil 自身/root 级别短路,业务包放开也无输出)。升级后同
   配置下日志量可能增多——这是修正而非回归。调用方解析同时切换 `StackWalker` 惰性遍历。
@@ -52,4 +59,4 @@
 - §10 新组件八项:令牌桶限流(SPI)、缓存门面(Caffeine optional)、完整幂等(SPI)、分布式锁(SPI)、
   HTTP client(RestClient 委托)、crypto(AES-256-GCM/HMAC/PBKDF2,纯 JDK)、日志脱敏 masking、
   Excel/CSV(POI 双类探测降级 + RFC 4180 纯 JDK)。
-- 质量门:1172 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
+- 质量门:1176 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
