@@ -26,6 +26,8 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -224,6 +226,29 @@ public abstract class AbstractGlobalExceptionHandler {
             return buildProblemDetail(e, HttpStatus.UNSUPPORTED_MEDIA_TYPE, request);
         }
         return buildResponse(415, message, e);
+    }
+
+    // ==================== 路由未匹配(404) ====================
+
+    /**
+     * <b>未匹配路由处理(404)</b>
+     * <p>处理 {@link NoResourceFoundException}(Spring 6.1+ 起,未匹配路由落到静态资源
+     * 处理器 {@code /**} 时默认抛出)与 {@link NoHandlerFoundException}(配置
+     * {@code spring.mvc.throw-exception-if-no-handler-found=true} 时抛出)。两者语义均为
+     * "请求的资源/路由不存在",归 404。</p>
+     * <p>若不显式拦截,二者会落入兜底 {@link #handleException} 被误判为 500,且以 ERROR 级
+     * 记日志——扫描器/探测/拼错 URL 都会污染错误日志、可能误触告警。此处按真实语义返回 404
+     * 并以 WARN 记录。</p>
+     *
+     * @since phase-web-404
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public Object handleNotFound(Exception e, WebRequest request) {
+        LogUtil.warn("未匹配路由: {}, path={}", e.getMessage(), getRequestURI(request));
+        if (props.isUseProblemDetail()) {
+            return buildProblemDetail(e, HttpStatus.NOT_FOUND, request);
+        }
+        return buildResponse(404, LocaleUtil.translateMessage("facility.web.error.not_found"), e);
     }
 
     // ==================== 文件上传异常 ====================

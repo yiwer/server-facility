@@ -44,6 +44,17 @@ class WebErrorMessagesIntegrationTest {
     }
 
     @Test
+    void notFoundKey_resolvesInEnAndZh() {
+        runner.run(ctx -> {
+            MessageSource primary = ctx.getBean("messageSource", MessageSource.class);
+            assertThat(primary.getMessage("facility.web.error.not_found", null, Locale.ENGLISH))
+                    .isEqualTo("Requested resource not found");
+            assertThat(primary.getMessage("facility.web.error.not_found", null, Locale.SIMPLIFIED_CHINESE))
+                    .isEqualTo("请求的资源不存在");
+        });
+    }
+
+    @Test
     void rateLimitedKey_resolvesInEn() {
         runner.run(ctx -> {
             MessageSource primary = ctx.getBean("messageSource", MessageSource.class);

@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +36,8 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
@@ -244,6 +248,63 @@ class GlobalExceptionHandlerTest {
             assertThat(response.getCode()).isEqualTo(405);
             // 无 Spring Context 时回退为 messageKey
             assertThat(response.getMessage()).isEqualTo("facility.web.error.method_not_supported");
+        }
+    }
+
+    // ==================== 未匹配路由测试(404) ====================
+
+    @Nested
+    @DisplayName("handleNotFound - 处理未匹配路由(404)")
+    class HandleNotFoundTests {
+
+        @Test
+        @DisplayName("NoResourceFoundException：默认包络返回 404")
+        void noResourceFound_returns404() {
+            NoResourceFoundException ex = new NoResourceFoundException(HttpMethod.GET, "/api/unknown");
+
+            Object responseObj = handler.handleNotFound(ex, webRequest);
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            @SuppressWarnings("unchecked")
+            BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
+
+            assertThat(response.getCode()).isEqualTo(404);
+            // 无 Spring Context 时回退为 messageKey
+            assertThat(response.getMessage()).isEqualTo("facility.web.error.not_found");
+            assertThat(response.getData()).isNull();
+        }
+
+        @Test
+        @DisplayName("NoHandlerFoundException：默认包络返回 404")
+        void noHandlerFound_returns404() {
+            NoHandlerFoundException ex =
+                    new NoHandlerFoundException("GET", "/api/unknown", HttpHeaders.EMPTY);
+
+            Object responseObj = handler.handleNotFound(ex, webRequest);
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            @SuppressWarnings("unchecked")
+            BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
+
+            assertThat(response.getCode()).isEqualTo(404);
+            assertThat(response.getMessage()).isEqualTo("facility.web.error.not_found");
+        }
+
+        @Test
+        @DisplayName("useProblemDetail=true：返回 ProblemDetail，status=404")
+        void notFound_problemDetail404() {
+            FacilityWebExceptionProperties pdProps = new FacilityWebExceptionProperties();
+            pdProps.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(pdProps, new MockEnvironment());
+            NoResourceFoundException ex = new NoResourceFoundException(HttpMethod.GET, "/api/unknown");
+
+            Object responseObj = pdHandler.handleNotFound(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            @SuppressWarnings("unchecked")
+            ResponseEntity<ProblemDetail> re = (ResponseEntity<ProblemDetail>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(404);
+            assertThat(re.getBody()).isNotNull();
+            assertThat(re.getBody().getTitle()).isEqualTo(HttpStatus.NOT_FOUND.getReasonPhrase());
         }
     }
 
