@@ -1,16 +1,21 @@
 package cn.code91.facility.web.exception;
 
+import cn.code91.facility.context.SpringContextHolder;
+import cn.code91.facility.context.SpringContextHolderTestSupport;
 import cn.code91.facility.error.ErrorTypeInterface;
 import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -135,13 +140,13 @@ class GlobalExceptionHandlerTest {
             @SuppressWarnings("unchecked")
             BaseResponse<Void> response = (BaseResponse<Void>) result;
             assertThat(response.getCode()).isEqualTo(900001);
-            // 无 Spring Context 时 LocaleUtil 回退为 messageKey
-            assertThat(response.getMessage()).isEqualTo("test.biz_error");
+            // 无 Spring Context 时经 localize 回退 defaultMessage 模板渲染(含参数),而非泄漏裸 messageKey
+            assertThat(response.getMessage()).isEqualTo("业务错误: 订单不存在");
             assertThat(response.getData()).isNull();
         }
 
         @Test
-        @DisplayName("业务异常无参数：返回 messageKey 作为回退消息")
+        @DisplayName("业务异常无参数：回退 defaultMessage 模板原文(无参不经 MessageFormat)")
         void shouldReturnDefaultMessageWhenNoArgs() {
             BusinessException ex = BusinessException.of(TestErrorType.TEST_BIZ_ERROR);
 
@@ -151,7 +156,76 @@ class GlobalExceptionHandlerTest {
             @SuppressWarnings("unchecked")
             BaseResponse<Void> response = (BaseResponse<Void>) result;
             assertThat(response.getCode()).isEqualTo(900001);
-            assertThat(response.getMessage()).isEqualTo("test.biz_error");
+            // 无参:renderFallback 返回模板原文(占位符 {0} 保留),仍不泄漏裸 messageKey
+            assertThat(response.getMessage()).isEqualTo("业务错误: {0}");
+        }
+    }
+
+    // ==================== FacilityException messageKey 缺失(契约守恒) ====================
+
+    @Nested
+    @DisplayName("handleFacilityException - messageKey 缺失时不穿透 NoSuchMessageException")
+    class HandleFacilityExceptionMissingKeyTests {
+
+        @BeforeEach
+        @AfterEach
+        void resetHolder() {
+            // SpringContextHolder 是全局静态,装/拆必须成对——否则毒化其余无 context 用例(见其类 javadoc)
+            SpringContextHolderTestSupport.reset();
+        }
+
+        /**
+         * 装一个"在场但不含任何键"的 MessageSource:任何 messageKey 解析都会抛
+         * {@link org.springframework.context.NoSuchMessageException}——复现消费方 error type
+         * 忘记登记 i18n 键的生产场景。
+         */
+        private void installEmptyMessageSourceContext() {
+            StaticMessageSource ms = new StaticMessageSource();
+            GenericApplicationContext ctx = new GenericApplicationContext();
+            ctx.getBeanFactory().registerSingleton("messageSource", ms);
+            ctx.refresh();
+            SpringContextHolder.setApplicationContextManually(ctx);
+        }
+
+        private static ErrorTypeInterface missingKeyType() {
+            return new ErrorTypeInterface() {
+                @Override public int getCode() { return 200001; }
+                @Override public String getMessageKey() { return "app.order.absent_key"; }
+                @Override public String getDefaultMessage() { return "订单 {0} 不存在"; }
+            };
+        }
+
+        @Test
+        @DisplayName("默认包络:messageKey 未命中回退 defaultMessage 模板,返回 BaseResponse 而非抛出")
+        void missingKey_defaultEnvelope_fallsBackToTemplate() {
+            installEmptyMessageSourceContext();
+            BusinessException ex = BusinessException.of(missingKeyType(), "A-100");
+
+            Object responseObj = handler.handleFacilityException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            @SuppressWarnings("unchecked")
+            BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
+            assertThat(response.getCode()).isEqualTo(200001);
+            assertThat(response.getMessage()).isEqualTo("订单 A-100 不存在");
+        }
+
+        @Test
+        @DisplayName("problemDetail 模式:messageKey 未命中不抛,返回 ProblemDetail status=400")
+        void missingKey_problemDetail_doesNotThrow() {
+            installEmptyMessageSourceContext();
+            FacilityWebExceptionProperties pdProps = new FacilityWebExceptionProperties();
+            pdProps.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(pdProps, new MockEnvironment());
+            BusinessException ex = BusinessException.of(missingKeyType(), "A-100");
+
+            Object responseObj = pdHandler.handleFacilityException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            @SuppressWarnings("unchecked")
+            ResponseEntity<ProblemDetail> re = (ResponseEntity<ProblemDetail>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(400);
         }
     }
 

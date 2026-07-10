@@ -107,8 +107,10 @@ public abstract class AbstractGlobalExceptionHandler {
      */
     @ExceptionHandler({BusinessException.class, SystemException.class})
     public Object handleFacilityException(FacilityException e, WebRequest request) {
-        String message = LocaleUtil.translateMessageWithArgs(
-                e.getErrorType().getMessageKey(), e.getArgs());
+        // 经 C1 边界本地化入口 localize(ADR-0010):MessageSource 未命中 messageKey 时回退
+        // errorType.getDefaultMessage() 模板渲染,而非让 NoSuchMessageException 穿透 @ExceptionHandler
+        // 击穿统一响应契约(消费方 error type 忘记登记 i18n 键是常见场景)。
+        String message = LocaleUtil.localize(e.getErrorType(), e.getArgs());
         LogUtil.warn("Facility 异常: code={}, message={}, path={}",
                 e.getCode(), message, getRequestURI(request));
         if (props.isUseProblemDetail()) {
