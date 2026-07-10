@@ -40,6 +40,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartException;
@@ -1126,6 +1127,45 @@ class GlobalExceptionHandlerTest {
             assertThat(re.getBody()).isInstanceOf(ProblemDetail.class);
             ProblemDetail pd = (ProblemDetail) re.getBody();
             assertThat(pd.getTitle()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase());
+        }
+    }
+
+    // ==================== AsyncRequestTimeoutException 测试(503) ====================
+
+    @Nested
+    @DisplayName("handleAsyncRequestTimeout - 异步请求超时(503,此前落兜底 500)")
+    class HandleAsyncRequestTimeoutTests {
+
+        @Test
+        @DisplayName("默认包络:返回 503 与内置默认文案")
+        void asyncTimeout_returns503() {
+            AsyncRequestTimeoutException ex = new AsyncRequestTimeoutException();
+
+            Object responseObj = handler.handleAsyncRequestTimeout(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(503);
+            assertThat(response.getMessage()).isEqualTo("Request processing timed out");
+        }
+
+        @Test
+        @DisplayName("problemDetail 模式:status=503,title=Service Unavailable")
+        void asyncTimeout_problemDetail503() {
+            FacilityWebExceptionProperties pdProps = new FacilityWebExceptionProperties();
+            pdProps.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(pdProps, new MockEnvironment());
+            AsyncRequestTimeoutException ex = new AsyncRequestTimeoutException();
+
+            Object responseObj = pdHandler.handleAsyncRequestTimeout(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            @SuppressWarnings("unchecked")
+            ResponseEntity<ProblemDetail> re = (ResponseEntity<ProblemDetail>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(503);
+            assertThat(re.getBody()).isNotNull();
+            assertThat(re.getBody().getTitle()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase());
         }
     }
 

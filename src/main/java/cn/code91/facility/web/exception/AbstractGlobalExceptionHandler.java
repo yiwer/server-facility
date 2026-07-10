@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartException;
@@ -333,6 +334,27 @@ public abstract class AbstractGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(retryAfterSeconds))
                 .body(body);
+    }
+
+    // ==================== 异步请求超时(503) ====================
+
+    /**
+     * <b>异步请求超时(503)</b>
+     * <p>处理 {@link AsyncRequestTimeoutException}(Callable/DeferredResult/WebAsyncTask 超时)。
+     * 它实现 {@link org.springframework.web.ErrorResponse}(自带 503)但<b>不继承</b>
+     * {@code ErrorResponseException},不被下方状态透传 handler 覆盖;若不显式拦截会落兜底被误判
+     * 500 + ERROR。按真实语义归 503(Service Unavailable),WARN 记录(容量/时延信号,非代码缺陷)。</p>
+     *
+     * @since phase-error-audit
+     */
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public Object handleAsyncRequestTimeout(AsyncRequestTimeoutException e, WebRequest request) {
+        LogUtil.warn("异步请求超时: path={}", getRequestURI(request));
+        if (props.isUseProblemDetail()) {
+            return buildProblemDetail(e, HttpStatus.SERVICE_UNAVAILABLE, request);
+        }
+        return buildResponse(503, resolveErrorMessage(
+                "facility.web.error.async_timeout", null, "Request processing timed out"), e);
     }
 
     // ==================== 带状态异常透传(B3) ====================

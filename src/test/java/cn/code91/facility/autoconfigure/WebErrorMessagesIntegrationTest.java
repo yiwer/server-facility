@@ -72,6 +72,17 @@ class WebErrorMessagesIntegrationTest {
     }
 
     @Test
+    void asyncTimeoutKey_resolvesInEnAndZh() {
+        runner.run(ctx -> {
+            MessageSource primary = ctx.getBean("messageSource", MessageSource.class);
+            assertThat(primary.getMessage("facility.web.error.async_timeout", null, Locale.ENGLISH))
+                    .isEqualTo("Request processing timed out");
+            assertThat(primary.getMessage("facility.web.error.async_timeout", null, Locale.SIMPLIFIED_CHINESE))
+                    .isEqualTo("请求处理超时");
+        });
+    }
+
+    @Test
     void rateLimitedKey_resolvesInEn() {
         runner.run(ctx -> {
             MessageSource primary = ctx.getBean("messageSource", MessageSource.class);
