@@ -20,6 +20,10 @@
 
 ### Behavior changes(无 API 变更,语义修正)
 
+- **异步请求超时归 503,不再被兜底误判为 500**:`AsyncRequestTimeoutException`(Callable/DeferredResult/
+  WebAsyncTask 超时)实现 `ErrorResponse`(自带 503)但不继承 `ErrorResponseException` 类,下述审计的
+  状态透传 handler 覆盖不到;此前落兜底 500 + ERROR。新增专门 handler 归 **503**(统一包络 `code=503`;
+  problemDetail HTTP 503),日志降 WARN;新增 i18n 键 `facility.web.error.async_timeout`(四语)。
 - **错误处理面同类遗漏审计收口(2026-07-10,五项)**:对下方 404 与 NoSuchMessageException 两修复归纳的
   失效模式(handler 内部调用抛异常逃出 advice;兜底 `Exception.class` 遮蔽 Spring 默认解析器致状态错配)
   全面排查并堵死孪生——
@@ -79,4 +83,4 @@
 - §10 新组件八项:令牌桶限流(SPI)、缓存门面(Caffeine optional)、完整幂等(SPI)、分布式锁(SPI)、
   HTTP client(RestClient 委托)、crypto(AES-256-GCM/HMAC/PBKDF2,纯 JDK)、日志脱敏 masking、
   Excel/CSV(POI 双类探测降级 + RFC 4180 纯 JDK)。
-- 质量门:1190 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
+- 质量门:1193 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
