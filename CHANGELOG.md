@@ -20,6 +20,11 @@
 
 ### Behavior changes(无 API 变更,语义修正)
 
+- **裸 `TypeMismatchException` 归 400,`ConversionNotSupportedException` 保持 500**:非方法参数场景的
+  绑定/转换失败(绕过 `MethodArgumentTypeMismatchException` 专门 handler)此前落兜底 500 + ERROR,
+  按 Spring 默认解析器语义归 **400**+WARN(复用 `type_mismatch` 键);其子类
+  `ConversionNotSupportedException` 是服务端转换器缺失/配置问题,单独拦截**保持 500**+ERROR,
+  避免被父类 handler 误判客户端错。至此 2026-07-10 错误处理审计残余全部清零。
 - **异步请求超时归 503,不再被兜底误判为 500**:`AsyncRequestTimeoutException`(Callable/DeferredResult/
   WebAsyncTask 超时)实现 `ErrorResponse`(自带 503)但不继承 `ErrorResponseException` 类,下述审计的
   状态透传 handler 覆盖不到;此前落兜底 500 + ERROR。新增专门 handler 归 **503**(统一包络 `code=503`;
@@ -83,4 +88,4 @@
 - §10 新组件八项:令牌桶限流(SPI)、缓存门面(Caffeine optional)、完整幂等(SPI)、分布式锁(SPI)、
   HTTP client(RestClient 委托)、crypto(AES-256-GCM/HMAC/PBKDF2,纯 JDK)、日志脱敏 masking、
   Excel/CSV(POI 双类探测降级 + RFC 4180 纯 JDK)。
-- 质量门:1193 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
+- 质量门:1196 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。

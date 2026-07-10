@@ -13,8 +13,9 @@
 > per-type 开关/+86)、F36(excel-csv:SAX 流式读/Map-POJO 形态/分隔符可配/多 sheet)、F38
 > (ratelimit-cache:caffeine-only @Cacheable 边界/acquire 两段读折叠/per-call acquire 非正参数)、
 > C3 六 WARN 点 ListAppender 守护测试、Async 真取消(F6 已诚实化)、F4 对抗语料入测试库、
-> RateLimitResult record 自身 javadoc 补哨兵语义、错误处理残余(2026-07-10 审计:裸 TypeMismatchException
-> 非方法参数场景落兜底;AsyncRequestTimeoutException 已修复归 503 划出,见下方补记)。后续工作以此篮为准,勿再整文档重扫。
+> RateLimitResult record 自身 javadoc 补哨兵语义(2026-07-10 审计的错误处理残余两项均已修复划出:
+> AsyncRequestTimeoutException 归 503、裸 TypeMismatchException 归 400 且 ConversionNotSupported 保 500,
+> 见下方补记)。后续工作以此篮为准,勿再整文档重扫。
 
 > **补记(2026-07-09,post-collector 新发现并落地,不在原 F1-F40 扫描范围)**:**未匹配路由 404 语义修正**。
 > `NoResourceFoundException`(SF 6.1+ 未匹配路由/静态资源默认抛)与 `NoHandlerFoundException` 原落兜底
@@ -45,6 +46,12 @@
 > 状态透传覆盖不到,须专门 handler。新增 handleAsyncRequestTimeout(统一包络 code=503/PD HTTP 503,
 > WARN 记录)+ i18n `facility.web.error.async_timeout`(四语)+ 测试 3 例。commit `ef2968c`,全量
 > **1193 绿**。defer 篮该项划出,余 裸 TypeMismatchException。单独记录以存真。
+
+> **补记(2026-07-10,defer 篮错误处理残余收官)**:**裸 TypeMismatchException 归 400 + ConversionNotSupported
+> 保 500**。成对拦截防子类陷阱:父类 400(Spring 默认解析器同语义,复用 type_mismatch 键,propertyName null
+> 渲染 "null" 与 media_type 约定一致)、子类 ConversionNotSupportedException 系服务端转换器问题保 500+ERROR,
+> 免遭父类 handler 误判。匹配三层 MATME>CNS>裸 TME。测试 +3,commit `79ca781`,全量 **1196 绿**。
+> 2026-07-10 错误处理审计残余至此**全部清零**。单独记录以存真。
 
 ---
 
