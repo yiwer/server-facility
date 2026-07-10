@@ -55,6 +55,23 @@ class WebErrorMessagesIntegrationTest {
     }
 
     @Test
+    void typeMismatchAndNotAcceptableKeys_resolveInEnAndZh() {
+        runner.run(ctx -> {
+            MessageSource primary = ctx.getBean("messageSource", MessageSource.class);
+            assertThat(primary.getMessage("facility.web.error.type_mismatch",
+                    new Object[]{"age"}, Locale.ENGLISH))
+                    .isEqualTo("Invalid value for parameter age");
+            assertThat(primary.getMessage("facility.web.error.type_mismatch",
+                    new Object[]{"age"}, Locale.SIMPLIFIED_CHINESE))
+                    .isEqualTo("参数 age 的值无效");
+            assertThat(primary.getMessage("facility.web.error.not_acceptable", null, Locale.ENGLISH))
+                    .isEqualTo("Requested media type not acceptable");
+            assertThat(primary.getMessage("facility.web.error.not_acceptable", null, Locale.SIMPLIFIED_CHINESE))
+                    .isEqualTo("请求的媒体类型不可接受");
+        });
+    }
+
+    @Test
     void rateLimitedKey_resolvesInEn() {
         runner.run(ctx -> {
             MessageSource primary = ctx.getBean("messageSource", MessageSource.class);

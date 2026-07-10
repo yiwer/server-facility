@@ -20,6 +20,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -32,6 +33,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.validation.method.MethodValidationResult;
 import org.springframework.validation.method.ParameterValidationResult;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -39,8 +41,10 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -229,6 +233,75 @@ class GlobalExceptionHandlerTest {
         }
     }
 
+    // ==================== 固定键缺失(消费方自带 messageSource)契约守恒 ====================
+
+    @Nested
+    @DisplayName("固定 facility.web.error.* 键缺失 - 不穿透 NoSuchMessageException(A2)")
+    class FixedKeyMissingMessageSourceTests {
+
+        @BeforeEach
+        @AfterEach
+        void resetHolder() {
+            // SpringContextHolder 是全局静态,装/拆必须成对——否则毒化其余无 context 用例
+            SpringContextHolderTestSupport.reset();
+        }
+
+        /**
+         * 消费方自带 {@code @Bean messageSource}(facility 聚合链
+         * {@code @ConditionalOnMissingBean(name="messageSource")} 退让)且未含 facility 键
+         * 的受支持生产配置:任何 facility.web.error.* 键解析均抛 NoSuchMessageException。
+         */
+        private void installEmptyMessageSourceContext() {
+            StaticMessageSource ms = new StaticMessageSource();
+            GenericApplicationContext ctx = new GenericApplicationContext();
+            ctx.getBeanFactory().registerSingleton("messageSource", ms);
+            ctx.refresh();
+            SpringContextHolder.setApplicationContextManually(ctx);
+        }
+
+        @Test
+        @DisplayName("兜底 handleException:键缺失回退内置默认文案,500 契约不破(兜底无退路场景)")
+        void fallbackHandler_missingKey_stillReturnsEnvelope() {
+            installEmptyMessageSourceContext();
+
+            Object responseObj = handler.handleException(new RuntimeException("boom"), webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(500);
+            assertThat(response.getMessage()).isEqualTo("Internal server error");
+        }
+
+        @Test
+        @DisplayName("带参键 missing_parameter:键缺失回退默认模板并渲染参数")
+        void argsHandler_missingKey_rendersDefaultTemplate() {
+            installEmptyMessageSourceContext();
+            MissingServletRequestParameterException ex =
+                    new MissingServletRequestParameterException("userId", "String");
+
+            Object responseObj = handler.handleMissingServletRequestParameterException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(400);
+            assertThat(response.getMessage()).isEqualTo("Missing request parameter userId");
+        }
+
+        @Test
+        @DisplayName("handleNotFound:键缺失回退内置默认文案,404 契约不破")
+        void notFoundHandler_missingKey_returnsDefaultText() {
+            installEmptyMessageSourceContext();
+            NoResourceFoundException ex = new NoResourceFoundException(HttpMethod.GET, "/x");
+
+            Object responseObj = handler.handleNotFound(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(404);
+            assertThat(response.getMessage()).isEqualTo("Requested resource not found");
+        }
+    }
+
     // ==================== MethodArgumentNotValidException 测试 ====================
 
     @Nested
@@ -320,8 +393,8 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(405);
-            // 无 Spring Context 时回退为 messageKey
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.method_not_supported");
+            // 无 Spring Context 时回退内置默认文案(与基座 bundle en 同文,A2)
+            assertThat(response.getMessage()).isEqualTo("Request method DELETE not supported");
         }
     }
 
@@ -342,8 +415,8 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(404);
-            // 无 Spring Context 时回退为 messageKey
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.not_found");
+            // 无 Spring Context 时回退内置默认文案(与基座 bundle en 同文,A2)
+            assertThat(response.getMessage()).isEqualTo("Requested resource not found");
             assertThat(response.getData()).isNull();
         }
 
@@ -359,7 +432,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(404);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.not_found");
+            assertThat(response.getMessage()).isEqualTo("Requested resource not found");
         }
 
         @Test
@@ -399,8 +472,8 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(500);
-            // 无 Spring Context 时回退为 messageKey
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.system");
+            // 无 Spring Context 时回退内置默认文案(与基座 bundle en 同文,A2)
+            assertThat(response.getMessage()).isEqualTo("Internal server error");
             assertThat(response.getData()).isNull();
         }
 
@@ -415,7 +488,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(500);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.system");
+            assertThat(response.getMessage()).isEqualTo("Internal server error");
         }
 
         @Test
@@ -429,7 +502,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(500);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.system");
+            assertThat(response.getMessage()).isEqualTo("Internal server error");
         }
     }
 
@@ -758,7 +831,7 @@ class GlobalExceptionHandlerTest {
     class HandleHttpMessageNotReadableExceptionTests {
 
         @Test
-        @DisplayName("解析失败：返回 400 与固定翻译键(无 Spring Context 回退)")
+        @DisplayName("解析失败：返回 400 与内置默认文案(缺 bundle/缺 context 回退,A2)")
         void shouldReturn400WithTranslatedKey() {
             HttpMessageNotReadableException ex =
                     new HttpMessageNotReadableException("malformed json", new MockHttpInputMessage(new byte[0]));
@@ -769,7 +842,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(400);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.message_not_readable");
+            assertThat(response.getMessage()).isEqualTo("Malformed request body");
         }
     }
 
@@ -780,7 +853,7 @@ class GlobalExceptionHandlerTest {
     class HandleMissingServletRequestParameterExceptionTests {
 
         @Test
-        @DisplayName("缺少参数：返回 400 与固定翻译键(无 Spring Context 回退)")
+        @DisplayName("缺少参数：返回 400 与内置默认文案(缺 bundle/缺 context 回退,A2)")
         void shouldReturn400WithTranslatedKey() {
             MissingServletRequestParameterException ex =
                     new MissingServletRequestParameterException("userId", "String");
@@ -791,7 +864,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(400);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.missing_parameter");
+            assertThat(response.getMessage()).isEqualTo("Missing request parameter userId");
         }
     }
 
@@ -802,7 +875,7 @@ class GlobalExceptionHandlerTest {
     class HandleMissingServletRequestPartExceptionTests {
 
         @Test
-        @DisplayName("缺少部分：返回 400 与固定翻译键(无 Spring Context 回退)")
+        @DisplayName("缺少部分：返回 400 与内置默认文案(缺 bundle/缺 context 回退,A2)")
         void shouldReturn400WithTranslatedKey() {
             MissingServletRequestPartException ex = new MissingServletRequestPartException("file");
 
@@ -812,7 +885,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(400);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.missing_part");
+            assertThat(response.getMessage()).isEqualTo("Missing request part file");
         }
     }
 
@@ -844,9 +917,10 @@ class GlobalExceptionHandlerTest {
     class HandleMediaTypeNotSupportedDefaultTests {
 
         @Test
-        @DisplayName("媒体类型不支持：返回 415 与固定翻译键(无 Spring Context 回退)")
+        @DisplayName("媒体类型不支持：返回 415 与内置默认文案(缺 bundle/缺 context 回退,A2)")
         void shouldReturn415WithTranslatedKey() {
-            HttpMediaTypeNotSupportedException ex = new HttpMediaTypeNotSupportedException("application/xml");
+            HttpMediaTypeNotSupportedException ex = new HttpMediaTypeNotSupportedException(
+                    MediaType.APPLICATION_XML, List.of(MediaType.APPLICATION_JSON));
 
             Object responseObj = handler.handleHttpMediaTypeNotSupportedException(ex, webRequest);
             assertThat(responseObj).isInstanceOf(BaseResponse.class);
@@ -854,7 +928,7 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(415);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.media_type_not_supported");
+            assertThat(response.getMessage()).isEqualTo("Media type application/xml not supported");
         }
     }
 
@@ -865,7 +939,7 @@ class GlobalExceptionHandlerTest {
     class HandleMultipartExceptionDefaultTests {
 
         @Test
-        @DisplayName("文件上传异常：返回 400 与固定翻译键(无 Spring Context 回退)")
+        @DisplayName("文件上传异常：返回 400 与内置默认文案(缺 bundle/缺 context 回退,A2)")
         void shouldReturn400WithTranslatedKey() {
             MultipartException ex = new MultipartException("upload failed");
 
@@ -875,7 +949,140 @@ class GlobalExceptionHandlerTest {
             BaseResponse<Void> response = (BaseResponse<Void>) responseObj;
 
             assertThat(response.getCode()).isEqualTo(400);
-            assertThat(response.getMessage()).isEqualTo("facility.web.error.multipart");
+            assertThat(response.getMessage()).isEqualTo("File upload failed");
+        }
+    }
+
+    // ==================== MethodArgumentTypeMismatchException 测试(400,B1) ====================
+
+    @Nested
+    @DisplayName("handleMethodArgumentTypeMismatchException - 参数类型不匹配(400,此前落兜底 500)")
+    class HandleMethodArgumentTypeMismatchTests {
+
+        private MethodArgumentTypeMismatchException newTypeMismatch() throws NoSuchMethodException {
+            MethodParameter param = new MethodParameter(Object.class.getMethod("toString"), -1);
+            return new MethodArgumentTypeMismatchException("abc", Integer.class, "age", param,
+                    new NumberFormatException("For input string: \"abc\""));
+        }
+
+        @Test
+        @DisplayName("默认包络:返回 400,消息含参数名")
+        void typeMismatch_returns400() throws NoSuchMethodException {
+            Object responseObj = handler.handleMethodArgumentTypeMismatchException(newTypeMismatch(), webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(400);
+            // 无 Spring Context 时回退内置默认模板渲染
+            assertThat(response.getMessage()).isEqualTo("Invalid value for parameter age");
+        }
+
+        @Test
+        @DisplayName("problemDetail 模式:status=400")
+        void typeMismatch_problemDetail400() throws NoSuchMethodException {
+            FacilityWebExceptionProperties pdProps = new FacilityWebExceptionProperties();
+            pdProps.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(pdProps, new MockEnvironment());
+
+            Object responseObj = pdHandler.handleMethodArgumentTypeMismatchException(newTypeMismatch(), webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            ResponseEntity<?> re = (ResponseEntity<?>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(400);
+        }
+    }
+
+    // ==================== HttpMediaTypeNotAcceptableException 测试(406,B2) ====================
+
+    @Nested
+    @DisplayName("handleHttpMediaTypeNotAcceptableException - 媒体类型不可接受(406,此前落兜底 500)")
+    class HandleMediaTypeNotAcceptableTests {
+
+        @Test
+        @DisplayName("默认包络:返回 406 与内置默认文案")
+        void notAcceptable_returns406() {
+            HttpMediaTypeNotAcceptableException ex =
+                    new HttpMediaTypeNotAcceptableException(List.of(MediaType.APPLICATION_JSON));
+
+            Object responseObj = handler.handleHttpMediaTypeNotAcceptableException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(406);
+            assertThat(response.getMessage()).isEqualTo("Requested media type not acceptable");
+        }
+
+        @Test
+        @DisplayName("problemDetail 模式:status=406")
+        void notAcceptable_problemDetail406() {
+            FacilityWebExceptionProperties pdProps = new FacilityWebExceptionProperties();
+            pdProps.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(pdProps, new MockEnvironment());
+            HttpMediaTypeNotAcceptableException ex =
+                    new HttpMediaTypeNotAcceptableException(List.of(MediaType.APPLICATION_JSON));
+
+            Object responseObj = pdHandler.handleHttpMediaTypeNotAcceptableException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            @SuppressWarnings("unchecked")
+            ResponseEntity<ProblemDetail> re = (ResponseEntity<ProblemDetail>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(406);
+            assertThat(re.getBody()).isNotNull();
+            assertThat(re.getBody().getTitle()).isEqualTo(HttpStatus.NOT_ACCEPTABLE.getReasonPhrase());
+        }
+    }
+
+    // ==================== ErrorResponseException 状态透传测试(B3) ====================
+
+    @Nested
+    @DisplayName("handleErrorResponseException - 带状态异常透传(此前落兜底 500 丢弃预期状态)")
+    class HandleErrorResponseExceptionTests {
+
+        @Test
+        @DisplayName("默认包络:ResponseStatusException(409,reason) → code=409,message=reason")
+        void responseStatus_unifiedEnvelope_carriesStatusAndReason() {
+            ResponseStatusException ex = new ResponseStatusException(HttpStatus.CONFLICT, "资源已存在");
+
+            Object responseObj = handler.handleErrorResponseException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(409);
+            assertThat(response.getMessage()).isEqualTo("资源已存在");
+        }
+
+        @Test
+        @DisplayName("默认包络:reason 缺省回退 title(reason phrase)")
+        void responseStatus_noReason_fallsBackToTitle() {
+            ResponseStatusException ex = new ResponseStatusException(HttpStatus.CONFLICT);
+
+            Object responseObj = handler.handleErrorResponseException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(409);
+            assertThat(response.getMessage()).isEqualTo("Conflict");
+        }
+
+        @Test
+        @DisplayName("problemDetail 模式:honor 异常自带 status 与 body detail")
+        void responseStatus_problemDetail_honorsStatusAndBody() {
+            FacilityWebExceptionProperties pdProps = new FacilityWebExceptionProperties();
+            pdProps.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(pdProps, new MockEnvironment());
+            ResponseStatusException ex = new ResponseStatusException(HttpStatus.CONFLICT, "资源已存在");
+
+            Object responseObj = pdHandler.handleErrorResponseException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            ResponseEntity<?> re = (ResponseEntity<?>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(409);
+            assertThat(re.getBody()).isInstanceOf(ProblemDetail.class);
+            ProblemDetail pd = (ProblemDetail) re.getBody();
+            assertThat(pd.getDetail()).isEqualTo("资源已存在");
         }
     }
 
@@ -976,6 +1183,23 @@ class GlobalExceptionHandlerTest {
             assertThat(trace).contains("... 5 more");
             long atLines = trace.lines().filter(l -> l.trim().startsWith("at ")).count();
             assertThat(atLines).isEqualTo(10);
+        }
+
+        @Test
+        @DisplayName("buildProblemDetail - 畸形请求路径不抛 IAE,instance 省略(A1)")
+        void buildProblemDetail_malformedUri_omitsInstance() {
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            // 容器 relaxedPathChars 等配置下原始路径可含 URI 非法字符(如花括号)——错误响应
+            // 本身不得因 URI.create 抛 IllegalArgumentException 而失败
+            req.setRequestURI("/api/{bad}");
+            ServletWebRequest badRequest = new ServletWebRequest(req);
+
+            ResponseEntity<ProblemDetail> re = handler.buildProblemDetail(
+                    new RuntimeException("x"), HttpStatus.INTERNAL_SERVER_ERROR, badRequest);
+
+            assertThat(re.getStatusCode().value()).isEqualTo(500);
+            assertThat(re.getBody()).isNotNull();
+            assertThat(re.getBody().getInstance()).isNull();
         }
 
         @Test

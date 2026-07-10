@@ -9,12 +9,15 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.ErrorResponseException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -181,13 +185,14 @@ public abstract class AbstractGlobalExceptionHandler {
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
         }
-        return buildResponse(400, LocaleUtil.translateMessage("facility.web.error.message_not_readable"), e);
+        return buildResponse(400, resolveErrorMessage(
+                "facility.web.error.message_not_readable", null, "Malformed request body"), e);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public Object handleMissingServletRequestParameterException(MissingServletRequestParameterException e, WebRequest request) {
-        String message = LocaleUtil.translateMessageWithArgs(
-                "facility.web.error.missing_parameter", new Object[]{e.getParameterName()});
+        String message = resolveErrorMessage("facility.web.error.missing_parameter",
+                new Object[]{e.getParameterName()}, "Missing request parameter {0}");
         LogUtil.warn("缺少请求参数: {}, path={}", e.getParameterName(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
@@ -197,9 +202,27 @@ public abstract class AbstractGlobalExceptionHandler {
 
     @ExceptionHandler(MissingServletRequestPartException.class)
     public Object handleMissingServletRequestPartException(MissingServletRequestPartException e, WebRequest request) {
-        String message = LocaleUtil.translateMessageWithArgs(
-                "facility.web.error.missing_part", new Object[]{e.getRequestPartName()});
+        String message = resolveErrorMessage("facility.web.error.missing_part",
+                new Object[]{e.getRequestPartName()}, "Missing request part {0}");
         LogUtil.warn("缺少请求部分: {}, path={}", e.getRequestPartName(), getRequestURI(request));
+        if (props.isUseProblemDetail()) {
+            return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
+        }
+        return buildResponse(400, message, e);
+    }
+
+    /**
+     * <b>参数类型不匹配(400,B1)</b>
+     * <p>如 {@code ?age=abc} 转换 int 失败。此前无专门 handler 落兜底被误判 500 + ERROR 日志,
+     * 实为客户端错误。</p>
+     *
+     * @since phase-error-audit
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public Object handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e, WebRequest request) {
+        String message = resolveErrorMessage("facility.web.error.type_mismatch",
+                new Object[]{e.getName()}, "Invalid value for parameter {0}");
+        LogUtil.warn("参数类型不匹配: {}, path={}", e.getName(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
         }
@@ -210,8 +233,8 @@ public abstract class AbstractGlobalExceptionHandler {
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public Object handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e, WebRequest request) {
-        String message = LocaleUtil.translateMessageWithArgs(
-                "facility.web.error.method_not_supported", new Object[]{e.getMethod()});
+        String message = resolveErrorMessage("facility.web.error.method_not_supported",
+                new Object[]{e.getMethod()}, "Request method {0} not supported");
         LogUtil.warn("请求方法不支持: {}, path={}", e.getMethod(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.METHOD_NOT_ALLOWED, request);
@@ -221,13 +244,32 @@ public abstract class AbstractGlobalExceptionHandler {
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public Object handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException e, WebRequest request) {
-        String message = LocaleUtil.translateMessageWithArgs(
-                "facility.web.error.media_type_not_supported", new Object[]{e.getContentType()});
+        String message = resolveErrorMessage("facility.web.error.media_type_not_supported",
+                new Object[]{e.getContentType()}, "Media type {0} not supported");
         LogUtil.warn("媒体类型不支持: {}, path={}", e.getContentType(), getRequestURI(request));
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.UNSUPPORTED_MEDIA_TYPE, request);
         }
         return buildResponse(415, message, e);
+    }
+
+    /**
+     * <b>媒体类型不可接受(406,B2)</b>
+     * <p>{@code Accept} 头与可产出类型不匹配。此前落兜底被误判 500 + ERROR 日志。注意:统一包络
+     * 的 JSON 响应体对完全排斥 JSON 的 Accept 仍可能写不出(Spring 回落容器 406 空体),但常见
+     * 浏览器 Accept 带 {@code *}{@code /}{@code *} 可达,且日志语义已修正为 WARN。</p>
+     *
+     * @since phase-error-audit
+     */
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public Object handleHttpMediaTypeNotAcceptableException(HttpMediaTypeNotAcceptableException e, WebRequest request) {
+        String message = resolveErrorMessage("facility.web.error.not_acceptable",
+                null, "Requested media type not acceptable");
+        LogUtil.warn("媒体类型不可接受: {}, path={}", e.getMessage(), getRequestURI(request));
+        if (props.isUseProblemDetail()) {
+            return buildProblemDetail(e, HttpStatus.NOT_ACCEPTABLE, request);
+        }
+        return buildResponse(406, message, e);
     }
 
     // ==================== 路由未匹配(404) ====================
@@ -250,7 +292,8 @@ public abstract class AbstractGlobalExceptionHandler {
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.NOT_FOUND, request);
         }
-        return buildResponse(404, LocaleUtil.translateMessage("facility.web.error.not_found"), e);
+        return buildResponse(404, resolveErrorMessage(
+                "facility.web.error.not_found", null, "Requested resource not found"), e);
     }
 
     // ==================== 文件上传异常 ====================
@@ -261,7 +304,8 @@ public abstract class AbstractGlobalExceptionHandler {
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.PAYLOAD_TOO_LARGE, request);
         }
-        return buildResponse(400, LocaleUtil.translateMessage("facility.web.error.multipart"), e);
+        return buildResponse(400, resolveErrorMessage(
+                "facility.web.error.multipart", null, "File upload failed"), e);
     }
 
     // ==================== 限流异常 ====================
@@ -284,10 +328,42 @@ public abstract class AbstractGlobalExceptionHandler {
                     .header("Retry-After", String.valueOf(retryAfterSeconds))
                     .body(pd.getBody());
         }
-        BaseResponse<Void> body = buildResponse(429, LocaleUtil.translateMessage("facility.web.error.rate_limited"), e);
+        BaseResponse<Void> body = buildResponse(429, resolveErrorMessage(
+                "facility.web.error.rate_limited", null, "Too many requests"), e);
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(retryAfterSeconds))
                 .body(body);
+    }
+
+    // ==================== 带状态异常透传(B3) ====================
+
+    /**
+     * <b>带状态异常透传</b>
+     * <p>处理 {@link ErrorResponseException} 及其子类(含
+     * {@link org.springframework.web.server.ResponseStatusException}——消费方/Spring 组件显式
+     * 携带 HTTP 状态抛出)。若不显式拦截会落入兜底 {@link #handleException} 被压成 500,丢弃异常
+     * 自带的预期状态(与 404 遮蔽同型:兜底 {@code Exception.class} 先于 Spring 默认解析器匹配)。</p>
+     * <p>统一包络保持 HTTP 200 + body {@code code}=预期状态值;problemDetail 模式 honor 异常自带
+     * status/headers/body(RFC 7807 instance 为可选项,保留异常自带值)。日志 4xx WARN / 5xx ERROR。</p>
+     *
+     * @since phase-error-audit
+     */
+    @ExceptionHandler(ErrorResponseException.class)
+    public Object handleErrorResponseException(ErrorResponseException e, WebRequest request) {
+        HttpStatusCode status = e.getStatusCode();
+        String message = e.getBody().getDetail() != null ? e.getBody().getDetail() : e.getBody().getTitle();
+        if (message == null) {
+            message = String.valueOf(status.value());
+        }
+        if (status.is5xxServerError()) {
+            LogUtil.error("带状态异常: status={}, path={}", e, status.value(), getRequestURI(request));
+        } else {
+            LogUtil.warn("带状态异常: status={}, message={}, path={}", status.value(), message, getRequestURI(request));
+        }
+        if (props.isUseProblemDetail()) {
+            return ResponseEntity.status(status).headers(e.getHeaders()).body(e.getBody());
+        }
+        return buildResponse(status.value(), message, e);
     }
 
     // ==================== 兜底异常 ====================
@@ -298,10 +374,24 @@ public abstract class AbstractGlobalExceptionHandler {
         if (props.isUseProblemDetail()) {
             return buildProblemDetail(e, HttpStatus.INTERNAL_SERVER_ERROR, request);
         }
-        return buildResponse(500, LocaleUtil.translateMessage("facility.web.error.system"), e);
+        return buildResponse(500, resolveErrorMessage(
+                "facility.web.error.system", null, "Internal server error"), e);
     }
 
     // ==================== 可覆盖的工具方法 ====================
+
+    /**
+     * <b>解析 handler 固定 i18n 键(facility.web.error.*)</b>
+     * <p>经 {@link LocaleUtil#translateMessageWithFallback}:MessageSource 未命中时回退
+     * {@code defaultPattern}(与基座 bundle 英文文案同文)。消费方自带 {@code messageSource}
+     * bean 时 facility 聚合链退让({@code @ConditionalOnMissingBean(name="messageSource")}),
+     * facility 键不在其中是<b>受支持配置</b>——不得让 NoSuchMessageException 逃出
+     * {@code @ExceptionHandler} 击穿统一响应契约;兜底 {@link #handleException} 也必须经此,
+     * 否则连最后防线一并失守(A2,同 handleFacilityException 的 localize 修复族)。</p>
+     */
+    protected String resolveErrorMessage(String messageKey, Object[] args, String defaultPattern) {
+        return LocaleUtil.translateMessageWithFallback(messageKey, args, defaultPattern, LocaleUtil.getLocale());
+    }
 
     /**
      * 构建错误响应，白名单中的 profile 附带堆栈摘要
@@ -366,7 +456,22 @@ public abstract class AbstractGlobalExceptionHandler {
         String detail = ex.getMessage() != null ? ex.getMessage() : status.getReasonPhrase();
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setTitle(status.getReasonPhrase());
-        problem.setInstance(java.net.URI.create(getRequestURI(request)));
+        problem.setInstance(safeInstanceUri(request));
         return ResponseEntity.status(status).body(problem);
+    }
+
+    /**
+     * 请求路径 → ProblemDetail instance URI。畸形原始路径(容器 relaxedPathChars 等配置下可含
+     * URI 非法字符)不得使错误响应本身抛 IllegalArgumentException 失败(A1 defense-in-depth):
+     * 解析失败返回 null,instance 省略(RFC 7807 中为可选项),detail/title 仍完整。
+     */
+    protected java.net.URI safeInstanceUri(WebRequest request) {
+        String uri = getRequestURI(request);
+        try {
+            return java.net.URI.create(uri);
+        } catch (IllegalArgumentException e) {
+            LogUtil.debug("请求路径无法构造 URI,ProblemDetail instance 省略: {}", e.getMessage());
+            return null;
+        }
     }
 }
