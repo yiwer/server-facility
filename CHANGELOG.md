@@ -20,6 +20,12 @@
 
 ### Behavior changes(无 API 变更,语义修正)
 
+- **`FacilityException` 缺失 messageKey 不再抛 `NoSuchMessageException` 击穿统一响应契约**:全局异常处理器
+  改经 `LocaleUtil.localize(errorType, args)`(ADR-0010 C1 边界本地化)解析——`MessageSource` 未命中
+  messageKey 时回退 `errorType.getDefaultMessage()` 模板渲染,而非让 `NoSuchMessageException` 逃出
+  `@ExceptionHandler` 退化为容器 500/HTML(默认与 problemDetail 双模式均受保护)。
+  - 影响:`BusinessException`/`SystemException` 的 messageKey 未在 bundle 登记时,面向用户 message 由
+    「裸 messageKey」变为「`defaultMessage` 模板渲染」;统一 `BaseResponse` 契约不再被击穿。
 - **未匹配路由归 404,不再被兜底误判为 500**:`NoResourceFoundException`(Spring 6.1+ 未匹配路由/
   静态资源默认抛)与 `NoHandlerFoundException` 此前落入兜底 `@ExceptionHandler(Exception.class)`,返回
   `code=500`(统一模式 HTTP 200)/HTTP 500(problemDetail),并以 **ERROR** 级记「系统异常」——扫描/探测/
@@ -59,4 +65,4 @@
 - §10 新组件八项:令牌桶限流(SPI)、缓存门面(Caffeine optional)、完整幂等(SPI)、分布式锁(SPI)、
   HTTP client(RestClient 委托)、crypto(AES-256-GCM/HMAC/PBKDF2,纯 JDK)、日志脱敏 masking、
   Excel/CSV(POI 双类探测降级 + RFC 4180 纯 JDK)。
-- 质量门:1176 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
+- 质量门:1178 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。

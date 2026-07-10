@@ -22,6 +22,14 @@
 > 按真实语义归 404(双模式)+ i18n `facility.web.error.not_found`(四语)+ 测试 4 例(`HandleNotFoundTests`×3、
 > `notFoundKey_resolvesInEnAndZh`×1),日志降 WARN。commit `00c96e0`,全量 **1176 绿**。单独记录以存真。
 
+> **补记(2026-07-09,post-collector 新发现并落地,不在原 F1-F40 扫描范围)**:**FacilityException 缺失 messageKey
+> 击穿统一响应契约**。`handleFacilityException` 原用裸键 `LocaleUtil.translateMessageWithArgs`(不 catch
+> `NoSuchMessageException`),MessageSource 在场但 key 缺失(消费方 error type 忘登记 i18n 键)时异常逃出
+> `@ExceptionHandler` → 容器 500/HTML(默认与 problemDetail 双模式)。改经 C1 边界本地化入口
+> `LocaleUtil.localize(errorType, args)`(ADR-0010,内部已 catch 并回退 `getDefaultMessage()` 模板)。
+> 连带:缺键 message 由裸键变为 defaultMessage 渲染,更新 2 个既有断言。测试 `HandleFacilityExceptionMissingKeyTests`×2。
+> commit `4b5629b`,全量 **1178 绿**。单独记录以存真。
+
 ---
 
 ## P0 功能性 bug(行为与文档/配置承诺矛盾,优先修)
