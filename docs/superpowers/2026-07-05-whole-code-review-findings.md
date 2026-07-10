@@ -13,7 +13,8 @@
 > per-type 开关/+86)、F36(excel-csv:SAX 流式读/Map-POJO 形态/分隔符可配/多 sheet)、F38
 > (ratelimit-cache:caffeine-only @Cacheable 边界/acquire 两段读折叠/per-call acquire 非正参数)、
 > C3 六 WARN 点 ListAppender 守护测试、Async 真取消(F6 已诚实化)、F4 对抗语料入测试库、
-> RateLimitResult record 自身 javadoc 补哨兵语义。后续工作以此篮为准,勿再整文档重扫。
+> RateLimitResult record 自身 javadoc 补哨兵语义、错误处理残余(2026-07-10 审计:AsyncRequestTimeoutException
+> 应 503 现落兜底 500;裸 TypeMismatchException 非方法参数场景同)。后续工作以此篮为准,勿再整文档重扫。
 
 > **补记(2026-07-09,post-collector 新发现并落地,不在原 F1-F40 扫描范围)**:**未匹配路由 404 语义修正**。
 > `NoResourceFoundException`(SF 6.1+ 未匹配路由/静态资源默认抛)与 `NoHandlerFoundException` 原落兜底
@@ -29,6 +30,15 @@
 > `LocaleUtil.localize(errorType, args)`(ADR-0010,内部已 catch 并回退 `getDefaultMessage()` 模板)。
 > 连带:缺键 message 由裸键变为 defaultMessage 渲染,更新 2 个既有断言。测试 `HandleFacilityExceptionMissingKeyTests`×2。
 > commit `4b5629b`,全量 **1178 绿**。单独记录以存真。
+
+> **补记(2026-07-10,post-collector 错误处理面同类遗漏审计并落地,不在原 F1-F40 扫描范围)**:对 404/NoSuchMessage
+> 两 bug 归纳的失效模式(A:handler 内部调用抛异常逃出 advice;B:兜底 Exception.class 遮蔽 Spring 默认解析器致
+> 状态错配)全面排查,堵死全部孪生:A2 全 9 处裸键 translateMessage 改 resolveErrorMessage fallback(含兜底自身
+> 无退路场景,RED 实证三处穿透);B1 MethodArgumentTypeMismatch→400、B2 HttpMediaTypeNotAcceptable→406(各配
+> 四语新键)、B3 ErrorResponseException/ResponseStatusException honor 预期状态(统一包络 code=状态值,PD 透传
+> status/headers/body);A1 buildProblemDetail 抽 safeInstanceUri 硬化畸形路径。测试 +12,commit `f91ea1b`,
+> 全量 **1190 绿**。残余(AsyncRequestTimeoutException/裸 TypeMismatchException)已入上方 defer 篮;
+> C1/C2 信封不一致维持 F16/F17/F18 既有决议。单独记录以存真。
 
 ---
 

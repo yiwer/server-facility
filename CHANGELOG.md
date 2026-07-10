@@ -20,6 +20,20 @@
 
 ### Behavior changes(无 API 变更,语义修正)
 
+- **错误处理面同类遗漏审计收口(2026-07-10,五项)**:对下方 404 与 NoSuchMessageException 两修复归纳的
+  失效模式(handler 内部调用抛异常逃出 advice;兜底 `Exception.class` 遮蔽 Spring 默认解析器致状态错配)
+  全面排查并堵死孪生——
+  ①全局异常处理器全部 9 处固定 i18n 键(`facility.web.error.*`)改经 fallback 解析(内置默认文案与基座
+  bundle 英文同文):消费方自带 `messageSource` bean(facility 聚合链退让)时不再穿透
+  `NoSuchMessageException`,**兜底 handler 自身亦受保护**;缺键/无 context 时 message 由裸键变为默认文案渲染。
+  ②参数类型不匹配(如 `?age=abc`)由兜底 500+ERROR 归 **400**+WARN(新键 `type_mismatch`,四语)。
+  ③`Accept` 不可满足由兜底 500 归 **406**(新键 `not_acceptable`,四语)。
+  ④`ResponseStatusException` 等带状态异常(`ErrorResponseException` 族)不再被兜底压成 500 丢弃预期状态:
+  统一包络 `code`=预期状态值,problemDetail 模式透传异常自带 status/headers/body;4xx WARN/5xx ERROR。
+  ⑤problemDetail 的 instance URI 构造对畸形原始路径不再抛 `IllegalArgumentException`(instance 省略,
+  RFC 7807 可选项)。
+  - 影响:上述场景的 HTTP 状态/body `code`/日志级别变化(500→400/406/预期状态,ERROR→WARN);
+    固定键缺失时回退文案由裸键变为可读默认文案。
 - **`FacilityException` 缺失 messageKey 不再抛 `NoSuchMessageException` 击穿统一响应契约**:全局异常处理器
   改经 `LocaleUtil.localize(errorType, args)`(ADR-0010 C1 边界本地化)解析——`MessageSource` 未命中
   messageKey 时回退 `errorType.getDefaultMessage()` 模板渲染,而非让 `NoSuchMessageException` 逃出
@@ -65,4 +79,4 @@
 - §10 新组件八项:令牌桶限流(SPI)、缓存门面(Caffeine optional)、完整幂等(SPI)、分布式锁(SPI)、
   HTTP client(RestClient 委托)、crypto(AES-256-GCM/HMAC/PBKDF2,纯 JDK)、日志脱敏 masking、
   Excel/CSV(POI 双类探测降级 + RFC 4180 纯 JDK)。
-- 质量门:1178 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
+- 质量门:1190 测试、5 条 ArchUnit 架构守护、JaCoCo gate 0.88/0.75、`dependency:analyze` failOnWarning。
