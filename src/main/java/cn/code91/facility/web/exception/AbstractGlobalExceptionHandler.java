@@ -6,6 +6,8 @@ import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.beans.ConversionNotSupportedException;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -228,6 +230,45 @@ public abstract class AbstractGlobalExceptionHandler {
             return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
         }
         return buildResponse(400, message, e);
+    }
+
+    /**
+     * <b>类型不匹配兜底(400)</b>
+     * <p>处理绕过 {@link MethodArgumentTypeMismatchException}(有专门 handler,最 specific 优先)
+     * 的裸 {@link TypeMismatchException}(非方法参数场景的绑定/转换失败,罕见)。Spring 默认解析器
+     * 即映射 400;此前落兜底被误判 500 + ERROR。{@code propertyName} 可为 null,消息渲染 "null"
+     * ——与 media_type null 既有约定一致。</p>
+     *
+     * @since phase-error-audit
+     */
+    @ExceptionHandler(TypeMismatchException.class)
+    public Object handleTypeMismatchException(TypeMismatchException e, WebRequest request) {
+        String message = resolveErrorMessage("facility.web.error.type_mismatch",
+                new Object[]{e.getPropertyName()}, "Invalid value for parameter {0}");
+        LogUtil.warn("类型不匹配: property={}, requiredType={}, path={}",
+                e.getPropertyName(), e.getRequiredType(), getRequestURI(request));
+        if (props.isUseProblemDetail()) {
+            return buildProblemDetail(e, HttpStatus.BAD_REQUEST, request);
+        }
+        return buildResponse(400, message, e);
+    }
+
+    /**
+     * <b>转换不支持(500,服务端问题)</b>
+     * <p>{@link ConversionNotSupportedException} 虽继承 {@link TypeMismatchException},但语义是
+     * <b>服务端</b>转换器缺失/配置问题(Spring 默认解析器同映射 500),非客户端错。单独拦截仅为
+     * 避免被上方父类 handler 误判 400;行为与兜底一致(500 + ERROR)。</p>
+     *
+     * @since phase-error-audit
+     */
+    @ExceptionHandler(ConversionNotSupportedException.class)
+    public Object handleConversionNotSupportedException(ConversionNotSupportedException e, WebRequest request) {
+        LogUtil.error("类型转换不支持(服务端转换器/配置问题): path={}", e, getRequestURI(request));
+        if (props.isUseProblemDetail()) {
+            return buildProblemDetail(e, HttpStatus.INTERNAL_SERVER_ERROR, request);
+        }
+        return buildResponse(500, resolveErrorMessage(
+                "facility.web.error.system", null, "Internal server error"), e);
     }
 
     // ==================== HTTP 协议异常 ====================

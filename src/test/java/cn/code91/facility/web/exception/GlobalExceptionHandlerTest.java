@@ -13,6 +13,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.ConversionNotSupportedException;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.StaticMessageSource;
@@ -991,6 +993,57 @@ class GlobalExceptionHandlerTest {
             assertThat(responseObj).isInstanceOf(ResponseEntity.class);
             ResponseEntity<?> re = (ResponseEntity<?>) responseObj;
             assertThat(re.getStatusCode().value()).isEqualTo(400);
+        }
+    }
+
+    // ==================== 裸 TypeMismatchException(400)与 ConversionNotSupported(500) ====================
+
+    @Nested
+    @DisplayName("handleTypeMismatchException - 裸 TypeMismatch(400)/ConversionNotSupported 保 500")
+    class HandleTypeMismatchTests {
+
+        @Test
+        @DisplayName("裸 TypeMismatchException:默认包络返回 400(此前落兜底 500)")
+        void rawTypeMismatch_returns400() {
+            TypeMismatchException ex = new TypeMismatchException("abc", Integer.class);
+
+            Object responseObj = handler.handleTypeMismatchException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(400);
+            // propertyName 为 null 时渲染 "null"——与 media_type null 既有约定一致(罕见路径,如实锁定)
+            assertThat(response.getMessage()).isEqualTo("Invalid value for parameter null");
+        }
+
+        @Test
+        @DisplayName("problemDetail 模式:status=400")
+        void rawTypeMismatch_problemDetail400() {
+            FacilityWebExceptionProperties pdProps = new FacilityWebExceptionProperties();
+            pdProps.setUseProblemDetail(true);
+            DefaultGlobalExceptionHandler pdHandler =
+                    new DefaultGlobalExceptionHandler(pdProps, new MockEnvironment());
+            TypeMismatchException ex = new TypeMismatchException("abc", Integer.class);
+
+            Object responseObj = pdHandler.handleTypeMismatchException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(ResponseEntity.class);
+            ResponseEntity<?> re = (ResponseEntity<?>) responseObj;
+            assertThat(re.getStatusCode().value()).isEqualTo(400);
+        }
+
+        @Test
+        @DisplayName("ConversionNotSupportedException(服务端转换器问题):保持 500,不被父类 handler 误判 400")
+        void conversionNotSupported_stays500() {
+            ConversionNotSupportedException ex = new ConversionNotSupportedException(
+                    "v", String.class, new IllegalStateException("no converter"));
+
+            Object responseObj = handler.handleConversionNotSupportedException(ex, webRequest);
+
+            assertThat(responseObj).isInstanceOf(BaseResponse.class);
+            BaseResponse<?> response = (BaseResponse<?>) responseObj;
+            assertThat(response.getCode()).isEqualTo(500);
+            assertThat(response.getMessage()).isEqualTo("Internal server error");
         }
     }
 
