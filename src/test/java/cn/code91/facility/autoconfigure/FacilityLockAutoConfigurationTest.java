@@ -3,6 +3,7 @@ package cn.code91.facility.autoconfigure;
 import cn.code91.facility.lock.DistributedLock;
 import cn.code91.facility.lock.FacilityLockProperties;
 import cn.code91.facility.lock.InMemoryDistributedLock;
+import cn.code91.facility.lock.LocalKeyedMutex;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -19,11 +20,11 @@ class FacilityLockAutoConfigurationTest {
         .withConfiguration(AutoConfigurations.of(FacilityLockAutoConfiguration.class));
 
     @Test
-    @DisplayName("默认装配 DistributedLock(InMemoryDistributedLock 实现)")
-    void registersDistributedLockByDefault() {
+    @DisplayName("默认仅装配诚实命名的进程内互斥")
+    void registersLocalMutexWithoutAdvertisingDistributedGuarantee() {
         runner.run(ctx -> {
-            assertThat(ctx).hasSingleBean(DistributedLock.class);
-            assertThat(ctx.getBean(DistributedLock.class)).isInstanceOf(InMemoryDistributedLock.class);
+            assertThat(ctx).hasSingleBean(LocalKeyedMutex.class);
+            assertThat(ctx).doesNotHaveBean(DistributedLock.class);
         });
     }
 
@@ -45,7 +46,10 @@ class FacilityLockAutoConfigurationTest {
     void enabledFalse_noBean() {
         runner
             .withPropertyValues("facility.lock.enabled=false")
-            .run(ctx -> assertThat(ctx).doesNotHaveBean(DistributedLock.class));
+            .run(ctx -> {
+                assertThat(ctx).doesNotHaveBean(DistributedLock.class);
+                assertThat(ctx).doesNotHaveBean(LocalKeyedMutex.class);
+            });
     }
 
     @Test
@@ -56,6 +60,53 @@ class FacilityLockAutoConfigurationTest {
             .run(ctx -> assertThat(ctx.getBean(FacilityLockProperties.class).getMaxLocks())
                 .isEqualTo(5));
     }
+
+    @Test
+    void requiredDistributedConsumerFailsAtStartupWithoutAnAdapter() {
+        runner.withBean(RequiredDistributedConsumer.class).run(ctx -> assertThat(ctx).hasFailed());
+    }
+
+    @Test
+    void disabledAndInvalidDefaultCannotSupplyTheRequiredLocalCapability() {
+        runner.withPropertyValues("facility.lock.enabled=false").withBean(RequiredLocalConsumer.class)
+                .run(ctx -> assertThat(ctx).hasFailed());
+        for (int invalid : new int[]{0, -1}) {
+            runner.withPropertyValues("facility.lock.max-locks=" + invalid)
+                    .run(ctx -> assertThat(ctx).hasFailed());
+        }
+    }
+
+    @Test
+    void explicitLocalBeanOwnsItsBudgetAndDefaultCloseStopsAdmission() {
+        var explicit = new LocalKeyedMutex(2);
+        runner.withPropertyValues("facility.lock.max-locks=0").withBean(LocalKeyedMutex.class, () -> explicit)
+                .run(ctx -> assertThat(ctx.getBean(LocalKeyedMutex.class)).isSameAs(explicit));
+        var owned = new java.util.concurrent.atomic.AtomicReference<LocalKeyedMutex>();
+        runner.run(ctx -> {
+            owned.set(ctx.getBean(LocalKeyedMutex.class));
+            assertThat(owned.get().executeWithLock("one", Duration.ZERO, () -> "work")).isEqualTo("work");
+        });
+        assertThat(owned.get().tryLock("after-close", Duration.ZERO)).isFalse();
+    }
+
+    @Test
+    void twoApplicationsOwnIndependentMutexesAndCloseIndependently() {
+        runner.run(first -> runner.run(second -> {
+            var a = first.getBean(LocalKeyedMutex.class);
+            var b = second.getBean(LocalKeyedMutex.class);
+            assertThat(a).isNotSameAs(b);
+            assertThat(a.tryLock("same", Duration.ZERO)).isTrue();
+            assertThat(b.tryLock("same", Duration.ZERO)).isTrue();
+            first.close();
+            assertThat(a.tryLock("new", Duration.ZERO)).isFalse();
+            a.unlock("same");
+            b.unlock("same");
+            assertThat(b.executeWithLock("after-peer-close", Duration.ZERO, () -> "available")).isEqualTo("available");
+        }));
+    }
+
+    record RequiredDistributedConsumer(DistributedLock lock) { }
+    record RequiredLocalConsumer(LocalKeyedMutex mutex) { }
 
     /** 用户自定义 {@link DistributedLock} 实现,验证装配层为其让位。 */
     private static final class StubDistributedLock implements DistributedLock {

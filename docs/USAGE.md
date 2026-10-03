@@ -12,7 +12,7 @@
 - [上传、MIME 与摘要](#上传mime-与摘要)
 - [限流:RateLimiterUtil / @RateLimit](#限流ratelimiterutil--ratelimit)
 - [缓存:CacheUtil / @Cacheable](#缓存cacheutil--cacheable)
-- [分布式锁:LockUtil](#分布式锁lockutil)
+- [进程内互斥:LocalKeyedMutex](#进程内互斥localkeyedmutex)
 - [HTTP client:HttpClients](#http-clienthttpclients)
 - [幂等:@Idempotent](#幂等idempotent)
 - [加解密:CryptoUtil](#加解密cryptoutil)
@@ -356,27 +356,18 @@ public User findById(Long id) { ... }
 - **SPI 替换**:`CacheManager` 是 Spring 标准 SPI,声明 Redis `CacheManager` 即替换。
 - **降级**:无 `CacheManager` 时 `get` 返空、`getOrCompute` 直调 loader(缓存不可用不阻断业务)。
 
-## 分布式锁:LockUtil
+## 进程内互斥:LocalKeyedMutex
 
-通用分布式锁(`lock` 包,零 web 依赖,批处理/定时任务也可用)。默认单机 `InMemoryDistributedLock`(ReentrantLock),SPI 可替换 Redisson 等分布式实现。
+构造注入 `LocalKeyedMutex`，或在无Spring场景用 `try (var mutex = new LocalKeyedMutex(128))` 管理生命周期。同一作用域的调用必须共享一个实例。
 
 ```java
-// 高阶(推荐):try-finally 自动获取释放,防忘记 unlock 死锁
-String result = LockUtil.executeWithLock("order:" + orderId, Duration.ofSeconds(10), () -> {
-    // 临界区:同 key 串行执行
-    return processOrder(orderId);
-});
-LockUtil.executeWithLock("job:daily", Duration.ofSeconds(30), () -> runDailyJob());  // Runnable 重载
-
-// 命令式:灵活但须自己 try-finally
-if (LockUtil.tryLock("resource", Duration.ofSeconds(5))) {
-    try { /* 临界区 */ } finally { LockUtil.unlock("resource"); }
-}
+String result = mutex.executeWithLock("order:" + orderId, Duration.ofMillis(350),
+        () -> updateLocalStateSynchronously(orderId));
 ```
 
-- **默认单机语义**:`InMemoryDistributedLock` 用 JDK `ReentrantLock`;`leaseTime` 是 `tryLock` **等待超时**,非持锁后自动过期释放(单机无真租约);可重入(同线程);仅进程内互斥。
-- **升级分布式(real seam,ADR-0016)**:多实例部署须声明自己的 `DistributedLock` bean(如基于 Redisson),`@ConditionalOnMissingBean` 自动让位。
-- **⚠ 降级**:无 `DistributedLock` bean 时 `executeWithLock` 退化为**直接执行 + WARN**(单实例可接受,但**多实例部署必须确保 bean 在场**,否则退化无锁破坏跨实例互斥)。
+key非blank、最多512 UTF-16单元；等待0至1天，可重入且由实际执行线程释放。容量按同时持有或等待的key严格计数，最后引用退出后回收。关闭不强制释放运行中的action，观察者超时/取消也不意味着业务结束。跨进程业务使用实际数据库约束/事务或宿主选定的成熟协调方案。
+
+默认不再提供 `DistributedLock` bean；旧 `LockUtil` 缺bean时拒绝执行，旧静态与SPI签名保留用于迁移。所有入口、异常、owner、close和异步示例见[锁迁移](building/local-locking.md)、[ADR0030](adr/0030-local-keyed-mutex.md)。
 
 ## HTTP client:HttpClients
 
@@ -635,7 +626,7 @@ facility:
     maximum-size: 10000                  # 仅 Caffeine 后端生效;ConcurrentMap 回退时忽略+启动 WARN
   lock:
     enabled: true
-    max-locks: 100000                    # 锁上限(超限拒新 key,fail-closed,F8);租约时长由各 executeWithLock/tryLock 调用显式传入
+    max-locks: 100000                    # 本地活动key上限，含持有者和等待者；等待预算由调用显式传入，无持有租约
   http:
     enabled: true                        # F22:五簇开关对称;false 整体关闭 http 装配
     connect-timeout: 5s                  # RestClient 连接超时

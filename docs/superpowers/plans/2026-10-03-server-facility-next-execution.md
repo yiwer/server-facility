@@ -148,3 +148,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 从干净 `ca6816ccb2e781854bd628bcf91801835e6f0a66` 以--no-ff合入 `0a6b18578bd566f6ca07a094caffe3d5820cf203`，merge `917505f7c20dc76b9de3c681443b62150a479d93`；最终分支比被测 `e0fd5b38844122e1a97b8bc816a93c079ccb8d9b` 仅2个票/报告文件，合入后src/POM/templates/verification/workflow与被测完全相同。最终模板jar SHA `b62ead82dd2b6283ccd24720fcc0606027091b955968ba2afc432e618373b574`。
 - 中央登记ADR0051对0050的扩展及45条实际ADR；README/构建入口明确integration/resources/all需要PG_BIN与PostgreSQL18.6固定原生工具，fast/库verify不需数据库。库未增加持久依赖；迁移为同受控DataSource、必须成功应用V1/V2。此前只读审阅的不同Flyway数据库/空目录问题已有真正RED和修复后GREEN。
 - 28仍verification-pending，root将用最终同源Windows/Linux CI闭合；29/30自身命令事务及进程故障协议独立承担。25/26的CI13闭合状态已同步中央入口，正式closed仍21项。未重复同源库全门，未push。
+
+
+## 票07本地互斥集成与CI14保留失败
+
+- 2026-10-04：merger核读07报告和`.verification-results/20261004-064526-873-all/summary.txt`；冻结`df7f7889d558d37af7a2daec0a7432862de670d1`的Windows 97命令PASS、库1637/0/0/0、原覆盖率/5架构/依赖门、旧SPI普通jar消费者及64MiB 250000次新key轮转均通过。该来源不含28 PostgreSQL，不能作为合并后联合证据。
+- 从干净`f4837ee1311b775b8890878177dade647d05562d`以--no-ff合入最终`4b4a89c6efd7ad05103784d65d53d85ed427eadf`，merge`1f6109a77a7b5dbfc778e7425c6f443b161b57ac`，无冲突。合入产品/测试/runner与07交接分支完全相同；中央整理0030/0016部分替代、46条实际ADR。07保留verification-pending，不重复冻结来源已通过的全门。
+- CI14 run37159629444在精确候选f4837ee结束：Ubuntu all/platform/归档success，Windows all失败而platform/归档success。公开annotation定位到template-packaged-http的数据库未ready及cleanup断言，已交28实施代理诊断，尚不能判定底层原因。28保持pending、29未释放，正式closed仍21项。原始metadata与限制见[CI14记录](../../verification/ticket-28-ci.md)。07已集成但push等待必要28修复，避免把已知失败候选再次作为验收。
