@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-02、FR-05、FR-09；AC-08、AC-09、AC-12
 
@@ -28,3 +28,5 @@
 不引入 Redis、跨节点租约或 fencing Adapter；旧公共删除受消费者盘点约束。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+2026-10-04：root 接手预建且无改动的 ticket-07 工作树，快进到集成 6ff81c3；沿已批准公共锁/自动装配/Async seam 逐项 TDD。ADR0030 先登记替代0016，保留旧二进制入口。
