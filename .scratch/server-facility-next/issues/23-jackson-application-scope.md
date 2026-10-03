@@ -4,7 +4,7 @@
 
 **Blocked by:** 22 迁移 Boot 4、Spring 技术模块与测试工具链
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-01、FR-08、FR-09；AC-02、AC-11、AC-12
 
@@ -40,3 +40,7 @@
 实现源 `07682f458549dce36ed786ae55b25a958162541f`，基线 integration `042006daaed1451476d355d1a3199eb249202825`。本机 Windows Java25/Wrapper `java verification/Verify.java all` 全部 PASS：1335/0/0/0，覆盖率/5条架构/依赖门、普通jar非Web消费者、原金样真实HTTP constructed/injected、两应用交错/关闭/重建、5轮JVM资源周期及真实JDK21等负控均通过。9文件68个主编译缺口清零；额外Spring7源/HTTP迁移单独登记。
 
 [完整报告与Q01–Q10映射](../../../docs/verification/ticket-23-jackson3.md)；证据 `.verification-results/20261004-011808-650-all`，TDD日志 `.verification-results/ticket-23`。ADR0046取代0044的兼容阶段，旧金样文件未改。实现与本票Windows验收完成，等待非发布集成复核；**Linux、Servlet6.1新重载及完整缺类矩阵仍由24验证**，不能据本机PASS标为已通过，也不反向作为23实施的循环前置。无远端push/发布。
+
+## 非发布集成复核（2026-10-04）
+
+root已独立复核核心diff并接受handoff。merger从干净042006d以--no-ff合入1e216d1，合并提交04dbd961c2b6f1d100f5e2b42174a66762bc95c4；src/POM/verification/workflow/Wrapper与被测07682f4完全一致，无冲突。Windows目标全门和本票所有验收已实证，23 closed解除24前置；Linux、Servlet6.1新重载和完整缺类矩阵仍由24验证，没有提前关闭03/05。本次只补中央文档，未重跑同源全门，未push/发布。
