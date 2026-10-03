@@ -31,8 +31,8 @@ public @interface RateLimit {
 
     /**
      * 限流维度标识。
-     * <p>默认为空串，此时由拦截器按 {@code 类#方法#clientIp} 规则构造；
-     * 非空时使用固定的全局 key（不同调用方/IP 共享同一限流额度）。</p>
+     * <p>默认为空串，此时由拦截器按 {@code 完整类#方法(参数类型)#clientIp} 规则构造；
+     * DEFAULT范围下非空时使用固定全局操作别名（不同调用方/IP共享额度）；显式scope按所选主体划分。</p>
      *
      * <p>空 key 时的 {@code clientIp} 取自 {@code RequestUtil.getClientIp}，默认使用连接 peer；
      * 只有显式 {@code facility.web.proxy.trusted-proxies} 才采用可信链上的 X-Forwarded-For。
@@ -42,6 +42,16 @@ public @interface RateLimit {
      * @return 限流 key
      */
     String key() default "";
+
+    /**
+     * Quota identity. DEFAULT preserves the legacy choice: an empty key uses IP,
+     * a fixed key shares a global quota. PRINCIPAL reads only the host Servlet
+     * principal; a missing or unusable principal is rejected without IP fallback.
+     */
+    Scope scope() default Scope.DEFAULT;
+
+    enum Scope { DEFAULT, IP, PRINCIPAL, GLOBAL }
+
 
     /**
      * 桶容量。

@@ -303,31 +303,32 @@ reset 失败时无法保证位置恢复；原读故障仍为首因，reset 故�
 
 ## 限流:RateLimiterUtil / @RateLimit
 
-通用限流(`ratelimit` 包,令牌桶,零 web 依赖)+ web 集成(`web.ratelimit` 包,注解 + 拦截器)。
+默认是进程内令牌桶，重启或显式 `clear()` 会重置；多实例不会共享额度。新服务构造器注入本应用的 `RateLimiter`。返回拒绝意味着额度不足，`RateLimiterUnavailableException` 意味着缺设施、运行故障或无法在槽位预算内接纳新主体。
 
 ```java
-// 编程式(任意场景,含非 web):无 RateLimiter bean 时降级放行 true
-if (RateLimiterUtil.tryAcquire("order:" + userId)) {
-    // 放行
-} else {
-    // 超限
-}
-RateLimitResult r = RateLimiterUtil.acquire("k", 1, 100, 10);  // 显式 cap=100/rate=10/s
+RateLimitResult decision = limiter.acquire("order:" + verifiedSubject, 1, 100, 10);
+// 必需兼容门面：缺Bean/故障抛RateLimiterUnavailableException
+boolean allowed = RateLimiterUtil.tryAcquire("order:" + verifiedSubject);
+// 仅在业务明确接受入口保护降级时使用；remaining=-1表示未知
+RateLimitResult optional = RateLimiterUtil.acquireOptional("preview:" + verifiedSubject, 1, 100, 10);
 
-// 声明式(Spring MVC controller 方法):超限自动 429 + Retry-After
-@RateLimit(capacity = 20, permitsPerSecond = 5)   // key 空 = 类#方法#clientIp(按 IP 限流)
-@GetMapping("/api/report")
-public BaseResponse<Report> report() { ... }
+@RateLimit(scope = RateLimit.Scope.PRINCIPAL, capacity = 20, permitsPerSecond = 5)
+@PostMapping("/orders")
+public Order create() { /* ... */ }
 
-@RateLimit(key = "global-export", capacity = 2, permitsPerSecond = 0.5)  // 固定 key = 全局限流
-@GetMapping("/api/export")
-public BaseResponse<Void> export() { ... }
+@RateLimit(scope = RateLimit.Scope.GLOBAL, key = "global-export", capacity = 2, permitsPerSecond = 0.5)
+@GetMapping("/export")
+public void export() { /* ... */ }
 ```
 
-- **算法**:令牌桶(容量 + 每秒填充速率,允许突发);默认单机 `ConcurrentHashMap` 桶存储,`max-buckets` 防无界。
-- **SPI 替换**:声明自己的 `RateLimiter` bean(如 Redis 实现)即整体替换(`@ConditionalOnMissingBean`)。默认实现适合有界 key 集(IP/用户/接口);海量唯一 key 应经 SPI 注入 Caffeine/Redis 实现。
-- **降级**:无 `RateLimiter` bean 时 `RateLimiterUtil` 放行(限流不可用不阻断业务)。
-- **默认 IP 维度**：空 `key()` 使用上述 `RequestUtil` 来源快照，默认不再信任原始XFF。IP表示网络来源，多个用户可能共享NAT；业务身份限流使用明确已认证主体。限流容量与存储政策另见对应模块。
+- **输入**：key为1..512个UTF-16代码单元、非blank、无控制字符；cost为正整数且不大于正容量；rate为有限正数。非法输入和同驻留key的容量/速率冲突抛IllegalArgumentException，不扣费、不创建桶。remaining为原子扣费结果的整数下取整，retryAfterMillis按实际缺额向上取整，超long范围饱和。
+- **身份**：PRINCIPAL只取宿主认证后的Servlet Principal.name，要求非blank、无控制字符、最多128单元；缺失/非法403，不回落IP，也不解析用户头/JWT。宿主需保证主体名跨租户唯一。IP使用06的来源快照：默认peer、显式trusted-proxies才用可信XFF；同NAT共享额度。GLOBAL共享所选操作。DEFAULT保留旧空key=IP、非空key=GLOBAL语义，新代码建议显式scope。
+- **操作**：空key使用完整类名、方法名和参数类型，跨包及重载分离；非空key是明确共享的字面别名，不能全blank。最终编码key有scope隔离且仍限512单元，长方法签名用短别名；SPI看到的key不透明，外部存储不可依赖旧拼接格式。
+- **资源**：默认max-buckets=100000是严格槽位数上界。满额时每次最多检查16个轮转候选，只回收补满桶，否则拒绝新key；既有主体不恢复额度。没有定时器/线程，惰性补充；`clear()`是显式管理重置，自动准入不会调用。构造器可注入单调纳秒LongSupplier；时间倒退忽略，连续观察间隔需小于2^63纳秒。
+- **故障**：默认HTTP拒绝为429 + Retry-After，缺Adapter/运行故障为04安全503。`facility.ratelimit.fail-open=true`只显式放行设施不可用；确定的额度拒绝、非法政策和Error不放行。`enabled=false`仅关默认provider，受保护Servlet注解仍守卫；可用宿主RateLimiter bean覆盖默认provider。04显式旧envelope保留429，503则HTTP200/body.code=503。
+- **顺序**：入口限流MVC order为HIGHEST_PRECEDENCE+20，在默认幂等order=0前；每个新请求含重放/处理中/冲突重试都计费，后续业务失败不自动退款。同请求同操作/身份/政策的ASYNC完成重派发只扣一次。该注解保护入口工作量；只针对成功业务效果的配额需在事务执行处设计，12/29继续验证组合。
+
+迁移依据与限制见[ADR-0032](adr/0032-local-rate-limit-contract.md)。Optional静态门面仅保留单context兼容，不能代替应用注入，也不背书共享后端的集群保证。
 
 ## 缓存:CacheUtil / @Cacheable
 
@@ -604,10 +605,11 @@ facility:
       use-problem-detail: true        # 默认 RFC 9457；false 显式选择安全的旧 HTTP 200 envelope
       # include-trace-profiles 已弃用；任何 profile 都不自动输出异常原文或调试栈
   ratelimit:
-    enabled: true
+    enabled: true                       # 仅默认provider；false仍保留Servlet注解守卫
+    fail-open: false                    # 仅显式允许设施不可用时放行
     default-capacity: 100                # 令牌桶容量(未被 @RateLimit 覆盖时的默认)
     default-permits-per-second: 10       # 每秒填充速率
-    max-buckets: 100000                  # 桶上限(防无界 key 增长,超限清空)
+    max-buckets: 100000                  # 严格槽位上限；只回收补满桶，无法准入则503
   cache:
     enabled: true
     default-ttl: 10m                     # 仅 Caffeine 后端生效(expireAfterWrite);ConcurrentMap 回退时忽略+启动 WARN

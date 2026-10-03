@@ -92,7 +92,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-36 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+37 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -125,6 +125,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0027 | 安全 RFC 9457 错误策略贯通 Filter/MVC/ERROR，真实状态和必要头；已提交边界、宿主政策与显式 legacy 迁移 |
 | 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
 | 0029 | 默认连接peer/显式可信代理；Servlet与Callable作用域清理身份、恢复宿主trace，部分替代0014来源假设 |
+| 0032 | 本地配额正成本/精确余额、有界主体回收、required/Optional政策和可信身份入口计费；部分替代0014 |
 | 0036 | 正数实际字节预算、借用MIME流不关闭、生成存储键与同卷hardlink不覆盖发布；保留0001 optional边界 |
 | 0040 | 保留旧AES-GCM/PBKDF2协议；安全Result失败、应用输入/并发预算与独立普通jar历史回执消费者 |
 | 0041 | 保留Result/领域错误语义；浅引用所有权、必需回调与集合算术边界，纯Java普通jar消费者 |
@@ -135,6 +136,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 6. 质量门
 
+- **最新本地接合（票09）**：`50d492d` Windows主库1478/0/0/0，instruction19395/20856、line3935/4205、branch2030/2371，原门/5架构/依赖分析、全部普通jar和平台矩阵/资源阶段PASS。首次all最后因缺错误JDK环境变量保留FAIL，同源prerequisites三负控另PASS；[组合证据](verification/ticket-09-rate-limit-contract.md)不称一次all成功，新Linux待集成CI。
 - **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；同产品集成`80670fa`现已通过Windows/Ubuntu完整CI，详见[平台闭合](verification/ticket-24-ci.md)；各环境精确值以各自artifact为准。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载已由24在目标平台复验关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
@@ -157,14 +159,15 @@ FALLBACK；其旧 detect(InputStream,String) 的IO失败现抛UncheckedIOExcepti
 **C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
 ADR-0046 的 JSON InputStream 字段是正预算例外：显式 ≤0 拒绝，无参注解入口固定1MiB。
 ADR-0036 的上传预算也必须为正数，≤0 经Result拒绝，便利入口固定10MiB；无无界上传路径。
+ADR-0032 的限流capacity/rate/cost/maxBuckets均必须正且rate有限；注解capacity/rate=0仅表示继承默认，绝不表示无限制。
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
 高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。现状审计(2026-07-06,
 全部符合):WARN 侧——锁 executeWithLock 无 bean 降级执行、锁/幂等溢出 fail-closed 拒绝、
-限流 maxBuckets clear-all、cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
-CopyUtil null key drop;静默侧——LockUtil.tryLock/unlock 无 bean、RateLimiterUtil 无 bean
-放行(remaining=-1 哨兵)、CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
+CopyUtil null key drop;静默侧——LockUtil.tryLock/unlock 无 bean、CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+ADR-0032已替代限流clear-all与默认无Bean放行：新key只回收补满桶或拒绝；普通门面不可用抛异常，Optional显式降级仍不逐请求记日志。
 
 **C4 门面命名双家族**:`XxxUtil` = 静态门面(可能有状态/参与 Spring 边缘/装配交互);
 复数名词 = 纯函数无状态工具。新组件按此归家族,存量零改名。历史例外:`HttpClients`

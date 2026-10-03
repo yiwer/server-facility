@@ -82,6 +82,19 @@ class FacilityRateLimitAutoConfigurationTest {
                 .isEqualTo(5L));
     }
 
+    @Test void invalidSelectedDefaultsFailStartupAndDisabledDefaultStillHonorsTheHostAdapter() {
+        for (String invalid : new String[]{"default-capacity=0", "default-permits-per-second=NaN", "default-permits-per-second=Infinity", "max-buckets=0"})
+            runner.withPropertyValues("facility.ratelimit." + invalid).run(ctx -> assertThat(ctx).hasFailed());
+        webRunner.withPropertyValues("facility.ratelimit.enabled=false").run(ctx -> {
+            assertThat(ctx).doesNotHaveBean(RateLimiter.class);
+            assertThat(ctx).hasSingleBean(RateLimitInterceptor.class);
+        });
+        webRunner.withPropertyValues("facility.ratelimit.enabled=false").withBean(RateLimiter.class, StubRateLimiter::new).run(ctx -> {
+            assertThat(ctx).hasSingleBean(RateLimiter.class).hasSingleBean(RateLimitInterceptor.class);
+            assertThat(ctx.getBean(RateLimiter.class).tryAcquire("actor")).isTrue();
+        });
+    }
+
     /** 用户自定义 {@link RateLimiter} 实现,验证装配层为其让位。 */
     private static final class StubRateLimiter implements RateLimiter {
         @Override

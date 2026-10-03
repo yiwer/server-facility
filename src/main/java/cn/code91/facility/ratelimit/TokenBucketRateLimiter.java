@@ -1,34 +1,22 @@
 package cn.code91.facility.ratelimit;
 
-import cn.code91.facility.log.LogUtil;
-
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.LinkedHashMap;
 
 /**
- * <b>{@link RateLimiter} 默认实现：令牌桶算法</b>
- * <p>
- * 每个 key 对应一个独立 {@link TokenBucket}，存储于 {@link ConcurrentHashMap}；
- * 首次访问某 key 时按当次传入的 {@code capacity}/{@code permitsPerSecond} 建桶，
- * 此后同一 key 沿用首次的值（{@link #acquire} 后续调用传入不同 capacity/rate 不会重建桶）。
- * </p>
- *
- * <h3>无界防护：</h3>
- * <p>
- * key 基数不可控时（如按用户 ID、按 IP 限流），桶集合可能无界增长。
- * 当桶数达到 {@code maxBuckets} 且待建 key 尚不在集合中时，整体清空并记录 WARN 日志——
- * 以短暂的限流状态重置换取内存安全（详见 ADR-0014）。
- * 上限为 advisory bound：size 检查非原子，并发突发下可瞬时小幅越界（随后回到防护语义）。
- * </p>
- *
- * @author yvvb
- * @since 1.0.0
+ * Process-local token buckets with exact integral debits and decimal refill accounting.
+ * Each resident key fixes its capacity/rate; conflicting calls fail before changing credit.
+ * Admission, debit and explicit clear share one lock, so maxBuckets is a hard key-count bound.
+ * New keys inspect at most 16 rotating candidates and reclaim only fully replenished buckets;
+ * otherwise RateLimiterUnavailableException reports unavailable admission, not quota exhaustion.
+ * No timer, executor or distributed quota is provided. Keys contain 1..512 non-control characters.
  */
 public final class TokenBucketRateLimiter implements RateLimiter {
 
-    private final ConcurrentHashMap<String, TokenBucket> buckets = new ConcurrentHashMap<>();
+    private final LinkedHashMap<String, TokenBucket> buckets = new LinkedHashMap<>();
     private final long defaultCapacity;
     private final double defaultPermitsPerSecond;
     private final int maxBuckets;
+    private final java.util.function.LongSupplier nanoTime;
 
     /**
      * 参数范围守卫（F13/ADR-0013）：非正数启动期快速失败，消除 permitsPerSecond=0 的
@@ -39,10 +27,16 @@ public final class TokenBucketRateLimiter implements RateLimiter {
      * @param maxBuckets              桶集合的无界防护上限
      */
     public TokenBucketRateLimiter(long defaultCapacity, double defaultPermitsPerSecond, int maxBuckets) {
+        this(defaultCapacity, defaultPermitsPerSecond, maxBuckets, System::nanoTime);
+    }
+
+    /** Creates a local limiter with a host-owned monotonic nanosecond source; no scheduler is created. */
+    public TokenBucketRateLimiter(long defaultCapacity, double defaultPermitsPerSecond, int maxBuckets,
+                                  java.util.function.LongSupplier nanoTime) {
         if (defaultCapacity <= 0) {
             throw new IllegalArgumentException("defaultCapacity must be > 0, got " + defaultCapacity);
         }
-        if (!(defaultPermitsPerSecond > 0)) {   // 反向写法同时拦 NaN(与 NaN 的任何比较为 false)
+        if (!(defaultPermitsPerSecond > 0) || !Double.isFinite(defaultPermitsPerSecond)) {
             throw new IllegalArgumentException("defaultPermitsPerSecond must be > 0, got " + defaultPermitsPerSecond);
         }
         if (maxBuckets <= 0) {
@@ -51,6 +45,7 @@ public final class TokenBucketRateLimiter implements RateLimiter {
         this.defaultCapacity = defaultCapacity;
         this.defaultPermitsPerSecond = defaultPermitsPerSecond;
         this.maxBuckets = maxBuckets;
+        this.nanoTime = java.util.Objects.requireNonNull(nanoTime, "nanoTime");
     }
 
     @Override
@@ -59,23 +54,35 @@ public final class TokenBucketRateLimiter implements RateLimiter {
     }
 
     @Override
-    public RateLimitResult acquire(String key, int permits, long capacity, double permitsPerSecond) {
-        if (buckets.size() >= maxBuckets && !buckets.containsKey(key)) {
-            buckets.clear();
-            LogUtil.warn("RateLimiter buckets exceeded {}, cleared for memory safety", maxBuckets);
+    public synchronized RateLimitResult acquire(String key, int permits, long capacity, double permitsPerSecond) {
+        RateLimitInputs.request(key, permits, capacity, permitsPerSecond);
+        if (buckets.size() >= maxBuckets && !buckets.containsKey(key) && !reclaimFullBucket()) {
+            throw new RateLimiterUnavailableException();
         }
 
-        TokenBucket bucket = buckets.computeIfAbsent(key, k -> new TokenBucket(capacity, permitsPerSecond));
-        boolean allowed = bucket.tryConsume(permits);
-        long remaining = bucket.remaining();
-        long retryAfterMillis = allowed ? 0 : (long) Math.ceil((permits - remaining) / permitsPerSecond * 1000.0);
-        return new RateLimitResult(allowed, remaining, retryAfterMillis);
+        TokenBucket bucket = buckets.computeIfAbsent(key, k -> new TokenBucket(capacity, permitsPerSecond, nanoTime));
+        if (!bucket.hasPolicy(capacity, permitsPerSecond)) throw new IllegalArgumentException("Conflicting policy for existing rate-limit key");
+        return bucket.acquire(permits);
+    }
+
+    private boolean reclaimFullBucket() {
+        // Bounded work per new identity. Rotating candidates prevents a permanently cold head from starving later slots.
+        int candidates = Math.min(16, buckets.size());
+        for (int i = 0; i < candidates; i++) {
+            var iterator = buckets.entrySet().iterator();
+            var candidate = iterator.next();
+            boolean full = candidate.getValue().isFull();
+            iterator.remove();
+            if (full) return true;
+            buckets.put(candidate.getKey(), candidate.getValue());
+        }
+        return false;
     }
 
     /**
-     * 清空所有桶（供门面重置/测试使用）
+     * 宿主显式管理重置：清空所有桶并恢复额度；自动准入/回收绝不调用此方法。
      */
-    public void clear() {
+    public synchronized void clear() {
         buckets.clear();
     }
 }

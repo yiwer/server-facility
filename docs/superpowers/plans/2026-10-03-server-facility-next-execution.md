@@ -83,3 +83,7 @@
 ## 2026-10-04 同源Boot4平台门闭合
 
 root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128两个OS的all --fresh、platform --fresh和归档全success；精确job/artifact/digest见`docs/verification/ticket-24-ci.md`。03/05/06/13/17/24据实closed，25/26/27解除24依赖；不代表所有33票已完成。未下载artifact内部文件，不混用本地/CI数值。
+
+- 2026-10-04：merger核读09数值/回收/HTTP公开路径和两份summary，从干净8cfaa6e以--no-ff合入最终 `a83c2c6d6053a221184dc402859ea0204d0248d8`，merge `1845ed6451432473ddc479488f999dce7e065a81`。src/POM/verification/原Workflow与被测 `50d492d9160476052560910db5d1c1664e92d4ad` 一致。
+- Windows主库1478/0/0/0、原覆盖率/5架构/依赖门、普通jar/core/crypto/新限流64MiB消费、全部JSON/Web/依赖矩阵/5资源周期均PASS；jar SHA `daad8d310de94ac375e00b61df2e5b6d78254374c5744de51ed943767d905a69`。第一次all最后缺真实非25JDK环境变量，原summary保留FAIL；同源码补跑prerequisites的checksum/missing/wrong三负控PASS。两份日志分别为ticket09的20261004-025443-462-all和20261004-030212-643-prerequisites，见[报告](../../verification/ticket-09-rate-limit-contract.md)；不偷换为一次all成功。
+- 中央登记ADR0032/0014适用部分替代及37条实际ADR，并补CI归档新RateLimitConsumer.java的一行输入路径。没有改变产品/质量门或重跑同源1478测试，没有push。09仅Linux verification-pending；12/29/33的后续业务计费组合独立登记，15将同步此tip进行必要整合验证。
