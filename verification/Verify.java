@@ -207,7 +207,7 @@ class Verify {
     }
 
     static void securedTemplate() throws Exception {
-        Path application = Files.createTempDirectory("facility-template-").resolve("secured api-示例-שלום");
+        Path application = Files.createTempDirectory("facility-template-").toRealPath().resolve("secured api-示例-שלום");
         Path inputs = report.resolve("template-inputs");
         Path evidence = Files.createDirectories(report.resolve("template"));
         Path copier = ROOT.resolve("templates/Instantiate.java");

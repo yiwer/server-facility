@@ -96,7 +96,11 @@ public class PartnerApplication {
             long deadline = System.nanoTime() + timeout.toNanos();
             return execute(deadline, false, () -> before(client, transport, deadline).get().uri("/stock/{sku}", sku).exchange((request, response) -> {
                 requireStatus(response, 200, false);
-                return body(response, new ParameterizedTypeReference<List<Stock>>() {});
+                List<Stock> stock = body(response, new ParameterizedTypeReference<List<Stock>>() {});
+                if (stock.stream().anyMatch(java.util.Objects::isNull))
+                    throw new PartnerFailure(PartnerFailure.Kind.BAD_RESPONSE, PartnerFailure.Outcome.NO_EFFECT,
+                            response.getStatusCode().value(), safeHeaders(response));
+                return stock;
             }));
         }
         public void reserve(Reservation reservation) {

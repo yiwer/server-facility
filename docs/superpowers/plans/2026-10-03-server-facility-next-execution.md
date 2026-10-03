@@ -113,3 +113,12 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 随后以--no-ff合11最终9fa8ec04588b4918082cb7da68b59e14838aab5d，merge `2a363fd9bbab8c307e989ccca5a402674481a96b`。11最终与被测956081d303243e81557de61e54615f9f5608c374的src/POM/verification/templates/Workflow/Wrapper相同。核读20261004-042235-271-all/summary.txt PASS：1555/0/0/0、模板47/0/0/0，原覆盖率/5架构/依赖门、64MiB claim消费者、32MiB clone/close-tables/Clock Error探针及全部已有消费者/工具链负控通过，详见11报告。
 - 冲突限于CHANGELOG相邻条目、Workflow输入归档与Verify相邻方法；保留partnerConsumer、claimConsumer、securedTemplate全部调用/方法和归档路径，清除11 CHANGELOG遗留冲突标记。合并runner以javac --release25编译通过，输出.verification-results/merge-25-11-runner。产品文件只做Git无冲突整合，不改业务。
 - 中央登记ADR0034/0048与42条实际ADR，0017/0018仅按明确范围部分替代。11/25/27均verification-pending；不同来源的Windows计数不能合并为新来源通过，root下一批同源Windows/Linux CI验证联合候选。未重跑已通过的同源全门、未push；中央提交后释放main。
+
+
+## 票16有界Excel集成
+
+- 2026-10-04：先按root授权将Unicode JVM边界修复合入为7a78660并push；随后仅将诊断输出上限修复cherry-pick为49b3148并push供CI11取得真实失败摘要。旧Windows CI失败与局部14/47通过均保留在25报告，没有把诊断重跑视为业务通过。
+- 16从该公共修复冻结源码 `99ae71adabb6ada6c3a346ea142c7bf666b7a25d` 执行Windows `all --fresh`，`.verification-results/20261004-053114-083-all/summary.txt` RESULT=PASS。库1600/0/0/0、5原架构/依赖门、instruction24375/26289、line4775/5072、branch2555/3014；92命令全部通过，含普通jar/4 Excel图/完整平台/partner14/template47/资源/全部负控。jar SHA `12c2113e54d8ec3552753ff408e41f49fce0bf24690f05e2d5805ae03cb81bef`。
+- 正式报告记录真实12MiB属性SAX前分配OOM的RED与64KiB事件间读取预算GREEN；64MiB child处理400,000行、200失败，线程8→8、保留堆13,559,904 vs13,969,056，无自有临时文件遗留。独立xlwt/XlsxWriter样本及openpyxl最终导出oracle均有证据。没有新XML词法器、全局POI临时策略或通用报表框架。
+- 后同步49b3148仅为Verify失败tail10,000→3,000及25报告；产品/POM/测试/消费者/templates/examples/工作流与被测99ae71a相同。最终票分支 `cdefb01da542549240f8e4a0fb2c886e002dca69` 从干净49b3148以--no-ff合入，merge `7ab12b9cca78dec2f35269dd65f168b58f39c887`，无冲突。未重复相同产品全门。
+- 中央登记0039及0021明确部分替代、43条实际ADR。16保持verification-pending：新Excel源Linux及POSIX文件占用待CI；11/25/27原CI问题仍按其真实状态处理。31/33未来业务/候选组合责任独立，不反向阻塞本票。Excel合并未push，中央提交后释放main。

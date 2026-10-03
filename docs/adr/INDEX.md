@@ -24,7 +24,7 @@
 | [0018](0018-http-client-restclient-result.md) | Accepted; 部分由 [0048](0048-application-owned-outbound-http.md) 替代 | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
 | [0019](0019-crypto-facade-safe-defaults.md) | Accepted; 部分由 [0040](0040-legacy-crypto-reader-policy.md) 替代 | 保留纯JDK/固定历史协议；原始cause安全性、随机IV与never-throw过度保证由0040替代 |
 | [0020](0020-masking-log-pre-write-checksum-suppression.md) | Accepted; 默认本地化/诊断/追踪政策部分由 [0049](0049-application-owned-observability.md) 替代 | 日志脱敏——LogUtil 写前集成(LogPostHandler 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
-| [0021](0021-excel-csv-optional-poi-runtime-probe.md) | Accepted; CSV部分由 [0038](0038-bounded-csv-dialects.md) 替代 | 保留裸列表/无表头ORM与Excel optional理由；手写CSV、无界便利读取和导出政策由0038替代 |
+| [0021](0021-excel-csv-optional-poi-runtime-probe.md) | Accepted; 部分由 [0038](0038-bounded-csv-dialects.md) / [0039](0039-bounded-excel-formats.md) 替代 | 保留裸列表/无表头ORM和POI optional理由；0038替代手写CSV/用途政策，0039替代Excel无界读取/公式计算/临时清理与仅探针保证 |
 | [0022](0022-logutil-caller-gating-stackwalker.md) | Accepted; 默认本地化/诊断/追踪政策部分由 [0049](0049-application-owned-observability.md) 替代 | LogUtil 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Accepted | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted; 平台版本部分由 [0045](0045-boot4-platform-toolchain.md) 替代 | 保留 Java 25、固定 Wrapper、普通 jar 与原质量门；Boot 3 中间平台由 0045 目标依赖替代 |
@@ -38,6 +38,7 @@
 | [0036](0036-upload-integrity.md) | Accepted | 实际字节预算、内容探测流所有权、服务端存储键与同卷硬链接发布；保留0001的optional理由 |
 | [0037](0037-complete-zip-and-directory-results.md) | Accepted | ZIP完整关闭后不覆盖发布、有限读写/条目/深度预算；目录完整统计与有界逐项删除，失败及残留真实可见 |
 | [0038](0038-bounded-csv-dialects.md) | Accepted | Commons CSV明确方言、有界逐行消费与正数预算；机器原值/电子表格拒绝政策、流所有权和安全位置 |
+| [0039](0039-bounded-excel-formats.md) | Accepted | POI5.5.1实际格式图、小XLS/HSSF与有界XLSX/SAX；Locale/公式缓存、借用流和SXSSF自有临时预算 |
 | [0040](0040-legacy-crypto-reader-policy.md) | Accepted | 保留历史AES-GCM/PBKDF2读取，全部Result失败不携原始cause；协议最小/最大长度前置拒绝，应用显式资源预算 |
 | [0041](0041-core-value-contracts.md) | Accepted | 保留核心 Result/领域错误语义，明确浅引用所有权、必需回调与集合算术边界；无框架普通 jar 消费 |
 | [0044](0044-json-application-scope-expand.md) | Accepted; 旧兼容阶段由 [0046](0046-jackson3-application-ownership.md) 替代 | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
