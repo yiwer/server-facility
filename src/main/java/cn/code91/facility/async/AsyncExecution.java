@@ -172,9 +172,3 @@ final class AsyncExecution {
         return timer;
     }
 }
-
-
-
-
-
-

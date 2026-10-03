@@ -27,3 +27,4 @@
 | [0021](0021-excel-csv-optional-poi-runtime-probe.md) | Accepted | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
 | [0022](0022-logutil-caller-gating-stackwalker.md) | Accepted | LogUtil 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Accepted | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
+| [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted | Java 25 中间基线、校验固定 Maven Wrapper、独立普通 jar 消费与跨平台验证入口 |

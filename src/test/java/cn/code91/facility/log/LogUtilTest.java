@@ -3,7 +3,6 @@ package cn.code91.facility.log;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import cn.code91.facility.context.SpringContextHolder;
 import cn.code91.facility.context.SpringContextHolderTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("LogUtil - 日志静态门面")
 class LogUtilTest {
 
+    private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
+
     private ListAppender<ILoggingEvent> appender;
     private Logger root;
     private ch.qos.logback.classic.Level originalRootLevel;
@@ -41,16 +42,8 @@ class LogUtilTest {
     void detachAndReset() {
         root.detachAppender(appender);
         root.setLevel(originalRootLevel);
-        LogUtil.clearHandlerCache();
         LogUtil.clearLoggerCache();
-        springClear();
-    }
-
-    private static void springClear() {
-        // 经 context 包 test 桥调用包私有 clear()(RP-12),把 holder 置回 null——
-        // 不可置入活的空上下文:refresh 过的上下文自带空 messageSource 单例,对一切键抛
-        // NoSuchMessage,会毒化后续测试;SpringContextHolderTest 的 @BeforeEach clear() 兜底。
-        SpringContextHolderTestSupport.reset();
+        contexts.close();
     }
 
     private ILoggingEvent lastEvent() {
@@ -144,11 +137,9 @@ class LogUtilTest {
         List<LogContext> received = new ArrayList<>();
         LogPostHandler probe = received::add;
         StaticApplicationContext ctx = new StaticApplicationContext();
-        ctx.refresh();
         ctx.getBeanFactory().registerSingleton(
                 "composite", new LogPostHandlerComposite(List.of(probe)));
-        SpringContextHolder.setApplicationContextManually(ctx);
-        LogUtil.clearHandlerCache();
+        contexts.refresh(ctx);
 
         LogUtil.warn("handler {} test", "wiring");
 
@@ -325,11 +316,9 @@ class LogUtilTest {
         List<LogContext> received = new ArrayList<>();
         LogPostHandler probe = received::add;
         StaticApplicationContext ctx = new StaticApplicationContext();
-        ctx.refresh();
         ctx.getBeanFactory().registerSingleton(
                 "composite", new LogPostHandlerComposite(List.of(probe)));
-        SpringContextHolder.setApplicationContextManually(ctx);
-        LogUtil.clearHandlerCache();
+        contexts.refresh(ctx);
 
         LogUtil.warn("first call");
         LogUtil.warn("second call");
@@ -348,10 +337,8 @@ class LogUtilTest {
             }
         };
         StaticApplicationContext ctx = new StaticApplicationContext();
-        ctx.refresh();
         ctx.getBeanFactory().registerSingleton("composite", throwingComposite);
-        SpringContextHolder.setApplicationContextManually(ctx);
-        LogUtil.clearHandlerCache();
+        contexts.refresh(ctx);
 
         // 后处理器抛异常不应向上传播，也不应影响原始日志的正常写出
         LogUtil.warn("resilient log");

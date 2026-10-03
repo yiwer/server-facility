@@ -222,17 +222,3 @@ class AsyncContractTest {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

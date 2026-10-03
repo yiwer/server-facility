@@ -3,7 +3,6 @@ package cn.code91.facility.log;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import cn.code91.facility.context.SpringContextHolder;
 import cn.code91.facility.context.SpringContextHolderTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("LogUtil - 写前脱敏集成")
 class LogUtilMaskingTest {
 
+    private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
+
     private ListAppender<ILoggingEvent> appender;
     private Logger root;
     private ch.qos.logback.classic.Level originalRootLevel;
@@ -43,9 +44,8 @@ class LogUtilMaskingTest {
         root.setLevel(originalRootLevel);
         // 毒化纪律:开关必须复位默认 true,防同 JVM 后续测试串味
         LogUtil.setMaskingEnabled(true);
-        LogUtil.clearHandlerCache();
         LogUtil.clearLoggerCache();
-        SpringContextHolderTestSupport.reset();
+        contexts.close();
     }
 
     private ILoggingEvent lastEvent() {
@@ -86,11 +86,9 @@ class LogUtilMaskingTest {
         List<LogContext> received = new ArrayList<>();
         LogPostHandler probe = received::add;
         StaticApplicationContext ctx = new StaticApplicationContext();
-        ctx.refresh();
         ctx.getBeanFactory().registerSingleton(
                 "composite", new LogPostHandlerComposite(List.of(probe)));
-        SpringContextHolder.setApplicationContextManually(ctx);
-        LogUtil.clearHandlerCache();
+        contexts.refresh(ctx);
 
         LogUtil.warn("token=abc123");
 
@@ -103,11 +101,9 @@ class LogUtilMaskingTest {
         List<LogContext> received = new ArrayList<>();
         LogPostHandler probe = received::add;
         StaticApplicationContext ctx = new StaticApplicationContext();
-        ctx.refresh();
         ctx.getBeanFactory().registerSingleton(
                 "composite", new LogPostHandlerComposite(List.of(probe)));
-        SpringContextHolder.setApplicationContextManually(ctx);
-        LogUtil.clearHandlerCache();
+        contexts.refresh(ctx);
 
         RuntimeException boom = new RuntimeException("x");
         LogUtil.warn("token=abc123", boom);

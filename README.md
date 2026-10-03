@@ -8,7 +8,7 @@
 
 1. **权威链**：代码 + `docs/adr/` ＞ `docs/USAGE.md` / `docs/DESIGN.md` ＞ 本文 ＞ `CONTEXT.md`（术语基准）。文档与代码冲突时以代码 + ADR 为准，并回头修订文档。
 2. **按任务路由**：先查下表，只加载与当前任务相关的文档，不要全量通读。
-3. **快照数据**：本文标注「快照」的计数允许滞后，权威取 `mvn verify` 实际输出与对应源文件。
+3. **快照数据**：本文标注「快照」的计数允许滞后，权威取 `./mvnw verify` 实际输出与对应源文件。
 
 ## 任务路由
 
@@ -20,16 +20,16 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（23 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（24 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
 ## 硬事实
 
 - **坐标**：`cn.code91:server-facility:0.1.0-SNAPSHOT`，单模块 jar。
-- **环境**：Java 21+；Spring Boot 3.5.x（依赖版本经 `spring-boot-dependencies` BOM 收敛）。
+- **环境**：JDK 25；Spring Boot 3.5.16 中间基线（最终 Boot 4 / Jackson 3 由票 21–24 完成）。Maven Wrapper 固定 3.10.0 并校验下载。
 - **命名**：包根 `cn.code91.facility.*`；类前缀 `Facility*`；配置前缀 `facility.*`；i18n bundle `i18n/facility-messages_*`。
-- **命令**：`mvn verify` = 全部质量门（测试 + 覆盖率 + 依赖账目）；`mvn test` = 仅测试。
+- **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。完整命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
 - **质量门**（不达即构建失败，禁止以调低门槛的方式通过）：
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
@@ -48,7 +48,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 23 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 24 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
@@ -116,7 +116,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `error` | `WrappedError` / `FacilityErrorType` / `ErrorTypeInterface` | 错误码 + i18n 消息键 + 可扩展错误类型；error 包纯 JDK（C1 断环） |
 | `structure` | `Tuple` / `Triple` | 轻量二/三元值容器 |
 | `common` | `NullSafe` / `Collects` | 空安全与集合便捷 |
-| `context` | `SpringContextHolder` | 静态持有 ApplicationContext（AtomicReference + CAS 单次发布） |
+| `context` | 构造器注入；兼容 `SpringContextHolder` | 默认注入应用自己的服务；旧门面按实例归属发布/撤销 context |
 | `id` | `IdUtil` | 雪花 ID（可配 worker/dataCenter）+ UUID 多形态 |
 | `json` | `JsonUtil` | 多命名空间（DEFAULT/GENERIC/CANONICAL/PRETTY）Jackson；序列化返回 Result |
 | `log` | `LogUtil` | SLF4J 风格门面；带异常签名固定 `(msg, t, args...)`，Throwable 显式居中（ADR-0005），主源零 logback 依赖（ADR-0011） |
@@ -167,7 +167,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 - **i18n 抢注**：facility 抢注 `@Primary` 的 `messageSource`，`spring.messages.*` **不影响** facility 自带文案；要完全接管，声明名为 `messageSource` 的 bean 即可让位。
 - **JsonUtil 进程级单例**：`JsonsRegistry` 是静态单例，同一 JVM 内多个 ApplicationContext 共享同一套 ObjectMapper 命名空间。
-- **SpringContextHolder 先到先得**：静态 CAS 只注入首个 context；多 context 测试中「拿到别的上下文的 bean / 降级分支被意外触发」先查此语义。
+- **SpringContextHolder 已弃用**：新路径构造器注入所需服务。兼容门面只发布首个成功刷新 context，只有发布者能撤销；被拒绝的 context 不自动接管，关闭不会影响 owner（ADR-0025）。
 - **两类让位机制勿混淆**：`@ConditionalOnMissingBean` 真回退（声明即让位） vs Web 过滤器/拦截器仅认 `enabled` 开关（声明同类 bean 会并存双重入链）。
 - **无校验 provider 也能启动**：properties 类不用 `@Validated`（ADR-0013），取值约束在组件构造器兜底。
 
@@ -175,7 +175,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 修改本仓库代码时的成文规则。完整条款：DESIGN §7 一致性宪法；工作流：SDD（spec → plan → TDD 实施，档案在 `docs/superpowers/`）。
 
-**完成判定**：`mvn verify` 全绿。门槛失败修代码、补测试，**不得调低 pom 门槛值或随手加 ignore**（依赖账目确需 ignore 时必须注明理由，样例见 pom 注释）。
+**完成判定**：`./mvnw verify` 库质量门全绿，发布/集成另运行 `java verification/Verify.java all --fresh`。门槛失败修代码、补测试，**不得调低 pom 门槛值或随手加 ignore**（依赖账目确需 ignore 时必须注明理由，样例见 pom 注释）。
 
 **架构红线**（ArchUnit，`src/test/java/cn/code91/facility/architecture/ArchitectureTest.java`，违反即测试红）：
 
