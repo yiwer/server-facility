@@ -515,16 +515,21 @@ String phone   = MaskUtil.maskPhone("13800138000");               // → "138***
 ## CSV / Excel:CsvUtil / ExcelUtil
 
 两个门面同形对称:读 → `Result<List<List<String>>, WrappedError>`,写 ←
-`List<List<String>>`(裸行集,无表头/POJO 语义,首行是否为表头由调用方自行处理);所有
-可失败方法返回 `Result`,从不抛异常,null 入参 → err。设计取舍见 ADR-0021。
+`List<List<String>>`(裸行集,无表头/POJO 语义,首行是否为表头由调用方自行处理)。CSV 的格式、预算、编码与 I/O 失败走 `Result`；数据 null 返回 Err，必需的方言、预算及 consumer 为 null 时快速抛出，consumer/程序异常原样传播。设计见 ADR-0021 与 [CSV 替代决定 ADR-0038](adr/0038-bounded-csv-dialects.md)。
 
 ```java
-// ---- CSV(csv 包,纯 JDK,零依赖恒可用)----
+// ---- CSV(csv 包,Commons CSV required；不依赖 Excel)----
 var okW1 = CsvUtil.write(Path.of("out.csv"), List.of(List.of("h1", "h2"), List.of("v1", "v2")));
 var okW2 = CsvUtil.write(outputStream, List.of(List.of("a", "b,c")));   // 含逗号字段自动加引号
 Result<List<List<String>>, WrappedError> r1 = CsvUtil.read(Path.of("in.csv"));
 Result<List<List<String>>, WrappedError> r2 = CsvUtil.read(inputStream);
 List<List<String>> rows = r1.orElse(List.of());
+
+// 大文件采用逐行消费，并给出本次实际预算；不要把默认 read 当作无限制入口。
+var limits = new CsvLimits(64L * 1024 * 1024, 1_000_000, 32, 4096);
+var consumed = CsvUtil.forEach(inputStream, CsvDialect.STRICT, limits, row -> storeRow(row));
+var machine = CsvUtil.writeMachine(outputStream, rowIterable, limits); // 无 BOM，原值
+var spreadsheet = CsvUtil.writeSpreadsheet(outputStream, rowIterable, limits); // BOM，公式前缀拒绝
 
 // ---- Excel(excel 包,POI optional)----
 var okW3 = ExcelUtil.write(Path.of("out.xlsx"), List.of(List.of("h1", "h2"), List.of("v1", "v2")));
@@ -533,11 +538,12 @@ Result<List<List<String>>, WrappedError> r3 = ExcelUtil.read(Path.of("in.xlsx"))
 Result<List<List<String>>, WrappedError> r4 = ExcelUtil.read(inputStream);
 ```
 
-- **CSV 写**:UTF-8 编码,前置 BOM(Excel 双击打开不乱码,ADR-0021 记录取舍);行尾 CRLF;
-  最小引号策略(字段含逗号/引号/换行/首尾空格才加引号,内嵌引号翻倍);行内 `null` 单元格
-  写为空串;`rows` 含 `null` 行 → `err(CSV_WRITE_ERROR)`。
-- **CSV 读**:兼容剥离 UTF-8 BOM;裸 CR/LF/CRLF 三种行分隔均容忍;引号字段内的逗号/换行/
-  成对引号(`""`→`"`)按 RFC 4180 解析;引号未闭合到 EOF → `err(CSV_READ_ERROR)`。
+- **CSV 预算**：`CsvLimits(maxBytes, maxRows, maxColumns, maxFieldChars)` 全部为正数，字段长度计 UTF-16 单元，字节含 BOM；错误累计固定为 1，首次失败立即停止。旧 `read`/`write` 与 `CsvLimits.DEFAULT` 为 **1 MiB / 10,000 行 / 128 列 / 1,024 字符**。需要更大规模时显式传预算；`readAll` 仍累积行，优先用 `forEach`。
+- **CSV 解析资源**：Commons CSV 负责语法；精确列/字段限制在交付前检查。为阻止单条畸形记录在库内无界分配，另有 `(2 * maxFieldChars + 3) * maxColumns + 3` 源字符上限（默认 262,531），超过整型范围的预算构造失败。冗余语法也消耗该预算。输入最多实际探测到字节预算 N+1；解码器可能预读 8 KiB，借用流不是可恢复的记录游标。
+- **CSV 方言**：旧 `read` 采用 LEGACY，`"ab"x,c` 保留为 `abx,c`；STRICT 拒绝该尾随非空白文本。两者剥一个开头 BOM，接受 CR/LF/CRLF、空/ragged 记录、引用内换行和双引号转义，拒绝未闭合引用与坏 UTF-8。STRICT 是本项目机器方言，**并非完整 RFC 验证器**：裸字段内引号仍为字面值，闭合引号后空白会被忽略；LEGACY 保留该空白。
+- **CSV 导出**：旧 `write` 为 UTF-8+BOM；`writeMachine` 无 BOM，两者保留机器原值。`writeSpreadsheet` 带 BOM，拒绝前导 Unicode 空白/控制/格式字符之后的 `= + - @` 及全角对应字符，也拒绝前导区域的 Tab/CR/LF；不偷偷加引号前缀或改数据。该保守政策也拒绝负数字符串，不承诺所有电子表格导入方式的通用安全。普通 CSV 引号不是公式防护。
+- **CSV 生命周期**：借用输入/输出永不关闭，成功输出会完成 UTF-8 编码并 flush；Path 方法关闭自己打开的流，写文件直接覆盖，不保证原子发布。首次异常后不 drain、不重试坏输出；输出可能已有前缀，已执行 consumer 副作用不会回滚。线程中断在 I/O/记录边界检查，不能取代宿主对不响应中断的 I/O 设置超时或并发准入。
+- **CSV 诊断**：`CsvException.reason()/row()/column()` 提供原因与逻辑记录位置，列 0 表示未知；外层消息不包含字段内容，保留的外部 I/O cause 只供受信任诊断，不能直接作为 HTTP 错误。null 单元格写为空串，null 行为 Err。
 - **Excel 写**:`SXSSFWorkbook` 恒定内存,仅产出 xlsx,单 sheet(`Sheet1`),写完 `close()`
   即清理临时文件;行内 `null` 单元格写为空串;`rows` 含 `null` 行 → `err(EXCEL_WRITE_ERROR)`。
 - **Excel 读**:`WorkbookFactory` 自动识别 xls/xlsx;仅读**第一个** sheet;单元格经
@@ -558,8 +564,7 @@ Result<List<List<String>>, WrappedError> r4 = ExcelUtil.read(inputStream);
   `General` 格式的大整数会按 Excel 自身规则显示为科学计数法(如 `1.23457E+15`),这是
   `DataFormatter` 复刻 Excel 桌面版行为而非 bug;需要保留精确大数值,请在源文件把目标
   单元格设为文本格式,不要依赖门面做额外数值探测。
-- **CSV 默认带 BOM**:面向业务导出场景(Excel 直接打开)选择前置 BOM;纯 Unix 工具链消费
-  场景如需无 BOM,请自行处理(ADR-0021 记录该取舍非普适最优)。
+- **CSV BOM**：旧 `write` 保留 BOM 兼容；机器交换用 `writeMachine`，不必自行剥字节。
 - **CSV 空行写读不对称**:写出一个空 `List`(无字段)产出一行仅 CRLF 的空行;该空行回读
   时按 CSV"行至少一个字段"的表达能力,会解析为**一个空字符串字段**的行(即
   `List.of("")` 而非原始的空 `List`)——这是格式表达能力边界,不是实现缺陷。

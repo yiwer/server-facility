@@ -84,7 +84,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
   详见 ADR-0020);`log` 包在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖
   `log → masking`,由 `MaskUtil` 零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit
   `packages_are_cycle_free` 守护的是未来出现反向边时立即报警,而非断言方向本身),`masking`
-  自身零依赖、零装配、零 bean。`csv`/`excel` 同属这一类:`CsvUtil` 纯 JDK 零依赖恒可用;
+  自身零依赖、零装配、零 bean。`csv`/`excel` 同属这一类:`CsvUtil` 以 Commons CSV required 依赖提供有界逐行消费与明确方言（ADR-0038）;
   `ExcelUtil` 依赖 POI(optional),但装配开关的角色由**运行时探测**(而非
   `@ConditionalOnClass`)承担——静态门面无 bean 无从条件化,改为缓存的双类 `Class.forName`
   探针,POI 缺失时四个 API 全返 `err(EXCEL_LIB_MISSING)` 而非崩溃(ADR-0021);两包均零
