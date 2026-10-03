@@ -1,7 +1,5 @@
 package cn.code91.facility.copy;
 
-import cn.code91.facility.common.Collects;
-
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -15,25 +13,14 @@ final class AutoCopyEngine {
 
     private AutoCopyEngine() { throw new UnsupportedOperationException(); }
 
-    private static final ThreadLocal<Set<Object>> ACTIVE = new ThreadLocal<>();
-
     static <T> T copy(T source) {
-        Set<Object> active = ACTIVE.get();
-        boolean root = active == null;
-        if (root) active = Collections.newSetFromMap(new IdentityHashMap<>());
-        if (active.size() >= 32) throw new CopyUtil.CopyException("autoCopy depth exceeds 32; use an explicit snapshot");
-        if (!active.add(source)) throw new CopyUtil.CopyException("autoCopy cycle is unsupported; use an explicit snapshot");
-        if (root) ACTIVE.set(active);
-        try {
-            return copyFields(source);
-        } finally {
-            active.remove(source);
-            if (root) ACTIVE.remove();
+        try (CopyScope scope = CopyScope.open(source)) {
+            return copyFields(source, scope);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T copyFields(T source) {
+    private static <T> T copyFields(T source, CopyScope scope) {
         Class<?> clazz = source.getClass();
         ClassCopyMeta meta = AUTO_COPY_CACHE.get(clazz);
 
@@ -44,7 +31,8 @@ final class AutoCopyEngine {
                 if (value == null) {
                     continue;
                 }
-                fieldMeta.field.set(target, deepCopyFieldValue(value, fieldMeta.strategy));
+                scope.take(1);
+                fieldMeta.field.set(target, deepCopyFieldValue(value, fieldMeta.strategy, scope));
             }
             return target;
         } catch (CopyUtil.CopyException e) {
@@ -56,7 +44,7 @@ final class AutoCopyEngine {
 
     /**
      * 类拷贝元数据缓存。
-     * <p>使用 {@link ClassValue} 而非 {@link ConcurrentHashMap}：避免热重载 / OSGi 场景下把旧
+     * <p>使用 {@link ClassValue} 而非 {@link java.util.concurrent.ConcurrentHashMap}：避免热重载 / OSGi 场景下把旧
      * ClassLoader 钉住，与 {@code stele-compare} 的 ClassValue 缓存对齐。</p>
      */
     private static final ClassValue<ClassCopyMeta> AUTO_COPY_CACHE = new ClassValue<>() {
@@ -72,7 +60,9 @@ final class AutoCopyEngine {
         Constructor<?> constructor;
         try {
             constructor = clazz.getDeclaredConstructor();
-            constructor.setAccessible(true);
+            if (!constructor.trySetAccessible()) {
+                throw new CopyUtil.CopyException("autoCopy requires an accessible constructor; use explicit mapping");
+            }
         } catch (NoSuchMethodException e) {
             throw new CopyUtil.CopyException("autoCopy requires a no-arg constructor: " + clazz.getName(), e);
         }
@@ -95,8 +85,18 @@ final class AutoCopyEngine {
                     throw new CopyUtil.CopyException("autoCopy does not support final fields; use explicit construction");
                 }
 
-                field.setAccessible(true);
+                if (!field.trySetAccessible()) {
+                    throw new CopyUtil.CopyException("autoCopy requires accessible fields; use explicit mapping");
+                }
                 AutoCopyStrategy strategy = determineAutoCopyStrategy(field);
+                Class<?> fieldType = field.getType();
+                boolean unsupportedCollection = strategy == AutoCopyStrategy.COLLECTION_COPY_TRAIT
+                        && !(fieldType.isAssignableFrom(ArrayList.class) || fieldType.isAssignableFrom(LinkedHashSet.class));
+                boolean unsupportedMap = (strategy == AutoCopyStrategy.MAP_VALUE_COPY_TRAIT || strategy == AutoCopyStrategy.MAP_ALL_COPY_TRAIT)
+                        && !fieldType.isAssignableFrom(LinkedHashMap.class);
+                if (unsupportedCollection || unsupportedMap) {
+                    throw new CopyUtil.CopyException("autoCopy does not support this concrete container; use explicit mapping");
+                }
                 fieldMetas.add(new FieldCopyMeta(field, strategy));
             }
             current = current.getSuperclass();
@@ -186,23 +186,27 @@ final class AutoCopyEngine {
     // ==================== 反射自动拷贝 - 缓存构建 ====================
 
     @SuppressWarnings("unchecked")
-    private static Object deepCopyFieldValue(Object value, AutoCopyStrategy strategy) {
+    private static Object deepCopyFieldValue(Object value, AutoCopyStrategy strategy, CopyScope scope) {
+        if (strategy != AutoCopyStrategy.DIRECT && (value instanceof SortedSet<?> || value instanceof SortedMap<?, ?>)) {
+            throw new CopyUtil.CopyException("autoCopy does not normalize sorted containers; use explicit mapping");
+        }
         return switch (strategy) {
             case DIRECT -> value;
             case COPY_TRAIT -> ((CopyTrait<?>) value).copy();
-            case ARRAY_CLONE -> cloneArray(value);
-            case ARRAY_DEEP_COPY_TRAIT -> deepCopyCopyTraitArray(value);
-            case COLLECTION_COPY_TRAIT -> deepCopyCopyTraitCollection((Collection<CopyTrait<?>>) value);
-            case MAP_VALUE_COPY_TRAIT -> deepCopyCopyTraitMapValues((Map<Object, CopyTrait<?>>) value);
-            case MAP_ALL_COPY_TRAIT -> deepCopyCopyTraitMapAll((Map<CopyTrait<?>, CopyTrait<?>>) value);
+            case ARRAY_CLONE -> cloneArray(value, scope);
+            case ARRAY_DEEP_COPY_TRAIT -> deepCopyCopyTraitArray(value, scope);
+            case COLLECTION_COPY_TRAIT -> deepCopyCopyTraitCollection((Collection<CopyTrait<?>>) value, scope);
+            case MAP_VALUE_COPY_TRAIT -> deepCopyCopyTraitMapValues((Map<Object, CopyTrait<?>>) value, scope);
+            case MAP_ALL_COPY_TRAIT -> deepCopyCopyTraitMapAll((Map<CopyTrait<?>, CopyTrait<?>>) value, scope);
         };
     }
 
     /**
-     * 数组浅拷贝（适用于基本类型和不可变元素类型的数组）
+     * 数组浅拷贝（对象数组元素仍共享源引用）
      */
-    private static Object cloneArray(Object array) {
+    private static Object cloneArray(Object array, CopyScope scope) {
         int length = Array.getLength(array);
+        scope.take(length);
         Object newArray = Array.newInstance(array.getClass().getComponentType(), length);
         System.arraycopy(array, 0, newArray, 0, length);
         return newArray;
@@ -211,10 +215,12 @@ final class AutoCopyEngine {
     /**
      * CopyTrait 元素数组的深拷贝
      */
-    private static Object deepCopyCopyTraitArray(Object array) {
+    private static Object deepCopyCopyTraitArray(Object array, CopyScope scope) {
         int length = Array.getLength(array);
+        scope.take(length);
         Object newArray = Array.newInstance(array.getClass().getComponentType(), length);
         for (int i = 0; i < length; i++) {
+            scope.checkSize(0); // Slots were reserved before allocation; still observe interruption between callbacks.
             Object elem = Array.get(array, i);
             Array.set(newArray, i, elem != null ? ((CopyTrait<?>) elem).copy() : null);
         }
@@ -228,14 +234,16 @@ final class AutoCopyEngine {
      * <p>根据原始集合类型创建对应的新集合实例</p>
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Collection<?> deepCopyCopyTraitCollection(Collection<CopyTrait<?>> source) {
+    private static Collection<?> deepCopyCopyTraitCollection(Collection<CopyTrait<?>> source, CopyScope scope) {
+        scope.checkSize(source.size());
         Collection result;
         if (source instanceof Set) {
-            result = new LinkedHashSet<>(Collects.calculateCapacity(source.size()));
+            result = new LinkedHashSet<>();
         } else {
-            result = new ArrayList<>(source.size());
+            result = new ArrayList<>();
         }
         for (CopyTrait<?> elem : source) {
+            scope.take(1);
             result.add(elem != null ? elem.copy() : null);
         }
         return result;
@@ -245,11 +253,13 @@ final class AutoCopyEngine {
      * Map&lt;K, CopyTrait&gt; 深拷贝（仅 value 深拷贝）
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Map<?, ?> deepCopyCopyTraitMapValues(Map<Object, CopyTrait<?>> source) {
-        Map result = new LinkedHashMap<>(Collects.calculateCapacity(source.size()));
-        source.forEach((key, value) ->
-                result.put(key, value != null ? value.copy() : null)
-        );
+    private static Map<?, ?> deepCopyCopyTraitMapValues(Map<Object, CopyTrait<?>> source, CopyScope scope) {
+        scope.checkSize(source.size());
+        Map result = new LinkedHashMap<>();
+        source.forEach((key, value) -> {
+            scope.take(1);
+            result.put(key, value != null ? value.copy() : null);
+        });
         return result;
     }
 
@@ -257,9 +267,11 @@ final class AutoCopyEngine {
      * Map&lt;CopyTrait, CopyTrait&gt; 深拷贝（key 和 value 均深拷贝）
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Map<?, ?> deepCopyCopyTraitMapAll(Map<CopyTrait<?>, CopyTrait<?>> source) {
-        Map result = new LinkedHashMap<>(Collects.calculateCapacity(source.size()));
+    private static Map<?, ?> deepCopyCopyTraitMapAll(Map<CopyTrait<?>, CopyTrait<?>> source, CopyScope scope) {
+        scope.checkSize(source.size());
+        Map result = new LinkedHashMap<>();
         source.forEach((key, value) -> {
+            scope.take(1);
             Object copiedKey = key != null ? key.copy() : null;
             Object copiedValue = value != null ? value.copy() : null;
             result.put(copiedKey, copiedValue);
@@ -272,7 +284,7 @@ final class AutoCopyEngine {
      */
     private enum AutoCopyStrategy {
         /**
-         * 直接引用拷贝（不可变类型：String、包装类、BigDecimal、枚举等）
+         * 直接引用拷贝（也包括非CopyTrait的可变对象；不保证独立快照）
          */
         DIRECT,
         /**
