@@ -6,6 +6,8 @@ Accepted
 
 日期：2026-10-04
 
+2026-10-04 部分被 [ADR-0035](0035-authorized-bounded-http-replay.md) 替代：`release` 允许过期但仍为当前 PROCESSING 的 owner 终止；被替换 owner/generation 仍拒绝，`complete` 仍要求有效租约。以下保留原决定与动机；当前例外及公共并发证据见新 ADR。
+
 部分替代 ADR-0017 的无owner完成、PROCESSING/DONE不足以表达失败、结果到期等同允许重做及advisory容量；保留旧消费者签名和Web分包理由。票11只扩展独立存储协议，HTTP迁移由12完成，业务同库事务/永久唯一键属于29。
 
 ## Context

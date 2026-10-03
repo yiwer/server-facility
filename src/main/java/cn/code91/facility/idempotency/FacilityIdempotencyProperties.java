@@ -26,11 +26,17 @@ public class FacilityIdempotencyProperties {
     private boolean enabled = true;
 
     /**
-     * {@code @Idempotent#ttlSeconds()} 为 0(未显式指定)时使用的默认占位/终态记录存活时长。
-     * 默认 5 分钟。
-     * (声明性约束:&gt;0;绑定不校验——ADR-0013)
+     * Compatibility fallback for either unset lease/result-retention value. Default 5 minutes.
+     * @deprecated Configure lease and result-retention independently. Result expiry never permits execution.
      */
+    @Deprecated(since = "0.1.0", forRemoval = false)
     private Duration defaultTtl = Duration.ofMinutes(5);
+
+    /** Positive whole-millisecond execution lease; null uses the compatibility default-ttl. */
+    private Duration lease;
+
+    /** Positive whole-millisecond receipt retention from completion; null uses default-ttl. */
+    private Duration resultRetention;
 
     /**
      * {@link InMemoryIdempotencyStore} 新旧命名空间共享的严格条目上限——记录数达到该值且待建 key
@@ -41,4 +47,10 @@ public class FacilityIdempotencyProperties {
 
     /** Positive byte budget per selected response; overflow streams normally but is not stored. */
     private int maxResponseBytes = 1024 * 1024;
+
+    /** Positive request-body budget, read only for an explicitly selected finite HTTP operation. */
+    private int maxRequestBytes = 1024 * 1024;
+
+    /** Positive aggregate receipt budget for the default local store, including metadata. */
+    private long maxStoredReceiptBytes = 64L * 1024 * 1024;
 }

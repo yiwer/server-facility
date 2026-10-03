@@ -7,12 +7,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * <b>方法级幂等注解</b>
- * <p>
- * 标注在 Controller 方法上，由 {@link IdempotencyInterceptor} 读取并委托构造注入的
- * {@code IdempotencyStore} 实现完整幂等语义：同一 {@link #headerName()} 请求头取值
- * （幂等 key）重复提交时，直接返回首次处理的响应，而非重新执行方法体。
- * </p>
+ * Selects a synchronous, finite controller operation for qualified HTTP receipt replay.
+ * An explicit {@link IdempotencyAuthorization} checks current resource permission and normalizes
+ * business input before every acquisition or replay. Missing support rejects the operation.
+ * Scope includes trusted tenant/actor, concrete handler signature, HTTP method and route;
+ * the client key alone never identifies an authorized command.
+ * <p>Ordinary requests remain streaming. This local protocol does not atomically commit business
+ * effects with a receipt, stop an expired owner's work, persist across process loss, or provide
+ * cross-system exactly-once. Lease expiry may permit a replacement owner while old work continues.</p>
  *
  * <h3>使用示例：</h3>
  * <pre>{@code
@@ -38,8 +40,9 @@ public @interface Idempotent {
     String headerName() default "Idempotency-Key";
 
     /**
-     * 占位/终态记录的存活时长（秒）。
-     * <p>默认为 {@code 0}，表示使用装配层 properties 配置的默认 TTL。</p>
+     * Compatibility override for both execution lease and receipt retention, in positive seconds.
+     * Zero uses the independently configured lease and result-retention. Receipt expiry never
+     * grants another execution; terminal bindings remain until their store closes.
      *
      * @return TTL 秒数
      */

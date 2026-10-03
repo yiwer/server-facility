@@ -28,6 +28,9 @@ public final class PlatformWebConsumer {
     @SpringBootConfiguration @EnableAutoConfiguration
     static class Application {
         @Bean Endpoint endpoint() { return new Endpoint(); }
+        @Bean IdempotencyAuthorization authorization() {
+            return (request, operation, body) -> new IdempotencyAuthorization.Command("platform-fixture", "fixture", "empty-v1");
+        }
 
         @Bean @ConditionalOnProperty(name="platform.user", havingValue="true")
         JsonMapper applicationMapper() {
@@ -148,9 +151,15 @@ public final class PlatformWebConsumer {
             }
             var first = send(app, client, "/replay", null);
             var second = send(app, client, "/replay", null);
-            require(first.statusCode() == 200 && second.statusCode() == 200 && first.body().equals("once-1"), "initial command response");
-            require(second.body().equals(disabled ? "once-2" : "once-1"), "capture registration and capability switch");
-            require(app.getBean(Endpoint.class).calls.get() == (disabled ? 2 : 1), "only eligible first command executes");
+            if (disabled) {
+                require(first.statusCode() == 503 && second.statusCode() == 503, "disabled provider refuses annotated execution");
+                require(mapper.readTree(first.body()).path("status").asInt() == 503, "disabled capability safe HTTP policy");
+                require(app.getBean(Endpoint.class).calls.get() == 0, "missing capability never executes unprotected command");
+            } else {
+                require(first.statusCode() == 200 && second.statusCode() == 200 && first.body().equals("once-1"), "initial command response");
+                require(second.body().equals("once-1"), "capture registration and qualified replay");
+                require(app.getBean(Endpoint.class).calls.get() == 1, "only qualified first command executes");
+            }
             var error = send(app, client, "/error", null);
             require(error.statusCode() == 404 && !error.body().contains("PRIVATE_SENTINEL"), "actual ERROR dispatch safe status");
             require(mapper.readTree(error.body()).path("status").asInt() == 404, "ERROR dispatch JSON protocol");
