@@ -43,9 +43,5 @@
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |
 | [0046](0046-jackson3-application-ownership.md) | Accepted | Jackson3不可变配置、应用mapper/registry所有权、安全错误与正数字段流预算；保留旧金样和明确静态迁移 |
 | [0047](0047-boot4-consumer-integration.md) | Accepted | 补全0045/0046平台门、0028的Servlet6.1入口与0015缺类装配；真实五图/普通jar/Web/上传消费，OS状态按报告 |
-<<<<<<< HEAD
-
 | [0048](0048-application-owned-outbound-http.md) | Accepted | 部分替代0018；宿主拥有HTTP配置、有限响应与应用级重试，双服务实际消费者 |
-=======
 | [0050](0050-secured-application-template.md) | Accepted | 独立MVC模板的应用自有JWT信任、Actor与标准Security授权；安全401/403/503、JWK有限I/O、真实Servlet/执行器上下文及独立打包门 |
->>>>>>> codex/server-facility-next
