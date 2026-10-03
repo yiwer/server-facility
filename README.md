@@ -116,7 +116,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `error` | `WrappedError` / `FacilityErrorType` / `ErrorTypeInterface` | 错误码 + i18n 消息键 + 可扩展错误类型；error 包纯 JDK（C1 断环） |
 | `structure` | `Tuple` / `Triple` | 轻量二/三元值容器 |
 | `common` | `NullSafe` / `Collects` | 空安全与集合便捷 |
-| `context` | `SpringContextHolder` | 静态持有 ApplicationContext（AtomicReference + CAS 单次发布） |
+| `context` | 构造器注入；兼容 `SpringContextHolder` | 默认注入应用自己的服务；旧门面按实例归属发布/撤销 context |
 | `id` | `IdUtil` | 雪花 ID（可配 worker/dataCenter）+ UUID 多形态 |
 | `json` | `JsonUtil` | 多命名空间（DEFAULT/GENERIC/CANONICAL/PRETTY）Jackson；序列化返回 Result |
 | `log` | `LogUtil` | SLF4J 风格门面；带异常签名固定 `(msg, t, args...)`，Throwable 显式居中（ADR-0005），主源零 logback 依赖（ADR-0011） |
@@ -167,7 +167,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 - **i18n 抢注**：facility 抢注 `@Primary` 的 `messageSource`，`spring.messages.*` **不影响** facility 自带文案；要完全接管，声明名为 `messageSource` 的 bean 即可让位。
 - **JsonUtil 进程级单例**：`JsonsRegistry` 是静态单例，同一 JVM 内多个 ApplicationContext 共享同一套 ObjectMapper 命名空间。
-- **SpringContextHolder 先到先得**：静态 CAS 只注入首个 context；多 context 测试中「拿到别的上下文的 bean / 降级分支被意外触发」先查此语义。
+- **SpringContextHolder 已弃用**：新路径构造器注入所需服务。兼容门面只发布首个成功刷新 context，只有发布者能撤销；被拒绝的 context 不自动接管，关闭不会影响 owner（ADR-0025）。
 - **两类让位机制勿混淆**：`@ConditionalOnMissingBean` 真回退（声明即让位） vs Web 过滤器/拦截器仅认 `enabled` 开关（声明同类 bean 会并存双重入链）。
 - **无校验 provider 也能启动**：properties 类不用 `@Validated`（ADR-0013），取值约束在组件构造器兜底。
 

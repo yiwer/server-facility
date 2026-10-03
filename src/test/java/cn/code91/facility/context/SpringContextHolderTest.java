@@ -2,7 +2,6 @@ package cn.code91.facility.context;
 
 import cn.code91.facility.error.FacilityErrorType;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,22 +12,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("SpringContextHolder - Spring 上下文静态门面")
 class SpringContextHolderTest {
 
-    /**
-     * 前后双向复位:跨类运行顺序下,任何在本类之前污染 holder 的测试
-     * (如 LogUtilTest,现经 SpringContextHolderTestSupport 桥调本包私有 clear())
-     * 都由 @BeforeEach 兜底,保证"未初始化"用例成立;@AfterEach 防本类污染他人。
-     */
-    @BeforeEach
+    private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
+
     @AfterEach
-    void resetHolder() {
-        SpringContextHolder.clear();
+    void closeContexts() {
+        contexts.close();
     }
 
-    private static StaticApplicationContext contextWithBean() {
-        StaticApplicationContext ctx = new StaticApplicationContext();
-        ctx.registerSingleton("sampleBean", StringBuilder.class);
-        ctx.refresh();
-        return ctx;
+    private StaticApplicationContext contextWithBean() {
+        StaticApplicationContext context = new StaticApplicationContext();
+        context.registerSingleton("sampleBean", StringBuilder.class);
+        return contexts.refresh(context);
     }
 
     @Nested
@@ -85,7 +79,7 @@ class SpringContextHolderTest {
 
         @Test
         void getBeanByType_present_returnsOk() {
-            SpringContextHolder.setApplicationContextManually(contextWithBean());
+            contextWithBean();
             var result = SpringContextHolder.getBean(StringBuilder.class);
             assertThat(result.isOk()).isTrue();
             assertThat(result.get()).isInstanceOf(StringBuilder.class);
@@ -93,14 +87,14 @@ class SpringContextHolderTest {
 
         @Test
         void getBeanByNameAndType_present_returnsOk() {
-            SpringContextHolder.setApplicationContextManually(contextWithBean());
+            contextWithBean();
             var result = SpringContextHolder.getBean("sampleBean", StringBuilder.class);
             assertThat(result.isOk()).isTrue();
         }
 
         @Test
         void getBeanByType_missing_returnsGetBeanErrWithTypeArg() {
-            SpringContextHolder.setApplicationContextManually(contextWithBean());
+            contextWithBean();
             var result = SpringContextHolder.getBean(java.util.concurrent.ExecutorService.class);
             assertThat(result.isErr()).isTrue();
             assertThat(result.getErr().isErrorType(FacilityErrorType.CONTEXT_GET_BEAN_ERROR)).isTrue();
@@ -110,7 +104,7 @@ class SpringContextHolderTest {
 
         @Test
         void containsBean_andBeanNamesForType_reflectRegistry() {
-            SpringContextHolder.setApplicationContextManually(contextWithBean());
+            contextWithBean();
             assertThat(SpringContextHolder.containsBean("sampleBean")).isTrue();
             assertThat(SpringContextHolder.containsBean("absent")).isFalse();
             assertThat(SpringContextHolder.getBeanNamesForType(StringBuilder.class))
@@ -119,7 +113,7 @@ class SpringContextHolderTest {
 
         @Test
         void getContextInfo_initialized_containsBeanCount() {
-            SpringContextHolder.setApplicationContextManually(contextWithBean());
+            contextWithBean();
             assertThat(SpringContextHolder.getContextInfo()).contains("beanCount");
         }
     }
@@ -132,9 +126,9 @@ class SpringContextHolderTest {
         void setApplicationContext_duplicateInjection_keepsFirst() {
             StaticApplicationContext first = contextWithBean();
             StaticApplicationContext second = new StaticApplicationContext();
-            second.refresh();
+            contexts.refresh(second);
 
-            SpringContextHolder holder = new SpringContextHolder();
+            SpringContextHolder holder = first.getBean(SpringContextHolder.class);
             holder.setApplicationContext(first);
             holder.setApplicationContext(second);
 
@@ -143,8 +137,8 @@ class SpringContextHolderTest {
 
         @Test
         void destroy_clearsContext() {
-            SpringContextHolder holder = new SpringContextHolder();
-            holder.setApplicationContext(contextWithBean());
+            var context = contextWithBean();
+            SpringContextHolder holder = context.getBean(SpringContextHolder.class);
             assertThat(SpringContextHolder.isInitialized()).isTrue();
 
             holder.destroy();

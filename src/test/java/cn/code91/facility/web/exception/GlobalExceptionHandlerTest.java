@@ -1,6 +1,5 @@
 package cn.code91.facility.web.exception;
 
-import cn.code91.facility.context.SpringContextHolder;
 import cn.code91.facility.context.SpringContextHolderTestSupport;
 import cn.code91.facility.error.ErrorTypeInterface;
 import cn.code91.facility.web.ratelimit.RateLimitExceededException;
@@ -60,6 +59,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("DefaultGlobalExceptionHandler - 全局异常处理器")
 class GlobalExceptionHandlerTest {
+
+    private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
 
     private DefaultGlobalExceptionHandler handler;
     private WebRequest webRequest;
@@ -174,11 +175,9 @@ class GlobalExceptionHandlerTest {
     @DisplayName("handleFacilityException - messageKey 缺失时不穿透 NoSuchMessageException")
     class HandleFacilityExceptionMissingKeyTests {
 
-        @BeforeEach
         @AfterEach
-        void resetHolder() {
-            // SpringContextHolder 是全局静态,装/拆必须成对——否则毒化其余无 context 用例(见其类 javadoc)
-            SpringContextHolderTestSupport.reset();
+        void closeContexts() {
+            contexts.close();
         }
 
         /**
@@ -190,8 +189,7 @@ class GlobalExceptionHandlerTest {
             StaticMessageSource ms = new StaticMessageSource();
             GenericApplicationContext ctx = new GenericApplicationContext();
             ctx.getBeanFactory().registerSingleton("messageSource", ms);
-            ctx.refresh();
-            SpringContextHolder.setApplicationContextManually(ctx);
+            contexts.refresh(ctx);
         }
 
         private static ErrorTypeInterface missingKeyType() {
@@ -242,11 +240,9 @@ class GlobalExceptionHandlerTest {
     @DisplayName("固定 facility.web.error.* 键缺失 - 不穿透 NoSuchMessageException(A2)")
     class FixedKeyMissingMessageSourceTests {
 
-        @BeforeEach
         @AfterEach
-        void resetHolder() {
-            // SpringContextHolder 是全局静态,装/拆必须成对——否则毒化其余无 context 用例
-            SpringContextHolderTestSupport.reset();
+        void closeContexts() {
+            contexts.close();
         }
 
         /**
@@ -258,8 +254,7 @@ class GlobalExceptionHandlerTest {
             StaticMessageSource ms = new StaticMessageSource();
             GenericApplicationContext ctx = new GenericApplicationContext();
             ctx.getBeanFactory().registerSingleton("messageSource", ms);
-            ctx.refresh();
-            SpringContextHolder.setApplicationContextManually(ctx);
+            contexts.refresh(ctx);
         }
 
         @Test

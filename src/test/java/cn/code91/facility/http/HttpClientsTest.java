@@ -1,6 +1,5 @@
 package cn.code91.facility.http;
 
-import cn.code91.facility.context.SpringContextHolder;
 import cn.code91.facility.context.SpringContextHolderTestSupport;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
@@ -34,11 +33,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 @DisplayName("HttpClients - HTTP client 门面(RestClient 委托 + 4xx/5xx/网络异常 → Result.err)")
 class HttpClientsTest {
 
+    private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
+
     @AfterEach
     void cleanup() {
-        // 毒化清理:refresh 过的 GenericApplicationContext 若不清理会串到后续测试类
-        // (P6-T5 事故根因),经 context 包测试桥调用包私有 clear()。
-        SpringContextHolderTestSupport.reset();
+        contexts.close();
     }
 
     /** 绑定 MockRestServiceServer 到一个 RestClient,并把该 client 注册为容器 bean 供 HttpClients.restClient() 取用。 */
@@ -49,8 +48,7 @@ class HttpClientsTest {
 
         GenericApplicationContext ctx = new GenericApplicationContext();
         ctx.getBeanFactory().registerSingleton("restClient", client);
-        ctx.refresh();
-        SpringContextHolder.setApplicationContextManually(ctx);
+        contexts.refresh(ctx);
 
         return server;
     }

@@ -8,7 +8,6 @@ import org.slf4j.event.Level;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * <b>日志输出工具类 - 重构版本</b>
@@ -61,11 +60,6 @@ public final class LogUtil {
      */
     private static final StackWalker STACK_WALKER =
             StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-
-    /**
-     * 缓存的日志后处理器组合器
-     */
-    private static final AtomicReference<LogPostHandlerComposite> HANDLER_CACHE = new AtomicReference<>();
 
     /**
      * 写前脱敏总开关(ADR-0020):默认开启——消息最终化后、写盘与 post handler 之前
@@ -298,21 +292,8 @@ public final class LogUtil {
      * <b>调用日志后处理器</b>
      */
     private static void invokePostHandler(String message, Level level, String callerClassName, Throwable throwable) {
-        LogPostHandlerComposite handler = HANDLER_CACHE.get();
-
-        if (handler == null) {
-            // 尝试从 Spring 容器获取并 publish 到 CACHE（compareAndExchange 单次分支，
-            // 确保 doInvokePostHandler 在并发首次场景下恰好执行一次。详见 docs/adr/0006-rp-13-cas-compare-and-exchange.md）
-            SpringContextHolder.getBean(LogPostHandlerComposite.class).ifOk(h -> {
-                // compareAndExchange 返回 expected（即 null）则表示本线程 CAS 成功；
-                // 返回非 null 则表示别的线程已先写入，本线程使用 witnessed 值
-                LogPostHandlerComposite witnessed = HANDLER_CACHE.compareAndExchange(null, h);
-                LogPostHandlerComposite winner = (witnessed == null) ? h : witnessed;
-                doInvokePostHandler(winner, message, level, callerClassName, throwable);
-            });
-        } else {
-            doInvokePostHandler(handler, message, level, callerClassName, throwable);
-        }
+        SpringContextHolder.getBean(LogPostHandlerComposite.class)
+                .ifOk(handler -> doInvokePostHandler(handler, message, level, callerClassName, throwable));
     }
 
     /**
@@ -355,11 +336,12 @@ public final class LogUtil {
     }
 
     /**
-     * <b>清除后处理器缓存</b>
-     * <p>主要用于测试或Spring容器重启场景</p>
+     * Compatibility no-op: handlers are resolved from the current application on each call.
+     * @deprecated Handler cleanup is managed by the owning application context.
      */
+    @Deprecated(since = "0.1.0", forRemoval = false)
     public static void clearHandlerCache() {
-        HANDLER_CACHE.set(null);
+        // Compatibility no-op: Spring handlers are no longer cached across application lifecycles.
     }
 
     /**
