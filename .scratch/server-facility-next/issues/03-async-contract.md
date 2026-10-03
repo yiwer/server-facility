@@ -4,24 +4,24 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** in-progress
+**Status:** verification-pending
 
 **Traceability:** FR-05、FR-08；AC-07、AC-08、AC-11
 
 ## Acceptance criteria
 
-- [ ] 默认与用户执行器的选择、所有者和关闭责任明确；冻结新 DSL 扩张。
-- [ ] 子任务继承剩余预算，不延长 deadline；超时、任务失败、提交拒绝和协作式取消可区分。
-- [ ] 上下文在实际执行线程安装并在 finally 恢复；调用者和复用线程不残留前一任务值。
-- [ ] 为不响应中断的任务定义有界关闭结果，不承诺强行终止任意代码。
+- [x] 默认与用户执行器的选择、所有者和关闭责任明确；冻结新 DSL 扩张。
+- [x] 子任务继承剩余预算，不延长 deadline；超时、任务失败、提交拒绝和协作式取消可区分。
+- [x] 上下文在实际执行线程安装并在 finally 恢复；调用者和复用线程不残留前一任务值。
+- [x] 为不响应中断的任务定义有界关闭结果，不承诺强行终止任意代码。
 - [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
-- [ ] 正常/接合：单任务、组合、恢复、首成功路径使用实际声明 executor；Executor/TaskExecutor 与 Boot 配置接合。
-- [ ] 边界：截止时间前/等于/之后、已完成任务再取消、嵌套上下文与原值恢复。
-- [ ] 故障/并发：拒绝提交、供应函数抛错、AssertionError、超时与完成竞争、关闭时提交；受控调度和屏障复现。
-- [ ] 资源：重复失败/取消后工作线程、任务队列及上下文回到约定范围；目标平台线程/显式虚拟线程配置复验。
+- [x] 正常/接合：单任务、组合、恢复、首成功路径使用实际声明 executor；Executor/TaskExecutor 与 Boot 配置接合。
+- [x] 边界：截止时间前/等于/之后、已完成任务再取消、嵌套上下文与原值恢复。
+- [x] 故障/并发：拒绝提交、供应函数抛错、AssertionError、超时与完成竞争、关闭时提交；受控调度和屏障复现。
+- [x] 资源：重复失败/取消后工作线程、任务队列及上下文回到约定范围；目标平台线程/显式虚拟线程配置复验。
 
 ## Scope boundary
 
@@ -35,8 +35,10 @@ ADR-0026 将替代 ADR-0002 的 TaskExecutor-only 回退类型及裸虚拟线程
 
 ## 实施与阶段证据
 
-公开测试 seam：Async 工厂/组合/submit/await、AsyncInterceptor、标准 Executor/TaskExecutor、Spring ApplicationContextRunner（用户已批准）。完成 17 轮逐项 RED→GREEN，失败复现与通过日志位于本 worktree `target/ticket03/target-ticket03-{red,green}-01..17.log`。包含整树 executor、Error 原类、实际线程 scope、父 deadline、协作取消/await、any loser、类型让位、有界关闭、默认平台池、已知值 scope、256 次 Spring 队列取消、子元数据、cancel(false)、必需参数与 before 失败清理。
+公开测试 seam：Async 工厂/组合/submit/await、AsyncInterceptor、标准 Executor/TaskExecutor、Spring ApplicationContextRunner（用户已批准）。完成 20 轮逐项 RED→GREEN；前17轮临时日志已被clean清理，观察摘要和最终完整证据见 `docs/verification/ticket-03-windows.md`，第18–20轮日志位于本 worktree `target/ticket03/`。包含整树 executor、Error 原类、实际线程 scope、父 deadline、协作取消/await、any loser、类型让位、有界关闭、默认平台池、已知值 scope、256 次 Spring 队列取消、子元数据、cancel(false)、必需参数与 before 失败清理。
 
-补充边界 12 tests、Boot 接合 9 tests 已通过：512 次固定 seed=20261003 的受控交错、128 次真实完成/取消竞争、256 次重复失败和 256 次排队取消；队列恢复 0、工作线程池大小 1、复用线程 MDC 空值。Boot platform/virtual 配置走实际 Async；关一个应用不影响另一个；256 队列容量/第257项拒绝，shutdown 取消未开始项并终止协作任务。忽略中断项不虚报结束，容器关闭小于测试上界2s（配置等待1s），任务由测试显式释放。
+最终 AsyncBoundaryTest 16 tests、AsyncContractTest 15 tests、Boot 接合 9 tests 已通过：512 次固定 seed=20261003 的受控交错、128 次真实完成/取消竞争、256 次重复失败和 256 次排队取消；队列恢复 0、工作线程池大小 1、复用线程 MDC 空值。Boot platform/virtual 配置走实际 Async；关一个应用不影响另一个；256 队列容量/第257项拒绝，shutdown 取消未开始项并终止协作任务。忽略中断项不虚报结束，容器关闭小于测试上界2s（配置等待1s），任务由测试显式释放。
 
-完整质量门、提交 SHA、目标工具链结果及 Q01–Q10 最终映射待合入当前集成工具链后补齐；本票当前不标 closed。
+完整证据见 [ticket-03-windows](../../../docs/verification/ticket-03-windows.md)：已测代码提交75ed834，已合入集成最新731598b；Wrapper `clean verify` 1251 tests、0失败/错误/跳过；instruction93.8400%、line93.7312%、branch87.1890%，架构和依赖检查通过。环境为Windows10.0.26100 / Oracle JDK25.0.4.1 / Boot3.5.16；不代表Linux/Boot4证据。
+
+Q01–Q10 逐项证据与不适用理由记录在验证文档；公共契约已实现，Linux同提交CI、最终Boot4及J04/J17组合仍待root/24/33和相应能力票闭合，所以共同完成标准复选框保留未勾选，状态verification-pending。任务本身无数据库/线格式协议，相关金样与持久化维度不适用；多小时heap/连接长稳未执行，不把固定循环称为长稳通过。
