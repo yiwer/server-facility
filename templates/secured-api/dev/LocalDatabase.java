@@ -23,32 +23,51 @@ class LocalDatabase {
         if (!Files.exists(data)) run(tools, root, "initdb.log", "initdb", "-D", data.toString(), "-U", "postgres", "--auth=trust", "--encoding=UTF8", "--locale=C");
         int port; try (var socket = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) { port = socket.getLocalPort(); }
         Path properties = root.resolve("database.properties"); Files.deleteIfExists(properties);
-        Process postgres = new ProcessBuilder(command(tools, "postgres", "-D", data.toString(), "-h", "127.0.0.1", "-p", Integer.toString(port), "-N", "32"))
-                .redirectErrorStream(true).redirectOutput(root.resolve("postgres.log").toFile()).start();
-        Thread emergency = new Thread(() -> { if (postgres.isAlive()) postgres.destroy(); }, "local-postgres-shutdown");
+        var database = new OwnedDatabase(tools, root, data, properties);
+        Thread emergency = new Thread(() -> {
+            try { database.close(); } catch (Exception failure) { System.err.println("Local database emergency cleanup failed: " + failure); }
+        }, "local-postgres-shutdown");
         Runtime.getRuntime().addShutdownHook(emergency);
+        Throwable primary = null;
         try {
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15); boolean ready = false;
-            while (postgres.isAlive() && System.nanoTime() < deadline) {
-                // The pinned minimal distribution has initdb/pg_ctl/postgres, not pg_isready.
-                // initdb --locale=C fixes this server-owned readiness message, independent of the caller locale.
-                if (Files.readString(root.resolve("postgres.log")).contains("database system is ready to accept connections")) { ready = true; break; }
-                Thread.sleep(50);
-            }
-            if (!ready) throw new IllegalStateException("Native database did not become ready; " + root.resolve("postgres.log"));
+            database.start(port);
             Files.writeString(properties, "spring.datasource.url=jdbc:postgresql://127.0.0.1:" + port + "/postgres\nspring.datasource.username=postgres\nspring.datasource.password=\n");
             System.out.println("LOCAL_DATABASE_READY " + properties.toUri().toASCIIString());
             // Enter stops this foreground owner; EOF also stops it in the verification consumer.
             System.in.read();
+        } catch (Exception | Error failure) {
+            primary = failure;
+            throw failure;
         } finally {
-            Files.deleteIfExists(properties);
             try {
-                if (postgres.isAlive()) run(tools, root, "stop.log", "pg_ctl", "-D", data.toString(), "-m", "fast", "-w", "-t", "15", "stop");
-                if (!postgres.waitFor(5, TimeUnit.SECONDS)) throw new IllegalStateException("Native database did not stop");
+                database.close();
+            } catch (Exception | Error cleanup) {
+                if (primary != null) primary.addSuppressed(cleanup);
+                else throw cleanup;
             } finally {
-                if (postgres.isAlive()) { postgres.destroyForcibly(); postgres.waitFor(5, TimeUnit.SECONDS); }
                 Runtime.getRuntime().removeShutdownHook(emergency);
             }
+        }
+    }
+    /** pg_ctl owns native startup/readiness and the Windows restricted-token transition. */
+    static final class OwnedDatabase implements AutoCloseable {
+        private final Path tools, root, data, properties;
+        private boolean closed;
+        OwnedDatabase(Path tools, Path root, Path data, Path properties) {
+            this.tools = tools; this.root = root; this.data = data; this.properties = properties;
+        }
+        synchronized void start(int port) throws Exception {
+            run(tools, root, "start.log", "pg_ctl", "-D", data.toString(), "-l", root.resolve("postgres.log").toString(),
+                    "-o", "-h 127.0.0.1 -p " + port + " -N 32", "-w", "-t", "15", "start");
+        }
+        public synchronized void close() throws Exception {
+            if (closed) return;
+            Files.deleteIfExists(properties);
+            if (Files.exists(data.resolve("postmaster.pid"))) {
+                // Match the native test fixture: Windows fsync of its many databases was measured at 31s.
+                run(tools, root, "stop.log", "pg_ctl", "-D", data.toString(), "-m", "fast", "-w", "-t", "60", "stop");
+            }
+            closed = true;
         }
     }
     static List<String> command(Path tools, String tool, String... args) {
@@ -56,7 +75,22 @@ class LocalDatabase {
     }
     static void run(Path tools, Path root, String log, String tool, String... args) throws Exception {
         var process = new ProcessBuilder(command(tools, tool, args)).redirectErrorStream(true).redirectOutput(root.resolve(log).toFile()).start();
-        try { if (!process.waitFor(30, TimeUnit.SECONDS) || process.exitValue() != 0) throw new IllegalStateException(tool + " failed; " + root.resolve(log)); }
+        int seconds = List.of(args).contains("stop") ? 70 : 30;
+        try {
+            if (!process.waitFor(seconds, TimeUnit.SECONDS) || process.exitValue() != 0) {
+                throw new IllegalStateException(tool + " failed; " + root.resolve(log) + "\n" + tail(root.resolve(log))
+                        + (tool.equals("pg_ctl") ? "\nPostgreSQL: " + tail(root.resolve("postgres.log")) : ""));
+            }
+        }
         finally { if (process.isAlive()) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); } }
+    }
+    static String tail(Path log) throws Exception {
+        if (!Files.isRegularFile(log)) return "(native log absent)";
+        try (var input = Files.newByteChannel(log)) {
+            input.position(Math.max(0, input.size() - 8192));
+            var bytes = java.nio.ByteBuffer.allocate(8192);
+            while (bytes.hasRemaining() && input.read(bytes) > 0) { }
+            return new String(bytes.array(), 0, bytes.position(), StandardCharsets.UTF_8);
+        }
     }
 }

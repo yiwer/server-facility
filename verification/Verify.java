@@ -283,6 +283,15 @@ class Verify {
                 throw new AssertionError("Coverage runtime leaked into production jar");
         }
         Files.copy(jar, Files.createDirectories(evidence.resolve("artifacts")).resolve(jar.getFileName()));
+        Path databaseContract = ROOT.resolve("verification/template-consumer/DatabaseProcessContract.java");
+        Files.copy(databaseContract, evidence.resolve("DatabaseProcessContract.java"));
+        for (String mode : List.of("diagnostics", "lifecycle")) {
+            Path contractLog = run(application, Map.of(), "template-database-" + mode, List.of(java(), "-Xmx96m",
+                    databaseContract.toString(), application.toUri().toASCIIString(), evidence.resolve("database-" + mode).toUri().toASCIIString(),
+                    mode, client.toString()), 220, null);
+            String marker = mode.equals("diagnostics") ? "DATABASE_FAILURE_DIAGNOSTICS_PASS" : "DATABASE_LIFECYCLE_PASS";
+            if (!Files.readString(contractLog).contains(marker)) throw new AssertionError("Missing database process contract: " + contractLog);
+        }
         Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
                 application.toUri().toASCIIString(), evidence.toUri().toASCIIString()), 180, null);
         if (!Files.readString(log).contains("PACKAGED_TEMPLATE_PASS")) throw new AssertionError("Missing packaged template result");
