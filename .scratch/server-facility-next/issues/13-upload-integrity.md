@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-01、FR-06、FR-09；AC-10、AC-12
 
@@ -29,3 +29,7 @@
 修复现有受控上传，不建对象存储 SPI、documents 平台或跨库文件事务。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+## Implementation record
+
+2026-10-04 领取；工作分支 `codex/ticket-13`，初始集成基线 `1c61c1b4c3539a4396794fed3c8c3f3379c7fb2c`。公共测试入口为 SafeUpload、MimeTyping、Hashing 及其真实文件系统效果；沿用户已确认的设施公共接口执行逐项 RED → GREEN。日志位于 `.verification-results/ticket-13`，不以未执行场景关闭验收。
