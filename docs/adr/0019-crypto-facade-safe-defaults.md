@@ -1,5 +1,7 @@
 # ADR-0019: crypto 加解密门面——安全默认 AES-GCM、内管 IV、不透明失败通道、纯 JDK
 
+> 2026-10-04：原始cause无安全代价、随机IV杜绝碰撞及所有入口never-throw的保证由 [ADR0040](0040-legacy-crypto-reader-policy.md) 部分替代。纯JDK、固定原语和历史协议的理由保留；以下正文为原决策记录。
+
 - **状态**:Accepted(2026-07-04)
 - **源起**:crypto 加解密门面实现计划(docs/superpowers/plans/2026-07-04-crypto-facade.md)
 
