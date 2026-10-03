@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed（已批准票16实施中），2026-10-04。验证完成后登记Accepted，不把未执行环境当通过。
+Accepted，2026-10-04。Windows同源完整门通过（1600项及独立消费者/资源/格式证据）；最终Linux证据待CI，票16保持verification-pending。详见[验证报告](../verification/ticket-16-bounded-excel.md)。
 
 ## Context
 

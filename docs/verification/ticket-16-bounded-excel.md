@@ -1,6 +1,6 @@
-# Ticket 16: bounded Excel verification (in progress)
+# Ticket 16: bounded Excel verification (Windows complete; Linux pending)
 
-Baseline: integration `c2f0f6b4118a3a059993ef53f2d62f547151c560`. Branch `codex/ticket-16`; ADR0039 remains Proposed until the evidence below is complete. All raw logs are under `.verification-results/ticket-16`, outside Maven `target`.
+Baseline: integration `c2f0f6b4118a3a059993ef53f2d62f547151c560`. Branch `codex/ticket-16`; ADR0039 is Accepted; the ticket remains verification-pending for the final Linux/filesystem run. TDD logs are under `.verification-results/ticket-16`; complete runner evidence uses the timestamped directory below, both outside Maven `target`.
 
 ## Public contract evidence collected so far
 
@@ -43,8 +43,8 @@ Primary references: [POI how-to](https://poi.apache.org/components/spreadsheet/h
 
 ## Pending evidence (not claimed passed)
 
-- Final dependency ledger, migration docs, Q01–Q10 mapping, latest integration merge and full verification gates.
-- Linux CI for the final combined source. Future 31/33 consumer/release rechecks remain independently owned and are not circular prerequisites for this ticket.
+- Final Linux CI for the combined Excel source, including the POSIX file-occupancy counterpart. Dependency ledger, migration, Q01–Q10 mapping and Windows full gates are complete below.
+- Future 31/33 consumer/release rechecks remain independently owned and are not circular prerequisites for this ticket.
 
 
 ## Review-discovered XML allocation and corrected consumer oracle
@@ -82,7 +82,22 @@ Exploratory shared-string amplification input (100,000 references to one32,767-c
 | Q06 | Frozen independent formats with SHA manifest, both date epochs and numeric locales, unknown formula cached17, no formula evaluation, external reader confirms literal formula text; historical signatures retained with explicit semantic migration |
 | Q07 | Deterministic seed160039 high-entropy hostile attributes and BIFF mutation, seeded resource row oracle, finite boundary matrices; no new CSV/XML/ZIP grammar implementation |
 | Q08 | Source SHA/environment/full runner identities recorded; position-only public messages, causes for trusted diagnostics; initial failures and mistaken fixture/oracle assumptions retained separately |
-| Q09 | Root original coverage/architecture/dependency thresholds preserved; first1598 clean gate passed but consumer failed; final corrected source full gate pending below, no substituted mixed-source PASS |
-| Q10 | Code, migration, ADR and raw evidence delivered; Linux and final Windows outcome remain explicitly pending until executed. Future31/33 own their business/release combinations independently |
+| Q09 | Root original coverage/architecture/dependency thresholds preserved; first1598 clean gate passed but consumer failed; final corrected source full gate passed below, no substituted mixed-source PASS |
+| Q10 | Code, migration, ADR and raw evidence delivered; Windows full outcome passed below; Linux remains pending until executed. Future31/33 own their business/release combinations independently |
 
 J13/J16: the four format dependency graphs and scalar/format/ownership/resource tests are this ticket's evidence. No database/network backend is introduced; network is used only as a controlled external-entity zero-access oracle. Large XLS remains unsupported beyond1 MiB; large XLSX is explicit row streaming. Owned temporary budgets count written content, not filesystem allocation blocks. Path writes are direct and may leave a prefix. User callback effects cannot roll back, and blocking user I/O must have host-managed timeouts/concurrency.
+
+
+## Final Windows all gate
+
+- Exact tested source: `99ae71adabb6ada6c3a346ea142c7bf666b7a25d`, with clean working tree and integration `7a78660351caebb8df4a3b564acc2e5dfa0d3869` already merged. Command: JDK25 `verification/Verify.java all --fresh`, plus a real JDK21 in `VERIFY_WRONG_JAVA_HOME` for the rejection control.
+- Evidence: `.verification-results/20261004-053114-083-all/summary.txt`, **RESULT=PASS, 92 commands**. Environment: Oracle JDK25.0.4.1+1-LTS-5, Maven Wrapper3.10.0, Windows11 amd64, zh_CN, Asia/Shanghai; fresh isolated repository and copied standalone consumer inputs are retained.
+- Library: **1600 tests / 0 failures / 0 errors / 0 skipped**, including5 architecture rules; original dependency gate and coverage checks pass. Instruction24375/26289 =92.719388%; line4775/5072 =94.144322%; branch2555/3014 =84.771068%. Ordinary jar SHA-256: `12c2113e54d8ec3552753ff408e41f49fce0bf24690f05e2d5805ae03cb81bef`.
+- Actual installed jar passes all four Excel graphs, core/crypto/IO/CSV/rate-limit/claim consumers, non-Web/JSON dual-instance and real HTTP platform cases, upload with/without Tika, five optional-dependency graphs, partner14 tests/consumer and template47 tests/packaged platform+virtual modes. Both missing-coverage controls, five startup/use/close cycles, checksum/missing-JDK/actual-JDK21 rejection controls pass. These are one full source run, not assembled slice results.
+- Resource child: `.verification-results/ticket-16/heap-child-10785712458715422078.log`, also embedded in `04-library.log`. 64 MiB heap /8 MiB direct,400,000 real rows,9,501,792 compressed bytes,200 failure paths, four12 MiB XML lexemes, repeated expansion/BIFF probes and no remaining owned temporary files. Retained13,559,904 vs baseline13,969,056 bytes; threads8→8. One observed sample, not a universal SLO.
+- Independent final output oracle: `.verification-results/ticket-16/openpyxl-final-export.log`, openpyxl3.1.5 PASS for2 rows/6 string cells using this exact run's `excel/full/export.xlsx`. The already-described minimal-style warning remains non-fatal.
+- After this run, integration `49b3148f2fb870f517f3d294fcbcb2352d92ffad` was merged. Product sources, tests, POM, examples, templates, workflow and consumer inputs are unchanged from the tested source; the only runner change reduces failed-command diagnostic tail from10,000 to3,000 characters, with a ticket25 report update. No second identical product gate is claimed.
+
+Early resource-process experiments used a single `heap-child.log`; later executions could replace that subprocess detail file. Their retained parent test logs and explicitly observed samples are historical evidence, not distinct immutable child archives. The final process uses a unique filename and embeds its entire output in the retained parent log, so subsequent runs cannot overwrite this final sample.
+
+Status remains **verification-pending** solely for the final combined Linux/CI evidence. CI10/11 are the preceding integration candidate, not proof that ticket16's new Excel paths ran on Linux. Future31/33 retain their separately scoped consumer/release rechecks.
