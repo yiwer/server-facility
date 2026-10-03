@@ -4,7 +4,9 @@
 
 **Blocked by:** 27 交付能独立启动且默认受保护的 API 模板
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+2026-10-04 frontier: root authorized implementation from b7b7ea46778972822c7a757cf593d441bc1cde3c. Ticket27 has its own same-source Windows all evidence and CI37152209100 Ubuntu all success; the combined Windows run failed in the separate ticket25 partner-build before template execution. Ticket27 remains verification-pending; this authorization does not close its joint CI or the final ticket33 candidate gate. Approved test seams are actual signed HTTP, the public business Module, and observable PostgreSQL effects. ADR0051 records this Module's ownership and migration path.
 
 **Traceability:** FR-07、FR-08；AC-03、AC-04、AC-11
 

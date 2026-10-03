@@ -17,6 +17,7 @@ final class RunningApp implements AutoCloseable {
     RunningApp(TestIssuer issuer, Class<?>[] sources, String... extra) {
         var args = new ArrayList<>(List.of("--server.port=0", "--server.address=127.0.0.1", "--spring.main.banner-mode=off",
                 "--logging.level.root=WARN", "--server.shutdown=immediate", "--spring.profiles.active=local",
+                "--spring.datasource.url=" + Postgres.sharedUrl(), "--spring.datasource.username=postgres", "--spring.datasource.password=",
                 "--spring.security.oauth2.resourceserver.jwt.issuer-uri=" + issuer.issuer(),
                 "--spring.security.oauth2.resourceserver.jwt.audiences=secured-api",
                 "--app.security.resource-uri=https://api.example.test"));
