@@ -39,13 +39,16 @@ class ConfigurationHttpTest {
         try (var issuer = new TestIssuer(); var secondIssuer = new TestIssuer()) {
             try (var app = new RunningApp(issuer)) { assertThat(app.get("/api/greeting", issuer.token()).statusCode()).isEqualTo(200); }
             int previous = issuer.keyRequests.get();
-            try (var app = new RunningApp(issuer, new Class<?>[]{AdditionalTrustFixture.class}); var second = new RunningApp(secondIssuer)) {
+            try (var second = new RunningApp(secondIssuer)) {
+              try (var app = new RunningApp(issuer, new Class<?>[]{AdditionalTrustFixture.class})) {
                 assertThat(app.get("/api/greeting", issuer.token()).statusCode()).isEqualTo(200);
                 assertThat(issuer.keyRequests.get()).isGreaterThan(previous);
                 assertThat(app.get("/api/greeting", issuer.token("a", Map.of("sub", "blocked-subject"), Set.of())).statusCode()).isEqualTo(401);
                 assertThat(second.get("/api/greeting", secondIssuer.token("a", Map.of("sub", "blocked-subject"), Set.of())).statusCode()).isEqualTo(200);
                 assertThat(app.get("/api/greeting", secondIssuer.token()).statusCode()).isEqualTo(401);
                 assertThat(second.get("/api/greeting", issuer.token()).statusCode()).isEqualTo(401);
+              }
+              assertThat(second.get("/api/greeting", secondIssuer.token()).statusCode()).isEqualTo(200);
             }
         }
     }
