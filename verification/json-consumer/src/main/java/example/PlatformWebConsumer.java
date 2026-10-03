@@ -172,4 +172,3 @@ public final class PlatformWebConsumer {
         if (!condition) throw new AssertionError(message);
     }
 }
-

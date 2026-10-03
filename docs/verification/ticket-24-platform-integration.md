@@ -1,6 +1,6 @@
 # 票 24：目标平台真实消费者接合
 
-状态：in-progress，最终同源 Windows all 与 Linux CI 待记录。决策 [ADR-0047](../adr/0047-boot4-consumer-integration.md)。完整平台门不能用独立工具链探针或旧平台报告替代。
+状态：verification-pending，Windows 干净仓库 all 已通过，仅 Linux CI 尚待实际证据。决策 [ADR-0047](../adr/0047-boot4-consumer-integration.md)。完整平台门不能用独立工具链探针或旧平台报告替代。
 
 ## 实现与可复现入口
 
@@ -61,4 +61,23 @@ J06/07/09/10/11/17 的授权幂等、计费、数据库事务/恢复、宿主外
 
 ## 最终执行记录
 
-待同步票17并记录最终被测SHA、all日志、普通jar SHA、JUnit发现及覆盖率。Linux与Windows CI必须引用同一集成SHA及artifact；本机没有可用Linux执行环境，此处不能勾选Linux通过。
+已同步中央 `ddb76805aceaaeb52d5b075facd02f15000cc602`（含 06/13/17/18），最终被测提交 **`31e77656472cefa497804ac6da6aacec16a754ff`**，启动时工作区干净。2026-10-04 02:08:30–02:15:37 +08:00 执行 `java verification/Verify.java all --fresh`，**RESULT=PASS**。
+
+环境：Windows 11 10.0 amd64、Oracle JDK `25.0.4.1+1-LTS-5`、Maven Wrapper `3.10.0`、Asia/Shanghai、en_US；实际 JDK 21 用于错误版本负控。该次从空隔离仓库开始，报告目录 **`.verification-results/20261004-020830-494-all/`**，控制台摘要 `ticket-24/15-final-all-fresh.log`；55 个执行步骤含预期失败控制，均符合各自成功/拒绝条件。
+
+| 同一来源检查 | 结果 |
+|---|---|
+| 主库测试 | **1449 / 0 failures / 0 errors / 0 skipped**；相对集成1442净增本票7项 |
+| 原架构与依赖门 | 五条 ArchUnit 均发现；dependency analyze 与原 failOnWarning 通过；未增加 ignore |
+| JaCoCo instruction | **18865 / 20327 = 92.8076%**，门槛88% |
+| JaCoCo line | **3851 / 4125 = 93.3576%**，门槛88% |
+| JaCoCo branch | **1944 / 2281 = 85.2258%**，门槛75% |
+| 普通 jar | **226 classes、major69/minor0、无preview、无BOOT-INF**；imports/metadata入包；所有矩阵安装jar与根产物逐字节一致 |
+| 独立消费 | 非Web3场景、framework-free core与crypto、constructed/injected旧JSON金样及双应用、3个Web场景、5图11非Web场景、有/无Tika上传均通过 |
+| 资源与负控 | 5次独立应用启停自然退出；损坏Wrapper校验和、缺JAVA_HOME、真实JDK21均按预期拒绝 |
+
+普通 jar SHA-256：**`4e1012daa5fa4a363c9c9d3827d4d0ee2bcaf5e0bc997f2c6bb94989f58ddac5`**。报告内 `artifacts/server-facility-0.1.0-SNAPSHOT.jar` 保存原产物，根/consumer effective POM、dependency tree、classpath、Java输入、旧金样和 Surefire/JaCoCo XML 同时保留。CI upload-artifact 已覆盖这些新增矩阵、普通jar和core/crypto输入；未把仓库缓存全量上传。
+
+工具链探针在 `.verification-results/20261004-020052-096-platform/` 已通过，来源744301d；其根POM、Wrapper、platform-probe及JSON consumer POM与最终被测来源逐一 diff 相同，仅归档该明确子集证据，不重复同输入探针。最终 all 后仅补证据文档并删除两个 consumer 源文件末尾多余空行，没有产品、依赖或执行逻辑改动。
+
+**仍待 Linux CI**：本机无可用 Linux 执行环境。集成后由 root 在同一 GitHub Actions 提交执行 Windows/Ubuntu `all --fresh` 和 `platform --fresh`，归档 run/SHA/artifact 后才能关闭24及03/05/06/13/17的适用待验证项。未修改这些票的状态；新 required Adapter、TTL、最终业务事务/认证与全部文件格式行为仍各归其票及33，不冒充平台通过结果。

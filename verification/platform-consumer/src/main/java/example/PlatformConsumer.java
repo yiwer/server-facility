@@ -142,4 +142,3 @@ public final class PlatformConsumer {
         if (!condition) throw new AssertionError(message);
     }
 }
-
