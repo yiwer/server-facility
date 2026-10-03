@@ -9,6 +9,7 @@
 - [i18n:LocaleUtil](#i18nlocaleutil)
 - [异步:Async](#异步async)
 - [Web 簇](#web-簇)
+- [上传、MIME 与摘要](#上传mime-与摘要)
 - [限流:RateLimiterUtil / @RateLimit](#限流ratelimiterutil--ratelimit)
 - [缓存:CacheUtil / @Cacheable](#缓存cacheutil--cacheable)
 - [分布式锁:LockUtil](#分布式锁lockutil)
@@ -251,6 +252,54 @@ return errors.response(failure, new ServletWebRequest(request, response));
 每次 `getInputStream/getReader` 都是独立游标，允许混合或重复读取，字节相同；声明 charset 在包装时冻结，缺省 UTF-8，非法 charset 为 400，畸形字节采用 JDK reader 替换字符。此 wrapper 只支持同步读取，`setReadListener` 每次明确拒绝，不假装完成非阻塞回调。它不关闭容器输入。`HttpFileResponses` 用固定缓冲复制文件，关闭自己打开的文件输入，借用而不关闭 Servlet 输出；写失败或线程中断返回 Err，停止复制，不再追加错误正文。应用自己创建的其他流/生产任务仍由应用管理取消和清理。
 
 旧客户端必须显式配置 `facility.web.exception.use-problem-detail=false`。这保留 `{code,message,data,description,success}` 字段形状、HTTP 200（429 仍为 429）与必要头；消息已安全化，`description` 为空，dev/test/local 也不恢复调试栈。依赖旧异常消息或原始 ErrorResponse body 的客户端应迁移到稳定 code 和 traceId。完整决策与真实 HTTP 证据见 [ADR-0027](adr/0027-safe-http-error-policy.md) 与票 04。
+
+## 上传、MIME 与摘要
+
+上传使用设施自己打开的 `MultipartFile` 流，保存过程关闭该流。声明的长度和 Content-Type 不能替代实际字节预算或内容检测。
+
+```java
+var saved = SafeUpload.saveFile(file, Path.of("/srv/app-private/uploads"),
+        10L * 1024 * 1024, Set.of("image/png", "image/jpeg"));
+if (saved.isErr()) {
+    // 依据 getErrorType() 映射业务错误；FILE_SIZE_EXCEEDED 可映射 413。
+    // 不把底层异常、路径或原始文件名返回给 HTTP 客户端。
+    return;
+}
+Path stored = saved.get(); // 保存这个返回值；不要按 file.getOriginalFilename() 推导路径。
+// 宿主记录展示名、权限和保留政策；不再需要文件时 Files.delete(stored)。
+```
+
+`maxSizeBytes` 必须正数，≤0 返回 Err；旧便利保存与 `toTempFile` 默认 10 MiB。空/null allowlist 表示不限制类型，但仍有限制大小和危险后缀校验。空上传拒绝；发现超限最多多读 1 字节，拒绝/取消后不 drain。阻塞读的停止取决于底层流协作中断，宿主仍应设置请求 I/O deadline、并发 admission 和磁盘配额。
+
+原名和 `customFileName` 只参与展示名校验；存储名由服务端生成固定长度 `UUID.upload`。因此旧代码不能再根据自定义名字查找文件。应用必须独占维护真实根目录及祖先，不允许其他主体修改，也不要将根目录挂为静态资源目录。保存先在同卷私有暂存完成，并关闭输入/输出，再通过 `Files.createLink` 发布；需要本地文件系统支持硬链接，目标存在或不支持时明确失败，不覆盖或退化复制。已验证 Windows NTFS，Linux 结果见票 13 验证报告；不保证任意 provider、断电持久性或对同权限恶意替换目录的防护。
+
+失败清理仅删除本次自有路径；删除权限/占用仍可能阻止清理，原始异常保留 suppressed 清理原因，宿主应对私有暂存目录做受控恢复。`toTempFile` 成功后必须显式删除，不再使用 `deleteOnExit`：
+
+```java
+var temporary = SafeUpload.toTempFile(file);
+if (temporary.isOk()) {
+    Path path = temporary.get().toPath();
+    try { /* consume path synchronously */ }
+    finally { Files.deleteIfExists(path); }
+}
+```
+
+Tika 4.1.0 为 optional；需要 MIME/type allowlist 的消费方显式添加 tika-core。缺包不把类型政策降级成成功保存。只使用 core detector 和至多 64 KiB 前缀，不解压容器；伪 `.xlsx` 的 ZIP 内容仍可能只是 `application/zip`，业务不得把“可识别”理解成“安全”。`SafeUpload.detectMime` 不证明整个文件的大小合规。上传默认不采用客户端文件名提示；仅低层 `MimeTyping.detect(stream, filename)` 显式接受提示。
+
+低层 `MimeTyping.detect(InputStream)` 借用而不关闭流，要求 mark/reset，成功或读失败后尝试恢复当前位置（替换旧 mark）。不可 mark 的流在读取前返回 Err；需要继续消费时保留同一个包装流：
+
+```java
+try (var replayable = new BufferedInputStream(openMyInput())) {
+    var mime = MimeTyping.detect(replayable);
+    if (mime.isOk()) { /* consume replayable, including the detected prefix */ }
+}
+```
+
+reset 失败时无法保证位置恢复；原读故障仍为首因，reset 故障为 suppressed。`detect(byte[])` 的 null/空以及空内容继续返回 octet-stream；I/O 故障走 Result Err，旧 String 重载改抛 UncheckedIOException。程序错误/Error 清理后传播。
+
+`Hashing.sha256(File)` / `hash(File, algorithm)` 打开并关闭文件、固定缓冲并协作响应中断；不代替文件大小政策。`hashBytes(byte[], algorithm)` 借用数组。输出小写十六进制；空 File 返回标准空内容摘要，空/null byte[] 保留旧 FILE_READ_ERROR，null/未知算法为 FILE_HASH_ERROR。MD5/SHA-1 只为旧非安全协议兼容保留，不用于密码存储或对抗恶意篡改；完整性安全需业务选择经过认证的机制。
+
+设计和平台边界见 [ADR-0036](adr/0036-upload-integrity.md)。
 
 ## 限流:RateLimiterUtil / @RateLimit
 

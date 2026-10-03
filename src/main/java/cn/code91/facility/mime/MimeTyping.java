@@ -11,28 +11,58 @@ import org.apache.tika.mime.MimeTypes;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.io.InterruptedIOException;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 
 /**
  * <b>MIME 类型探测与文件类型谓词</b>
  * <p>
- * 基于 Apache Tika 的魔数（magic number）检测，不依赖扩展名。所有需要识别文件类型的模块
+ * 基于 Apache Tika core 的有界魔数（magic number）检测。所有需要识别文件类型的模块
  * 都应从这里取，禁止重复直接依赖 tika-core。
  * </p>
- * <p>null 契约（各方法契约面不同，如实分述，行为均已被测试锁定）：
+ * <p>null 契约（各方法契约面不同）：
  * {@link #detect(File)}/{@link #detect(InputStream)} 走 {@link Result} 通道，
  * null 输入映射为 {@code Err}；{@link #detect(byte[])} 返回裸 {@code String}，
  * null/空数组回退 {@link #FALLBACK}（此为入参前置守卫，非异常吞没——Tika 对内容本身
- * 探测失败时的异常不由本方法捕获）；{@link #detect(InputStream, String)} 才是
- * 吞 {@code IOException} 回退 {@link #FALLBACK} 的方法（与 stele-storage 历史行为兼容）。</p>
+ * 探测失败时的异常不由本方法捕获）。旧 String 重载在 IO 失败时抛
+ * {@link UncheckedIOException}，不再把失败伪装为 octet-stream。探测不是内容安全审查。</p>
+ * <p>首次目录加载可重试，不在类静态初始化中执行；取消不会让整个类永久加载失败。
+ * 没有 Result 返回类型的入口在中断时抛 UncheckedIOException，保留中断标志。</p>
  */
 public final class MimeTyping {
 
     public static final String FALLBACK = "application/octet-stream";
+    public static final int MAX_SNIFF_BYTES = 64 * 1024;
 
-    private static final Tika TIKA = new Tika();
-    private static final MimeTypes MIME_TYPES = MimeTypes.getDefaultMimeTypes();
+    // Fallible Tika registry loading must not poison this class's initialization after cancellation.
+    private static Registry loaded;
+    private record Registry(MimeTypes types, Tika detector) { }
+
+    private static synchronized Registry registry() throws InterruptedIOException {
+        if (Thread.currentThread().isInterrupted()) throw new InterruptedIOException("MIME detection interrupted");
+        if (loaded == null) {
+            try {
+                MimeTypes types = MimeTypes.getDefaultMimeTypes();
+                loaded = new Registry(types, new Tika(types));
+            } catch (RuntimeException failure) {
+                // Tika wraps its SAX parser-pool InterruptedException and clears the flag.
+                for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+                    if (cause instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                        var interrupted = new InterruptedIOException("MIME registry loading interrupted");
+                        interrupted.initCause(failure);
+                        throw interrupted;
+                    }
+                }
+                throw failure;
+            }
+        }
+        return loaded;
+    }
 
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/bmp",
@@ -66,49 +96,99 @@ public final class MimeTyping {
         if (file == null || !file.exists()) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));
         }
-        try {
-            return Result.ok(TIKA.detect(file));
+        try (var input = Files.newInputStream(file.toPath())) {
+            return Result.ok(detectBytes(readPrefix(input), null));
         } catch (IOException e) {
             return Result.err(WrappedError.of(
                     FacilityErrorType.FILE_TYPE_DETECT_ERROR, e, new Object[]{file.getName()}));
         }
     }
 
+    /**
+     * 借用流，不关闭。要求支持 mark/reset；至多探测 64 KiB，成功/读失败后尝试恢复当前位置。
+     * 不支持 mark 的原始流在读取前返回 Err；调用者可保留 BufferedInputStream 并继续使用该包装流。
+     * 既有 mark 会被替换；reset 失败进入 Err，此时不能保证位置恢复。
+     */
     public static Result<String, WrappedError> detect(InputStream inputStream) {
         if (inputStream == null) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_READ_ERROR));
         }
         try {
-            return Result.ok(TIKA.detect(inputStream));
+            return Result.ok(detectBorrowed(inputStream, null));
         } catch (IOException e) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_TYPE_DETECT_ERROR, e));
         }
     }
 
     public static String detect(byte[] bytes) {
+        try { return detectBytes(bytes, null); }
+        catch (IOException e) { throw new UncheckedIOException(e); }
+    }
+
+    private static String detectBytes(byte[] bytes, String filename) throws IOException {
         if (bytes == null || bytes.length == 0) {
-            return FALLBACK;
+            if (filename == null) return FALLBACK;
         }
-        return TIKA.detect(bytes);
+        byte[] prefix = bytes.length > MAX_SNIFF_BYTES ? Arrays.copyOf(bytes, MAX_SNIFF_BYTES) : bytes;
+        Tika detector = registry().detector();
+        return filename == null ? detector.detect(prefix) : detector.detect(prefix, filename);
     }
 
     /**
      * 探测输入流，并以 {@code filename} 作为提示（Tika 用扩展名辅助消歧）。
-     * IO 异常时回退到 {@link #FALLBACK}，与 stele-storage 历史行为兼容。
+     * 借用流，mark/reset 与 64 KiB 预算同 {@link #detect(InputStream)}。
+     * IO 失败抛 UncheckedIOException；调用者需要 Result 时使用无文件名重载。
      */
     public static String detect(InputStream inputStream, String filename) {
         try {
-            return TIKA.detect(inputStream, filename);
+            return detectBorrowed(inputStream, filename);
         } catch (IOException e) {
-            return FALLBACK;
+            throw new UncheckedIOException(e);
         }
+    }
+
+    private static String detectBorrowed(InputStream input, String filename) throws IOException {
+        if (input == null || !input.markSupported()) {
+            throw new IOException("MIME detection requires a retained mark/reset stream");
+        }
+        input.mark(MAX_SNIFF_BYTES + 1);
+        Throwable failure = null;
+        try {
+            byte[] bytes = readPrefix(input);
+            return detectBytes(bytes, filename);
+        } catch (IOException | RuntimeException | Error e) {
+            failure = e;
+            throw e;
+        } finally {
+            try { input.reset(); } catch (IOException | RuntimeException | Error reset) {
+                if (failure == null) throw reset;
+                if (failure != reset) failure.addSuppressed(reset);
+            }
+        }
+    }
+
+    private static byte[] readPrefix(InputStream input) throws IOException {
+        byte[] bytes = new byte[MAX_SNIFF_BYTES];
+        int count = 0;
+        while (count < bytes.length) {
+            if (Thread.currentThread().isInterrupted()) throw new InterruptedIOException("MIME detection interrupted");
+            int read = input.read(bytes, count, Math.min(8192, bytes.length - count));
+            if (read == -1) break;
+            if (read == 0) {
+                int value = input.read();
+                if (value == -1) break;
+                bytes[count++] = (byte) value;
+            } else count += read;
+        }
+        return count == bytes.length ? bytes : Arrays.copyOf(bytes, count);
     }
 
     /**
      * 仅按文件名（扩展名）探测，不读流。
      */
     public static String detectByName(String filename) {
-        return TIKA.detect(filename);
+        try { return registry().detector().detect(filename); }
+        catch (IOException e) { throw new UncheckedIOException(e); }
     }
 
     public static Optional<String> getExtensionByMimeType(String mimeType) {
@@ -116,11 +196,13 @@ public final class MimeTyping {
             return Optional.empty();
         }
         try {
-            MimeType type = MIME_TYPES.forName(mimeType);
+            MimeType type = registry().types().forName(mimeType);
             String ext = type.getExtension();
             return (ext == null || ext.isBlank()) ? Optional.empty() : Optional.of(ext);
         } catch (MimeTypeException e) {
             return Optional.empty();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

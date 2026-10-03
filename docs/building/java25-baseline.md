@@ -88,7 +88,7 @@ configuration metadata 存在，并通过真实 Boot 非 Web 启动验证配置�
 | com.fasterxml.jackson.datatype:jackson-datatype-jdk8 | 2.21.4 | BOM |
 | com.fasterxml.jackson.datatype:jackson-datatype-jsr310 | 2.21.4 | BOM |
 | com.fasterxml.jackson.module:jackson-module-parameter-names | 2.21.4 | BOM |
-| org.apache.tika:tika-core | 3.2.3 | 显式、optional；行为升级归票 13 |
+| org.apache.tika:tika-core | 4.1.0 | 显式、optional；票 13 有界 core 探测与流所有权，见 ADR-0036 |
 | jakarta.servlet:jakarta.servlet-api | 6.0.0 | BOM、optional |
 | org.springframework:spring-web | 6.2.19 | BOM、optional |
 | org.springframework:spring-webmvc | 6.2.19 | BOM、optional |

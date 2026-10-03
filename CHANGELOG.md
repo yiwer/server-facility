@@ -5,6 +5,14 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 上传、MIME 与摘要迁移（2026-10-04，ADR-0036）
+
+- 保存改按实际字节检查，新增 `saveFile(MultipartFile, Path, long, Set<String>)` 同时限制大小和类型；旧便利方法默认 10 MiB，显式大小 ≤0 返回 Err，不再表示不限制。空文件继续拒绝，拒绝后不 drain。
+- 原名/customFileName 只作展示名校验，返回存储键固定为服务端 UUID.upload。调用者必须保存返回 Path，不能按原名推导；同名并发互不覆盖。根目录必须由应用独占并支持同卷硬链接，预存链接拒绝、能力不支持失败，不退化为复制到成品。
+- MultipartFile 输入由设施打开并关闭，探测前缀参与同一次保存。toTempFile 取消 deleteOnExit，成功结果由调用者显式删除，失败清理自有暂存并保留清理故障。
+- Tika 升至 4.1.0，固定 core detector、64 KiB 内容探测；上传不再把客户端文件名当提示，ZIP 不自动等于 XLSX。借用 InputStream 必须可 mark/reset；原始不可 mark 流读取前返回 Err，调用方应保留 BufferedInputStream。旧 String MIME 重载在 I/O 失败时抛 UncheckedIOException，不再静默返回 octet-stream。探测不是安全审查。
+- Hashing 的 null 算法改走 FILE_HASH_ERROR；保留空 File 标准摘要、空/null byte[] 返回 FILE_READ_ERROR 的差异。MD5/SHA-1 仅作旧非安全校验兼容。详见 USAGE「上传、MIME 与摘要」。
+
 ### 请求边界迁移（2026-10-04，ADR-0029）
 
 - 客户端IP默认只采用数值remoteAddr；显式 `facility.web.proxy.trusted-proxies` 才按有界可信链解析XFF，旧厂商头不再生效。
