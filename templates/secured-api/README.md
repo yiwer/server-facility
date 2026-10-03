@@ -46,6 +46,8 @@ java dev/LocalDatabase.java /absolute/path/to/my-api-database
 
 This foreground helper binds only `127.0.0.1`, uses development-only trust authentication and writes `database.properties`. Press Enter to stop it cleanly. Reusing its marked directory restarts the same database; its data is retained. It refuses unrelated existing directories and an active database. Never expose this trust-authenticated cluster or use this recipe for production. Use an application-owned database, authenticated role, secret management and backup/restore policy in production.
 
+The helper uses PostgreSQL's `pg_ctl start -w` for native startup and readiness, including the restricted-token launch required on Windows administrator accounts. Startup has a 15-second native wait and 30-second process limit; fast shutdown has a 60-second native wait and 70-second process limit. Native logs remain in the owned state directory; a failure includes a bounded diagnostic tail. Closing the foreground owner removes the readiness file and stops its database. Do not forcibly terminate the owner: a forced operating-system kill cannot run JVM cleanup; use `pg_ctl -D <owned-state>/data -m fast -w -t 60 stop` for explicit recovery before restarting.
+
 In another terminal, use both generated property files (file URIs may be percent encoded for spaces):
 
 ```text
