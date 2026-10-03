@@ -48,7 +48,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 | 循环 | 成因 | 断法 |
 |---|---|---|
-| **C1** `error → locale → context → error` | 错误消息在 error 包内做 i18n 解析,拉入 locale/context | error 包退回纯 JDK,i18n 解析上移到展示边界(`LocaleUtil.localize`);ADR-0010 |
+| **C1** `error → locale → context → error` | 错误消息在 error 包内做 i18n 解析,拉入 locale/context | error 包退回纯 JDK,i18n 解析上移到展示边界；新路径注入宿主 MessageSource，旧 LocaleUtil 兼容；ADR-0010/0049 |
 | **C2** `common → structure → copy → common` | `WrappedContainer`/`WrappedDataType` 横跨 structure 与 copy | 二者零消费者,直接 drop;structure 退为纯值叶子 |
 | **C3** `web → autoconfigure`(properties 反向边) | 5 个 web properties 曾住 `autoconfigure.properties`,web 组件依赖它 → 又被 autoconfigure 依赖 | properties 归位到各自消费组件同包(trace/repeatable→`web.filter`,access-log→`web.interceptor`,exception→`web.exception`,cors→`web`);`autoconfigure.properties` 包消亡 |
 
@@ -69,11 +69,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
   `@ConditionalOnMissingBean(Executor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
   —— 让 Boot 的 `applicationTaskExecutor` 先注册；facility 仅缺席时提供有界平台线程池。
   消费方显式向 Async 传入 Executor；静态默认不查容器；执行段上下文、整体预算和取消见 ADR-0026（部分替代 ADR-0002）。
-- **i18n 聚合抢注 primary**:`FacilityLocaleAutoConfiguration` 以 `@AutoConfigureBefore(MessageSourceAutoConfiguration)`
-  注册 `@Primary` 的 `AggregatedMessageSource`(名为 `messageSource`),把各模块贡献的具名
-  `MessageSource` bean 聚合为一个;`facilityMessageSource` 提供 facility 自带的 i18n 文案
-  (basename `i18n/facility-messages`,含 base + en/zh_CN/zh_TW 四份,`fallbackToSystemLocale=false`
-  使非中英 locale 确定性回落英文 base)。
+- **应用拥有 i18n**:`FacilityLocaleAutoConfiguration` 在 Boot `MessageSourceAutoConfiguration` 之后提供缺席兜底；Boot basename 或用户具名 `messageSource` 优先。设施 bundle `i18n/facility-messages` 由应用明确排在 basename 之后；独立 `facilityMessageSource` 不是默认注入候选，不会引起构造注入歧义。新路径不扫描或聚合其他消息源，显式旧聚合调用者负责无环委托，见 ADR0049。
 - **Web 条件门**:`FacilityWebAutoConfiguration` 整体 `@ConditionalOnWebApplication(SERVLET)`,
   各组件再由 `facility.web.*.enabled` 单独 `@ConditionalOnProperty` 开关。
 - **并非所有能力簇都装配**:11 是「需要 bean/配置属性」的子集数,不是能力簇总数——无状态、无可
@@ -81,7 +77,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
   无 `facility.*` properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020、
   ADR-0021)。`masking` 的引擎是单个预编译合并 `Pattern`(六规则 alternation)+ 单遍 `Matcher`
   扫描 + 按命中组 dispatch 到对应遮蔽函数 + 身份证/银行卡的校验位级联(mod11-2/Luhn 通过才遮,
-  详见 ADR-0020);`log` 包在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖
+  详见 ADR-0020);兼容 `LogUtil` 在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎（新访问/错误路径直接使用 SLF4J 有限元数据，不经二次分发；ADR0049）(单向依赖
   `log → masking`,由 `MaskUtil` 零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit
   `packages_are_cycle_free` 守护的是未来出现反向边时立即报警,而非断言方向本身),`masking`
   自身零依赖、零装配、零 bean。`csv`/`excel` 同属这一类:`CsvUtil` 以 Commons CSV required 依赖提供有界逐行消费与明确方言（ADR-0038）;

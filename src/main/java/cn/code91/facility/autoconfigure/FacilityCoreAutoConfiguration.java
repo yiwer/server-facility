@@ -34,7 +34,7 @@ public class FacilityCoreAutoConfiguration {
         return new LogPostHandlerComposite(handlers);
     }
 
-    @Bean("facilityMessageSource")
+    @Bean(name = "facilityMessageSource", defaultCandidate = false)
     @ConditionalOnMissingBean(name = "facilityMessageSource")
     public MessageSource facilityMessageSource() {
         ResourceBundleMessageSource ms = new ResourceBundleMessageSource();

@@ -91,9 +91,9 @@ String uuid = IdUtil.uuidSimpleStr();
 // 3) JSON：序列化返回 Result，不抛异常
 Result<String, WrappedError> json = JsonUtil.serialize(user);
 
-// 4) 日志：SLF4J 风格静态门面（Throwable 显式置于 msg 后、占位符参数前）
-LogUtil.info("user {} logged in", userId);
-LogUtil.error("load failed: {}", ex, resourceId);   // ex 在 msg 与参数之间，不被当占位符实参吞掉
+// 4) 日志：应用自己的 SLF4J Logger，只输出审核过的元数据
+var log = org.slf4j.LoggerFactory.getLogger(OrderQueries.class);
+log.info("Order query completed; outcome={}", outcome.name());
 
 // 5) 异步：惰性 pipeline，结果落到 Result
 Result<String, Throwable> out = Async.supply(() -> httpGet(url))
@@ -124,7 +124,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `context` | 构造器注入；兼容 `SpringContextHolder` | 默认注入应用自己的服务；旧门面按实例归属发布/撤销 context |
 | `id` | `IdUtil` | 雪花 ID（可配 worker/dataCenter）+ UUID 多形态 |
 | `json` | `Jsons` / `JsonConfig` | 应用 mapper 注入、不可变 builder、安全 Result 错误通道；JsonUtil 保留 standalone 静态预设 |
-| `log` | `LogUtil` | SLF4J 风格门面；带异常签名固定 `(msg, t, args...)`，Throwable 显式居中（ADR-0005），主源零 logback 依赖（ADR-0011） |
+| `log` | 应用 SLF4J；旧 LogUtil | 新路径标准日志与字段白名单；旧二次分发只保留兼容，不是审计 |
 | `date` | `DateUtil` | 日期格式化/解析（返回 Result）、区间规范化 |
 | `number` | `Numbers` / `NumberFormat` / `NumberUnits` | 数值解析、大小格式化、单位换算 |
 | `hash` | `Hashing` | 文件/字节哈希 |
@@ -133,7 +133,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `mime` | `MimeTyping` | 基于魔数的 MIME 探测（optional：tika-core） |
 | `pattern` | `Patterns` | 常用正则校验 |
 | `copy` | `CopyUtil` | Bean 属性拷贝 |
-| `locale` | `LocaleUtil` | i18n 消息翻译 + 聚合 MessageSource |
+| `locale` | 应用 MessageSource；旧 LocaleUtil | 宿主优先的明确 bundle 顺序，静态入口保留兼容并弃用 |
 | `async` | `Async<T>` | 惰性组合、整体 deadline 与协作取消；有界平台线程默认，应用显式注入 Executor |
 | `web.*` | filter / interceptor / exception / session / response / argument / util / download / upload | Servlet 栈：traceId、可重复读请求体、访问日志、全局异常、统一响应、安全上传下载、XSS（optional：jsoup） |
 | `ratelimit` | `RateLimiterUtil` / `RateLimiter`（SPI） | 本地令牌桶：合法成本、精确扣费与有界准入；必需门面 + 显式 Optional 降级 |
@@ -144,7 +144,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `idempotency` | `IdempotencyStore`（SPI） | 执行资格、指纹绑定与有界回执；lease/retention分离，旧入口保留迁移（ADR0034） |
 | `web.idempotency` | `@Idempotent` | 旧HTTP响应重放与有界捕获；安全claim路径迁移由票12完成 |
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex（静态门面，纯 JDK，无需配置） |
-| `masking` | `MaskUtil` | 日志脱敏（默认开启）：秘密/JWT/身份证/银行卡/邮箱/手机号六规则，校验位（mod11-2/Luhn）抑误伤；`LogUtil` 写前集成，`setMaskingEnabled(false)` 可关（静态门面，纯 JDK，无需配置） |
+| `masking` | `MaskUtil` | 纯函数脱敏（旧 LogUtil 默认集成）：秘密/JWT/身份证/银行卡/邮箱/手机号六规则，校验位（mod11-2/Luhn）抑误伤；`LogUtil` 写前集成，`setMaskingEnabled(false)` 可关（静态门面，纯 JDK，无需配置） |
 | `csv` | `CsvUtil` | 有界 CSV 读写（Commons CSV required）：strict/legacy 方言、逐行消费、UTF-8 字节/行列/字段预算；机器与电子表格导出政策分离 |
 | `excel` | `ExcelUtil` | Excel（xls/xlsx）读写（POI optional）：有界XLS/HSSF与XLSX/SAX，显式Locale/公式缓存，SXSSF一行窗口及自有临时预算；成对引擎缺失返回err |
 
@@ -155,7 +155,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | 前缀 | 作用 |
 |---|---|
 | `facility.id` | 雪花 ID：`worker-id` / `data-center-id` / `clock-backwards-threshold-millis` |
-| `facility.web.trace` | TraceId 过滤器：`header-name` / `mdc-key` / `generate-if-absent` |
+| `facility.web.trace` | 旧 TraceId 过滤器，默认禁用；仅显式兼容 opt-in，新应用使用标准 Micrometer tracing |
 | `facility.web.repeatable-request` | 可重复读请求体：`max-body-bytes` / `include-content-types` / `exclude-paths` |
 | `facility.web.access-log` | 访问日志拦截器：`slow-threshold-millis`（超阈升 WARN 标记 slow；0=禁用） |
 | `facility.web.cors` | CORS：`allowed-origins`（默认空 = 不开）/ `allowed-methods` / `allow-credentials` |
@@ -170,7 +170,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 一行版；细节与处置全在 USAGE「消费方须知」：
 
-- **i18n 抢注**：facility 抢注 `@Primary` 的 `messageSource`，`spring.messages.*` **不影响** facility 自带文案；要完全接管，声明名为 `messageSource` 的 bean 即可让位。
+- **应用拥有 i18n**：Boot `spring.messages.*` 或应用名为 `messageSource` 的 bean 优先；仅在两者缺席时提供设施 bundle。需要设施文案时，将 `i18n/facility-messages` 明确列在应用 basename 之后，见[迁移说明](docs/building/application-observability.md)。
 - **JsonUtil 进程级单例**：`JsonsRegistry` 是静态单例，同一 JVM 内多个 ApplicationContext 共享同一套 ObjectMapper 命名空间。
 - **SpringContextHolder 已弃用**：新路径构造器注入所需服务。兼容门面只发布首个成功刷新 context，只有发布者能撤销；被拒绝的 context 不自动接管，关闭不会影响 owner（ADR-0025）。
 - **两类让位机制勿混淆**：`@ConditionalOnMissingBean` 真回退（声明即让位） vs Web 过滤器/拦截器仅认 `enabled` 开关（声明同类 bean 会并存双重入链）。

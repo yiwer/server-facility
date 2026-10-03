@@ -2,7 +2,6 @@ package cn.code91.facility.web.download;
 
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
-import cn.code91.facility.log.LogUtil;
 import cn.code91.facility.mime.MimeTyping;
 import cn.code91.facility.result.Result;
 import jakarta.servlet.ServletOutputStream;
@@ -58,7 +57,6 @@ public final class HttpFileResponses {
             out.flush();
             return Result.ok();
         } catch (IOException e) {
-            LogUtil.debug("Download canceled/failed: {}", e.getMessage());
             return Result.err(WrappedError.of(
                     FacilityErrorType.FILE_READ_ERROR, e, new Object[]{file.getName()}));
         }
@@ -84,7 +82,6 @@ public final class HttpFileResponses {
             out.flush();
             return Result.ok();
         } catch (IOException e) {
-            LogUtil.debug("Preview failed: {}", e.getMessage());
             return Result.err(WrappedError.of(
                     FacilityErrorType.FILE_READ_ERROR, e, new Object[]{file.getName()}));
         }

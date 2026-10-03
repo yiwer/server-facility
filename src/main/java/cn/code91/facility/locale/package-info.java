@@ -1,21 +1,8 @@
 /**
- * <h2>cn.code91.facility.locale</h2>
- *
- * <p><b>Purpose:</b> i18n facade over Spring {@code MessageSource}
- * ({@code LocaleUtil}: translate / translate-with-fallback / boundary
- * localization of {@code ErrorTypeInterface} per ADR-0010), plus
- * {@code AggregatedMessageSource} — first-hit composition of module message
- * sources with explicit {@code @Order} sorting (RV2-21), exposed as the
- * primary {@code messageSource} by the Locale autoconfiguration.</p>
- *
- * <p><b>Entry classes:</b> {@code LocaleUtil}, {@code AggregatedMessageSource}.</p>
- *
- * <p><b>Depends on:</b> {@code common} ({@code NullSafe}), {@code context}
- * ({@code SpringContextHolder} bean lookup), {@code error}
- * ({@code localize(ErrorTypeInterface, ...)} — the C1 boundary-localization
- * entry, keeping the dependency cone {@code error ← context ← locale}).</p>
- *
- * <p><b>Depended on by:</b> {@code web} (exception handler localization,
- * arriving in P6), {@code autoconfigure}, downstream application code.</p>
+ * Application-owned localization at presentation boundaries. Boot basenames explicitly order
+ * host and facility bundles; a named host MessageSource wins. The library supplies only its own
+ * UTF-8 fallback when no host policy exists. ErrorTypeInterface remains pure metadata.
+ * LocaleUtil and explicit AggregatedMessageSource composition retain historical compatibility;
+ * new callers constructor-inject MessageSource and pass Locale. See ADR0049.
  */
 package cn.code91.facility.locale;
