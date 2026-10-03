@@ -92,3 +92,8 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 随后合CSV最终 `e906cbb3000859c9da1c9ca3cbc93331da8bff48`，merge `4a0802ab53fb55e602a2b644bdc898d5e17565a0`。CSV精确被测 `e1f078a6507d5a3f2dee00edd7ecfd4d83f45566` Windows all --fresh 1506/0/0/0，原门/5架构/依赖、全部消费者/矩阵/资源/三负控PASS；jar SHA `3694669e7f79d473d46746dfb895ab0517d8662647ae1cf1d917ca9ff82d802e`。CSV新必需图无Tika/POI使用IO2.20.0/Codec1.19.0已真实运行；64MiB/4m行76MB及200失败稳定，详见票15报告。
 - 两分支共享c32e72e；产品变更分别限IO和CSV/POM，冲突只为CHANGELOG相邻条目及Verify相邻consumer方法/调用。merger保留io/csv/rate-limit全部独立方法和CI归档路径，javac --release25验证合并runner成功（`.verification-results/merge-14-15-runner`）。中央登记0037/0038、0021仅CSV部分替代、39条实际ADR与正预算政策。
 - 按root协调没有为两份已验证源码重复全门；两者合并后是新组合，**这里不宣称合并后的同源测试通过**，root下一批Windows/Linux CI负责确认。09/14/15均保留新Linux verification-pending，31/33未来组合责任独立登记。未push，主checkout将在本中央提交后释放。
+
+
+## 2026-10-04 限流／ZIP／CSV跨平台闭合
+
+`c2f0f6b4118a3a059993ef53f2d62f547151c560`在现有CI run37147633803两个OS的all、platform与归档全部成功。09/14/15据此closed；精确job/artifact/digest见`docs/verification/ticket-09-14-15-ci.md`，原API JSON本地保存。未下载artifact内容，不混用本地与CI精确计数。当前共16票closed，其余继续沿依赖图实施。

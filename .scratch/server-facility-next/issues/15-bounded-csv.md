@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-06、FR-09；AC-10、AC-12
 
@@ -13,7 +13,7 @@
 - [x] 成熟解析器负责语法，新依赖版本进入账本；旧宽松样本与新严格规则显式区分。
 - [x] 声明字节/行/列/字段长度/错误累计预算，readAll 便利入口也有上限；提供安全行列定位。
 - [x] 机器数据不被隐式改写，spreadsheet 导出政策单独定义；输入/输出流归属明确。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -40,3 +40,6 @@ Windows精确源码 `e1f078a6507d5a3f2dee00edd7ecfd4d83f45566`（含09中央c32e
 64MiB进程4m行/76MB流读写、200失败后存活堆约4.88MB，线程7→7；保留初始默认列洪泛OOM的RED及修正后结果。独立CPython3.14金样/seed/SHA、每轮TDD、预算与异常所有权见 [完整报告](../../../docs/verification/ticket-15-bounded-csv.md)（仓库路径：docs/verification/ticket-15-bounded-csv.md）。
 
 未完成：本票新增代码Linux证据待root集成CI，因此Q08/Q10总体勾选仍未闭合。14/15若在此次分支验证后合并，不能将本报告当合并后同源结果。31上传到CSV业务接合、33最终候选组合独立登记，不反向构成本票实现依赖。后续提交仅票/报告/账本，不改变被测源码。
+
+
+**2026-10-04 平台闭合**：`c2f0f6b`在Windows与Ubuntu实际完成all --fresh、platform --fresh及归档，全部success；见[同源CI证据](../../../docs/verification/ticket-09-14-15-ci.md)。本票closed。历史阶段状态与局部失败保留，不混用各环境数值。
