@@ -416,6 +416,7 @@ class Verify {
         }
         try (var files = Files.list(ROOT.resolve("target"))) {
             for (Path jar : files.filter(p -> p.toString().endsWith(".jar")).toList()) {
+                Files.copy(jar, Files.createDirectories(report.resolve("artifacts")).resolve(jar.getFileName()));
                 summary.add("sha256 " + jar.getFileName() + "=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
             }
         }
