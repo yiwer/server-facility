@@ -21,7 +21,7 @@
 - [x] 正常/接合：单任务、组合、恢复、首成功路径使用实际声明 executor；Executor/TaskExecutor 与 Boot 配置接合。
 - [x] 边界：截止时间前/等于/之后、已完成任务再取消、嵌套上下文与原值恢复。
 - [x] 故障/并发：拒绝提交、供应函数抛错、AssertionError、超时与完成竞争、关闭时提交；受控调度和屏障复现。
-- [x] 资源：重复失败/取消后工作线程、任务队列及上下文回到约定范围；目标平台线程/显式虚拟线程配置复验。
+- [ ] 资源：重复失败/取消后工作线程、任务队列及上下文回到约定范围；目标平台线程/显式虚拟线程配置复验。JDK25 / Boot3.5.16 的平台线程、显式虚拟线程与资源验证已完成；Boot4 目标平台由票24提供复验证据后再勾选。
 
 ## Scope boundary
 
@@ -35,10 +35,14 @@ ADR-0026 将替代 ADR-0002 的 TaskExecutor-only 回退类型及裸虚拟线程
 
 ## 实施与阶段证据
 
-公开测试 seam：Async 工厂/组合/submit/await、AsyncInterceptor、标准 Executor/TaskExecutor、Spring ApplicationContextRunner（用户已批准）。完成 20 轮逐项 RED→GREEN；前17轮临时日志已被clean清理，观察摘要和最终完整证据见 `docs/verification/ticket-03-windows.md`，第18–20轮日志位于本 worktree `target/ticket03/`。包含整树 executor、Error 原类、实际线程 scope、父 deadline、协作取消/await、any loser、类型让位、有界关闭、默认平台池、已知值 scope、256 次 Spring 队列取消、子元数据、cancel(false)、必需参数与 before 失败清理。
+公开测试 seam：Async 工厂/组合/submit/await、AsyncInterceptor、标准 Executor/TaskExecutor、Spring ApplicationContextRunner（用户已批准）。完成 20 轮逐项 RED→GREEN；前17轮临时日志已被clean清理，观察摘要和最终完整证据见 `docs/verification/ticket-03-windows.md`，第18–20轮日志位于实施 worktree `E:/GenCode/server-facility-worktrees/ticket-03/target/ticket03/`。包含整树 executor、Error 原类、实际线程 scope、父 deadline、协作取消/await、any loser、类型让位、有界关闭、默认平台池、已知值 scope、256 次 Spring 队列取消、子元数据、cancel(false)、必需参数与 before 失败清理。
 
 最终 AsyncBoundaryTest 16 tests、AsyncContractTest 15 tests、Boot 接合 9 tests 已通过：512 次固定 seed=20261003 的受控交错、128 次真实完成/取消竞争、256 次重复失败和 256 次排队取消；队列恢复 0、工作线程池大小 1、复用线程 MDC 空值。Boot platform/virtual 配置走实际 Async；关一个应用不影响另一个；256 队列容量/第257项拒绝，shutdown 取消未开始项并终止协作任务。忽略中断项不虚报结束，容器关闭小于测试上界2s（配置等待1s），任务由测试显式释放。
 
 完整证据见 [ticket-03-windows](../../../docs/verification/ticket-03-windows.md)：已测代码提交75ed834，已合入集成最新731598b；Wrapper `clean verify` 1251 tests、0失败/错误/跳过；instruction93.8400%、line93.7312%、branch87.1890%，架构和依赖检查通过。环境为Windows10.0.26100 / Oracle JDK25.0.4.1 / Boot3.5.16；不代表Linux/Boot4证据。
 
-Q01–Q10 逐项证据与不适用理由记录在验证文档；公共契约已实现，Linux同提交CI、最终Boot4及J04/J17组合仍待root/24/33和相应能力票闭合，所以共同完成标准复选框保留未勾选，状态verification-pending。任务本身无数据库/线格式协议，相关金样与持久化维度不适用；多小时heap/连接长稳未执行，不把固定循环称为长稳通过。
+Q01–Q10 逐项证据与不适用理由记录在验证文档；公共契约与本票有界资源验证已实现并通过。尚缺包含本票的Linux CI和票24的Boot4目标平台复验，因此共同完成标准及资源整行保留未勾选，状态verification-pending。任务本身无数据库/线格式协议，相关金样与持久化维度不适用。
+
+J04 HTTP身份接合、J17锁接合及票33的候选扩大长稳由各自下游票负责，不是本票的新增前置依赖；本票不依赖票33才能关闭。多小时heap/外部连接长稳未执行，固定循环只作为本票有界资源证据。
+
+合并记录：2026-10-03，merger从干净731598b以--no-ff合入分支b289d51，合并提交e32457fc10f56e1cc877c1208eb58b9f9167b91d。主checkout的src、pom、Wrapper与已测源码75ed834一致；中央文档同步未改源码，未重复全量测试、未推送。

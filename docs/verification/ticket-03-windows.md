@@ -26,7 +26,7 @@
 
 普通 jar：`target/server-facility-0.1.0-SNAPSHOT.jar`；SHA-256 `e22265cfb7fdc096a62c27ea3c811e47911812356c6844dff8d913234bde41d9`。
 
-完整日志保存于本 worktree 忽略目录 `target/ticket03/target-ticket03-final-clean-verify.log`；同目录有第 18–20 轮 RED/GREEN 与阶段全门日志。前 17 轮临时日志被后续 `clean` 清理，以下保留当轮失败/通过的观察摘要；不将已经删除的原始日志列为可下载证据。最终源码和命令均可重跑。
+完整日志保存于实施 worktree 忽略目录 `E:/GenCode/server-facility-worktrees/ticket-03/target/ticket03/target-ticket03-final-clean-verify.log`；同目录有第 18–20 轮 RED/GREEN 与阶段全门日志。前 17 轮临时日志被后续 `clean` 清理，以下保留当轮失败/通过的观察摘要；不将已经删除的原始日志列为可下载证据。最终源码和命令均可重跑。
 
 ## RED → GREEN 摘要
 
@@ -70,11 +70,15 @@
 | Q07 可重放 | seed=20261003，512 次受控完成/取消顺序；128 次 CyclicBarrier 真实竞争。可单跑 `-Dtest=AsyncBoundaryTest`；资源循环均固定256，无新增测试框架。 |
 | Q08 环境/诊断 | 上文固定 commit/JDK/OS/Boot/命令/产物；Surefire 显示回归名称、循环编号、队列结果；Linux 尚未执行本票版本，不能将票01的旧 CI 当作本票证据。 |
 | Q09 门槛 | clean verify 1251 全绿，覆盖率/架构/依赖门全通过；旧基线工具的 JaCoCo major69 instrumentation 警告不作为最终证据，最终 0.8.15 无该警告。新增36项测试（相对合入的票01/02基线1215）；无删测/跳过/门槛修改。 |
-| Q10 审阅 | 代码、设计/迁移、测试和本证据同票交付；未覆盖环境与后续组合明确列出，所以票未 closed。 |
+| Q10 审阅 | 代码、设计/迁移、测试和本证据同票交付；本票尚缺Linux和Boot4目标平台复验，所以未closed。下游HTTP/锁接合与票33候选复验是独立责任，不构成本票对33的前置依赖。 |
 
-## 仍需闭合
+## 本票尚需闭合
 
 - root/集成 CI 在包含本票的同一提交跑 Linux；当前本机 WSL 虚拟化不可用。本票未获得 Linux 运行证据。
-- 票 24/33 在 Boot 4 最终产物复验 platform/virtual 和装配；这里是 Boot 3.5.16 中间基线。
+- 票24在Boot4目标平台复验platform/virtual和装配后提供本票资源场景的勾选依据；这里是Boot3.5.16中间基线。
+
+## 下游独立接合与候选复验
+
+以下不是本票新增前置条件，不建立03依赖33的循环；各主责票在自身验收/候选发布时执行。
 - J04 的 HTTP 身份/安全上下文策略由票 06/26/27 接合；J17 的持锁任务超时不提前解锁由票 07/33 接合。本票只承诺 MDC/显式元数据与协作取消，不传播事务/安全身份、不强行终止任意代码。
 - 票 33 扩大长稳规模和跨平台候选回归。上述固定256循环/线程队列观测不能替代多小时 heap/外部连接长稳。

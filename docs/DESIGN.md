@@ -90,7 +90,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-25 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+26 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
 
 | ADR | 决策 |
 |---|---|
@@ -123,9 +123,9 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 6. 质量门
 
-- **测试**:1196 项,含 5 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **测试快照（2026-10-03，Windows / Java 25 / Boot 3.5.16）**:1251 项、0失败/错误/跳过，含 5 条 ArchUnit；`mvnw.cmd -B -ntp clean verify` 全绿。源码提交75ed834，后续合并源码一致，详见 [票03证据](verification/ticket-03-windows.md)。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
-  (实测约 93.7% / 93.5% / 87.0%,2026-07-06),达标即门,退化即红。
+  (上述快照 instruction93.8400% / line93.7312% / branch87.1890%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
 

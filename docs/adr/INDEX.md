@@ -5,7 +5,7 @@
 | ADR | 状态 | 决策 |
 |---|---|---|
 | [0001](0001-rp-02-jsoup-tika-optional.md) | inherited | jsoup / tika-core 声明为 Maven optional |
-| [0002](0002-rp-04-async-bean-type-matching.md) | inherited | 异步线程池注入按类型匹配,不按 bean 名 |
+| [0002](0002-rp-04-async-bean-type-matching.md) | inherited; 部分由 [0026](0026-async-execution-contract.md) 替代 | 保留按类型让位与 Boot 优先，TaskExecutor-only 条件和裸虚拟线程兜底由 0026 替代 |
 | [0003](0003-rp-06-rfc-7807-problem-details.md) | inherited | RFC 7807 ProblemDetail 双轨(use-problem-detail 开关) |
 | [0004](0004-rp-07-facility-exception-interface.md) | inherited | FacilityException 接口解耦异常层次 |
 | [0005](0005-rp-08-slf4j-throwable-position.md) | inherited | LogUtil Throwable 参数对齐 SLF4J 末位 |
@@ -29,3 +29,4 @@
 | [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Accepted | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted | Java 25 中间基线、校验固定 Maven Wrapper、独立普通 jar 消费与跨平台验证入口 |
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
+| [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
