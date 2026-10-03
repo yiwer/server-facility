@@ -13,8 +13,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("InMemoryDistributedLock - 单机分布式锁默认实现")
+@DisplayName("InMemoryDistributedLock - 历史命名的单机兼容实现")
 class InMemoryDistributedLockTest {
+
+    @Test
+    void completedKeysDoNotConsumeLifetimeCapacity() {
+        var lock = new InMemoryDistributedLock(1);
+        for (int i = 0; i < 1000; i++) {
+            String key = "order-" + i;
+            assertThat(lock.executeWithLock(key, Duration.ZERO, () -> "saved")).isEqualTo("saved");
+        }
+    }
 
     @Test
     @DisplayName("F13:构造器守卫——maxLocks 非正数抛 IAE(0 的旧行为是每次先 clear 再建,守卫后消除)")
@@ -185,7 +194,7 @@ class InMemoryDistributedLockTest {
     }
 
     @Test
-    @DisplayName("executeWithLock 获取锁失败时抛出 LockAcquisitionException,消息含 key")
+    @DisplayName("executeWithLock 获取锁失败时抛出 LockAcquisitionException,诊断不复制业务 key")
     void executeWithLock_tryLockFails_throwsLockAcquisitionException() throws Exception {
         InMemoryDistributedLock lock = new InMemoryDistributedLock(10);
         CountDownLatch acquired = new CountDownLatch(1);
@@ -196,7 +205,7 @@ class InMemoryDistributedLockTest {
 
         assertThatThrownBy(() -> lock.executeWithLock("distinctive-key-42", Duration.ofMillis(50), () -> "unreachable"))
                 .isInstanceOf(LockAcquisitionException.class)
-                .hasMessageContaining("distinctive-key-42");
+                .hasMessage("Required lock protection was not acquired");
 
         release.countDown();
         holder.join(2000);
