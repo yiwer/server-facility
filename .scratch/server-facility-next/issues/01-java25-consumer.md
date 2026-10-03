@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-01、FR-02、FR-10；AC-01、AC-02、AC-13
 
@@ -13,8 +13,8 @@
 - [x] 固定 Maven Wrapper 及下载校验、唯一 release 25、无 preview；更新字节码相关插件/处理器，产物 class major 为 69。
 - [x] 维护全部直接依赖、BOM、processor 与显式插件账本；Boot 3.5 若作中间基线，明确不代表最终平台。
 - [x] 独立应用从普通 jar 消费，不能借用库源码或测试 classpath；装配 imports 与配置 metadata 随产物生效。
-- [ ] 建立快速、集成和资源测试的执行入口与结果归档约定；Windows/Linux 构建记录测试发现、跳过、覆盖率、架构及依赖分析。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 建立快速、集成和资源测试的执行入口与结果归档约定；Windows/Linux 构建记录测试发现、跳过、覆盖率、架构及依赖分析。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -37,4 +37,4 @@
 - 原 1196 测试仍全部发现，失败/错误/跳过均 0，架构 5 条按名称保留；指令 93.62%、行 93.34%、分支 86.95%；原覆盖率门与依赖分析均保留，未扩大 ignore。
 - 真实 JDK 21、缺 JAVA_HOME、损坏 Wrapper SHA-256 均按预期拒绝，入口未静默跳过；成功验证记录见报告。
 - 已提交且启动时干净的 `7d68039` 上执行 `java verification/Verify.java all --fresh`，父进程退出 0、`RESULT=PASS`；最终完整证据目录 `.verification-results/20261003-224849-577-all/`。报告提交只改变文档，不改变已测试实现。
-- **仍待 Linux**：本地 Docker engine / WSL2 先决条件不足；CI Windows/Linux 矩阵已配置，root 已获用户授权推送并运行，取得具体 SHA 的 Linux 运行证据后才能勾选跨平台项、闭合 Q08/Q10 并关闭本票。Boot 4/Jackson 3 不属于本票已完成范围。
+- **跨平台证据已闭合**：集成提交 `e86e1e982286b8c87c2c617bce30b9a69b139168` 的 [GitHub Actions 37131502759](https://github.com/yiwer/server-facility/actions/runs/37131502759) 在 Ubuntu 和 Windows 均成功执行 `all --fresh`，两个报告 artifact 已归档。详见 [CI 记录](../../../docs/verification/ticket-01-ci.md)。Q08/Q10 已闭合；Boot 4/Jackson 3 不属于本票已完成范围。

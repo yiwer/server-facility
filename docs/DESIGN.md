@@ -64,8 +64,9 @@ POI 只能出现在包私有 `ExcelSupport`)。
 - **兜底不抢占**:每个 bean `@ConditionalOnMissingBean`(按类型或名称),消费方声明的同名/
   同类型 bean 永远优先。
 - **按类型让位 Boot**:`FacilityAsyncAutoConfiguration` 的 `facilityAsyncExecutor` 条件为
-  `@ConditionalOnMissingBean(TaskExecutor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
-  —— 让 Boot 的 `applicationTaskExecutor` 先注册,facility 仅在缺失时兜底(ADR-0002)。
+  `@ConditionalOnMissingBean(Executor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
+  —— 让 Boot 的 `applicationTaskExecutor` 先注册；facility 仅缺席时提供有界平台线程池。
+  消费方显式向 Async 传入 Executor；静态默认不查容器；执行段上下文、整体预算和取消见 ADR-0026（部分替代 ADR-0002）。
 - **i18n 聚合抢注 primary**:`FacilityLocaleAutoConfiguration` 以 `@AutoConfigureBefore(MessageSourceAutoConfiguration)`
   注册 `@Primary` 的 `AggregatedMessageSource`(名为 `messageSource`),把各模块贡献的具名
   `MessageSource` bean 聚合为一个;`facilityMessageSource` 提供 facility 自带的 i18n 文案
@@ -89,7 +90,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-25 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+27 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -118,12 +119,14 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
 | 0024 | Java 25 中间基线、固定校验 Wrapper、独立普通 jar 消费与跨平台验证入口 |
 | 0025 | Context 注册归实例所有、刷新/关闭隔离；构造器注入为默认，ID/日志兼容入口不跨 context 缓存 Spring bean |
+| 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
+| 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 
 ## 6. 质量门
 
-- **测试**:1196 项,含 5 条 ArchUnit 架构守护;`mvn verify` 全绿。
+- **测试快照（2026-10-03，Windows / Java 25 / Boot 3.5.16）**:1265 项、0失败/错误/跳过，含 5 条 ArchUnit；`java verification/Verify.java all` 全绿，含普通 jar 与真实 JSON/HTTP 消费者。被测提交 `a18b45f`，合并保留相同源码/POM/验证入口；新增场景 Linux CI 仍待取得，详见 [票21证据](verification/ticket-21-json-expand.md)。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
-  (实测约 93.7% / 93.5% / 87.0%,2026-07-06),达标即门,退化即红。
+  (上述快照 instruction93.8787% / line93.7636% / branch87.2832%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
 

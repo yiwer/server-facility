@@ -60,6 +60,7 @@ class Verify {
                     consumer("configured");
                     consumer("override");
                     consumer("invalid");
+                    jsonConsumer();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
                     // Each application gets a distinct bounded JVM and must close naturally within 45 seconds.
@@ -118,6 +119,40 @@ class Verify {
 
     static String java() {
         return Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "java.exe" : "java").toString();
+    }
+
+    static void jsonConsumer() throws Exception {
+        var consumer = ROOT.resolve("verification/json-consumer");
+        maven(consumer, "json-consumer-build", "clean", "compile", "dependency:build-classpath",
+                "-Dmdep.outputFile=" + consumer.resolve("target/classpath.txt"));
+        maven(consumer, "json-consumer-effective-pom", "help:effective-pom",
+                "-Doutput=" + report.resolve("json-consumer-effective-pom.xml"));
+        maven(consumer, "json-consumer-dependencies", "dependency:tree",
+                "-DoutputFile=" + report.resolve("json-consumer-dependency-tree.txt"));
+        copyDirectory(consumer.resolve("src/main/resources/golden"), report.resolve("json-golden"));
+        Files.copy(consumer.resolve("pom.xml"), report.resolve("json-consumer-pom.xml"));
+        Files.copy(consumer.resolve("src/main/java/example/JsonConsumer.java"), report.resolve("JsonConsumer.java"));
+        try (var goldens = Files.list(report.resolve("json-golden"))) {
+            for (Path golden : goldens.sorted().toList()) {
+                summary.add("sha256 json-golden/" + golden.getFileName() + "=" + HexFormat.of().formatHex(
+                        MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(golden))));
+            }
+        }
+        String dependencies = Files.readString(consumer.resolve("target/classpath.txt")).trim();
+        for (String entry : dependencies.split(java.util.regex.Pattern.quote(File.pathSeparator))) {
+            if (!entry.endsWith(".jar") || !Path.of(entry).toAbsolutePath().startsWith(repository)) {
+                throw new AssertionError("JSON consumer dependency is not an isolated repository jar: " + entry);
+            }
+        }
+        var classpath = consumer.resolve("target/classes") + File.pathSeparator + dependencies;
+        for (String access : List.of("constructed", "injected")) {
+            Path log = run(ROOT, Map.of(), "json-consumer-" + access, List.of(java(), "-Xmx256m", "-Dfile.encoding=UTF-8",
+                    "-cp", classpath, "example.JsonConsumer", access), 90, null);
+            if (!Files.readString(log).contains("JSON_CONSUMER_OK " + access)) {
+                throw new AssertionError("JSON consumer did not complete " + access + ": " + log);
+            }
+        }
+        summary.add("json-consumer=ordinary jar; literal goldens; real HTTP; default/custom policy; two applications; close/rebuild; -Xmx256m; 90s per JVM");
     }
 
     static void prerequisites() throws Exception {

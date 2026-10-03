@@ -20,13 +20,24 @@ import org.springframework.context.annotation.Bean;
  *   <li>{@code @RestController} 出口走 Spring 的 ObjectMapper</li>
  *   <li>服务代码 {@code JsonUtil.serialize(obj)} 也走同一份 ObjectMapper</li>
  * </ul>
- * 二者序列化行为保证一致。同时把同一个 {@link JsonsRegistry} 暴露为 Spring bean 供 DI 使用。</p>
+ * 单应用内二者序列化行为一致。新代码注入应用自己的 {@link Jsons} bean，避免多个应用覆盖静态默认值。
+ * 同时保留进程级 {@link JsonsRegistry} bean 的兼容行为。</p>
  */
 @AutoConfiguration
 @AutoConfigureAfter(JacksonAutoConfiguration.class)
 @ConditionalOnClass(ObjectMapper.class)
 @ConditionalOnBean(ObjectMapper.class)
 public class FacilityJsonAutoConfiguration {
+
+    /**
+     * 应用拥有的 JSON 服务，复用本应用的 mapper 及其 customizer，不经进程级 registry 查找。
+     * 用户可以声明自己的 {@link Jsons} bean；此时其政策由用户管理。
+     */
+    @Bean
+    @ConditionalOnMissingBean(Jsons.class)
+    public Jsons jsons(ObjectMapper springObjectMapper) {
+        return new Jsons(springObjectMapper);
+    }
 
     /**
      * 把进程级 {@link JsonsRegistry} 单例的默认 namespace 切换为复用 Spring {@code ObjectMapper}。
