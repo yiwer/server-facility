@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-08、FR-09；AC-11、AC-12
 
@@ -26,5 +26,10 @@
 ## Scope boundary
 
 不强制所有函数 Result 化，不推动未批准的 non-null/Unit 改造。
+
+## Implementation record
+
+- 2026-10-04：从集成线 `042006d` 创建 `codex/ticket-18`。测试 seam 沿用已确认的设施公共接口与独立业务消费者；不测试私有实现或 record getter 镜像。
+- 先登记 ADR-0041：保留 ADR-0007/0010；补充浅不可变、必需回调和集合算术边界。集成线处于票22已批准的迁移红态，先对选定核心源码运行无框架消费者逐条 RED/GREEN；普通完整 jar、覆盖率与架构门须在合并票23后另行执行，不能用局部编译替代。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
