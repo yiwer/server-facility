@@ -4,7 +4,9 @@
 
 ## Status
 
-Accepted
+Accepted; partially superseded by [ADR-0027](0027-safe-http-error-policy.md) (2026-10-03).
+
+0027 替代默认关闭、任意异常原文 detail、请求路径 instance、multipart 统一 413 与分散转换政策；保留采用标准 ProblemDetail、Spring 类型和显式 BaseResponse 迁移入口的历史理由。下文为原决策记录。
 
 日期：2026-05-21
 
