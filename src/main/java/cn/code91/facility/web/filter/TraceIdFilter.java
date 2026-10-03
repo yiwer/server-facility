@@ -63,6 +63,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
         }
 
         request.setAttribute(TraceIdFilter.class.getName(), traceId == null ? "" : traceId);
+        Throwable primary = null;
         try {
             if (traceId == null) MDC.remove(mdcKey);
             if (traceId != null) {
@@ -70,9 +71,18 @@ public class TraceIdFilter extends OncePerRequestFilter {
                 response.setHeader(headerName, traceId);
             }
             filterChain.doFilter(request, response);
-        } finally {
-            if (previous == null) MDC.remove(mdcKey);
-            else MDC.put(mdcKey, previous);
+        } catch (IOException | ServletException | RuntimeException | Error failure) {
+            primary = failure;
+            throw failure;
+        } finally { restore(previous, primary); }
+    }
+
+    void restore(@Nullable String previous, @Nullable Throwable primary) {
+        try {
+            if (previous == null) MDC.remove(mdcKey); else MDC.put(mdcKey, previous);
+        } catch (RuntimeException | Error restoration) {
+            if (primary == null) throw restoration;
+            if (primary != restoration) primary.addSuppressed(restoration);
         }
     }
 

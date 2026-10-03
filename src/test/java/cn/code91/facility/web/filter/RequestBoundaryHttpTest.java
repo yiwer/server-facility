@@ -20,11 +20,13 @@ import java.time.Duration;
 import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@org.junit.jupiter.api.Timeout(45)
 class RequestBoundaryHttpTest {
     @TempDir Path directory;
     record Exit(String user, String trace, String thread) {}
     static class Probe {
         volatile boolean workerObservation;
+        final BlockingQueue<Throwable> servletFailures = new LinkedBlockingQueue<>();
         final BlockingQueue<Exit> exits = new LinkedBlockingQueue<>();
         final BlockingQueue<Exit> workerExits = new LinkedBlockingQueue<>();
         final java.util.concurrent.atomic.AtomicReference<org.springframework.web.context.request.async.DeferredResult<String>> deferred = new java.util.concurrent.atomic.AtomicReference<>();
@@ -234,6 +236,18 @@ class RequestBoundaryHttpTest {
         }
     }
 
+    @Test void explicitHostTraceWithDefaultDisabledIsStillRegisteredOnlyInsideTheBoundary() throws Exception {
+        try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{ExplicitTrace.class, Config.class}, "facility.web.trace.enabled=false");
+             var client = HttpClient.newHttpClient()) {
+            assertThat(get(client, app, "/who", "X-Trace-Id", "host-owned").body()).isEqualTo("anonymous|host-owned|127.0.0.1");
+            assertThat(app.context().getServletContext().getFilterRegistrations().keySet())
+                    .contains("facilityRequestContextFilter").doesNotContain("explicitTrace", "traceIdFilter");
+        }
+    }
+    @Configuration(proxyBeanMethods = false) static class ExplicitTrace {
+        @Bean TraceIdFilter explicitTrace() { return new TraceIdFilter(new FacilityWebTraceProperties()); }
+    }
+
     private EmbeddedServletApplication app(String... properties) { return EmbeddedServletApplication.start(directory, new Class<?>[]{Config.class}, properties); }
     private static Exit exit(EmbeddedServletApplication app) throws Exception {
         Exit value = app.context().getBean(Probe.class).exits.poll(5, TimeUnit.SECONDS);
@@ -270,11 +284,13 @@ class RequestBoundaryHttpTest {
             return executor;
         }
         @Bean @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "facility.web.trace", name = "enabled", havingValue = "true", matchIfMissing = true)
-        TraceIdFilter hostTrace(FacilityWebTraceProperties properties) {
+        TraceIdFilter hostTrace(FacilityWebTraceProperties properties, Probe probe) {
             return new TraceIdFilter(properties) {
                 @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
                         throws ServletException, java.io.IOException {
                     super.doFilterInternal(request, response, (rq, rs) -> {
+                        if (request.getDispatcherType() == DispatcherType.ERROR && request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) instanceof Throwable failure)
+                            probe.servletFailures.add(failure);
                         response.setHeader("Fixture-Boundary-Dispatch", request.getDispatcherType().name());
                         response.setHeader("Fixture-Boundary-Context", who());
                         chain.doFilter(rq, rs);

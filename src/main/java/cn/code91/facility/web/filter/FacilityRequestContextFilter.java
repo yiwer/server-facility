@@ -34,6 +34,7 @@ public class FacilityRequestContextFilter extends OncePerRequestFilter {
     private final ThreadLocal<Boolean> active = new ThreadLocal<>();
     private static final String STATE = FacilityRequestContextFilter.class.getName();
     private static final class State { volatile @Nullable Object user; }
+    private record WorkerScope(@Nullable String previousTrace) {}
 
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -76,32 +77,42 @@ public class FacilityRequestContextFilter extends OncePerRequestFilter {
                 });
         WebAsyncUtils.getAsyncManager(request).registerCallableInterceptor(STATE,
                 new CallableProcessingInterceptor() {
-                    private @Nullable String previousTrace;
-                    private boolean installed;
+                    private final ThreadLocal<WorkerScope> workers = new ThreadLocal<>();
                     @Override public <T> void beforeConcurrentHandling(NativeWebRequest web,
                             Callable<T> task) {
                         state.user = SessionUserHolder.getUser(Object.class).orElse(null);
                         if (trace != null) trace.capture(request);
                     }
-                    @Override public <T> void preProcess(NativeWebRequest web,
-                            Callable<T> task) {
-                        SessionUserHolder.clear(); SessionUserHolder.setUser(state.user);
-                        if (trace != null) {
-                            previousTrace = MDC.get(trace.mdcKey());
-                            String selected = trace.workerTrace(request, previousTrace);
-                            if (selected == null) MDC.remove(trace.mdcKey()); else MDC.put(trace.mdcKey(), selected);
-                        }
-                        installed = true;
-                    }
-                    @Override public <T> void postProcess(NativeWebRequest web,
-                            Callable<T> task, @Nullable Object result) {
-                        if (!installed) return;
+                    @Override public <T> void preProcess(NativeWebRequest web, Callable<T> task) {
                         SessionUserHolder.clear();
-                        if (trace != null) {
-                            if (previousTrace == null) MDC.remove(trace.mdcKey()); else MDC.put(trace.mdcKey(), previousTrace);
+                        String previousTrace = null;
+                        boolean captured = false;
+                        try {
+                            SessionUserHolder.setUser(state.user);
+                            if (trace != null) {
+                                previousTrace = MDC.get(trace.mdcKey());
+                                captured = true;
+                                String selected = trace.workerTrace(request, previousTrace);
+                                if (selected == null) MDC.remove(trace.mdcKey()); else MDC.put(trace.mdcKey(), selected);
+                            }
+                            workers.set(new WorkerScope(previousTrace));
+                        } catch (RuntimeException | Error failure) {
+                            // Spring need not call postProcess for an interceptor whose preProcess failed.
+                            SessionUserHolder.clear(); workers.remove();
+                            if (captured) restoreTrace(previousTrace, failure);
+                            throw failure;
                         }
+                    }
+                    @Override public <T> void postProcess(NativeWebRequest web, Callable<T> task, @Nullable Object result) {
+                        WorkerScope scope = workers.get(); workers.remove();
+                        SessionUserHolder.clear();
+                        if (scope != null) restoreTrace(scope.previousTrace(), result instanceof Throwable failure ? failure : null);
                     }
                 });
+    }
+
+    private void restoreTrace(@Nullable String previous, @Nullable Throwable primary) {
+        if (trace != null) trace.restore(previous, primary);
     }
 
     @Override protected boolean shouldNotFilterAsyncDispatch() { return false; }

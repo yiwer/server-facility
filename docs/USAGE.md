@@ -201,13 +201,13 @@ facility:
 
 代理解析只设一个所有者。若已使用可信配置的 Tomcat RemoteIpValve 或 Spring ForwardedHeaderFilter，让 facility 的可信列表保持空，采用其处理后的 remoteAddr；Tomcat已转发标记也会阻止再次解析剩余XFF。facility不替这些宿主组件建立信任，更不把网络IP用于证明登录。
 
-`FacilityRequestContextFilter` 以最高优先级单次注册，覆盖 REQUEST/ASYNC/ERROR（含嵌套ERROR）；错误策略+1、repeatable+2、捕获+3顺序保持。`TraceIdFilter` bean在此边界内使用，旧单独注册默认禁用，不能再手动重复注册；按类型声明替代 TraceIdFilter 可复用相同生命周期。关闭 `facility.web.trace.enabled` 仍保留来源和兼容身份清理。
+`FacilityRequestContextFilter` 以最高优先级单次注册，覆盖 REQUEST/ASYNC/ERROR（含嵌套ERROR）；错误策略+1、repeatable+2、捕获+3顺序保持。`TraceIdFilter` bean在此边界内使用，旧单独注册默认禁用，不能再手动重复注册；按类型声明替代 TraceIdFilter 可复用相同生命周期。关闭 `facility.web.trace.enabled` 仍保留来源和兼容身份清理；该开关控制默认trace bean，宿主显式声明的TraceIdFilter仍由请求边界采用，且会禁用其额外的容器自动注册。
 
 兼容 holder 仅取宿主 Servlet Principal（MVC前再次适配宿主认证Filter的Principal）或宿主显式设置的兼容值。`SessionUserHolder.isLoggedIn()` 已弃用，它仅判断有值，不能证明认证/授权。新应用直接注入/读取 Spring Security 原生身份；库不验证JWT、不从 X-User/XFF/trace 建立Principal。使用已认证Principal时，旧自定义用户对象的消费者应迁移到Principal或由自己的MVC适配器显式设置兼容值。
 
 顶层请求进入时丢弃遗留holder，实际执行线程在finally清理；嵌套派发恢复外层作用域。Callable只在Spring MVC管理的实际工作线程安装快照，结束后清理，取消/超时回调不跨线程删除仍在执行的上下文。DeferredResult外部生产者、AsyncContext.start和应用任意executor不隐式传播holder；它们使用宿主Security/观测传播政策，重派发才安装请求快照。上下文快照不深拷贝用户对象，宿主仍负责其不可变性与执行器资源。
 
-trace是correlation而非完整分布式追踪。有效宿主MDC优先，其次请求快照、可选单个入站值、UUID；白名单1–64位ASCII字母数字/下划线/短横线。`accept-inbound`默认true保留相关性兼容，可显式false；无效/歧义值按缺失处理。库只改配置的MDC键并在finally恢复原值，不替换宿主其他观测数据。Callable/DeferredResult交接捕获链路内建立的有效观测；worker已有有效观测优先且归原所有者清理。配置在构造时冻结，header-name与mdc-key名称上限128，非法配置启动即失败。
+trace是correlation而非完整分布式追踪。有效宿主MDC优先，其次请求快照、可选单个入站值、UUID；白名单1–64位ASCII字母数字/下划线/短横线。`accept-inbound`默认true保留相关性兼容，可显式false；无效/歧义值按缺失处理。库只改配置的MDC键并在finally恢复原值，不替换宿主其他观测数据。Callable/DeferredResult交接捕获链路内建立的有效观测；worker已有有效观测优先且归原所有者清理。配置在构造时冻结，header-name与mdc-key名称上限128，非法配置启动即失败。MDC安装部分失败时立即清理身份并回滚已捕获的旧值；业务/安装异常是首因，清理异常作为suppressed保留。若宿主MDC本身拒绝恢复，库不能保证其内部数据已恢复，但仍保证兼容身份清理，不把原异常替换成清理错误。
 
 ### HTTP 错误迁移与扩展
 

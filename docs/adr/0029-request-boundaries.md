@@ -24,7 +24,7 @@ Accepted.
 
 过滤链冻结一次IP；Tomcat `org.apache.tomcat.request.forwarded` 标记防止二次解析。已由Tomcat/Spring代理组件拥有转发政策时，facility列表应为空，读取该组件给出的remoteAddr。宿主IP策略抛异常时，顶层finally仍清理holder，ERROR派发以unknown来源继续统一500，避免重入同一失败解析器。
 
-默认 `trace.accept-inbound=true` 仅维持有界correlation兼容，不表示可信身份；false关闭入站接受，仍尊重有效宿主MDC。值白名单ASCII 1–64字符，header-name合法HTTP token且≤128，mdc-key为1–128字母数字点横线下划线。有效宿主MDC优先，finally只恢复所拥有的键；配置构造时冻结。Callable/DeferredResult初始交接会捕获在内层宿主Filter建立的观测。已有worker观测优先、恢复原值后交回所有者。
+默认 `trace.accept-inbound=true` 仅维持有界correlation兼容，不表示可信身份；false关闭入站接受，仍尊重有效宿主MDC。值白名单ASCII 1–64字符，header-name合法HTTP token且≤128，mdc-key为1–128字母数字点横线下划线。有效宿主MDC优先，finally只恢复所拥有的键；配置构造时冻结。Callable/DeferredResult初始交接会捕获在内层宿主Filter建立的观测。已有worker观测优先、恢复原值后交回所有者。Callable安装阶段自身负责部分失败回滚，不依赖Spring在preProcess失败后调用postProcess。恢复状态归实际worker的ThreadLocal作用域；身份先清理，MDC恢复失败保留原异常并附加suppressed。若MDC适配器拒绝恢复，库不声称能修复宿主适配器内部数据。Servlet trace作用域遵循相同首因政策。
 
 MVC兼容拦截器使用宿主Principal覆盖旧兼容值；无需认证的自定义域对象适配可由宿主后续MVC拦截器完成。`isLoggedIn`仅有值检查并弃用。用户对象引用不深拷贝；宿主负责不可变性。任意后台生产者/SecurityContext传播与JWT验证不属于此组件。
 

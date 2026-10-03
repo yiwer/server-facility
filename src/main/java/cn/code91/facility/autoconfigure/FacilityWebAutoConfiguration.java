@@ -50,7 +50,7 @@ public class FacilityWebAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "facility.web.trace", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnBean(TraceIdFilter.class)
     public FilterRegistrationBean<TraceIdFilter> traceIdFilterRegistration(TraceIdFilter traceIdFilter) {
         FilterRegistrationBean<TraceIdFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(traceIdFilter);
