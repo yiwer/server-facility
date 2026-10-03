@@ -7,7 +7,7 @@
 - 工作树 `E:/GenCode/server-facility-worktrees/ticket-15`，分支 `codex/ticket-15`；起点 `d4922df34a96f26cedea4acd9dd78b124fe7c028`。首个实现 checkpoint `c4f379f`，合入最新 integration `8cfaa6e933b4a098f5d2d934ac9433b0ec18cbee` 后为 `835e8bc5767d3508b3dd3fba3cd9b6e8b4567a88`。
 - Commons CSV 1.14.1 required，UTF-8 编解码 REPORT；没有 Excel/POI 的实现依赖，不新增 bean、properties、全局缓存或方言 DSL。
 - STRICT 与 LEGACY 的实际规则、外部 IO cause 的诊断权限、流归属与迁移见 ADR/USAGE。STRICT 不声称完整 RFC 验证：裸字段中的引号允许，闭合引号后空白忽略；LEGACY 保留该空白与尾随文本。
-- 当前 Windows 局部 CSV 切片已通过，完整同源门在收尾执行；Linux 新代码尚未执行，不借用票24旧代码的 CI 结果。本票完成后，31负责上传→CSV业务接合，33负责最终候选组合，不反向制造实现依赖。
+- Windows完整同源 `all --fresh` 已通过（精确结果见末节）；Linux 新代码尚未执行，不借用票24旧代码的 CI 结果。本票完成后，31负责上传→CSV业务接合，33负责最终候选组合，不反向制造实现依赖。
 
 ## 资源登记
 
@@ -70,8 +70,32 @@ J13本票strict/legacy/编码/流生命周期已自测；J14旧CSV便利语义�
 - expected SHA-256 `8656c80014a8a105369e62c36914eaafe14dedf0ed179268cceb2c1eb161d0b8`。
 - 重建：`python src/test/resources/csv/generate.py`；执行：`./mvnw.cmd '-Dtest=cn.code91.facility.csv.*Test' test`。
 
-资源子进程预登记 `-Xmx64m -XX:MaxDirectMemorySize=8m -XX:ActiveProcessorCount=2`，90秒进程期限，50,000行预热后1,000,000/4,000,000行，单行19字节，最大76,000,000字节输入/输出，虚拟流不分配输入大小数组/行集。每轮full GC后相对预热存活堆增量≤8MiB，线程≤基线+2，临时目录为空。最近局部结果 baseline5,418,640 bytes；1m4,918,168；4m4,929,128；最终4,932,008；线程7→7；200轮畸形输入/consumer失败通过。它证明登记规模下的上界与回收，不是任意Java堆/任意业务callback的保证；callback自己保存所有行仍由应用承担。
+资源子进程预登记 `-Xmx64m -XX:MaxDirectMemorySize=8m -XX:ActiveProcessorCount=2`，90秒进程期限，50,000行预热后1,000,000/4,000,000行，单行19字节，最大76,000,000字节输入/输出，虚拟流不分配输入大小数组/行集。每轮full GC后相对预热存活堆增量≤8MiB，线程≤基线+2，临时目录为空。完整门的最新结果 baseline5,367,032 bytes；1m4,866,696；4m4,877,656；最终4,880,536；线程7→7；200轮畸形输入/consumer失败通过。它证明登记规模下的上界与回收，不是任意Java堆/任意业务callback的保证；callback自己保存所有行仍由应用承担。
 
 ## 最终同源门
 
-待执行并填入精确revision、日志目录、质量计数、普通jar SHA、CSV普通consumer实际依赖图及Windows环境；不会把待执行项写作通过。
+精确被测源码 **`e1f078a6507d5a3f2dee00edd7ecfd4d83f45566`**，已包含09中央 `c32e72e86de7e4f708e0b423c18f84c955ab683a`；开跑工作树干净。后续只提交报告/账本/票状态，不改变产品、测试、POM、runner或workflow。
+
+```powershell
+$env:JAVA_HOME='C:/Program Files/Java/jdk-25.0.4.1'
+$env:PATH=$env:JAVA_HOME+'/bin;'+$env:PATH
+$env:VERIFY_WRONG_JAVA_HOME='C:/Users/yiwer/AppData/Local/Temp/server-facility-research-tools/jdk21/jdk-21.0.12.1+1'
+& "$env:JAVA_HOME/bin/java.exe" verification/Verify.java all --fresh
+```
+
+原始目录 **`.verification-results/20261004-030730-029-all`**，59个步骤，`summary.txt RESULT=PASS`；driver在 `.verification-results/ticket-15/final-all-driver.log`。环境 Oracle JDK25.0.4.1+1-LTS-5、Wrapper Maven3.10.0、Windows11 10.0 amd64、zh_CN、Asia/Shanghai、UTF-8。Boot4.1.1/Spring7.0.9/Jackson3.1.5，使用本次新建的独立空依赖仓库。
+
+| 检查 | 结果 |
+|---|---|
+| 主库JUnit | **1506 / 0失败 / 0错误 / 0跳过**，在09的1478基础净增28；CSV包57项（旧29项全部保留） |
+| 覆盖率原门 | INSTRUCTION **20134/21670=92.9119%**；LINE **4034/4310=93.5963%**；BRANCH **2118/2474=85.6103%**，门仍88/88/75 |
+| 架构/依赖 | 原5条ArchUnit、dependency analyze failOnWarning通过 |
+| 普通CSV consumer | `CSV_CONSUMER_PASS rows=200000 optional-tika=absent optional-poi=absent`；64MiB/45秒；独立字节金样、方言/预算/公式拒绝及借用流边界 |
+| 实际CSV传递图 | 库测试图Commons CSV1.14.1 / Commons IO2.22.0 / Codec1.21.0；纯必需依赖消费者图CSV1.14.1 / IO2.20.0 / Codec1.19.0。两者分别真实运行；后者没有Tika/POI，不用optional测试图掩盖必需依赖问题 |
+| 继承消费者 | 普通应用configured/override/invalid、纯jar core/crypto/rate-limit、JSON constructed/injected与两应用、真实Web三配置、五种依赖图11JVM及有/无Tika上传均通过 |
+| 生命周期/负控 | 五个独立256MiB/45秒应用周期正常关闭；坏checksum、无JDK、真实JDK21三负控均被正确拒绝 |
+| 库普通jar SHA-256 | **`3694669e7f79d473d46746dfb895ab0517d8662647ae1cf1d917ca9ff82d802e`**；安装jar与构建jar一致 |
+
+CSV消费者输入源码/POM/tree/classpath和普通jar均保留在本轮报告；工作流归档新增输入。此处未单独重跑 `platform` 探针（本票无工具链改动，CI会运行）；不能把 `all` 当成该独立探针的结果。
+
+状态 **verification-pending，仅本票新代码Linux证据待集成CI**。14与15在共同09 tip上分别通过，若之后合并两个独立产品改动，本报告只证明这里的e1f078a；合并后的同源全门由root批次CI确认。31/33未来组合责任独立登记，不作为本票反向前置。
