@@ -1,7 +1,6 @@
 package cn.code91.facility.web.exception;
 
 import cn.code91.facility.locale.LocaleUtil;
-import cn.code91.facility.log.LogUtil;
 import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
 import jakarta.validation.ConstraintViolation;

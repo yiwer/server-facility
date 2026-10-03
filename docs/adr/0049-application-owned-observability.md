@@ -10,3 +10,8 @@
 标准观测上下文由宿主Tracing/ObservationRegistry与标准scope/task decorator管理。旧TraceIdFilter与LogUtil等保持公开兼容入口和明确迁移。逐项行为和具体迁移在TDD确认后补充。
 
 依据：Spring Boot 4.1.1 internationalization / actuator tracing 官方文档；本票不建设通用秘密检测器、审计平台或第二套追踪协议。
+
+
+实现采用 Boot basename 顺序与 host named bean，不需要通用 MessageSource registry。默认业务错误只查已审核 bundle key，不注入异常诊断参数。HTTP边界无活动 span 时使用 UUID incident reference，仅关联安全日志；不声称创建了标准 span。新模板用 Boot Actuator/Brave、默认禁导出；应用私有 ObservationThreadLocalAccessor 传播真实 scope，两个应用不同采样及关闭隔离有真实容器验证。旧 TraceIdFilter 默认 false，显式 opt-in 保留。
+
+部分替代 0020/0022 的默认日志推荐：LogUtil/PostHandler 只保留兼容；新访问/错误路径直接SLF4J，下载只返回Result。MaskUtil不改变纯函数定位，不建立全局秘密检测。兼容清单、迁移顺序与完整例子见 [应用观测](../building/application-observability.md)。

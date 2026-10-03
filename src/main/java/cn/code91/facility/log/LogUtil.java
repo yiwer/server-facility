@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2.0.0
  * @apiNote 级别门控基于调用方 logger(per-package 配置生效);调用方经 StackWalker 惰性解析(ADR-0022)
  */
-@Deprecated(since = "0.1", forRemoval = false)
+@Deprecated(since = "0.1.0", forRemoval = false)
 public final class LogUtil {
 
     private LogUtil() {

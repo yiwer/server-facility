@@ -14,6 +14,18 @@ import java.util.concurrent.Callable;
 @TestConfiguration(proxyBeanMethods = false)
 @Import(StandardTracingFixture.Endpoint.class)
 public class StandardTracingFixture {
+    @org.springframework.context.annotation.Bean public RecordedSpans recordedSpans() { return new RecordedSpans(); }
+    public record FinishedSpan(String trace, String parent, String name, String kind) {}
+    public static class RecordedSpans extends brave.handler.SpanHandler {
+        public final java.util.concurrent.BlockingQueue<FinishedSpan> finished = new java.util.concurrent.ArrayBlockingQueue<>(64);
+        @Override public boolean end(brave.propagation.TraceContext context, brave.handler.MutableSpan span, Cause cause) {
+            if (span.kind() != brave.Span.Kind.SERVER) return true;
+            if (!finished.offer(new FinishedSpan(context.traceIdString(), context.parentIdString(), span.name(), String.valueOf(span.kind()))))
+                throw new AssertionError("fixture span capacity exhausted");
+            return true;
+        }
+    }
+
     @RestController public static class Endpoint {
         private final Tracer tracer;
         private final ObservationRegistry observations;

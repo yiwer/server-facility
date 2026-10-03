@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
  * remains available only for explicit legacy opt-in and is disabled by default.
  * REQUEST/ASYNC/ERROR share the request snapshot. Registration is owned by FacilityRequestContextFilter.
  */
-@Deprecated(since = "0.1", forRemoval = false)
+@Deprecated(since = "0.1.0", forRemoval = false)
 public class TraceIdFilter extends OncePerRequestFilter {
 
     /**

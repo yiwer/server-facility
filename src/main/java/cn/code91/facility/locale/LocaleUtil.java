@@ -35,7 +35,7 @@ import java.util.Locale;
  * @author yvvb
  * @since 2025/5/4
  */
-@Deprecated(since = "0.1", forRemoval = false)
+@Deprecated(since = "0.1.0", forRemoval = false)
 @UtilityClass
 public class LocaleUtil {
 

@@ -46,3 +46,5 @@
 | [0047](0047-boot4-consumer-integration.md) | Accepted | 补全0045/0046平台门、0028的Servlet6.1入口与0015缺类装配；真实五图/普通jar/Web/上传消费，OS状态按报告 |
 | [0048](0048-application-owned-outbound-http.md) | Accepted | 部分替代0018；宿主拥有HTTP配置、有限响应与应用级重试，双服务实际消费者 |
 | [0050](0050-secured-application-template.md) | Accepted | 独立MVC模板的应用自有JWT信任、Actor与标准Security授权；安全401/403/503、JWK有限I/O、真实Servlet/执行器上下文及独立打包门 |
+
+| [0049](0049-application-owned-observability.md) | Proposed | 应用 MessageSource/SLF4J/Micrometer 所有权；退出默认静态日志与旧 trace，保留迁移入口 |

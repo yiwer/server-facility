@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 应用消息、日志与观测（2026-10-04，ADR0049）
+
+- MessageSource 改为 Boot/宿主优先，设施 bundle 通过明确 basename 顺序贡献；退出默认聚合委托。BusinessException 的公开本地化只查宿主 bundle，不插入异常 args/defaultMessage。
+- 新日志路径直接使用 SLF4J 安全字段；下载失败只返回 Result，不重复记录原因。LogUtil、LocaleUtil、TraceIdFilter 保留签名并弃用；旧 masking/post-handler 不承诺覆盖任意秘密。
+- 旧 trace 默认关闭。模板以 Boot/Micrometer 标准 W3C tracing 和应用私有 ObservationRegistry/task decorator 传播真实 scope；错误无活动 span 时生成安全 incident reference，不再默认响应 X-Trace-Id。
+- 详细替代方式、旧入口边界、配置及独立可执行示例见 [应用观测迁移](docs/building/application-observability.md)。
+
 ### 外部服务调用迁移（2026-10-04，ADR-0048）
 
 - 默认兼容RestClient在Boot之后克隆宿主builder，保留JSON/customizer/observation/factory；旧公开单参数构造方法与HttpClients静态签名保留并弃用。
