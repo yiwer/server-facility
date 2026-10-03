@@ -20,6 +20,9 @@
         <dependency><groupId>cn.code91</groupId><artifactId>server-facility</artifactId><version>${facility.version}</version></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
     </dependencies>
+    <profiles><profile><id>tika</id><dependencies><dependency>
+        <groupId>org.apache.tika</groupId><artifactId>tika-core</artifactId><version>4.1.0</version>
+    </dependency></dependencies></profile></profiles>
     <build><plugins>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.4.1</version></plugin>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version></plugin>

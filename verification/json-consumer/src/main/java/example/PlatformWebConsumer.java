@@ -109,7 +109,7 @@ public final class PlatformWebConsumer {
                 "--server.shutdown=immediate", "--facility.web.exception.use-problem-detail=true",
                 "--platform.user=" + user, "--facility.web.repeatable-request.enabled=" + user,
                 "--facility.web.repeatable-request.max-body-bytes=8", "--facility.idempotency.enabled=" + !disabled,
-                "--facility.web.trace.enabled=" + !disabled));
+                "--facility.web.trace.enabled=" + !disabled, "--facility.web.trace.accept-inbound=" + user));
         try (var app = (ServletWebServerApplicationContext)application.run(properties.toArray(String[]::new));
              var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
             JsonMapper mapper = app.getBean(JsonMapper.class);
@@ -121,8 +121,9 @@ public final class PlatformWebConsumer {
             var shape = send(app, client, "/shape", null);
             require(shape.statusCode() == 200, "shape status");
             require(shape.body().equals(user ? "{\"camel_name\":\"application\"}" : "{\"camelName\":\"application\"}"), "host policy on actual HTTP");
-            require(disabled ? shape.headers().firstValue("X-Trace-Id").isEmpty()
-                    : shape.headers().firstValue("X-Trace-Id").orElseThrow().equals("matrix-trace"), "trace enable/disable");
+            var trace = shape.headers().firstValue("X-Trace-Id");
+            require(disabled ? trace.isEmpty() : user ? trace.orElseThrow().equals("matrix-trace")
+                    : trace.orElseThrow().matches("[0-9a-f]{32}"), "trace enable/disable and explicit inbound trust");
 
             var registrations = app.getServletContext().getFilterRegistrations();
             for (var entry : registrations.entrySet()) System.out.println("SERVLET_FILTER " + entry.getKey() + "=" + entry.getValue().getClassName());

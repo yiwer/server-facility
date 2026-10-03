@@ -246,6 +246,7 @@ class Verify {
         Files.copy(consumer.resolve("pom.xml"), report.resolve("json-consumer-pom.xml"));
         Files.copy(consumer.resolve("src/main/java/example/JsonConsumer.java"), report.resolve("JsonConsumer.java"));
         Files.copy(consumer.resolve("src/main/java/example/PlatformWebConsumer.java"), report.resolve("PlatformWebConsumer.java"));
+        Files.copy(consumer.resolve("src/main/java/example/PlatformUploadConsumer.java"), report.resolve("PlatformUploadConsumer.java"));
         try (var goldens = Files.list(report.resolve("json-golden"))) {
             for (Path golden : goldens.sorted().toList()) {
                 summary.add("sha256 json-golden/" + golden.getFileName() + "=" + HexFormat.of().formatHex(
@@ -276,6 +277,25 @@ class Verify {
             }
         }
         summary.add("platform-web=default/user/disabled; servlet registrations and actual filter order; application/MVC mapper identity; repeatable 413; replay; ERROR dispatch; -Xmx256m; 60s per JVM");
+        for (String graph : List.of("no-tika", "tika")) {
+            Path evidence = Files.createDirectories(report.resolve("matrix/upload-" + graph));
+            if (graph.equals("tika")) {
+                maven(consumer, "upload-tika-build", "-Ptika", "clean", "compile", "dependency:build-classpath",
+                        "-Dmdep.outputFile=" + evidence.resolve("classpath.txt"));
+                maven(consumer, "upload-tika-model", "-Ptika", "help:effective-pom", "dependency:tree",
+                        "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt"));
+            } else {
+                Files.copy(consumer.resolve("target/classpath.txt"), evidence.resolve("classpath.txt"));
+                Files.copy(report.resolve("json-consumer-effective-pom.xml"), evidence.resolve("effective-pom.xml"));
+                Files.copy(report.resolve("json-consumer-dependency-tree.txt"), evidence.resolve("dependency-tree.txt"));
+            }
+            String uploadClasspath = installedClasspath(consumer, evidence.resolve("classpath.txt"));
+            Path log = run(ROOT, Map.of(), "platform-upload-" + graph,
+                    List.of(java(), "-Xmx128m", "-Dfile.encoding=UTF-8", "-cp", uploadClasspath,
+                            "example.PlatformUploadConsumer", graph, evidence.resolve("owned-files").toString()), 45, null);
+            if (!Files.readString(log).contains("PLATFORM_UPLOAD_OK " + graph)) throw new AssertionError("Upload graph did not finish: " + log);
+        }
+        summary.add("platform-upload=real optional Tika absent/present; ordinary jar SafeUpload; actual byte budget/content MIME; missing required detector rejected; no test multipart class; staging cleaned");
     }
 
     static void platformConsumers() throws Exception {
