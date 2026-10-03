@@ -143,7 +143,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex（静态门面，纯 JDK，无需配置） |
 | `masking` | `MaskUtil` | 日志脱敏（默认开启）：秘密/JWT/身份证/银行卡/邮箱/手机号六规则，校验位（mod11-2/Luhn）抑误伤；`LogUtil` 写前集成，`setMaskingEnabled(false)` 可关（静态门面，纯 JDK，无需配置） |
 | `csv` | `CsvUtil` | 有界 CSV 读写（Commons CSV required）：strict/legacy 方言、逐行消费、UTF-8 字节/行列/字段预算；机器与电子表格导出政策分离 |
-| `excel` | `ExcelUtil` | Excel（xls/xlsx）读写（POI optional）：写 SXSSF 恒定内存 xlsx，读 usermodel 全字符串化；POI 缺失时运行时探测降级返 err，不崩溃 |
+| `excel` | `ExcelUtil` | Excel（xls/xlsx）读写（POI optional）：有界XLS/HSSF与XLSX/SAX，显式Locale/公式缓存，SXSSF一行窗口及自有临时预算；成对引擎缺失返回err |
 
 ## 装配开关
 
@@ -187,7 +187,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 2. `error_package_depends_only_on_jdk` —— error 包纯 JDK（C1 断环，ADR-0010；故 error 包禁用 `jakarta.annotation.Nullable`）；
 3. `main_code_does_not_depend_on_logback` —— 主源码零 logback（ADR-0011）；
 4. `autoconfigure_is_not_depended_on_by_main_packages` —— 组件包不感知装配；配置属性类与消费组件同包；
-5. `excel_facade_does_not_depend_on_poi` —— POI 类型只允许出现在包私有 `ExcelSupport`（ADR-0021）。
+5. `excel_facade_does_not_depend_on_poi` —— POI 类型只允许出现在包私有读写实现（ADR-0039，保留0021类型隔离理由）。
 
 **一致性宪法速览**（C1–C5，新代码必须遵守，存量「触碰即对齐」；全文 DESIGN §7）：C1 null 契约（数据参数 null-safe / 依赖参数 fail-fast / 外部交互走 Result）、C2「≤0 = 不限制」统一拼法、C3 降级日志政策（装配期与低频防护 WARN / 每请求高频预期降级静默）、C4 命名双家族、C5 `jakarta.annotation.Nullable` 标注（error 包例外）。
 

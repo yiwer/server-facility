@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-01、FR-02、FR-06、FR-09；AC-02、AC-10、AC-12
 
@@ -28,3 +28,8 @@
 不建设报表平台或反射 POJO 映射；不依赖 CSV/上传票。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+
+## Implementation record
+
+2026-10-04 领取；工作树ticket-16、分支codex/ticket-16，基线integration `c2f0f6b4118a3a059993ef53f2d62f547151c560`（含14/15，批次CI由root负责）。ADR0039登记0021中Excel无界usermodel/公式计算/临时清理/双类探针假设的适用替代，保留裸列表、无表头ORM、POI按需消费理由。用户已批准设施公共API和全面测试，在ExcelUtil/借用流/真实Path/普通jar图逐项RED→GREEN，不重复索取边界许可；原始日志从开始保存 `.verification-results/ticket-16`。

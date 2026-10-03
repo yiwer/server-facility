@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 有界 Excel 迁移（2026-10-04，ADR-0039）
+
+- POI升级5.5.1，完整poi-ooxml传递图按需引入；Commons Compress1.28.0用于实际Zip64预检，仍optional。缺格式引擎成对回退由四种真实普通jar图检验。
+- 旧read/write收紧为有限DEFAULT；大XLSX用显式ExcelLimits/ExcelReadOptions的forEach与Iterable写入，XLS保留1 MiB上限。补齐空单元格也计预算；回调行以及read结果中的行改为独立不可变List。
+- 旧自动公式计算改为缓存读取或拒绝，默认Locale.ROOT；没有缓存不重新计算，陈旧缓存不由设施验证。写公式样式字符串仍是文本。应用需要公式计算时应在受控生产端完成并保存缓存。
+- 借用输入不再被关闭，自有流/临时目录始终清理；清理失败保持Err或附首因。取消为协作边界，输出/回调的先前效果不回滚；不再宣称任意工作簿恒定内存或never-throw。完整预算和故障政策见USAGE。
+
 ### ZIP 与目录完整性（2026-10-04，ADR-0037）
 
 - ZIP 任一条目缺失、重复 basename、读取/关闭失败即 Err，不再跳过并报成功；目录统计也不把不可读节点计作零。ZIP 保留空目录。

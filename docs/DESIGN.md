@@ -56,7 +56,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 `error_package_depends_only_on_jdk`、`main_code_does_not_depend_on_logback`、
 `autoconfigure_is_not_depended_on_by_main_packages`、
 `excel_facade_does_not_depend_on_poi`(ADR-0021:锁定 `ExcelUtil` 门面零 POI 类型引用,
-POI 只能出现在包私有 `ExcelSupport`)。
+POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)。
 
 ## 4. 自动装配范式
 
