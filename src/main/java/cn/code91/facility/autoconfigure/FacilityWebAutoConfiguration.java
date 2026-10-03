@@ -59,19 +59,21 @@ public class FacilityWebAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "facility.web.repeatable-request", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMissingBean(RepeatableRequestFilter.class)
+    @ConditionalOnProperty(prefix = "facility.web.repeatable-request", name = "enabled", havingValue = "true")
     public RepeatableRequestFilter repeatableRequestFilter(FacilityWebRepeatableRequestProperties props) {
         return new RepeatableRequestFilter(props);
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "facility.web.repeatable-request", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMissingBean(name = "repeatableRequestFilterRegistration")
+    @ConditionalOnProperty(prefix = "facility.web.repeatable-request", name = "enabled", havingValue = "true")
     public FilterRegistrationBean<RepeatableRequestFilter> repeatableRequestFilterRegistration(RepeatableRequestFilter repeatableRequestFilter) {
         FilterRegistrationBean<RepeatableRequestFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(repeatableRequestFilter);
         registration.addUrlPatterns("/*");
         registration.setName("repeatableRequestFilter");
-        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 2);
         return registration;
     }
 

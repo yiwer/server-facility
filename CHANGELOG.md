@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 有界 Web 流迁移（2026-10-03，ADR-0028）
+
+- 普通下载、SSE 与非目标响应直接发送，不再全量缓冲。旧幂等 claim 成功后才开启 1 MiB 默认响应副本；`facility.idempotency.max-response-bytes` 必须正数。超限继续发送原响应但不保存副本；失败/部分提交不会变成完整重放，原 claim 的过期语义仍需业务协议处理。
+- Repeatable request 默认关闭；显式启用时 `max-body-bytes` 必须正数，0/负数不再表示无界，无参数 wrapper 默认 10 MiB。读者/流有独立游标、尊重声明 charset（缺省 UTF-8）；非法 charset 400，实际超限 413；不支持的非阻塞 listener 明确拒绝。
+- 容器输入/输出流不再由 wrapper 或下载辅助类关闭。下载关闭自己打开的文件，观察中断/写失败并返回 Err；已提交后不追加第二份错误正文。
+- 手工 `ContentCachingResponseWrapper` 不再作为绕过预算的保存入口，迁移到默认有界 filter。旧方法签名保留；完整流/预算、过滤次序和后续 Servlet 6.1 迁移门见 [ADR-0028](docs/adr/0028-bounded-web-streams.md)。
+
 ### JSON 配置扩展（2026-10-03，ADR-0044）
 
 - 新增应用作用域 `Jsons` 自动装配，复用本应用 ObjectMapper/customizer，用户 Jsons bean 优先；服务通过构造器注入。静态 JsonUtil/registry 的旧共享行为保留。

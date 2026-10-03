@@ -12,20 +12,21 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("IdempotencyFilter - ContentCachingResponseWrapper 包装 + copyBodyToResponse")
+@DisplayName("IdempotencyFilter - 非目标直通响应")
 class IdempotencyFilterTest {
 
     @Test
-    @DisplayName("doFilterInternal 用 ContentCachingResponseWrapper 包装响应传给链条,结束后把缓存 body/状态拷回真实响应")
-    void doFilterInternal_wrapsResponse_andCopiesBodyBack() throws Exception {
+    @DisplayName("非目标正文在过滤器返回前已写到容器")
+    void nonTargetWritesBeforeFilterReturns() throws Exception {
         IdempotencyFilter filter = new IdempotencyFilter();
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilterInternal(request, response, (req, resp) -> {
-            assertThat(resp).isInstanceOf(ContentCachingResponseWrapper.class);
+
             ((HttpServletResponse) resp).setStatus(200);
             resp.getOutputStream().write("hello".getBytes(StandardCharsets.UTF_8));
+            assertThat(response.getContentAsByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
         });
 
         assertThat(response.getStatus()).isEqualTo(200);

@@ -4,89 +4,74 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.WebUtils;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * <b>可重复读取请求体过滤器</b>
- * <p>
- * 将请求包装为 {@link RepeatableRequestWrapper}，使后续处理链可以多次读取请求体。
- * 只包装满足 {@code includeContentTypes} 的请求，跳过 {@code excludePaths}。
- * 请求体超出 {@code maxBodyBytes} 时返回 HTTP 413。
- * </p>
- *
- * @author yvvb
- * @since 2.0.0
- * @see RepeatableRequestWrapper
+ * Opt-in synchronous request buffering. Selection uses media types and path patterns.
+ * Actual body bytes, including chunked requests, are bounded. Local overflow becomes
+ * a standard 413 exception for the enclosing HTTP error filter; downstream exceptions
+ * and input I/O failures retain their original meaning. Container streams are borrowed.
  */
 public class RepeatableRequestFilter extends OncePerRequestFilter {
-
-    // 有意隔离的私有 mapper(F18 决策 a):413 错误体是固定形状 {code,message},不随宿主 Jackson
-    // 定制漂移——确定性优先;勿改经 JsonUtil/上下文 ObjectMapper。
-    private static final com.fasterxml.jackson.databind.ObjectMapper ERROR_MAPPER =
-            new com.fasterxml.jackson.databind.ObjectMapper();
-
     private final FacilityWebRepeatableRequestProperties props;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public RepeatableRequestFilter(FacilityWebRepeatableRequestProperties props) {
-        this.props = props;
+        this.props = Objects.requireNonNull(props, "props");
+        if (props.getMaxBodyBytes() <= 0) throw new IllegalArgumentException("maxBodyBytes must be positive; disable repeatable-request instead");
     }
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
-        if (!shouldWrap(request)) {
+    @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+        if (WebUtils.getNativeRequest(request, RepeatableRequestWrapper.class) != null || !shouldWrap(request)) {
             filterChain.doFilter(request, response);
             return;
         }
-        RepeatableRequestWrapper wrappedRequest;
+        RepeatableRequestWrapper wrapped;
         try {
-            wrappedRequest = new RepeatableRequestWrapper(request, props.getMaxBodyBytes());
-        } catch (PayloadTooLargeException ex) {
-            // 413 仅对应本 filter 的包装构造超限;下游同型异常不在此网罗(F17)
-            response.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
-            response.setContentType("application/json;charset=UTF-8");
-            byte[] body = ERROR_MAPPER.writeValueAsBytes(
-                    java.util.Map.of("code", 413, "message", ex.getMessage()));
-            response.getOutputStream().write(body);
-            return;
+            wrapped = new RepeatableRequestWrapper(request, props.getMaxBodyBytes());
+        } catch (PayloadTooLargeException failure) {
+            throw new ErrorResponseException(HttpStatus.PAYLOAD_TOO_LARGE, failure);
+        } catch (IllegalCharsetNameException | UnsupportedCharsetException failure) {
+            throw new ErrorResponseException(HttpStatus.BAD_REQUEST, failure);
         }
-        filterChain.doFilter(wrappedRequest, response);
+        filterChain.doFilter(wrapped, response);
     }
 
-    /**
-     * Returns true if the request should be wrapped (content type matches and path not excluded).
-     */
     private boolean shouldWrap(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        List<String> excludePaths = props.getExcludePaths();
-        if (excludePaths != null) {
-            for (String pattern : excludePaths) {
-                if (pathMatcher.match(pattern, uri)) {
-                    return false;
-                }
-            }
-        }
-
+        if (matches(props.getExcludePaths(), uri)) return false;
+        if (!matches(props.getIncludePaths(), uri)) return false;
         String contentType = request.getContentType();
-        if (contentType == null) {
-            return false;
+        if (contentType == null) return false;
+        MediaType actual;
+        try { actual = MediaType.parseMediaType(contentType); }
+        catch (InvalidMediaTypeException failure) { throw new ErrorResponseException(HttpStatus.BAD_REQUEST, failure); }
+        var types = props.getIncludeContentTypes();
+        if (types == null || types.isEmpty()) return true;
+        for (String type : types) {
+            // Preserve historical text/ configuration while rejecting subtype prefix lookalikes.
+            MediaType selected = MediaType.parseMediaType(type.endsWith("/") ? type + "*" : type);
+            if (selected.includes(actual)) return true;
         }
-        String lowerCt = contentType.toLowerCase();
-        List<String> includeTypes = props.getIncludeContentTypes();
-        if (includeTypes == null || includeTypes.isEmpty()) {
-            return true;
-        }
-        for (String prefix : includeTypes) {
-            if (lowerCt.startsWith(prefix.toLowerCase())) {
-                return true;
-            }
-        }
+        return false;
+    }
+
+    private boolean matches(List<String> patterns, String uri) {
+        if (patterns == null) return false;
+        for (String pattern : patterns) if (pathMatcher.match(pattern, uri)) return true;
         return false;
     }
 }
