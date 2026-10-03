@@ -27,11 +27,11 @@ final class AutoCopyEngine {
         try {
             T target = (T) meta.constructor.newInstance();
             for (FieldCopyMeta fieldMeta : meta.fields) {
+                scope.take(1);
                 Object value = fieldMeta.field.get(source);
                 if (value == null) {
                     continue;
                 }
-                scope.take(1);
                 fieldMeta.field.set(target, deepCopyFieldValue(value, fieldMeta.strategy, scope));
             }
             return target;

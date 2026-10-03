@@ -22,6 +22,39 @@ Baseline integration418e26f, synchronized2b06f52 before implementation; branchco
 |12|characterize shallow references, copied alias independence, null defaults, immutable input normalization, key collision order, actual iteration, nested budget, Runtime/Error cleanup and concurrent same-source isolation|no new product behavior; invalid-12-assertion-compile.log retains an erroneous AssertJ void chain|green-12-policy-matrix.log:76 tests|
 |13|reflective CopyTrait arrays check interruption between callbacks after reserving slots|red-13-array-cancel.log:second callback still executed|green-13-array-cancel.log:77 tests|
 
+|14|executable order-to-dispatch conversion uses complete named fields, duplicate-line order, sorted attributes, null note and owned immutable containers|red-14-explicit.log:unimplemented public application boundary|green-14-explicit.log:literal business consumer passed|
+|15|application line/attribute cardinality has finite declared/actual bounds|red-15-dispatch-budget.log:1001 lines accepted|green-15-dispatch-budget.log:line999/1000/1001, attribute63/64/65, empty-line rejection|
+|16|application text and quantity have explicit finite limits and malformed/null behavior|red-16-dispatch-values.log:first oversized text accepted|green-16-dispatch-values.log:all six text dimensions N−1/N/N+1, quantity, Unicode and required-null scenarios|
+|17|actual mapping source evolution has compiler/business controls|added target field and renamed accessor really failed javac; same-type swap compiled but failed the independent literal oracle|green-17-evolution.log plus evolution/** source/diagnostics/summary|
+|18|ordinary-jar selected legacy subset and finite heap/resource behavior|not a new behavior RED; test+jar:jar prepares the actual fixture, not a full quality gate|green-18-jar-fixture.log and green-18-resource.log:64MiB/512seed/2000 copies+rejections/200 Errors;1,649,560→1,657,832 retained bytes,7→7 threads|
+|19|null fields still require traversal and must consume nested work|red-19-null-field-budget.log:5001 entries+5001 null fields accepted|green-19-null-field-budget.log:78 related tests;4999/5000 pass,5001 reject|
+|20|old public ABI and historical compatible subset remain executable|compile-20-old-api.log compiles actual consumer against frozen pre19 ordinary jar;green-20-old-api.log passes with that jar|green-20-new-api-binary.log runs identical class files on new jar, SHA manifest checked in|
+|21|resource rerun after null traversal correction|earlier source's resource evidence is retained, not relabeled|green-21-resource-final-slice.log repeats64MiB consumer:1,649,560→1,657,832 retained bytes,7→7 threads|
+
 These tests call CopyUtil, not private guard methods. The cycle RED deliberately stops after32 calls rather than exhausting the host stack. Existing historical shallow-reference, null-default, array, generic collection and exception policies remain in the regressions.
 
-Remaining: independent bounded-heap/resource and seeded compatibility consumer, executable named-record order mapping with independent field oracle and mutation controls, migration/ADR closure and final ordinary-jar/full gates. Current slices do not satisfy the complete ticket.
+Remaining: final frozen integration/all gate, central merge and actual cross-platform CI. Current slices do not satisfy the complete ticket. The intermediate test+jar:jar commands are fixture preparation plus selected regressions, not full quality/consumer acceptance.
+
+
+## Contract and ownership map
+
+The new application-owned `OrderDispatch.prepare` executes outside Spring/facility runtime. Its annotation-only compile dependency documents nullable notes. It maps a concrete order to a dispatch value; no production root-library autoCopy call existed, so this is an executable migration example, not a falsely claimed migrated live service. Source record shape is explicit, target constructor arguments are compile-checked, and literal business results detect same-type swaps. See the [example](../../examples/order-mapping/README.md).
+
+Legacy policies and finite work are specified in [migration](../building/explicit-mapping.md). The first array/collection work slice counted only non-null fields; round19 tightened this to every visited eligible field, including null, and has its own observed RED/GREEN. The library counts10,000 work units and32 active synchronous calls, not arbitrary callback CPU/allocation, a universal graph size, or user Class definitions. It creates no executor/queue/temp files; scope cleanup is tested after ordinary exceptions, Error, budget rejection, interruption and concurrent copies. ClassValue follows JVM Class lifetime rather than retaining classes in a global strong map.
+
+The binary fixture is compiled now against ticket16's real pre19 jar (SHA25612c2113e54d8ec3552753ff408e41f49fce0bf24690f05e2d5805ae03cb81bef), not a fictional old production application. Exact class bytes/source/hash manifest are checked in; the historical common subset runs on both old/new artifacts. New final/cycle/budget refusals are intentional migrations, not old-compatible behavior claims.
+
+| Standard | Evidence / limit |
+|---|---|
+| Q01 | Formal19/FR08–09/AC11–12, ADR0042, public CopyUtil and application module; no new mapper DSL |
+| Q02 | Work/depth/text/cardinality/quantity N−1/N/N+1; null/empty/defaults/final/immutable/Unicode; concrete containers and comparator policies |
+| Q03 | Actual JVM reflection and standard SLF4J/Logback; ordinary jar with no framework runtime for non-warning legacy subset; independently compiled application consumer |
+| Q04 | RuntimeException/Error identity for collection callbacks, controlled standard backend exception, interruption before next callback, barrier-scheduled same-source concurrency and fresh subsequent scope |
+| Q05 | Explicit10,000/32 library work policy, application1000lines/64attributes and bounded text;64MiB consumer increasing inputs,2000 bounded successes/rejections,200 failures, retained heap and thread count |
+| Q06 | Frozen pre-change ordinary jar ABI binary, historical null/default/shallow contract; explicit semantic migration where compatibility is intentionally tightened |
+| Q07 | Seed190042/512 properties plus literal complete business oracle; actual javac added/renamed controls and runtime same-type swap rejection |
+| Q08 | Raw logs and invalid fixture compile attempt preserved; final source/environment/OS belongs to full runner below; no private values in copy warnings |
+| Q09 | Original coverage/architecture/dependency/full runner still required; selected77/78 tests are not a replacement |
+| Q10 | Code/example/migration/ADR/evidence delivered together; final full/platform evidence remains outstanding until executed |
+
+J14 DTO evolution applies directly. No new persisted wire format, network request, transaction, TTL or filesystem publication is introduced; database/timezone/real backend fault scenarios from unrelated tickets are not fabricated here. Old ordinary-jar behavior and compiler/business mutation controls are the independent evolution evidence. Future33 owns final all-ticket candidate rechecks separately.

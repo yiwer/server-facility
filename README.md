@@ -133,7 +133,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `path` | `Filenames` | 文件名清洗、路径穿越防御、危险扩展名拦截 |
 | `mime` | `MimeTyping` | 基于魔数的 MIME 探测（optional：tika-core） |
 | `pattern` | `Patterns` | 常用正则校验 |
-| `copy` | `CopyUtil` | Bean 属性拷贝 |
+| `copy` | `CopyUtil` | 有界旧复制；新路径见[显式DTO示例](examples/order-mapping/README.md) |
 | `locale` | 应用 MessageSource；旧 LocaleUtil | 宿主优先的明确 bundle 顺序，静态入口保留兼容并弃用 |
 | `async` | `Async<T>` | 惰性组合、整体 deadline 与协作取消；有界平台线程默认，应用显式注入 Executor |
 | `web.*` | filter / interceptor / exception / session / response / argument / util / download / upload | Servlet 栈：traceId、可重复读请求体、访问日志、全局异常、统一响应、安全上传下载、XSS（optional：jsoup） |

@@ -166,6 +166,18 @@ class CopyContractTest {
         } finally { Thread.interrupted(); }
     }
 
+    static final class NullField implements CopyTrait<NullField> {
+        String missing;
+        @Override public NullField copy() { return CopyUtil.autoCopy(this); }
+    }
+
+    @Test void nullFieldTraversalStillConsumesTheNestedWorkBudget() {
+        for (int size : new int[]{4999, 5000})
+            assertThat(CopyUtil.copyList(Collections.nCopies(size, new NullField()))).hasSize(size);
+        assertThatThrownBy(() -> CopyUtil.copyList(Collections.nCopies(5001, new NullField())))
+                .isInstanceOf(CopyUtil.CopyException.class).hasMessageContaining("budget");
+    }
+
     private static Chain chain(int depth) {
         Chain result = null;
         for (int i = 0; i < depth; i++) {

@@ -14,7 +14,7 @@ import java.util.function.Function;
  * HashSet/HashMap and do not retain input comparators or iteration order. List encounter order is retained;
  * copied-key collisions use the last encountered entry. Mutable callback results are not made immutable.</p>
  * <p>A synchronous operation, including nested library calls, has a fixed budget of10,000 work units
- * (collection/map entries, array slots and non-null reflected fields), with at most32 active library calls.
+ * (collection/map entries, array slots and eligible reflected fields, including null values), with at most32 active library calls.
  * Actual traversal is counted even when size() under-reports. CopyException rejects limits and active-path
  * cycles. Interruption is observed before library work and between callbacks without clearing the flag.
  * Arbitrary callback/iterator/constructor code, allocations and time remain the caller's responsibility.
