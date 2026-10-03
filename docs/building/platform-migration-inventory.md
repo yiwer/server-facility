@@ -1,6 +1,6 @@
-# Boot / Jackson 迁移影响登记（票 21）
+# Boot / Jackson 迁移影响登记（票 21–24）
 
-日期 2026-10-03。当前仍为 Java 25 / Boot 3.5.16 / Framework 6.2.19 / Jackson 2.21.4（annotations 2.21）。本文件是 22–24 的迁移清单，不能据此宣称目标平台已经编译或通过。决策见 [ADR-0044](../adr/0044-json-application-scope-expand.md)，执行证据见 [票 21 报告](../verification/ticket-21-json-expand.md)。
+旧协议基线为 Java 25 / Boot 3.5.16 / Framework 6.2.19 / Jackson 2.21.4（annotations 2.21），票 21 已由真实消费者和两 OS CI 冻结。票 22 于 2026-10-04 切换 [Boot 4.1.1 目标依赖](boot4-platform.md)，下面旧 API 清单仍是 23 的迁移输入；不能据此宣称目标主库已经编译或通过。决策见 [ADR-0044](../adr/0044-json-application-scope-expand.md) 与 [ADR-0045](../adr/0045-boot4-platform-toolchain.md)。
 
 ## 公共类型与真实调用链
 
@@ -30,7 +30,7 @@
 - annotation processor paths 的 Boot configuration processor 与 Lombok 版本仍需同步；`AutoConfiguration.imports`、configuration metadata、普通 jar 无 BOOT-INF 与 class major 69 由独立非 Web consumer 检查。
 - 21 新增的独立 Web consumer 显式选择 Boot 3 `spring-boot-starter-web`。22/24 必须把其 MVC/Jackson/Servlet 技术依赖一起迁移；不能依赖根 test scope 掩盖 consumer 缺包。04 的根测试容器是单独的测试 fixture，不成为生产库传递依赖。
 
-当前完整声明账本见 [Java 25 基线](java25-baseline.md)。运行报告保存根与 Web consumer 的 `effective-pom.xml` 和 `dependency-tree.txt`，含所有实际传递版本；版本表不能替代运行时解析证据。
+旧完整声明账本见 [Java 25 基线](java25-baseline.md)，目标模块与版本见 [Boot 4 平台](boot4-platform.md)。运行报告保存根与 Web consumer 的 `effective-pom.xml` 和 `dependency-tree.txt`，含所有实际传递版本；版本表不能替代运行时解析证据。
 
 ## 官方目标版本复核
 
@@ -61,3 +61,11 @@
 ## 22–24 合入规则
 
 唯一非发布集成线为 `codex/server-facility-next`。22 改 BOM、技术模块、processor、测试引擎，并精确列出归 23 的 Jackson 编译缺口；23 完成公开类型/serializer/不可变 mapper/错误通道迁移，并清空缺口。24 在同一候选提交及普通产物上闭合 Windows/Linux 全质量门、非 Web/Web consumer、缺席/覆盖和 imports/metadata/注册顺序。24 闭合前不进入 master、不发布中间制品、不宣称同 jar 双主版本二进制兼容。
+
+## 22 新增接合交接
+
+- 根实际目标编译诊断逐项见 [Jackson 清单](../verification/ticket-22-jackson-diagnostics.md)。仅有主编译阶段的真实输出；测试和消费者因上游未产出 jar 尚未编译，不将静态 import 清单冒充实际测试错误，更不能把工具链探针的 4 项说成原全库测试已发现。
+- 根使用 `spring-boot-jackson`，Web consumer 使用 `spring-boot-starter-webmvc`。FilterRegistrationBean、TaskExecutionAutoConfiguration、MessageSourceAutoConfiguration 和 context runner 保持旧包；新 Jackson/MVC/Tomcat/Servlet context 归属逐项核对，见目标账本。Jackson2ObjectMapperBuilderCustomizer 的 Java 签名和策略迁移归 23。
+- 24 必须覆盖无 Servlet、无 Jackson 技术模块、无 validation provider、无 Tika/POI、Caffeine 或 context-support 仅缺一个、用户 Bean 覆盖与实际过滤器注册顺序。22 只解析声明依赖，不承诺这些运行组合已通过。
+- 04 的真实 HTTP 错误策略/Servlet ERROR 派发与共享 Tomcat fixture 在目标平台继续保留；测试容器不能变成库的生产依赖。其完整运行归 24；23 要避免 JSON 错误 catch 或消息转换迁移改变既有 HTTP 状态/安全错误输出。
+- 05 `BoundedResponseCapture` 的 Servlet 6.0 旧覆盖不能直接外推到 6.1：`HttpServletResponseWrapper` 三个新 `sendRedirect` 重载和 `ServletResponseWrapper.setCharacterEncoding(Charset)` 直接委托 wrapped response，可绕过旧 String 重载。**24 必须在目标 Servlet 6.1 补齐覆盖并实际测试响应捕获、commit 与预算语义**。官方依据：[HTTP wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/http/httpservletresponsewrapper)、[Servlet wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/servletresponsewrapper)。本登记不算这些场景已绿。

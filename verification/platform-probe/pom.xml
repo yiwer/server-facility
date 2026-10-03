@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <!-- Toolchain probe, deliberately independent of the library and its compilation. -->
+    <groupId>cn.code91.verification</groupId>
+    <artifactId>platform-probe</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>4.1.1</spring-boot.version>
+        <argLine></argLine>
+    </properties>
+    <dependencyManagement><dependencies><dependency>
+        <groupId>org.springframework.boot</groupId><artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version><type>pom</type><scope>import</scope>
+    </dependency></dependencies></dependencyManagement>
+    <dependencies>
+        <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><optional>true</optional></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit6</artifactId><version>1.5.1</version><scope>test</scope></dependency>
+    </dependencies>
+    <build><plugins>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.4.1</version></plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version></plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.16.0</version>
+            <configuration>
+                <parameters>true</parameters>
+                <annotationProcessorPaths>
+                    <path><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId></path>
+                    <path><groupId>org.springframework.boot</groupId><artifactId>spring-boot-configuration-processor</artifactId><version>${spring-boot.version}</version></path>
+                </annotationProcessorPaths>
+            </configuration>
+        </plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.6.0</version>
+            <configuration><failIfNoTests>true</failIfNoTests><argLine>@{argLine} -Xmx256m -Dfile.encoding=UTF-8</argLine></configuration>
+        </plugin>
+        <plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.15</version>
+            <executions>
+                <execution><id>prepare-agent</id><goals><goal>prepare-agent</goal></goals></execution>
+                <execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution>
+            </executions>
+        </plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.5.1</version></plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version>
+            <executions><execution><id>analyze</id><phase>verify</phase><goals><goal>analyze-only</goal></goals>
+                <configuration>
+                    <failOnWarning>true</failOnWarning>
+                    <!-- Same narrow aggregator/engine exceptions as the library, for this probe's imports only. -->
+                    <ignoredUnusedDeclaredDependencies>
+                        <dep>org.springframework.boot:spring-boot-starter-test</dep>
+                        <dep>com.tngtech.archunit:archunit-junit6</dep>
+                    </ignoredUnusedDeclaredDependencies>
+                    <ignoredUsedUndeclaredDependencies>
+                        <dep>org.junit.jupiter:junit-jupiter-api</dep>
+                        <dep>com.tngtech.archunit:archunit</dep>
+                        <dep>com.tngtech.archunit:archunit-junit6-api</dep>
+                    </ignoredUsedUndeclaredDependencies>
+                </configuration>
+            </execution></executions>
+        </plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-help-plugin</artifactId><version>3.5.1</version></plugin>
+    </plugins></build>
+</project>

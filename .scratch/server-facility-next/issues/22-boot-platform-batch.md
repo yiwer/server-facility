@@ -4,7 +4,7 @@
 
 **Blocked by:** 21 为平台替换预先隔离配置入口与消费者金样
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-01、FR-02、FR-10；AC-01、AC-02、AC-09、AC-13
 

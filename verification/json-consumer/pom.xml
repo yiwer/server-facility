@@ -10,7 +10,7 @@
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <facility.version>0.1.0-SNAPSHOT</facility.version>
-        <spring-boot.version>3.5.16</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
     </properties>
     <dependencyManagement><dependencies><dependency>
         <groupId>org.springframework.boot</groupId><artifactId>spring-boot-dependencies</artifactId>
@@ -18,7 +18,7 @@
     </dependency></dependencies></dependencyManagement>
     <dependencies>
         <dependency><groupId>cn.code91</groupId><artifactId>server-facility</artifactId><version>${facility.version}</version></dependency>
-        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
     </dependencies>
     <build><plugins>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.4.1</version></plugin>

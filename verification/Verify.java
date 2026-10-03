@@ -24,8 +24,8 @@ class Verify {
             throw new IllegalStateException("Verification requires JDK 25; set JAVA_HOME and PATH to JDK 25.");
         }
         var mode = args.length == 0 ? "all" : args[0];
-        if (!Set.of("fast", "integration", "resources", "all", "prerequisites").contains(mode)) {
-            throw new IllegalArgumentException("Use fast, integration, resources, all or prerequisites; optional --fresh.");
+        if (!Set.of("fast", "integration", "resources", "all", "prerequisites", "platform").contains(mode)) {
+            throw new IllegalArgumentException("Use fast, integration, resources, all, prerequisites or platform; optional --fresh.");
         }
         if (!Files.isRegularFile(ROOT.resolve(".mvn/wrapper/maven-wrapper.properties"))) {
             throw new IllegalStateException("Run verification/Verify.java from the repository root; checked-in Wrapper is required.");
@@ -48,7 +48,10 @@ class Verify {
             run(ROOT, Map.of(), "revision", List.of("git", "rev-parse", "HEAD"), 30, null);
             run(ROOT, Map.of(), "working-tree", List.of("git", "status", "--short"), 30, null);
             maven(ROOT, "toolchain", "--version");
-            if (mode.equals("prerequisites")) {
+            if (mode.equals("platform")) {
+                platformProbe();
+                summary.add("scope=toolchain-only; library compilation, runtime and full quality gates are NOT verified by this mode");
+            } else if (mode.equals("prerequisites")) {
                 prerequisites();
             } else {
                 maven(ROOT, "library", "clean", mode.equals("fast") ? "verify" : "install");
@@ -80,11 +83,103 @@ class Verify {
     }
 
     static void maven(Path directory, String name, String... goals) throws Exception {
+        maven(directory, name, null, List.of(goals));
+    }
+
+    static void maven(Path directory, String name, String expectedFailure, List<String> goals) throws Exception {
         var command = wrapper(directory);
         command.addAll(List.of("-B", "-ntp", "-C", "-s", ROOT.resolve("verification/settings.xml").toString(),
                 "-gs", ROOT.resolve("verification/settings.xml").toString(), "-Dmaven.repo.local=" + repository));
-        command.addAll(List.of(goals));
-        run(directory, Map.of("MAVEN_USER_HOME", wrapperHome.toString()), name, command, 1200, null);
+        command.addAll(goals);
+        run(directory, Map.of("MAVEN_USER_HOME", wrapperHome.toString()), name, command, 1200, expectedFailure);
+    }
+
+    static void platformProbe() throws Exception {
+        Path probe = ROOT.resolve("verification/platform-probe");
+        Path inputs = Files.createDirectories(report.resolve("platform-inputs"));
+        Files.copy(probe.resolve("pom.xml"), inputs.resolve("pom.xml"));
+        Files.copy(ROOT.resolve("pom.xml"), inputs.resolve("library-pom.xml"));
+        Files.copy(ROOT.resolve("verification/json-consumer/pom.xml"), inputs.resolve("json-consumer-pom.xml"));
+        copyDirectory(probe.resolve("src"), inputs.resolve("src"));
+        try (var files = Files.walk(inputs)) {
+            for (Path file : files.filter(Files::isRegularFile).sorted().toList()) {
+                summary.add("sha256 platform-inputs/" + inputs.relativize(file) + "=" + HexFormat.of().formatHex(
+                        MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file))));
+            }
+        }
+        maven(probe, "platform-positive", "clean", "verify");
+        platformReports(probe, "positive", null);
+        copyDirectory(probe.resolve("target/site/jacoco"), report.resolve("platform-positive/jacoco"));
+        Files.copy(probe.resolve("target/classes/META-INF/spring-configuration-metadata.json"),
+                report.resolve("platform-positive/spring-configuration-metadata.json"));
+        Path jar = probe.resolve("target/platform-probe-1.0-SNAPSHOT.jar");
+        Files.copy(jar, report.resolve("platform-positive/platform-probe.jar"));
+        summary.add("sha256 platform-probe.jar=" + HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
+        var factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        var coverage = factory.newDocumentBuilder().parse(probe.resolve("target/site/jacoco/jacoco.xml").toFile());
+        boolean instrumented = false;
+        var classes = coverage.getElementsByTagName("class");
+        for (int i = 0; i < classes.getLength(); i++) {
+            var type = (Element) classes.item(i);
+            if (type.getAttribute("name").equals("probe/model/ProbeProperties")) {
+                var counters = type.getElementsByTagName("counter");
+                for (int j = 0; j < counters.getLength(); j++) {
+                    var counter = (Element) counters.item(j);
+                    instrumented |= counter.getAttribute("type").equals("INSTRUCTION")
+                            && Long.parseLong(counter.getAttribute("covered")) > 0;
+                }
+            }
+        }
+        if (!instrumented) throw new AssertionError("JaCoCo did not instrument and observe the Java 25 probe class");
+        maven(probe, "platform-effective-pom", "help:effective-pom", "-Doutput=" + report.resolve("platform-positive/effective-pom.xml"));
+        maven(probe, "platform-dependency-tree", "dependency:tree", "-DoutputFile=" + report.resolve("platform-positive/dependency-tree.txt"));
+        maven(probe, "platform-jupiter-negative", "intentional Jupiter discovery control",
+                List.of("test", "-Dprobe.fail.jupiter=true"));
+        platformReports(probe, "jupiter-negative", "targetPlatformAndJupiterAreActuallyLoaded");
+        maven(probe, "platform-archunit-negative", "IntentionallyWrong",
+                List.of("test", "-Dprobe.fail.archunit=true"));
+        platformReports(probe, "archunit-negative", "engine_negative_control");
+        // Resolve the real library model even while ticket 23 owns Jackson source migration.
+        // These goals do not compile the library and cannot stand in for 'all'.
+        maven(ROOT, "target-effective-pom", "help:effective-pom", "-Doutput=" + report.resolve("effective-pom.xml"));
+        maven(ROOT, "target-dependency-tree", "dependency:tree", "-DoutputFile=" + report.resolve("dependency-tree.txt"));
+        maven(ROOT, "target-dependency-resolution", "dependency:resolve");
+        summary.add("platform=positive Jupiter+ArchUnit discovery; each engine separately rejects its negative control; processors/classfile69.0/JaCoCo verified; target dependencies resolved");
+    }
+
+    static void platformReports(Path probe, String scenario, String expectedFailedTest) throws Exception {
+        Path reports = probe.resolve("target/surefire-reports");
+        copyDirectory(reports, report.resolve("platform-" + scenario + "/surefire-reports"));
+        var expected = Set.of("targetPlatformAndJupiterAreActuallyLoaded", "processorsAndClassfileWorkOnJava25WithoutPreview",
+                "java25_record_is_imported", "engine_negative_control");
+        var discovered = new HashSet<String>();
+        var failed = new HashSet<String>();
+        int count = 0;
+        var factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        try (var files = Files.list(reports)) {
+            for (Path file : files.filter(p -> p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList()) {
+                var suite = factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement();
+                if (!suite.getAttribute("errors").equals("0") || !suite.getAttribute("skipped").equals("0")) {
+                    throw new AssertionError("Unexpected errors/skips in platform " + scenario + ": " + file);
+                }
+                var cases = suite.getElementsByTagName("testcase");
+                for (int i = 0; i < cases.getLength(); i++) {
+                    count++;
+                    var test = (Element) cases.item(i);
+                    String name = test.getAttribute("name").replace("()", "");
+                    discovered.add(name);
+                    if (test.getElementsByTagName("failure").getLength() != 0) failed.add(name);
+                }
+            }
+        }
+        Set<String> expectedFailures = expectedFailedTest == null ? Set.of() : Set.of(expectedFailedTest);
+        if (count != expected.size() || !discovered.equals(expected) || !failed.equals(expectedFailures)) {
+            throw new AssertionError("Platform " + scenario + " discovery=" + discovered + " count=" + count + " failed=" + failed);
+        }
+        summary.add("platform-" + scenario + " tests=" + count + " intentional-failures=" + failed);
     }
 
     static ArrayList<String> wrapper(Path directory) {
