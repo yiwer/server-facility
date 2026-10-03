@@ -684,6 +684,12 @@ class Verify {
                 .contains(expectedFailure.replaceAll("\\s+", ""));
         if (expectedFailure == null ? exit != 0 : exit == 0 || !diagnosticFound) {
             System.err.println(output);
+            if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
+                // Public check annotations keep a bounded failure tail available alongside the archived full log.
+                String tail = output.substring(Math.max(0, output.length() - 10000));
+                System.err.println("::error title=Verification failure detail::" + tail.replace("%", "%25")
+                        .replace("\r", "%0D").replace("\n", "%0A"));
+            }
             throw new AssertionError("Unexpected result for " + name + "; exit=" + exit + "; inspect " + log);
         }
         return log;
