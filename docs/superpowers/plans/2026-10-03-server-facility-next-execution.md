@@ -162,3 +162,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 2026-10-04：merger先对5c759b5产品进行标准/spec短审，无阻断，范围与局限记录在工作树外coordination/ticket-12-premerge-review.md。随后核读最终`.verification-results/20261004-071310-376-all/summary.txt`：精确源`3563d920f355db61c1fa9249efd8eefc1da5ac1a`（已含07/d28072f），Windows all/fresh=false完整PASS，库1667/0/0/0、模板76/0/0/0，原质量/5架构/依赖门、全部消费者与真实Security重放/32绑定512轮转/2应用、PG打包重启及资源/负控通过。库jar SHA256 `faa5383527384643f490496239d6d305f000eb6284804aa8b6cd5c62f770589f`。
 - 从干净d28072f以--no-ff合最终`2542365a677b60f73825a14a1e2c952df0d1dd1c`，merge`f9dfa782a65e889e50f13cd0ace23250fc408c37`，无冲突。相对被测源仅5文档/票变化；合并产品/测试/runner与交接分支完全相同。中央登记0035、0017/0034明确部分替代与47条实际ADR；CI归档补足07历史源码和12新consumer输入，不修改执行逻辑或原质量门。
 - 12维持verification-pending等待Linux，07/28仍按各自CI状态等待；正式closed仍21项。历史首轮12因旧disabled消费者断言失败的真实记录保留。28本机PG成功不能覆盖CI14 Windows失败；此次尚未push，等待28必要修复一起执行授权CI15。19 Map中断修复已定向GREEN，将同步本集成后执行最终必要门。
+
+
+## 票32 Cookie与HTML片段集成
+
+- 2026-10-04：merger核读冻结`1f307a3c14a77daa65d978586e64192f36c4895e`的`.verification-results/20261004-072426-683-all/summary.txt`：Windows all --fresh共100命令PASS，库1655/0/0/0、模板76/0/0/0，原质量门/5架构/依赖、两个HTML普通jar图、64MiB深度10000和10000次成功/拒绝及工具链负控通过。库jar SHA256 `0531defe321757dc46e913ca48c5be933622ec79219dca48a2c0372c89f1cd04`。该冻结来源未包含12与28后续CI修复，报告分别保留验证范围。
+- 从干净1d6377d以--no-ff合最终`3dda390fee86a1497d7c624169e7e282f2926a7b`，merge`e5e8f028310cdf07e009e7b0f95977e48ae1a6b1`，无冲突；src/POM/verification/workflow与32交接分支完全相同。对比冻结源，32自己的Cookie/HTML产品、测试、POM和消费者未变化，其余差异为已验证12的同步及输入归档。中央登记0055和48条实际ADR，0001的optional理由继续有效，无需标为替代。
+- 32保持verification-pending，07/12/28同样按各自未完成CI状态登记，closed仍21项。HTML、锁与重放consumer归档全部保留。未重跑已通过的相同源码全门；等待28必要修复一起push既有CI验证联合候选，不等待19的独立最终门。

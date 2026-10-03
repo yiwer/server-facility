@@ -201,6 +201,8 @@ public <T> CompletableFuture<Result<T, Throwable>> intercept(AsyncContext ctx, A
 - **会话**:`SessionUtil` / `SessionUserHolder`(仅兼容 ThreadLocal 数据；请求边界负责 SYNC/ASYNC/ERROR 清理，`SessionUserClearInterceptor` 适配宿主 Principal)。
 - **工具**:`RequestUtil`(客户端 IP 等)、`ResponseUtil`(写 JSON / 下载头)、`CookieUtil`、`XssUtil`(jsoup allowlist)。
 
+Cookie完整scope/flags使用Spring `ResponseCookie`；默认HTTPS/HttpOnly/SameSite=Lax，显式host-only或Domain政策，删除复用原scope。发送头最多4096ASCII字节，请求同名歧义拒绝。XssUtil仅由应用显式调用于HTML body片段，解析前最多262144 UTF-16单元；其他输出上下文仍需编码。旧入口变化、jsoup1.23.2升级样本和可执行示例见[Cookie/HTML政策](building/cookie-html-policy.md)。
+
 ### 请求来源、身份与观测（ADR-0029）
 
 `RequestUtil.getClientIp(request)` / 无参入口默认只采用 Servlet 提供的数值 `remoteAddr`，未装配 Web 边界时也遵守该安全默认。X-Real-IP、Proxy-Client-IP 等旧厂商头不参与解析。要由 facility 负责代理链，显式配置可信 CIDR：
