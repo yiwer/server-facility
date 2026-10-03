@@ -184,6 +184,12 @@
         </dependency>
 
         <!-- ===== test ===== -->
+        <!-- Real loopback Servlet/ERROR-dispatch contract tests; never a runtime dependency. -->
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
