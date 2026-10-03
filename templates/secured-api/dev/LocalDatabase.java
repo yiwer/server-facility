@@ -31,7 +31,6 @@ class LocalDatabase {
         Throwable primary = null;
         try {
             database.start(port);
-            Files.writeString(properties, "spring.datasource.url=jdbc:postgresql://127.0.0.1:" + port + "/postgres\nspring.datasource.username=postgres\nspring.datasource.password=\n");
             System.out.println("LOCAL_DATABASE_READY " + properties.toUri().toASCIIString());
             // Enter stops this foreground owner; EOF also stops it in the verification consumer.
             System.in.read();
@@ -57,8 +56,10 @@ class LocalDatabase {
             this.tools = tools; this.root = root; this.data = data; this.properties = properties;
         }
         synchronized void start(int port) throws Exception {
+            if (closed) throw new IllegalStateException("Local database owner is already closed");
             run(tools, root, "start.log", "pg_ctl", "-D", data.toString(), "-l", root.resolve("postgres.log").toString(),
                     "-o", "-h 127.0.0.1 -p " + port + " -N 32", "-w", "-t", "15", "start");
+            Files.writeString(properties, "spring.datasource.url=jdbc:postgresql://127.0.0.1:" + port + "/postgres\nspring.datasource.username=postgres\nspring.datasource.password=\n");
         }
         public synchronized void close() throws Exception {
             if (closed) return;
