@@ -20,7 +20,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（37 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（39 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -35,7 +35,7 @@
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
 - **当前验证边界（2026-10-04，Boot4.1.1/Jackson3.1.5）**：`80670fa`的Windows/Ubuntu `all --fresh`和独立平台控制全部通过，[同源CI与artifact](docs/verification/ticket-24-ci.md)已登记。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、有/无Tika上传、资源周期及负控均已执行；03/05/06/13/17/24适用平台项关闭。本地完整门为1449/0/0/0，各CI精确数值见对应原报告；尚未实施的业务协议不在此通过范围。
-- **最新本地接合（票09）**：`50d492d` 的1478/0/0/0、原覆盖率/架构/依赖门、全部普通jar/平台矩阵/资源阶段已过；首次all最后因缺错误JDK环境变量失败，同源补跑prerequisites三负控PASS。保留两份真实结果，见[票09组合证据](docs/verification/ticket-09-rate-limit-contract.md)；新限流Linux验证仍待集成CI。
+- **最新本地接合（票14/15）**：共同09基线上，IO `58a1e83` integration为1507/0/0/0，CSV `e1f078a` all --fresh为1506/0/0/0，各自原质量门/普通jar/平台矩阵/负控通过，见[14证据](docs/verification/ticket-14-io-integrity.md)与[15证据](docs/verification/ticket-15-bounded-csv.md)。两票已合并，合并后的同源全门及Linux待批次CI；不把两份分支结果拼成合并产物已通过。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图
@@ -50,7 +50,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 37 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 39 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
@@ -106,7 +106,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 - **失败走 `Result`**：可预期失败（IO / 解析 / 序列化 / 外部交互）一律返回 `Result<T,E>`，不抛受检异常、不以 null 表示失败；`Result.empty()` 表达「成功但无值」（ADR-0007）。
 - **命名双家族（C4）**：`XxxUtil` = 静态门面（可能有状态、参与 Spring 装配交互）；复数名词类（`Numbers` / `Patterns` / `Filenames` / `Collects` / `Hashing` …）= 纯函数无状态工具。历史例外：`HttpClients` 复数名但按门面对待。
 - **null 契约（C1）**：数据参数 null → null-safe 语义回退；函数型与必需依赖参数 null → `requireNonNull` fail-fast；公共 API 可空性以 `jakarta.annotation.Nullable` 标注（error 包例外，javadoc 散文表达，C5）。
-- **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028/0036/0046 明确例外：启用 repeatable body、响应捕获、上传及显式 JSON InputStream 字段预算必须为正数，0/负数拒绝；上传便利入口固定10 MiB，JSON无参注解入口固定1 MiB。
+- **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028/0036/0037/0038/0046 明确例外：启用 repeatable body、响应捕获、上传、ZIP/目录、CSV及显式 JSON InputStream 字段预算必须为正数，0/负数拒绝；上传便利入口固定10 MiB，JSON无参注解入口固定1 MiB。
 
 ## 特性矩阵
 
@@ -125,7 +125,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `date` | `DateUtil` | 日期格式化/解析（返回 Result）、区间规范化 |
 | `number` | `Numbers` / `NumberFormat` / `NumberUnits` | 数值解析、大小格式化、单位换算 |
 | `hash` | `Hashing` | 文件/字节哈希 |
-| `io` | `PathIo` / `Zipping` | 路径读写、压缩 |
+| `io` | `PathIo` / `Zipping` | 有界完整目录统计/逐项删除；ZIP完整关闭后不覆盖发布，实际读写/条目/深度预算和清理失败可见 |
 | `path` | `Filenames` | 文件名清洗、路径穿越防御、危险扩展名拦截 |
 | `mime` | `MimeTyping` | 基于魔数的 MIME 探测（optional：tika-core） |
 | `pattern` | `Patterns` | 常用正则校验 |
@@ -142,7 +142,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `web.idempotency` | `@Idempotent` | 旧HTTP响应重放与有界捕获；安全claim路径迁移由票12完成 |
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex（静态门面，纯 JDK，无需配置） |
 | `masking` | `MaskUtil` | 日志脱敏（默认开启）：秘密/JWT/身份证/银行卡/邮箱/手机号六规则，校验位（mod11-2/Luhn）抑误伤；`LogUtil` 写前集成，`setMaskingEnabled(false)` 可关（静态门面，纯 JDK，无需配置） |
-| `csv` | `CsvUtil` | RFC 4180 CSV 读写（纯 JDK，零依赖恒可用）：UTF-8+BOM 写出、CRLF、最小引号；读容忍 CR/LF/CRLF 并剥 BOM |
+| `csv` | `CsvUtil` | 有界 CSV 读写（Commons CSV required）：strict/legacy 方言、逐行消费、UTF-8 字节/行列/字段预算；机器与电子表格导出政策分离 |
 | `excel` | `ExcelUtil` | Excel（xls/xlsx）读写（POI optional）：写 SXSSF 恒定内存 xlsx，读 usermodel 全字符串化；POI 缺失时运行时探测降级返 err，不崩溃 |
 
 ## 装配开关

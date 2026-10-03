@@ -65,6 +65,8 @@ class Verify {
                     consumer("invalid");
                     coreConsumer();
                     cryptoConsumer();
+                    ioConsumer();
+                    csvConsumer();
                     rateLimitConsumer();
                     claimConsumer();
                     jsonConsumer();
@@ -251,6 +253,39 @@ class Verify {
             throw new AssertionError("Crypto consumer did not complete: " + log);
         }
         summary.add("crypto-consumer=ordinary jar only; persisted legacy receipt; explicit input budgets; 64x1MiB sequential and 4x16x256KiB concurrent; -Xmx64m/45s");
+    }
+
+    static void ioConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path source = ROOT.resolve("verification/io-consumer/IoConsumer.java");
+        Path classes = Files.createDirectories(report.resolve("io-consumer/classes"));
+        Files.copy(source, report.resolve("io-consumer/IoConsumer.java"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "io-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", classes.toString(), source.toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "io-consumer", List.of(java(), "-Xmx64m", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "IoConsumer", report.resolve("io-consumer/work").toString()), 60, null);
+        if (!Files.readString(log).contains("IO_CONSUMER_PASS seed=140037 archives=64 max-input-mib=128 failures=200 framework=absent")) {
+            throw new AssertionError("IO consumer did not complete: " + log);
+        }
+        summary.add("io-consumer=ordinary jar only; independent JDK ZipFile; seed140037/64 archives; 32/128 MiB source under -Xmx64m; 200 failures; 60s deadline");
+    }
+
+    static void csvConsumer() throws Exception {
+        Path consumer = ROOT.resolve("verification/consumer");
+        Files.copy(consumer.resolve("src/main/java/example/CsvConsumer.java"), report.resolve("CsvConsumer.java"));
+        Files.copy(consumer.resolve("pom.xml"), report.resolve("csv-consumer-pom.xml"));
+        maven(consumer, "csv-consumer-dependencies", "dependency:tree",
+                "-DoutputFile=" + report.resolve("csv-consumer-dependency-tree.txt"));
+        String dependencies = Files.readString(consumer.resolve("target/classpath.txt")).trim();
+        Files.writeString(report.resolve("csv-consumer-classpath.txt"), dependencies);
+        Path log = run(ROOT, Map.of(), "csv-consumer", List.of(java(), "-Xmx64m", "-Dfile.encoding=UTF-8",
+                "-cp", consumer.resolve("target/classes") + File.pathSeparator + dependencies,
+                "example.CsvConsumer"), 45, null);
+        if (!Files.readString(log).contains("CSV_CONSUMER_PASS rows=200000 optional-tika=absent optional-poi=absent")) {
+            throw new AssertionError("CSV consumer did not complete: " + log);
+        }
+        summary.add("csv-consumer=ordinary jar with required transitive dependencies; Tika/POI absent; literal golden/dialects/budgets/formula policy; 200000 streamed rows; -Xmx64m/45s");
     }
 
     static void rateLimitConsumer() throws Exception {
