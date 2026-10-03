@@ -1,27 +1,16 @@
 /**
- * <h2>cn.code91.facility.web.filter</h2>
+ * Servlet request filters. TraceIdFilter manages the existing correlation header and MDC policy.
+ * RepeatableRequestFilter is opt-in, selects media types and paths, and creates a synchronous
+ * repeatable body with a positive byte budget (10 MiB default). It rejects actual oversized bodies
+ * with a standard 413 exception for the shared HTTP error boundary. Charset and independent cursor
+ * rules are documented on RepeatableRequestWrapper; nonblocking listener registration is rejected.
  *
- * <p><b>Purpose:</b> Servlet filters at the front of the request pipeline:
- * {@code TraceIdFilter} propagates/generates a trace id (header ⇄ MDC), and
- * {@code RepeatableRequestFilter} buffers request bodies into
- * {@code RepeatableRequestWrapper} so they can be read repeatedly, rejecting
- * oversized payloads with a 413 JSON envelope ({@code PayloadTooLargeException}).</p>
+ * <p>Configuration lives here: facility.web.trace.* and facility.web.repeatable-request.*.
+ * Repeatable buffering defaults to disabled; enabled invalid budgets fail construction (ADR-0028).
+ * Container input streams are borrowed, never closed by the wrapper.</p>
  *
- * <p><b>Entry classes:</b> {@code TraceIdFilter}, {@code RepeatableRequestFilter},
- * {@code RepeatableRequestWrapper}, {@code PayloadTooLargeException}. Their
- * configuration lives beside them (C3, spec §4.4):
- * {@code FacilityWebTraceProperties} ({@code facility.web.trace.*}) and
- * {@code FacilityWebRepeatableRequestProperties}
- * ({@code facility.web.repeatable-request.*}, byte-size limit + content-type /
- * path filters; constraints are documented, not bean-validated — ADR-0013).</p>
- *
- * <p><b>Depends on:</b> {@code jakarta.servlet-api} and {@code spring-web}
- * ({@code OncePerRequestFilter}, {@code AntPathMatcher}; both optional), SLF4J
- * ({@code MDC}), and Spring Boot's {@code @ConfigurationProperties} binding.
- * No facility-internal dependencies.</p>
- *
- * <p><b>Depended on by:</b> {@code autoconfigure}
- * ({@code FacilityWebAutoConfiguration} registers both filters with ordered
- * {@code FilterRegistrationBean}s).</p>
+ * <p>The autoconfiguration layer registers each filter once. The repeatable filter runs after
+ * the common error filter, before the idempotency capture adapter. Dependencies are Jakarta Servlet,
+ * Spring Web/Boot and SLF4J; no dependency on the autoconfiguration package.</p>
  */
 package cn.code91.facility.web.filter;

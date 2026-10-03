@@ -40,6 +40,38 @@ class RepeatableBodyContractTest {
         assertThat(wrapper.getInputStream().readAllBytes()).isEqualTo(new byte[]{(byte)0xe9, 10});
         assertThat(wrapper.getBodyString()).isEqualTo("é\n");
         assertThat(wrapper.getReader().readLine()).isEqualTo("é");
+        wrapper.setCharacterEncoding("UTF-8");
+        assertThat(wrapper.getCharacterEncoding()).isEqualTo("ISO-8859-1");
+        assertThat(wrapper.getBodyString()).isEqualTo("é\n");
+    }
+
+    @Test void malformedUtf8UsesReplacementAndFourByteCharactersAreBudgetedAsBytes() throws Exception {
+        var request = new MockHttpServletRequest();
+        request.setContent(new byte[]{(byte)0xf0, (byte)0x9f, (byte)0x98, (byte)0x80});
+        assertThat(new RepeatableRequestWrapper(request, 4).getBodyString()).isEqualTo("😀");
+        request.setContent(new byte[]{(byte)0xf0, (byte)0x9f, (byte)0x98, (byte)0x80});
+        assertThatThrownBy(() -> new RepeatableRequestWrapper(request, 3)).isInstanceOf(PayloadTooLargeException.class);
+        request.setContent(new byte[]{(byte)0xc3});
+        assertThat(new RepeatableRequestWrapper(request, 1).getReader().readLine()).isEqualTo("\ufffd");
+    }
+
+    @Test void inputFailurePreservesItsCauseAndLeavesContainerOwnershipIntact() {
+        var failure = new IOException("peer disconnected mid-body");
+        var closed = new java.util.concurrent.atomic.AtomicBoolean();
+        var request = new MockHttpServletRequest() {
+            @Override public ServletInputStream getInputStream() {
+                return new ServletInputStream() {
+                    int read;
+                    public boolean isFinished() { return false; }
+                    public boolean isReady() { return true; }
+                    public void setReadListener(ReadListener listener) { throw new UnsupportedOperationException(); }
+                    public int read() throws IOException { if (read++ == 0) return 'a'; throw failure; }
+                    public void close() { closed.set(true); }
+                };
+            }
+        };
+        assertThatThrownBy(() -> new RepeatableRequestWrapper(request, 5)).isSameAs(failure);
+        assertThat(closed).isFalse();
     }
 
     @Test void synchronousStreamsRejectEveryNonblockingRegistrationExplicitly() throws Exception {

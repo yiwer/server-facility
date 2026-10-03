@@ -6,6 +6,7 @@ import cn.code91.facility.log.LogUtil;
 import cn.code91.facility.mime.MimeTyping;
 import cn.code91.facility.result.Result;
 import jakarta.servlet.ServletOutputStream;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -90,7 +91,7 @@ public final class HttpFileResponses {
     }
 
     public static Result<Void, WrappedError> downloadBytes(
-            HttpServletResponse response, byte[] data, String fileName, String contentType) {
+            HttpServletResponse response, @Nullable byte[] data, String fileName, @Nullable String contentType) {
         if (data == null || data.length == 0) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_READ_ERROR));
         }

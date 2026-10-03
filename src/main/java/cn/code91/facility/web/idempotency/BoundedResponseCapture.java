@@ -1,6 +1,7 @@
 package cn.code91.facility.web.idempotency;
 
 import jakarta.servlet.ServletOutputStream;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
@@ -22,7 +23,9 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
     private PrintWriter writer;
     private boolean streamRequested;
     private boolean selected;
+    private boolean outputAccessed;
     private boolean failed;
+    private boolean completed;
     private Charset writerCharset;
     private OutputStreamWriter encoder;
 
@@ -32,19 +35,27 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
     }
 
     void start() {
-        if (selected) return;
+        if (selected || outputAccessed || isCommitted()) return;
         selected = true;
         buffer = new ByteArrayOutputStream(Math.min(limit, 1024));
     }
     void discard() { buffer = null; }
 
     Optional<byte[]> body() throws IOException {
-        finish();
+        if (buffer == null) return Optional.empty();
+        complete();
         return buffer == null ? Optional.empty() : Optional.of(buffer.toByteArray());
     }
 
     void finish() throws IOException {
-        if (encoder != null && !failed) encoder.flush();
+        if (encoder != null && !failed && !completed) encoder.flush();
+    }
+
+    void complete() throws IOException {
+        if (encoder != null && !failed && !completed) {
+            completed = true;
+            encoder.close(); // finalize a pending surrogate, without closing the borrowed output
+        }
     }
 
     private ServletOutputStream output() throws IOException {
@@ -80,14 +91,14 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
     }
 
     @Override public ServletOutputStream getOutputStream() throws IOException {
-        if (!selected) return super.getOutputStream();
+        if (!selected) { outputAccessed = true; return super.getOutputStream(); }
         if (writer != null) throw new IllegalStateException("getWriter cannot be mixed with getOutputStream");
         streamRequested = true;
         return output();
     }
 
     @Override public PrintWriter getWriter() throws IOException {
-        if (!selected) return super.getWriter();
+        if (!selected) { outputAccessed = true; return super.getWriter(); }
         if (streamRequested) throw new IllegalStateException("getWriter cannot follow getOutputStream");
         if (writer == null) {
             setCharacterEncoding(getCharacterEncoding());
@@ -98,8 +109,8 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
                     encoder.write(chars, offset, length);
                     encoder.flush(); // drain characters into the Servlet buffer without committing it
                 }
-                @Override public void flush() throws IOException { encoder.flush(); output().flush(); }
-                @Override public void close() throws IOException { flush(); }
+                @Override public void flush() throws IOException { finish(); output().flush(); }
+                @Override public void close() throws IOException { complete(); output().flush(); }
             });
         }
         return writer;
@@ -114,15 +125,22 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
         }, writerCharset);
     }
 
-    @Override public void setCharacterEncoding(String charset) {
+    @Override public void setCharacterEncoding(@Nullable String charset) {
         if (writer == null) super.setCharacterEncoding(charset);
     }
-    @Override public void setContentType(String type) {
+    @Override public void setContentType(@Nullable String type) {
         super.setContentType(type);
         if (writerCharset != null) super.setCharacterEncoding(writerCharset.name());
     }
+    @Override public void setLocale(java.util.Locale locale) {
+        super.setLocale(locale);
+        if (writerCharset != null) super.setCharacterEncoding(writerCharset.name());
+    }
 
-    @Override public void flushBuffer() throws IOException { finish(); super.flushBuffer(); }
+    @Override public void flushBuffer() throws IOException {
+        try { finish(); super.flushBuffer(); }
+        catch (IOException | RuntimeException failure) { failed = true; discard(); throw failure; }
+    }
     @Override public void resetBuffer() {
         super.resetBuffer();
         if (buffer != null) buffer.reset();
@@ -135,9 +153,10 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
         writer = null;
         encoder = null;
         writerCharset = null;
+        completed = false;
         streamRequested = false;
     }
     @Override public void sendError(int status) throws IOException { discard(); super.sendError(status); }
-    @Override public void sendError(int status, String message) throws IOException { discard(); super.sendError(status, message); }
+    @Override public void sendError(int status, @Nullable String message) throws IOException { discard(); super.sendError(status, message); }
     @Override public void sendRedirect(String location) throws IOException { discard(); super.sendRedirect(location); }
 }

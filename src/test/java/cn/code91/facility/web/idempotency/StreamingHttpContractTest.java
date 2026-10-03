@@ -28,6 +28,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StreamingHttpContractTest {
     @TempDir Path directory;
 
+    @org.junit.jupiter.api.Test @Timeout(20)
+    void actualAsyncSseEmitterFlushesBeforeCompletion() throws Exception {
+        try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{WebConfiguration.class});
+             var client = HttpClient.newHttpClient()) {
+            var producer = app.context().getBean(Endpoints.class);
+            var pending = client.sendAsync(HttpRequest.newBuilder(app.uri("/async-events")).GET().build(),
+                    HttpResponse.BodyHandlers.ofInputStream());
+            assertThat(producer.asyncReady.await(5, TimeUnit.SECONDS)).isTrue();
+            try {
+                producer.emitter.send("first");
+                var response = pending.get(5, TimeUnit.SECONDS);
+                try (var body = response.body()) {
+                    assertThat(new String(body.readNBytes(12), StandardCharsets.UTF_8)).isEqualTo("data:first\n\n");
+                    producer.emitter.send("last");
+                    producer.emitter.complete();
+                    assertThat(new String(body.readAllBytes(), StandardCharsets.UTF_8)).isEqualTo("data:last\n\n");
+                }
+            } finally { producer.emitter.complete(); }
+        }
+    }
+
+    @org.junit.jupiter.api.Test @Timeout(20)
+    void committedFailureIsNotRewrittenOrSavedAsACompleteReplayAndErrorDispatchIsUnbuffered() throws Exception {
+        try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{WebConfiguration.class});
+             var client = HttpClient.newHttpClient()) {
+            var first = client.send(HttpRequest.newBuilder(app.uri("/partial-error"))
+                    .header("Idempotency-Key", "partial").GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertThat(first.statusCode()).isEqualTo(200);
+            assertThat(first.body()).isEqualTo("prefix");
+            var retry = client.send(HttpRequest.newBuilder(app.uri("/partial-error"))
+                    .header("Idempotency-Key", "partial").GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertThat(retry.statusCode()).isEqualTo(409);
+            var error = client.send(HttpRequest.newBuilder(app.uri("/send-error")).GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertThat(error.statusCode()).isEqualTo(404);
+            assertThat(error.headers().firstValue("Content-Type").orElse("")).startsWith("application/problem+json");
+            assertThat(error.body()).doesNotContain("SENTINEL");
+        }
+    }
+
+    @org.junit.jupiter.api.Test @Timeout(20)
+    void writerCompletesTrailingSurrogateButOrdinaryFlushPreservesASplitPair() throws Exception {
+        try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{WebConfiguration.class});
+             var client = HttpClient.newHttpClient()) {
+            for (int attempt = 0; attempt < 2; attempt++) {
+                var response = client.send(HttpRequest.newBuilder(app.uri("/characters"))
+                        .header("Idempotency-Key", "characters").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+                assertThat(response.statusCode()).isEqualTo(200);
+                assertThat(response.body()).isEqualTo(new byte[]{(byte)0xf0, (byte)0x9f, (byte)0x98, (byte)0x80, 0x3f});
+            }
+        }
+    }
+
     @ParameterizedTest @ValueSource(strings = {"/download", "/events"}) @Timeout(20)
     void nonTargetPrefixArrivesWhileProducerIsStillWaiting(String path) throws Exception {
         try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{WebConfiguration.class});
@@ -49,7 +101,9 @@ class StreamingHttpContractTest {
     }
 
     @Configuration(proxyBeanMethods = false) @EnableWebMvc
-    @Import({FacilityIdempotencyAutoConfiguration.class, Endpoints.class})
+    @Import({FacilityIdempotencyAutoConfiguration.class, Endpoints.class,
+            cn.code91.facility.autoconfigure.FacilityWebAutoConfiguration.class,
+            org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.class})
     static class WebConfiguration {
         @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); }
     }
@@ -58,6 +112,30 @@ class StreamingHttpContractTest {
     static class Endpoints {
         final CountDownLatch release = new CountDownLatch(1);
         final CountDownLatch finished = new CountDownLatch(1);
+        final CountDownLatch asyncReady = new CountDownLatch(1);
+        volatile org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter;
+        @GetMapping("/async-events") org.springframework.web.servlet.mvc.method.annotation.SseEmitter asyncEvents() {
+            emitter = new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(10_000L);
+            asyncReady.countDown();
+            return emitter;
+        }
+        @Idempotent @GetMapping("/partial-error")
+        void partialError(HttpServletResponse response) throws Exception {
+            response.getOutputStream().write("prefix".getBytes(StandardCharsets.UTF_8));
+            response.flushBuffer();
+            throw new IllegalStateException("SENTINEL");
+        }
+        @GetMapping("/send-error") void sendError(HttpServletResponse response) throws Exception {
+            response.sendError(404, "SENTINEL");
+        }
+        @Idempotent @GetMapping("/characters")
+        void characters(HttpServletResponse response) throws Exception {
+            response.setContentType("text/plain;charset=UTF-8");
+            response.getWriter().write('\ud83d');
+            response.flushBuffer();
+            response.getWriter().write('\ude00');
+            response.getWriter().write('\ud83d');
+        }
         @GetMapping({"/download", "/events"})
         void stream(HttpServletResponse response) throws Exception {
             response.setContentType("text/event-stream");

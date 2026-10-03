@@ -59,12 +59,14 @@ public class FacilityWebAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(RepeatableRequestFilter.class)
     @ConditionalOnProperty(prefix = "facility.web.repeatable-request", name = "enabled", havingValue = "true")
     public RepeatableRequestFilter repeatableRequestFilter(FacilityWebRepeatableRequestProperties props) {
         return new RepeatableRequestFilter(props);
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "repeatableRequestFilterRegistration")
     @ConditionalOnProperty(prefix = "facility.web.repeatable-request", name = "enabled", havingValue = "true")
     public FilterRegistrationBean<RepeatableRequestFilter> repeatableRequestFilterRegistration(RepeatableRequestFilter repeatableRequestFilter) {
         FilterRegistrationBean<RepeatableRequestFilter> registration = new FilterRegistrationBean<>();

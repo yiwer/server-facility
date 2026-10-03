@@ -33,4 +33,3 @@ class IdempotencyFilterTest {
         assertThat(response.getContentAsByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     }
 }
-

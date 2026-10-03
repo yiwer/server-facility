@@ -26,9 +26,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * {@code facilityIdempotencyStore} 不带 web 条件——纯通用能力,非 web 场景(内部 RPC 等)
  * 可直接注入 {@link IdempotencyStore}。{@link IdempotencyInterceptor} 与其
  * {@link FilterRegistrationBean}/{@link WebMvcConfigurer} 注册仅在 servlet 栈 web 应用中
- * 装配——{@link IdempotencyFilter} 把响应包装为 {@code ContentCachingResponseWrapper}
- * 使 {@link IdempotencyInterceptor#afterCompletion} 能读到完整响应体,两者职责分工与
- * 状态机细节见 ADR-0017。全部 bean 均 {@code @ConditionalOnMissingBean}(或
+ * 装配——{@link IdempotencyFilter} 默认直通，既有 claim 成功后才开启有界响应副本，
+ * 超限或传输失败不保存。捕获与流所有权见 ADR-0028；旧状态机边界见 ADR-0017。
+ * 全部 bean 均 {@code @ConditionalOnMissingBean}(或
  * {@code @ConditionalOnMissingBean(name = ...)})——消费方声明同类型(或同名)bean 即可
  * 整体覆盖默认实现。
  * </p>
@@ -59,9 +59,17 @@ public class FacilityIdempotencyAutoConfiguration {
         }
 
         @Bean
-        public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration(FacilityIdempotencyProperties props) {
+        @ConditionalOnMissingBean(IdempotencyFilter.class)
+        public IdempotencyFilter idempotencyFilter(FacilityIdempotencyProperties props) {
+            return new IdempotencyFilter(props.getMaxResponseBytes());
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(name = "idempotencyFilterRegistration")
+        public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration(IdempotencyFilter filter) {
             FilterRegistrationBean<IdempotencyFilter> registration = new FilterRegistrationBean<>();
-            registration.setFilter(new IdempotencyFilter(props.getMaxResponseBytes()));
+            registration.setFilter(filter);
+            registration.setName("idempotencyFilterRegistration");
             registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 3);
             registration.addUrlPatterns("/*");
             return registration;

@@ -8,7 +8,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/** Response capture never delays ordinary downloads or SSE (ADR-0028). */
+/**
+ * Streaming response adapter (ADR-0028). Ordinary downloads, SSE and async responses
+ * are passed through. The interceptor may select a finite synchronous response before
+ * output is accessed, retaining up to the positive budget while every write goes to the container.
+ * Overflow, I/O failure or async handoff discards the copy. No container stream is closed,
+ * no body is copied again at filter exit, and no retry is performed here.
+ */
 public class IdempotencyFilter extends OncePerRequestFilter {
     private final int maxCaptureBytes;
 
@@ -30,7 +36,10 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         var capture = new BoundedResponseCapture(response, maxCaptureBytes);
         try {
             chain.doFilter(request, capture);
-            capture.finish();
+            if (!request.isAsyncStarted()
+                    && request.getAttribute(org.springframework.web.servlet.DispatcherServlet.EXCEPTION_ATTRIBUTE) == null) {
+                capture.complete();
+            }
         } finally {
             capture.discard();
         }

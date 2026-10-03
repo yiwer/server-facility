@@ -161,7 +161,7 @@ class IdempotencyInterceptorTest {
     // ==================== afterCompletion ====================
 
     @Test
-    @DisplayName("afterCompletion 正常完成(无异常)且响应为 ContentCachingResponseWrapper:写入 DONE 记录")
+    @DisplayName("经有界 filter 的正常响应:写入 DONE 记录")
     void afterCompletion_cachesResponse() throws Exception {
         InMemoryIdempotencyStore store = new InMemoryIdempotencyStore(1000);
         IdempotencyInterceptor interceptor = new IdempotencyInterceptor(store, 60_000);
@@ -169,13 +169,13 @@ class IdempotencyInterceptorTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Idempotency-Key", "key-6");
         MockHttpServletResponse mockResponse = new MockHttpServletResponse();
-        ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(mockResponse);
-
-        assertThat(interceptor.preHandle(request, wrapper, hm)).isTrue();
-
-        wrapper.setStatus(200);
-        wrapper.getOutputStream().write("result".getBytes(StandardCharsets.UTF_8));
-        interceptor.afterCompletion(request, wrapper, hm, null);
+        new IdempotencyFilter().doFilter(request, mockResponse, (req, res) -> {
+            var wrapper = (jakarta.servlet.http.HttpServletResponse)res;
+            assertThat(interceptor.preHandle(request, wrapper, hm)).isTrue();
+            wrapper.setStatus(200);
+            wrapper.getOutputStream().write("result".getBytes(StandardCharsets.UTF_8));
+            interceptor.afterCompletion(request, wrapper, hm, null);
+        });
 
         Optional<IdempotencyRecord> found = store.find("key-6");
         assertThat(found).isPresent();
@@ -191,12 +191,13 @@ class IdempotencyInterceptorTest {
         HandlerMethod hm = handlerMethodFor("annotatedLongTtl");                        // @Idempotent(ttlSeconds=3600)
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Idempotency-Key", "key-ttl");
-        ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(new MockHttpServletResponse());
-
-        assertThat(interceptor.preHandle(request, wrapper, hm)).isTrue();
-        wrapper.setStatus(200);
-        wrapper.getOutputStream().write("paid".getBytes(StandardCharsets.UTF_8));
-        interceptor.afterCompletion(request, wrapper, hm, null);
+        new IdempotencyFilter().doFilter(request, new MockHttpServletResponse(), (req, res) -> {
+            var wrapper = (jakarta.servlet.http.HttpServletResponse)res;
+            assertThat(interceptor.preHandle(request, wrapper, hm)).isTrue();
+            wrapper.setStatus(200);
+            wrapper.getOutputStream().write("paid".getBytes(StandardCharsets.UTF_8));
+            interceptor.afterCompletion(request, wrapper, hm, null);
+        });
 
         Thread.sleep(120);   // 远超 defaultTtl(50ms),远小于注解 ttl(3600s)
         Optional<IdempotencyRecord> found = store.find("key-ttl");
@@ -238,7 +239,7 @@ class IdempotencyInterceptorTest {
     }
 
     @Test
-    @DisplayName("失配:响应非 ContentCachingResponseWrapper(Filter 未装配/顺序错)→ WARN + 不崩,记录保持 PROCESSING(F16)")
+    @DisplayName("失配:响应缺少有界捕获(Filter 未装配/顺序错)→ WARN + 不崩,记录保持 PROCESSING(F16)")
     void afterCompletion_withoutWrapper_warnsAndLeavesProcessing() throws Exception {
         InMemoryIdempotencyStore store = new InMemoryIdempotencyStore(1000);
         IdempotencyInterceptor interceptor = new IdempotencyInterceptor(store, 60_000);
@@ -260,7 +261,7 @@ class IdempotencyInterceptorTest {
             assertThat(appender.list).anySatisfy(e -> {
                 assertThat(e.getLevel()).isEqualTo(ch.qos.logback.classic.Level.WARN);
                 assertThat(e.getLoggerName()).isEqualTo(IdempotencyInterceptor.class.getName());
-                assertThat(e.getFormattedMessage()).contains("ContentCachingResponseWrapper").contains("k-mismatch");
+                assertThat(e.getFormattedMessage()).contains("bounded response capture").contains("k-mismatch");
             });
             assertThat(store.find("k-mismatch")).isPresent();
             assertThat(store.find("k-mismatch").get().state()).isEqualTo(IdempotencyRecord.State.PROCESSING);

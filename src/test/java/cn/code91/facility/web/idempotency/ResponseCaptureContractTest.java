@@ -64,6 +64,71 @@ class ResponseCaptureContractTest {
         assertThatThrownBy(() -> new IdempotencyFilter(-1)).isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test void externalUnboundedWrapperCannotBypassTheCaptureBudget() throws Exception {
+        var interceptor = new IdempotencyInterceptor(new InMemoryIdempotencyStore(8), 60_000);
+        var request = request();
+        var legacy = new org.springframework.web.util.ContentCachingResponseWrapper(new MockHttpServletResponse());
+        assertThat(interceptor.preHandle(request, legacy, handler)).isTrue();
+        legacy.getOutputStream().write("unbounded capture".getBytes(StandardCharsets.UTF_8));
+        interceptor.afterCompletion(request, legacy, handler, null);
+        var replay = new MockHttpServletResponse();
+        assertThat(interceptor.preHandle(request(), replay, handler)).isFalse();
+        assertThat(replay.getStatus()).isEqualTo(409);
+    }
+
+    @ParameterizedTest @ValueSource(strings={"write", "writer", "flush"})
+    void caughtTransportFailureNeverTurnsPartialBytesIntoACompletedReplay(String failureAt) throws Exception {
+        var interceptor = new IdempotencyInterceptor(new InMemoryIdempotencyStore(8), 60_000);
+        var request = request();
+        var destination = new MockHttpServletResponse();
+        var broken = new HttpServletResponseWrapper(destination) {
+            @Override public jakarta.servlet.ServletOutputStream getOutputStream() {
+                return new jakarta.servlet.ServletOutputStream() {
+                    public boolean isReady() { return true; }
+                    public void setWriteListener(jakarta.servlet.WriteListener listener) { throw new UnsupportedOperationException(); }
+                    public void write(int value) throws java.io.IOException {
+                        if (!failureAt.equals("flush")) throw new java.io.IOException("peer closed");
+                        destination.getOutputStream().write(value);
+                    }
+                };
+            }
+            @Override public void flushBuffer() throws java.io.IOException {
+                destination.flushBuffer();
+                throw new java.io.IOException("peer closed during flush");
+            }
+        };
+        new IdempotencyFilter(32).doFilter(request, broken, (req, res) -> {
+            var target = (HttpServletResponse)res;
+            assertThat(interceptor.preHandle(request, target, handler)).isTrue();
+            try {
+                if (failureAt.equals("writer")) target.getWriter().write("body");
+                else target.getOutputStream().write("body".getBytes(StandardCharsets.UTF_8));
+                if (failureAt.equals("flush")) target.flushBuffer();
+            } catch (java.io.IOException expected) { /* consumer handles the transport failure */ }
+            interceptor.afterCompletion(request, target, handler, null);
+        });
+        var replay = new MockHttpServletResponse();
+        assertThat(interceptor.preHandle(request(), replay, handler)).isFalse();
+        assertThat(replay.getStatus()).isEqualTo(409);
+    }
+
+    @Test void captureCannotReplayOnlyATailWhenAnEarlierFilterHasStartedWriting() throws Exception {
+        var interceptor = new IdempotencyInterceptor(new InMemoryIdempotencyStore(8), 60_000);
+        var request = request();
+        var response = new MockHttpServletResponse();
+        new IdempotencyFilter(32).doFilter(request, response, (req, res) -> {
+            var target = (HttpServletResponse)res;
+            target.getOutputStream().write("prefix-".getBytes(StandardCharsets.UTF_8));
+            assertThat(interceptor.preHandle(request, target, handler)).isTrue();
+            target.getOutputStream().write("tail".getBytes(StandardCharsets.UTF_8));
+            interceptor.afterCompletion(request, target, handler, null);
+        });
+        assertThat(response.getContentAsString()).isEqualTo("prefix-tail");
+        var replay = new MockHttpServletResponse();
+        assertThat(interceptor.preHandle(request(), replay, handler)).isFalse();
+        assertThat(replay.getStatus()).isEqualTo(409);
+    }
+
     private MockHttpServletRequest request() {
         var request = new MockHttpServletRequest("POST", "/command");
         request.addHeader("Idempotency-Key", "contract");
