@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 用固定 JDK 25 工具链构建并消费普通库产物
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-01、FR-08、FR-09；AC-02、AC-11、AC-12、AC-13
 
@@ -14,7 +14,7 @@
 - [x] 在旧行为旁先增加可注入/构建期配置路径，迁移一个真实消费者；不先删除旧公共入口。
 - [x] 冻结 JSON/HTTP/配置金样和实际依赖清单，复核目标版本；原环境全 verify 保持可运行。
 - [x] 为票 22–24 登记专用集成线和合入规则，明确中间状态不发布、不宣称双主版本同 jar 兼容。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -37,4 +37,4 @@ Windows 原生 `java verification/Verify.java all` 完整通过，报告 `.verif
 扩展前 `731598b` 的完整 install 和同一消费者构造路径已通过，固定文本金样来源明确；先观察注入缺bean/构建回调缺方法/预算缺构造器的红灯，再各自转绿。详见 `docs/verification/ticket-21-json-expand.md` 的TDD记录、Q01–Q10/J映射，以及 `docs/building/platform-migration-inventory.md` 的实际影响/依赖/目标可获取性登记。Base64临时解码数组在分配前限定≤N+2固定舍入开销，返回严格≤N；23必须收缩推荐默认无界入口并修复payload/catch边界。
 
 - [x] Windows 原环境完整质量门及新增消费者。
-- [ ] 合入后 Linux CI 的新增场景证据；Q08/Q10待闭合，不能把workflow配置或此前01/03的Linux绿色记成本票通过。
+- [x] 合入后 Linux CI 的新增场景证据：集成提交 ee2e9cc 的 GitHub Actions 37134465187 在 Ubuntu/Windows 完整验证与归档成功；Q08/Q10 已闭合，详见 docs/verification/ticket-21-ci.md。本轮包含新增 JSON/HTTP 消费者，没有借用此前 CI 绿色。

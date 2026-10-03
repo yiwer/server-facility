@@ -1,6 +1,6 @@
 # 票 21：JSON 扩展执行证据
 
-状态：Windows 完整验证已通过；verification-pending，等待合入后的 Linux CI 证据。原平台仍为 Boot 3.5.16 / Jackson 2.21.4，未替换 Boot/Jackson 主版本。应用归属及迁移边界见 [ADR-0044](../adr/0044-json-application-scope-expand.md)，完整影响清单见 [迁移登记](../building/platform-migration-inventory.md)。
+状态：closed，Windows 本机验证及合入后的 [Ubuntu/Windows CI](ticket-21-ci.md) 已通过。下文保留本机验证时点的环境和结果；当时待 CI 项已由文末闭合记录补齐。原平台仍为 Boot 3.5.16 / Jackson 2.21.4，未替换 Boot/Jackson 主版本。应用归属及迁移边界见 [ADR-0044](../adr/0044-json-application-scope-expand.md)，完整影响清单见 [迁移登记](../building/platform-migration-inventory.md)。
 
 ## 基线与 TDD
 
@@ -64,3 +64,7 @@ runner 同时归档 `JsonConsumer.java`、独立 POM、`json-golden/` 原始输�
 | Q10 可审阅 | 实现、ADR、迁移账本、USAGE/CHANGELOG、金样、TDD 原始日志与本报告齐备；保持 verification-pending，合入后 Linux CI 原始报告取得前不关闭 |
 
 J03 的错误 envelope 由 04、J11 出站 HTTP builder 由 25、J16 全环境矩阵及 J15 扩大长稳由各主责票/33 负责，不反向声明为票21已验证。平台 4 的模块/引擎/公开签名尚待22–24；目标版本可获取性已登记，不能用当前绿色代表目标平台已通过。
+
+## 合入后 CI 闭合
+
+集成提交 ee2e9cc27fd53b3c5d0044258e64577075a75a0c 已通过 GitHub Actions 37134465187 的 Ubuntu/Windows `all --fresh` 及归档。本报告以上 Q08/Q10 的待 CI 描述是本机验证时的历史状态；现由 [本票 CI 证据](ticket-21-ci.md) 闭合，票 21 已关闭。目标 Boot 4 验证仍归 22–24，本文的旧平台边界保持有效。

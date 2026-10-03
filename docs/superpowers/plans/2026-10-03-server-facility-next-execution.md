@@ -21,6 +21,8 @@
 
 ## 集成记录
 
+记录按实施时点保留；较早的 pending 状态由后续有确切 SHA 的通过记录更新，逐票当前状态仍以正式票为准。
+
 - 建立集成分支，提交已批准研究、PRD、测试策略与本地 tickets；具体当前状态以正式 issues 文件为准。
 - 首批实现分支：codex/ticket-01、codex/ticket-02、codex/ticket-03，各自在独立 worktree 上执行 TDD。
 - 2026-10-03：merger 从干净 `bf64995` 以 `--no-ff` 合入 `codex/ticket-01` 的 `59e4267`，合并提交 `fbdcd458955cd8b88be1fce4858d14b5b37a7e6e`，无冲突。实现提交 `82d8c6b`，已测试的干净 HEAD `7d68039`；合并不改变测试过的代码。
@@ -41,3 +43,4 @@
 - 21 Windows 原生 `java verification/Verify.java all` 通过：1265 tests、0失败/错误/跳过、5原架构规则，instruction93.8787%、line93.7636%、branch87.2832%，依赖门通过；最小普通jar消费者、JSON constructed/injected真实HTTP、两应用交错调用及关闭重建、5次独立JVM生命周期和3项工具链拒绝均通过。原始日志在 `E:\GenCode\server-facility-worktrees\ticket-21\.verification-results\20261003-233628-520-all`，TDD日志同工作树 `.verification-results/ticket-21-tdd`，详见 [票21证据](../../verification/ticket-21-json-expand.md)。
 - 合并复核：主checkout的`src`、`pom.xml`、`verification`、`.mvn`、Wrapper与workflow同被测`a18b45f`完全一致；JSON两模式实载普通jar SHA均为`61a10a50d223dd760f073bf7cd915b1761aeb4766f6e9475846012d2b11f6116`，与构建报告一致。中央文档登记ADR-0044与27条实际ADR数量、更新测试快照；未修改产品实现、未重跑同源码全量测试、未推送。
 - 21 保留 `verification-pending`，仅等待合入后新增场景的Linux CI证据以闭合Q08/Q10，不能借用此前01/03绿色；workflow已归档JSON消费者源码/POM/effective-POM/tree、输入/输出金样及各自SHA。22/23只进入当前非发布集成线，24恢复完整平台门后才进入候选发布；21的通过不表示Boot4/Jackson3已完成。
+- 2026-10-03：root 推送的 ee2e9cc 通过 [GitHub Actions 37134465187](https://github.com/yiwer/server-facility/actions/runs/37134465187) 的 Ubuntu/Windows 完整 `all --fresh` 与归档，新增 JSON constructed/injected 真实 HTTP 消费者在两端均执行。见 [票21 CI证据](../../verification/ticket-21-ci.md)。21 已关闭，22 的前置阻塞解除；目标 Boot4 平台尚未宣称通过。
