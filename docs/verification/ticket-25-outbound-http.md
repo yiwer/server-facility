@@ -45,3 +45,15 @@
 ## 适用限制
 
 运输超时约束网络等待，不承诺强制抢占任意应用customizer/CPU解析。默认示例预算和128MiB验证证明本场景有界，不宣称所有宿主配置均满足同一SLO。大响应必须由调用者在exchange作用域消费并关闭；不是流式JSON引擎。测试未对外部真实第三方发送副作用请求，未加入自动POST重试。
+
+## Unicode 路径 CI 回归（2026-10-04）
+
+CI8 `37152209100`（6a66672）和 CI9 `37152949481`（b7b7ea4）均为 Linux 全部通过、Windows partner-build 失败。CI9 的有限失败摘要公开了 JVM 启动前 `AddToSystemClassLoaderSearch` error 103；不是 HTTP 超时或业务断言失败。原始公共 job/annotation JSON 留在集成 `.verification-results/ci-http-security-claims/`；未获得下载权限的日志或 artifact 内容不冒称已检查。
+
+本机以完全相同的类/agent在 ASCII、中文、不可由 GBK 表示的路径作最小对照；在希伯来 BMP 路径重现 error103 / tests=0，而更改 file.encoding / sun.jnu.encoding 未解决。换为官方离线插桩后，相同路径聚合应用14测试通过，指令814/854、行111/114、分支75/88；重复 `test` 再14项通过，证明成功运行后的字节码恢复。安全模板完整47测试通过，指令708/739、行115/122、分支59/68。门槛仍88%/88%/75%，全新清理副本跳过测试仍因缺执行数据/XML失败。
+
+另一个实际 Java→ProcessBuilder→Java 最小回归证实不可编码的 argv 变成四个问号。内部路径参数采用 ASCII file URI；模板复制器兼容原始路径与文件 URI，打包消费者对子进程使用相对 ASCII 文件名及工作目录。独立可执行 jar 在该路径的 platform/virtual 启动、认证/授权、重启和配置失败负控全部通过。模板两个故障子进程使用 manifest Class-Path URI；ExecFileLoader 证明两个子 JVM session 及 RequestExecutionConfiguration 的16/28 probes确实写入共同覆盖率。架构断言读编译器原始字节码，不放宽业务依赖白名单。
+
+聚合与模板各12个生产 class 均与恢复后的 classes 完全一致，无 JaCoCo 引用；模板发布 jar 不含 JaCoCo runtime。失败构建现在也归档聚合 Surefire/coverage 报告。证据：票25 `.verification-results/ticket-25/offline-probe/`，含 online RED、offline GREEN、重复执行、负控、Java argv RED、复制器及可执行 jar GREEN。中间 initialize 恢复在 clean 无备份目录时失败的尝试保留，最终配置取消该错误假设；失败/中断测试之后必须 `clean verify`。
+
+依据：[JaCoCo offline instrumentation](https://www.jacoco.org/jacoco/trunk/doc/offline.html)、[restore goal](https://www.jacoco.org/jacoco/trunk/doc/restore-instrumented-classes-mojo.html)。此段为精确局部回归；修复后的同源完整 CI 仍待执行，不将这些局部结果合并冒称全门。

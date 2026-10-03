@@ -1,13 +1,14 @@
 import java.nio.file.*;
+import java.net.URI;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
 
-/** JDK-only copy operation: java templates/Instantiate.java templates/secured-api /path/to/new-app. */
+/** JDK-only copy operation; each argument accepts a filesystem path or an ASCII-encoded file URI. */
 class Instantiate {
     public static void main(String[] args) throws Exception {
         if (args.length != 2) throw new IllegalArgumentException("Supply template directory and a new destination directory");
-        Path source = Path.of(args[0]).toAbsolutePath().normalize().toRealPath();
-        Path destination = Path.of(args[1]).toAbsolutePath().normalize();
+        Path source = path(args[0]).toAbsolutePath().normalize().toRealPath();
+        Path destination = path(args[1]).toAbsolutePath().normalize();
         if (!Files.isRegularFile(source.resolve("pom.xml")) || destination.startsWith(source) || Files.exists(destination))
             throw new IllegalArgumentException("Destination must be new and outside the template directory");
         Files.createDirectories(destination);
@@ -28,5 +29,9 @@ class Instantiate {
             Files.setPosixFilePermissions(destination.resolve("mvnw"), permissions);
         }
         System.out.println("Created independent application: " + destination);
+    }
+
+    private static Path path(String value) {
+        return value.regionMatches(true, 0, "file:", 0, 5) ? Path.of(URI.create(value)) : Path.of(value);
     }
 }
