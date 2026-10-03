@@ -13,6 +13,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UploadResourceContractTest {
     @TempDir Path directory;
 
+    @org.junit.jupiter.params.ParameterizedTest @Timeout(30)
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"multipart", "bytes"})
+    void cancelledFirstMimeCallDoesNotPoisonLaterCallsInTheProcess(String input) throws Exception {
+        Path evidence = Path.of(".verification-results", "ticket-13", "cold-interrupt-" + input + "-child.log").toAbsolutePath();
+        Files.createDirectories(evidence.getParent());
+        String executable = System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
+        var process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", executable).toString(),
+                "-Xmx96m", "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "-cp",
+                System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")),
+                UploadResourceProcess.class.getName(), directory.toString(), "cold-interrupt-" + input)
+                .redirectErrorStream(true).redirectOutput(evidence.toFile()).start();
+        try {
+            assertThat(process.waitFor(20, TimeUnit.SECONDS)).isTrue();
+            String output = Files.readString(evidence);
+            assertThat(process.exitValue()).as(output).isZero();
+            assertThat(output).contains("COLD_INTERRUPT_OK nextCallWorks=true");
+        } finally { if (process.isAlive()) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); } }
+    }
+
     @Test @Timeout(60)
     void increasingInputAndRepeatedFailuresStayBoundedInAnIndependentHeap() throws Exception {
         Path evidence = Path.of(".verification-results", "ticket-13", "heap-child.log").toAbsolutePath();

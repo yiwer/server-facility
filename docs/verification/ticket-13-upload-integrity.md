@@ -92,4 +92,6 @@ Hashing 的 MD5 查询覆盖 `src/main/java`：仅两个公共 MD5 便利方法�
 
 ## 目标平台同步
 
+基线完成后，冷进程检查 `cold-mime-probe.log` 复现新取消缺陷：首次线程中断导致 Tika SAX parser pool 获取失败，MimeTyping 静态初始化抛 ExceptionInInitializerError，后续正常调用永久 NoClassDefFoundError。`red-20-cold-cancellation.log` 保留独立 JVM 反例；把目录加载移出类静态初始化，按需缓存且失败可重试。`green-20-cold-cancellation.log` 的 19 项初轮通过；随后扩充 byte[] 与 multipart 两条冷进程入口，最终结果另记。此修复发生在上述 1386 全门之后，不用旧全门冒充最终源码结果。
+
 等待票 23 恢复可用集成 tip 后在 `codex/ticket-13` 合入并重新验证；不合入已明确处于编译红色的票 22 中间态后伪记通过。

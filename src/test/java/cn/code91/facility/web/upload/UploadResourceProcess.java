@@ -15,6 +15,28 @@ import java.util.Set;
 public final class UploadResourceProcess {
     public static void main(String[] args) throws Exception {
         Path root = Path.of(args[0]);
+        if (args.length > 1 && args[1].startsWith("cold-interrupt-")) {
+            var file = new MockMultipartFile("file", "a.txt", "text/plain", new byte[]{65});
+            Thread.currentThread().interrupt();
+            try {
+                if (args[1].endsWith("bytes")) {
+                    try {
+                        cn.code91.facility.mime.MimeTyping.detect(new byte[]{65});
+                        throw new AssertionError("cold cancellation became success");
+                    } catch (java.io.UncheckedIOException expected) {
+                        if (!(expected.getCause() instanceof java.io.InterruptedIOException)) throw expected;
+                    }
+                } else {
+                    var result = SafeUpload.detectMime(file);
+                    if (!result.isErr() || !(result.getErr().getException() instanceof java.io.InterruptedIOException))
+                        throw new AssertionError("lost cold cancellation");
+                }
+                if (!Thread.currentThread().isInterrupted()) throw new AssertionError("lost interrupt flag");
+            } finally { Thread.interrupted(); }
+            if (!SafeUpload.detectMime(file).get().equals("text/plain")) throw new AssertionError("poisoned MIME class");
+            System.out.println("COLD_INTERRUPT_OK nextCallWorks=true");
+            return;
+        }
         if (args.length > 1) {
             var file = new MockMultipartFile("file", "a.txt", "text/plain", "abc".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             Files.delete(SafeUpload.saveFile(file, root.toString()).get());

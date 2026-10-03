@@ -30,14 +30,39 @@ import java.util.Set;
  * null/空数组回退 {@link #FALLBACK}（此为入参前置守卫，非异常吞没——Tika 对内容本身
  * 探测失败时的异常不由本方法捕获）。旧 String 重载在 IO 失败时抛
  * {@link UncheckedIOException}，不再把失败伪装为 octet-stream。探测不是内容安全审查。</p>
+ * <p>首次目录加载可重试，不在类静态初始化中执行；取消不会让整个类永久加载失败。
+ * 没有 Result 返回类型的入口在中断时抛 UncheckedIOException，保留中断标志。</p>
  */
 public final class MimeTyping {
 
     public static final String FALLBACK = "application/octet-stream";
     public static final int MAX_SNIFF_BYTES = 64 * 1024;
 
-    private static final MimeTypes MIME_TYPES = MimeTypes.getDefaultMimeTypes();
-    private static final Tika TIKA = new Tika(MIME_TYPES);
+    // Fallible Tika registry loading must not poison this class's initialization after cancellation.
+    private static Registry loaded;
+    private record Registry(MimeTypes types, Tika detector) { }
+
+    private static synchronized Registry registry() throws InterruptedIOException {
+        if (Thread.currentThread().isInterrupted()) throw new InterruptedIOException("MIME detection interrupted");
+        if (loaded == null) {
+            try {
+                MimeTypes types = MimeTypes.getDefaultMimeTypes();
+                loaded = new Registry(types, new Tika(types));
+            } catch (RuntimeException failure) {
+                // Tika wraps its SAX parser-pool InterruptedException and clears the flag.
+                for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+                    if (cause instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                        var interrupted = new InterruptedIOException("MIME registry loading interrupted");
+                        interrupted.initCause(failure);
+                        throw interrupted;
+                    }
+                }
+                throw failure;
+            }
+        }
+        return loaded;
+    }
 
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/bmp",
@@ -72,7 +97,7 @@ public final class MimeTyping {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));
         }
         try (var input = Files.newInputStream(file.toPath())) {
-            return Result.ok(detect(readPrefix(input)));
+            return Result.ok(detectBytes(readPrefix(input), null));
         } catch (IOException e) {
             return Result.err(WrappedError.of(
                     FacilityErrorType.FILE_TYPE_DETECT_ERROR, e, new Object[]{file.getName()}));
@@ -96,10 +121,17 @@ public final class MimeTyping {
     }
 
     public static String detect(byte[] bytes) {
+        try { return detectBytes(bytes, null); }
+        catch (IOException e) { throw new UncheckedIOException(e); }
+    }
+
+    private static String detectBytes(byte[] bytes, String filename) throws IOException {
         if (bytes == null || bytes.length == 0) {
-            return FALLBACK;
+            if (filename == null) return FALLBACK;
         }
-        return TIKA.detect(bytes.length > MAX_SNIFF_BYTES ? Arrays.copyOf(bytes, MAX_SNIFF_BYTES) : bytes);
+        byte[] prefix = bytes.length > MAX_SNIFF_BYTES ? Arrays.copyOf(bytes, MAX_SNIFF_BYTES) : bytes;
+        Tika detector = registry().detector();
+        return filename == null ? detector.detect(prefix) : detector.detect(prefix, filename);
     }
 
     /**
@@ -123,7 +155,7 @@ public final class MimeTyping {
         Throwable failure = null;
         try {
             byte[] bytes = readPrefix(input);
-            return filename == null ? detect(bytes) : TIKA.detect(bytes, filename);
+            return detectBytes(bytes, filename);
         } catch (IOException | RuntimeException | Error e) {
             failure = e;
             throw e;
@@ -155,7 +187,8 @@ public final class MimeTyping {
      * 仅按文件名（扩展名）探测，不读流。
      */
     public static String detectByName(String filename) {
-        return TIKA.detect(filename);
+        try { return registry().detector().detect(filename); }
+        catch (IOException e) { throw new UncheckedIOException(e); }
     }
 
     public static Optional<String> getExtensionByMimeType(String mimeType) {
@@ -163,11 +196,13 @@ public final class MimeTyping {
             return Optional.empty();
         }
         try {
-            MimeType type = MIME_TYPES.forName(mimeType);
+            MimeType type = registry().types().forName(mimeType);
             String ext = type.getExtension();
             return (ext == null || ext.isBlank()) ? Optional.empty() : Optional.of(ext);
         } catch (MimeTypeException e) {
             return Optional.empty();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
