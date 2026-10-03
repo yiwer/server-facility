@@ -1,6 +1,6 @@
-# Boot 4 目标平台账本与中间验证边界
+# Boot 4 目标平台账本与消费者验证边界
 
-票 22，2026-10-04；决策 [ADR-0045](../adr/0045-boot4-platform-toolchain.md)。这里记录实际解析过的目标平台，不表示主库已完成 Jackson 迁移。22/23 仅进入 `codex/server-facility-next`，24 闭合完整平台门后才允许进入主线/候选发布。
+2026-10-04；票 22 的工具链决策见 [ADR-0045](../adr/0045-boot4-platform-toolchain.md)，票 23 已完成 Jackson 迁移并清空全部预期编译错误。票 24 按 [ADR-0047](../adr/0047-boot4-consumer-integration.md) 验证完整质量门、真实缺类/覆盖/Servlet 与普通 jar 消费。支持结论以 [24 执行报告](../verification/ticket-24-platform-integration.md) 的实际 OS 证据为准；本批仍在非发布集成线 `codex/server-facility-next`，不能将配置好的 CI 视作 Linux 已通过。
 
 ## 依赖归属
 
@@ -9,10 +9,13 @@
 | 依赖 | 目标实际版本 | 声明 / 迁移责任 |
 |---|---|---|
 | Boot BOM / core / autoconfigure / jackson | 4.1.1 | BOM import；根不继承 parent，显式添加实际使用的 Jackson 技术模块 |
+| Boot starter-test / web-server / tomcat / webmvc | 4.1.1 | BOM，根 test scope；独立 Web 应用自行选择 starter-webmvc，容器不进入库生产传递图 |
+| SLF4J API | 2.0.18 | BOM；主源码不依赖 Logback |
+| Caffeine | 3.2.4 | BOM，optional；与 context-support 成对；24 实际缺类图验证已有回退，不代替 08 TTL/容量政策 |
 | Spring context / beans / core / web / webmvc / context-support | 7.0.9 | BOM；Web 和 context-support 继续 optional |
-| Jackson core / databind | 3.1.5 | `tools.jackson.core`；旧公开 Java 类型与 serializer/builder 行为归 23 |
+| Jackson core / databind | 3.1.5 | `tools.jackson.core`；23 已迁移公开类型与 serializer/builder 行为，独立旧金样及实际 HTTP 保留 |
 | Jackson annotations | 2.21 | 保留 `com.fasterxml.jackson.core`，不能盲目替换组名 |
-| JDK8 / JSR310 / parameter-names 模块 | 不再独立声明 | 功能已合并至 Jackson 3 databind；具体类型迁移归 23 |
+| JDK8 / JSR310 / parameter-names 模块 | 不再独立声明 | 功能已合并至 Jackson 3 databind；无兼容 Jackson 2 模块或双主版本 classpath |
 | Jakarta annotation / validation / Servlet API | 3.0.0 / 3.1.1 / 6.1.0 | BOM；Servlet 继续 optional；C5 `Nullable` 策略不在本票改动 |
 | Lombok | 1.18.46 | 编译依赖和 processor 共同由 BOM 管理 |
 | Boot configuration processor | 4.1.1 | 显式 processor path，与 Boot 属性同步 |
@@ -44,7 +47,7 @@
 | ErrorMvcAutoConfiguration | `org.springframework.boot.webmvc.autoconfigure.error` | spring-boot-webmvc |
 | ApplicationContextRunner / WebApplicationContextRunner / FilteredClassLoader | `org.springframework.boot.test.context…`（保持） | spring-boot-test |
 
-独立 Web consumer 改用 `spring-boot-starter-webmvc`，旧 `Jackson2ObjectMapperBuilderCustomizer` 的签名/策略随 mapper 交 23，不通过 Jackson 2 兼容 starter 掩盖。需要 MockMvc 技术自动装配时应使用 `spring-boot-starter-webmvc-test`，本项目现有 context runner 并不因此自动迁包或必须引入该 starter。
+独立 Web consumer 使用 `spring-boot-starter-webmvc`，旧 customizer 已迁为 `JsonMapperBuilderCustomizer`；保留 JSON 独立字面金样，不通过 Jackson 2 兼容 starter 掩盖。需要 MockMvc 技术自动装配时应使用 `spring-boot-starter-webmvc-test`，本项目现有 context runner 并不因此自动迁包或必须引入该 starter。
 
 04 的共享实际 Servlet fixture 直接使用 `spring-boot-web-server`、`spring-boot-tomcat`、`spring-boot-webmvc`，所以根 POM 显式声明这三个 test-scope 模块；保留 04 的 BOM 管理 `tomcat-embed-core` test 依赖。探针实际编译、加载并核对上表14种类型的来源 JAR，不假设导入 BOM 会自动提供拆分后的类。
 
@@ -57,7 +60,9 @@ java verification/Verify.java all --fresh
 
 `platform` 为独立工具链子集，真实跑 Jupiter / ArchUnit 正向与各自故意失败控制、Lombok/配置处理器、69.0 classfile、JaCoCo 指令探针和 dependency analyzer，并解析根依赖。日志与输入在 `.verification-results/<时间>-platform`；CI 分别保留完整 `all` 与 `platform` 的状态。
 
-`all` 继续执行库全量质量门。22 的 Jackson 编译错误必须真实报红并在 [精确交接清单](../verification/ticket-22-jackson-diagnostics.md) 记录；不修改 test includes、skip、旧测试断言或质量阈值来得到绿色。主库测试暂未执行与测试被跳过是不同状态，不把探针的 5 项算入主库测试总数。Windows/Linux 的主库同产物保证、独立普通 jar/JSON consumer、缺类和用户覆盖组合由 24 闭合。
+`all` 执行库全量质量门、纯 Java 与 Spring 普通 jar 消费、旧 JSON 金样/两应用真实 HTTP、五种非 Web 实际依赖图和三种 Web 覆盖/关闭场景，以及 Tika 缺席/选用的实际上传消费者。输入、各图 effective POM/tree/classpath 与结果保存在报告中；安装 jar 必须等于本次根构建 jar。所有 JVM、HTTP 和临时文件范围有界，详见 [矩阵说明](../../verification/platform-consumer/README.md)。
+
+票 22 的 68 个 Jackson 诊断仅是保留的历史迁移证据：[精确交接清单](../verification/ticket-22-jackson-diagnostics.md)。当前没有预期编译红灯或迁移专用 skip；不能把工具链探针的 5 项加入主库总数。非 BOM Tika、jsoup、POI 的全部业务与格式保证分别归 13、32、16；24 的类缺席与普通产物接合不等于验证了所有文件能力，最终由 33 汇总。
 
 ## 官方依据
 

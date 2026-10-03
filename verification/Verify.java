@@ -66,6 +66,7 @@ class Verify {
                     coreConsumer();
                     cryptoConsumer();
                     jsonConsumer();
+                    platformConsumers();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
                     // Each application gets a distinct bounded JVM and must close naturally within 45 seconds.
@@ -261,6 +262,8 @@ class Verify {
         copyDirectory(consumer.resolve("src/main/resources/golden"), report.resolve("json-golden"));
         Files.copy(consumer.resolve("pom.xml"), report.resolve("json-consumer-pom.xml"));
         Files.copy(consumer.resolve("src/main/java/example/JsonConsumer.java"), report.resolve("JsonConsumer.java"));
+        Files.copy(consumer.resolve("src/main/java/example/PlatformWebConsumer.java"), report.resolve("PlatformWebConsumer.java"));
+        Files.copy(consumer.resolve("src/main/java/example/PlatformUploadConsumer.java"), report.resolve("PlatformUploadConsumer.java"));
         try (var goldens = Files.list(report.resolve("json-golden"))) {
             for (Path golden : goldens.sorted().toList()) {
                 summary.add("sha256 json-golden/" + golden.getFileName() + "=" + HexFormat.of().formatHex(
@@ -282,6 +285,79 @@ class Verify {
             }
         }
         summary.add("json-consumer=ordinary jar; literal goldens; real HTTP; default/custom policy; two applications; close/rebuild; -Xmx256m; 90s per JVM");
+        String installed = installedClasspath(consumer, consumer.resolve("target/classpath.txt"));
+        for (String scenario : List.of("default", "user", "disabled")) {
+            Path log = run(ROOT, Map.of(), "platform-web-" + scenario, List.of(java(), "-Xmx256m", "-Dfile.encoding=UTF-8",
+                    "-cp", installed, "example.PlatformWebConsumer", scenario), 60, null);
+            if (!Files.readString(log).contains("PLATFORM_WEB_OK " + scenario)) {
+                throw new AssertionError("Web platform consumer did not complete " + scenario + ": " + log);
+            }
+        }
+        summary.add("platform-web=default/user/disabled; servlet registrations and actual filter order; application/MVC mapper identity; repeatable 413; replay; ERROR dispatch; -Xmx256m; 60s per JVM");
+        for (String graph : List.of("no-tika", "tika")) {
+            Path evidence = Files.createDirectories(report.resolve("matrix/upload-" + graph));
+            if (graph.equals("tika")) {
+                maven(consumer, "upload-tika-build", "-Ptika", "clean", "compile", "dependency:build-classpath",
+                        "-Dmdep.outputFile=" + evidence.resolve("classpath.txt"));
+                maven(consumer, "upload-tika-model", "-Ptika", "help:effective-pom", "dependency:tree",
+                        "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt"));
+            } else {
+                Files.copy(consumer.resolve("target/classpath.txt"), evidence.resolve("classpath.txt"));
+                Files.copy(report.resolve("json-consumer-effective-pom.xml"), evidence.resolve("effective-pom.xml"));
+                Files.copy(report.resolve("json-consumer-dependency-tree.txt"), evidence.resolve("dependency-tree.txt"));
+            }
+            String uploadClasspath = installedClasspath(consumer, evidence.resolve("classpath.txt"));
+            Path log = run(ROOT, Map.of(), "platform-upload-" + graph,
+                    List.of(java(), "-Xmx128m", "-Dfile.encoding=UTF-8", "-cp", uploadClasspath,
+                            "example.PlatformUploadConsumer", graph, evidence.resolve("owned-files").toString()), 45, null);
+            if (!Files.readString(log).contains("PLATFORM_UPLOAD_OK " + graph)) throw new AssertionError("Upload graph did not finish: " + log);
+        }
+        summary.add("platform-upload=real optional Tika absent/present; ordinary jar SafeUpload; actual byte budget/content MIME; missing required detector rejected; no test multipart class; staging cleaned");
+    }
+
+    static void platformConsumers() throws Exception {
+        Path consumer = ROOT.resolve("verification/platform-consumer");
+        Path inputs = Files.createDirectories(report.resolve("matrix-inputs"));
+        Files.copy(consumer.resolve("pom.xml"), inputs.resolve("pom.xml"));
+        copyDirectory(consumer.resolve("src"), inputs.resolve("src"));
+        for (String graph : List.of("minimal", "no-jackson-module", "caffeine-only", "context-support-only", "cache-pair")) {
+            Path evidence = Files.createDirectories(report.resolve("matrix/" + graph));
+            maven(consumer, "matrix-build-" + graph, "-P" + graph, "clean", "compile", "dependency:build-classpath",
+                    "-Dmdep.outputFile=" + evidence.resolve("classpath.txt"));
+            maven(consumer, "matrix-model-" + graph, "-P" + graph, "help:effective-pom", "dependency:tree",
+                    "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt"));
+            String classpath = installedClasspath(consumer, evidence.resolve("classpath.txt"));
+            var scenarios = graph.equals("minimal")
+                    ? List.of("default", "disabled", "override", "jsons-override", "ambiguous", "primary", "virtual")
+                    : List.of("default");
+            for (String scenario : scenarios) {
+                Path log = run(ROOT, Map.of(), "matrix-" + graph + "-" + scenario,
+                        List.of(java(), "-Xmx256m", "-Dfile.encoding=UTF-8", "-cp", classpath,
+                                "example.PlatformConsumer", graph, scenario), 45, null);
+                String marker = "PLATFORM_CONSUMER_OK " + graph + " " + scenario;
+                if (!Files.readString(log).contains(marker)) throw new AssertionError("Missing " + marker);
+                summary.add(marker);
+            }
+        }
+        summary.add("matrix=5 independent Maven production graphs; 11 JVM scenarios; ordinary installed jar equals this build; no test dependencies; -Xmx256m; 45s each");
+    }
+
+    static String installedClasspath(Path consumer, Path file) throws Exception {
+        String dependencies = Files.readString(file).trim();
+        boolean sameArtifact = false;
+        for (String entry : dependencies.split(java.util.regex.Pattern.quote(File.pathSeparator))) {
+            Path jar = Path.of(entry).toAbsolutePath().normalize();
+            if (!entry.endsWith(".jar") || !jar.startsWith(repository)) {
+                throw new AssertionError("Consumer dependency must be an isolated repository jar: " + entry);
+            }
+            if (jar.getFileName().toString().startsWith("server-facility-")) {
+                Path built = ROOT.resolve("target").resolve(jar.getFileName());
+                if (Files.mismatch(built, jar) != -1) throw new AssertionError("Consumer installed artifact differs from this build: " + jar);
+                sameArtifact = true;
+            }
+        }
+        if (!sameArtifact) throw new AssertionError("No verified library jar in consumer graph: " + file);
+        return consumer.resolve("target/classes") + File.pathSeparator + dependencies;
     }
 
     static void prerequisites() throws Exception {
@@ -357,6 +433,7 @@ class Verify {
         }
         try (var files = Files.list(ROOT.resolve("target"))) {
             for (Path jar : files.filter(p -> p.toString().endsWith(".jar")).toList()) {
+                Files.copy(jar, Files.createDirectories(report.resolve("artifacts")).resolve(jar.getFileName()));
                 summary.add("sha256 " + jar.getFileName() + "=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
             }
         }
