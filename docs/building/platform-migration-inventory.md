@@ -83,3 +83,20 @@
 - 独立 Web consumer 改用标准 JsonMapperBuilderCustomizer，保留原金样文件。旧默认尾随值接受仅在该比较应用显式配置；等价 Unicode escaping/字段顺序按 JSON 值比较，不放宽数值和字符串类型。
 - ResponseUtil 等静态门面只享受类型迁移和安全错误通道，仍不取得应用政策；26 主责注入式替代。25 主责 RestClient 宿主 builder。
 - **24 仍负责**：Servlet6.1 新重载捕获/commit 预算，所有缺类/覆盖/注册顺序矩阵、同一普通 jar 的完整平台 consumer/两 OS 质量门。23 的本机报告不代替这些场景，不发布中间制品。
+
+## 24 消费者盘点与退出结论
+
+票 24 的实现/结果以 [报告](../verification/ticket-24-platform-integration.md) 和 [ADR-0047](../adr/0047-boot4-consumer-integration.md) 为准，不把未执行的 OS 场景计作完成。
+
+| 入口 / 迁移辅助 | 消费者证据与处理 |
+|---|---|
+| 旧 mutable customize / Jackson 2 类型 / 三种独立 Java8 模块 | 23 已删除或迁移；普通 jar 与两个 JSON consumer access 模式没有借助兼容 starter 编译或运行 |
+| new Jsons(mapper) | 21 冻结的 constructed 消费者真实调用，24 继续与 injected 对照；保留显式应用所有权入口 |
+| Spring 注入 Jsons/registry | 默认复用应用 JsonMapper，用户 Jsons/mapper、primary 和歧义由真实依赖图与 HTTP 验证；无静态发布 |
+| enableJava8Support | 库 presets/现有源示例仍调用，已是 documented no-op；无运行期模块安装，不以平台票删除现存调用 |
+| JsonUtil / ResponseUtil / 旧异常门面 | 库尚有显式静态/兼容消费者；不是应用默认权威。26 负责注入式替代，24 不先删后补 |
+| Servlet 6.1 wrappers | Charset 和三个 redirect 重载补齐，真实 Tomcat 验证头/字节、clearBuffer、状态/Location 与禁止错误重放；旧捕获预算/流式测试保留 |
+| Caffeine/context-support 半缺图 | 真实 Maven 图复现并修复缺支持类时无 CacheManager；按 ADR0015 进入已有回退。无 TTL/容量的新业务政策仍归 08/33 |
+| Tika 4.1.0 / 无 Tika | 13 的实际字节上传通过两个普通 jar 生产图验证；必需类型政策缺 detector 明确拒绝，未选择类型政策仍可用；POI 缺席不阻断其他能力 |
+
+旧 Boot 3.5/Jackson 2 发布线与新 Boot 4/Jackson 3 线保持源码/二进制破坏边界，不宣称同一 jar 兼容两个主版本。旧金样与历史 CI SHA 留存，当前 consumers 明确选择目标版本；模板与最终发布步骤由 31/33 负责。
