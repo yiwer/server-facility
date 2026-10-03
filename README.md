@@ -140,8 +140,8 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `cache` | `CacheUtil` | 缓存门面委托 Spring `CacheManager`；`@Cacheable` 自然可用；Caffeine optional 支持 TTL/maxSize |
 | `lock` | `LockUtil` / `DistributedLock`（SPI） | 分布式锁：高阶 `executeWithLock` 自动获取释放 + `tryLock`/`unlock`；默认单机 ReentrantLock，SPI 可替换 Redisson |
 | `http` | `HttpClients` | HTTP client 门面：委托 RestClient，`get`/`post`/`put`/`delete`→`Result`；超时可配 |
-| `idempotency` | `IdempotencyStore`（SPI） | 幂等存储：PROCESSING/DONE 状态机 + TTL，默认内存，SPI 可替换 Redis |
-| `web.idempotency` | `@Idempotent` | 完整幂等：同 key 返首次响应，拦截器 + Filter 捕获响应，PROCESSING→409 |
+| `idempotency` | `IdempotencyStore`（SPI） | 执行资格、指纹绑定与有界回执；lease/retention分离，旧入口保留迁移（ADR0034） |
+| `web.idempotency` | `@Idempotent` | 旧HTTP响应重放与有界捕获；安全claim路径迁移由票12完成 |
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex（静态门面，纯 JDK，无需配置） |
 | `masking` | `MaskUtil` | 日志脱敏（默认开启）：秘密/JWT/身份证/银行卡/邮箱/手机号六规则，校验位（mod11-2/Luhn）抑误伤；`LogUtil` 写前集成，`setMaskingEnabled(false)` 可关（静态门面，纯 JDK，无需配置） |
 | `csv` | `CsvUtil` | 有界 CSV 读写（Commons CSV required）：strict/legacy 方言、逐行消费、UTF-8 字节/行列/字段预算；机器与电子表格导出政策分离 |

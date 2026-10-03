@@ -12,6 +12,12 @@
 - 新增ResponseBodyLimit标准interceptor，限制转换前实际响应字节，并先关闭body避免transport在关闭时继续读取被拒绝尾部。两个类型化Adapter、协议错误与一次deadline重试在独立示例应用内；不扩展通用远程DSL。
 - 迁移示例与已声明限制见[partner-aggregation](examples/partner-aggregation/README.md)。旧HttpClients仍有历史无配置回退与URL/cause错误，不具备新Adapter契约。
 
+### 独立 claim 执行资格（2026-10-04，ADR-0034）
+
+- 新增scope/fingerprint与owner/generation条件更新，区分取得、处理中、回执、冲突和不可用；旧自定义SPI默认不支持新能力，保持三方法二进制迁移路径。
+- 结果保存期与租约分离，DONE过期、RELEASED和UNKNOWN保留命令绑定；只有PROCESSING租约例外允许同内容新owner。CAS仅保护记录，不能撤销外部副作用。
+- maxEntries成为共享硬上限，新增单条/总回执字节预算和永久关闭；旧complete不能凭空插入，旧记录改为防御性字节所有权。新输入/旧key、TTL与记录形状严格校验。
+- 旧HTTP路径未在本票迁移，不宣布整体HTTP幂等安全。详见[迁移说明](docs/building/qualified-claims.md)；12迁HTTP，29负责同库事务receipt。
 ### ZIP 与目录完整性（2026-10-04，ADR-0037）
 
 - ZIP 任一条目缺失、重复 basename、读取/关闭失败即 Err，不再跳过并报成功；目录统计也不把不可读节点计作零。ZIP 保留空目录。

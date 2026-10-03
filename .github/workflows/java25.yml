@@ -67,6 +67,7 @@ jobs:
             .verification-results/**/rate-limit-consumer/RateLimitConsumer.java
             .verification-results/**/partner/**
             .verification-results/**/partner-inputs/**
+            .verification-results/**/claim-consumer/inputs/**
             .verification-results/**/artifacts/*.jar
             .verification-results/**/matrix-inputs/**
             .verification-results/**/matrix/**
