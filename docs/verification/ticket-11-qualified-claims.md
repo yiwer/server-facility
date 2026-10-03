@@ -1,6 +1,6 @@
 # 票11：独立 claim 执行资格验证
 
-状态：in-progress；本文件记录本票自己的证据，最终候选/全门结果待末节补齐。HTTP迁移12、同库业务命令29、最终组合33分别负责其自身验收，不反向作为11的前置。
+状态：verification-pending（仅本票Linux集成CI待补）。Windows最终候选完整all已PASS，精确来源见末节。HTTP迁移12、同库业务命令29、最终组合33分别负责其自身验收，不反向作为11的前置。
 
 ## 范围
 
@@ -51,7 +51,7 @@
 
 ## 审阅与最终候选
 
-待记录最终候选SHA、同步integration SHA、完整runner目录/summary与审阅结论；本段未补齐前不作为全门通过证据。
+最终候选和审阅发现的修复证据见下两节；首轮all与修复后all分别保留，不能互相替代。
 
 ## 审阅修复的独立小堆证据
 
@@ -64,3 +64,25 @@ root审阅指出receipt.clone抛Error时PROCESSING仍可到期重授；impl03审
 - 同类Clock Error边界red-23-clock-error.log也复现重授；green-23-clock-error.log覆盖complete和release，原Error对象传播且UNKNOWN保留。已知now等于/超过lease仍REJECTED并保持原PROCESSING租约例外，由既有边界测试防止误改。
 
 这三步GREEN用javac直接编译变更核心类并调用公开探针，命令/输出在对应green-21/22/23-compile.log及故障日志；最终仍由clean Maven和普通安装jar复验。ClaimFailureProbe已收入verification/claim-consumer并随Verify.integration/all执行，每个新JVM限制32MiB/2 processors/45秒，OOM只在独立消费者中触发，主测试JVM不制造OOM。
+
+## 最终Windows全门与来源
+
+被测源码：`956081d303243e81557de61e54615f9f5608c374`（修复06db48b + 27产品14dbec37dee57e20e7a854bc708e32bd409a2670）。开始时git工作树干净。命令为：
+
+```powershell
+$env:VERIFY_WRONG_JAVA_HOME='C:/Users/yiwer/AppData/Local/Temp/server-facility-research-tools/jdk21/jdk-21.0.12.1+1'
+java verification/Verify.java all
+```
+
+完整结果：`.verification-results/20261004-042235-271-all/summary.txt` **RESULT=PASS**，退出0。环境Oracle JDK25.0.4.1+1-LTS-5、Maven Wrapper3.10.0、Windows11 amd64、Asia/Shanghai、zh_CN；本票隔离repository，fresh=false。
+
+- 根库1555测试，0失败、0错误、0跳过；其中新增20个JUnit公开行为测试，另有独立消费者性质/资源/故障场景。架构5项与依赖门通过，无阈值/排除/删测变化。
+- 覆盖率：指令22009/23552=93.449%，行4378/4651=94.130%，分支2329/2708=86.004%。原88%/88%/75%门保留。
+- 普通jar及全部既有核心/JSON/IO/CSV/限流消费者、真实HTTP/双应用/关闭重建、缺类矩阵、三工具链负控均PASS。
+- 新claim普通jar/历史SPI二进制/owner屏障/固定seed/容量与payload释放PASS；三个独立32MiB probe分别输出clone、close-tables、clock-error PASS。它们使用本轮安装jar，不是手工target/classes。
+- 同候选27模板47项独立测试0失败/错误/跳过，真实打包HTTP的platform/virtual两模式、拒覆盖与缺coverage负控PASS；保留双方runner调用。
+- 已归档库jar SHA256：`0fe1fa4fb2c0058f09a4ee022ff6ea54e51dd6cbe08869e74606e56e10edc6a2`。模板jar SHA256：`5709692aff81c1598f6d0be38604438aae7093f5b5a01479aeda1206c6f18212`。
+
+随后合入中央文档5674f6d4888e5ed2e5d83461be39cc7cf31d7e41，得到550b510facb0c813e93e44939943b499861e8a09。与被测956081d之间仅README/DESIGN/ADR索引及27中央文档，src/pom/verification/templates/Wrapper完全相同；最终交付只再补本票报告与状态，不为同源文档重复全门。
+
+审阅：root的记录一致性审阅发现clone Error窗口；impl03的资源/兼容审阅发现close保留Map表。两项都有实际RED和修复后的安装jar GREEN；同类Clock Error也补齐。其余owner、指纹、租约、永久终态及SPI兼容未报告阻断发现。当前仅Linux集成CI待root收集，因此保持verification-pending，缺平台证据不closed。
