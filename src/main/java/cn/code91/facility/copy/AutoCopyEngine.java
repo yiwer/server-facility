@@ -15,8 +15,25 @@ final class AutoCopyEngine {
 
     private AutoCopyEngine() { throw new UnsupportedOperationException(); }
 
-    @SuppressWarnings("unchecked")
+    private static final ThreadLocal<Set<Object>> ACTIVE = new ThreadLocal<>();
+
     static <T> T copy(T source) {
+        Set<Object> active = ACTIVE.get();
+        boolean root = active == null;
+        if (root) active = Collections.newSetFromMap(new IdentityHashMap<>());
+        if (active.size() >= 32) throw new CopyUtil.CopyException("autoCopy depth exceeds 32; use an explicit snapshot");
+        if (!active.add(source)) throw new CopyUtil.CopyException("autoCopy cycle is unsupported; use an explicit snapshot");
+        if (root) ACTIVE.set(active);
+        try {
+            return copyFields(source);
+        } finally {
+            active.remove(source);
+            if (root) ACTIVE.remove();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T copyFields(T source) {
         Class<?> clazz = source.getClass();
         ClassCopyMeta meta = AUTO_COPY_CACHE.get(clazz);
 
@@ -73,6 +90,9 @@ final class AutoCopyEngine {
                 CopyField annotation = field.getAnnotation(CopyField.class);
                 if (annotation != null && annotation.ignore()) {
                     continue;
+                }
+                if (Modifier.isFinal(modifiers)) {
+                    throw new CopyUtil.CopyException("autoCopy does not support final fields; use explicit construction");
                 }
 
                 field.setAccessible(true);

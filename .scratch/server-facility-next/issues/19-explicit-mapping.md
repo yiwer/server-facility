@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-08、FR-09；AC-11、AC-12
 
@@ -27,3 +27,8 @@
 MapStruct 仅在有具体价值时采用；不依赖模板完整交付，不以弃用名义立即删除外部 API。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+
+## Implementation record
+
+2026-10-04领取，独立ticket-19 / codex/ticket-19，初始integration418e26f，开始实施前同步2b06f52。ADR0042；按已批准CopyUtil公共入口与独立应用Module逐项RED→GREEN。根库目前没有生产autoCopy调用，故用独立订单转换消费流程展示可执行迁移，而不是新建无人消费的映射接口。尊重普通容器/嵌套容器的历史浅引用政策；收窄反射支持范围、禁止final写入并明确复杂对象图拒绝。日志迁移只走标准SLF4J和固定有限metadata，backend RuntimeException不改变复制结果。原始证据从开始保存`.verification-results/ticket-19`。
