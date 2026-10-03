@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -23,6 +24,64 @@ import static org.assertj.core.api.Assertions.*;
 import static example.partners.PartnerApplication.*;
 
 class PartnerContractTest {
+    @Test void aCommittedCommandWithNoResponseIsUnknownAndNeverAutomaticallyResent() throws Exception {
+        try (var catalog = new PartnerServer(); var inventory = new PartnerServer(); var app = start(catalog, inventory)) {
+            inventory.disconnectAfterBody = true;
+            var uncertain = catchThrowableOfType(PartnerFailure.class, () -> app.getBean(Inventory.class).reserve(new Reservation("book", 2)));
+            assertThat(uncertain.kind()).isEqualTo(PartnerFailure.Kind.TRANSPORT_FAILED);
+            assertThat(uncertain.outcome()).isEqualTo(PartnerFailure.Outcome.UNKNOWN);
+            assertThat(inventory.requests).hasSize(1);
+            assertThat(inventory.bodies).containsExactly("{\"sku\":\"book\",\"quantity\":2}");
+            assertThat(inventory.committed.get()).isEqualTo(1);
+            inventory.server.stop(0);
+            var refused = catchThrowableOfType(PartnerFailure.class, () -> app.getBean(Inventory.class).reserve(new Reservation("book", 2)));
+            assertThat(refused.kind()).isEqualTo(PartnerFailure.Kind.CONNECT_FAILED);
+            assertThat(refused.outcome()).isEqualTo(PartnerFailure.Outcome.NO_EFFECT);
+            assertThat(inventory.requests).hasSize(1);
+        }
+    }
+    @Test void cancellationStopsHeaderAndBodyReadsAndPreservesTheCallerInterrupt() throws Exception {
+        for (boolean afterHeaders : new boolean[]{false, true}) {
+            try (var catalog = new PartnerServer(); var inventory = new PartnerServer(); var app = start(catalog, inventory)) {
+                catalog.block = true; catalog.slowBody = afterHeaders;
+                var result = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+                var interrupted = new java.util.concurrent.atomic.AtomicBoolean();
+                var caller = Thread.ofVirtual().start(() -> {
+                    result.set(catchThrowable(() -> app.getBean(Catalog.class).find("book")));
+                    interrupted.set(Thread.currentThread().isInterrupted());
+                });
+                try {
+                    assertThat(catalog.entered.await(2, TimeUnit.SECONDS)).isTrue();
+                    caller.interrupt(); caller.join(1500);
+                    assertThat(caller.isAlive()).isFalse();
+                    assertThat(result.get()).isInstanceOf(PartnerFailure.class);
+                    assertThat(((PartnerFailure) result.get()).kind()).isEqualTo(PartnerFailure.Kind.CANCELLED);
+                    assertThat(interrupted).isTrue();
+                    assertThat(catalog.requests).hasSize(1);
+                } finally { catalog.release.countDown(); caller.interrupt(); caller.join(3000); assertThat(caller.isAlive()).isFalse(); }
+            }
+        }
+    }
+    @Test void serviceTimeoutsCoverHeadersAndBodyWithoutDelayingTheOtherPartner() throws Exception {
+        for (boolean afterHeaders : new boolean[]{false, true}) {
+            try (var catalog = new PartnerServer(); var inventory = new PartnerServer();
+                 var app = start(catalog, inventory, "--partners.catalog.request-timeout=PT0.2S")) {
+                catalog.block = true; catalog.slowBody = afterHeaders;
+                var worker = Executors.newSingleThreadExecutor();
+                try {
+                    long started = System.nanoTime();
+                    var response = worker.submit(() -> catchThrowable(() -> app.getBean(Catalog.class).find("book")));
+                    assertThat(catalog.entered.await(2, TimeUnit.SECONDS)).isTrue();
+                    assertThat(app.getBean(Inventory.class).stock("book")).containsExactly(new Stock("north", 7));
+                    var thrown = response.get(2, TimeUnit.SECONDS);
+                    assertThat(thrown).isInstanceOf(PartnerFailure.class);
+                    assertThat(((PartnerFailure) thrown).kind()).isEqualTo(PartnerFailure.Kind.RESPONSE_TIMEOUT);
+                    assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofMillis(1500));
+                    assertThat(catalog.requests).hasSize(1);
+                } finally { catalog.release.countDown(); worker.shutdownNow(); assertThat(worker.awaitTermination(3, TimeUnit.SECONDS)).isTrue(); }
+            }
+        }
+    }
     @Test void invalidEmptyTruncatedAndOversizedBodiesHaveBoundedSafeFailures() throws Exception {
         try (var catalog = new PartnerServer(); var inventory = new PartnerServer(); var app = start(catalog, inventory, "--partners.catalog.max-response-bytes=64")) {
             for (String body : List.of("{remote-secret", "", "{\"sku\":\"book\",\"product_name\":\"" + "x".repeat(100) + "\"}", "{\"sku\":\"book\",\"product_name\":\"A Book\"}")) {
@@ -87,6 +146,12 @@ class PartnerContractTest {
         volatile int status = 200;
         volatile String bodyOverride;
         volatile boolean truncated;
+        volatile boolean block;
+        volatile boolean slowBody;
+        volatile boolean disconnectAfterBody;
+        final java.util.concurrent.atomic.AtomicInteger committed = new java.util.concurrent.atomic.AtomicInteger();
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
         PartnerServer() throws IOException {
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.setExecutor(executor);
@@ -98,6 +163,8 @@ class PartnerContractTest {
             try (exchange) {
                 requests.add(exchange.getRequestMethod() + " " + exchange.getRequestURI() + " " + exchange.getRequestHeaders().getFirst("Authorization") + " " + exchange.getRequestHeaders().getFirst("X-Host-Policy"));
                 bodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                if (disconnectAfterBody) { committed.incrementAndGet(); return; }
+                if (block && !slowBody) awaitRelease();
                 if (status != 200) {
                     exchange.getResponseHeaders().set("X-Request-Id", "remote-42");
                     exchange.getResponseHeaders().set("Retry-After", "1");
@@ -106,16 +173,24 @@ class PartnerContractTest {
                     byte[] bytes = "remote-secret".getBytes(StandardCharsets.UTF_8);
                     exchange.sendResponseHeaders(status, bytes.length); exchange.getResponseBody().write(bytes); return;
                 }
-                if (exchange.getRequestMethod().equals("POST")) { exchange.sendResponseHeaders(204, -1); return; }
+                if (exchange.getRequestMethod().equals("POST")) { committed.incrementAndGet(); exchange.sendResponseHeaders(204, -1); return; }
                 String body = exchange.getRequestURI().getPath().startsWith("/products/") ? "{\"sku\":\"book\",\"product_name\":\"A Book\"}" : "[{\"warehouse_name\":\"north\",\"available\":7}]";
                 if (bodyOverride != null) body = bodyOverride;
                 byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, bytes.length + (truncated ? 3 : 0));
-                exchange.getResponseBody().write(bytes);
+                if (block && slowBody) {
+                    exchange.getResponseBody().write(bytes, 0, 1); exchange.getResponseBody().flush();
+                    awaitRelease(); exchange.getResponseBody().write(bytes, 1, bytes.length - 1);
+                } else exchange.getResponseBody().write(bytes);
                 exchange.getResponseBody().flush();
             }
         }
-        @Override public void close() throws Exception { server.stop(0); executor.shutdownNow(); assertThat(executor.awaitTermination(3, TimeUnit.SECONDS)).isTrue(); }
+        private void awaitRelease() throws IOException {
+            entered.countDown();
+            try { if (!release.await(5, TimeUnit.SECONDS)) throw new IOException("fixture release timeout"); }
+            catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IOException(interrupted); }
+        }
+        @Override public void close() throws Exception { release.countDown(); server.stop(0); executor.shutdownNow(); assertThat(executor.awaitTermination(3, TimeUnit.SECONDS)).isTrue(); }
     }
 }

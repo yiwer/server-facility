@@ -15,6 +15,11 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.ResourceAccessException;
+import java.util.function.Supplier;
+import java.net.http.HttpTimeoutException;
+import java.net.http.HttpConnectTimeoutException;
+import java.net.ConnectException;
 
 /** An application-owned pair of adapters; the facility jar has no partner protocol types. */
 @SpringBootApplication
@@ -40,31 +45,53 @@ public class PartnerApplication {
 
     public static final class Catalog {
         private final RestClient client;
+        private final Duration timeout;
         Catalog(RestClient.Builder builder, HttpClient transport, Environment environment) {
+            timeout = timeout(environment, "catalog");
             client = client(builder, transport, environment, "catalog");
         }
         public Product find(String sku) {
-            return client.get().uri("/products/{sku}", sku).exchange((request, response) -> {
+            return execute(timeout, false, () -> client.get().uri("/products/{sku}", sku).exchange((request, response) -> {
                 requireStatus(response, 200, false);
                 return body(response, ParameterizedTypeReference.forType(Product.class));
-            });
+            }));
         }
     }
     public static final class Inventory {
         private final RestClient client;
+        private final Duration timeout;
         Inventory(RestClient.Builder builder, HttpClient transport, Environment environment) {
+            timeout = timeout(environment, "inventory");
             client = client(builder, transport, environment, "inventory");
         }
         public List<Stock> stock(String sku) {
-            return client.get().uri("/stock/{sku}", sku).exchange((request, response) -> {
+            return execute(timeout, false, () -> client.get().uri("/stock/{sku}", sku).exchange((request, response) -> {
                 requireStatus(response, 200, false);
                 return body(response, new ParameterizedTypeReference<List<Stock>>() {});
-            });
+            }));
         }
         public void reserve(Reservation reservation) {
-            client.post().uri("/reservations").body(reservation).exchange((request, response) -> {
+            execute(timeout, true, () -> client.post().uri("/reservations").body(reservation).exchange((request, response) -> {
                 requireStatus(response, 204, true); return null;
-            });
+            }));
+        }
+    }
+    private static <T> T execute(Duration budget, boolean sideEffect, Supplier<T> action) {
+        long started = System.nanoTime();
+        if (Thread.currentThread().isInterrupted())
+            throw new PartnerFailure(PartnerFailure.Kind.CANCELLED, PartnerFailure.Outcome.NO_EFFECT, 0, Map.of());
+        try { return action.get(); }
+        catch (PartnerFailure failure) {
+            if (failure.kind() == PartnerFailure.Kind.BAD_RESPONSE && System.nanoTime() - started >= budget.toNanos())
+                throw new PartnerFailure(PartnerFailure.Kind.RESPONSE_TIMEOUT, failure.outcome(), failure.status(), failure.headers());
+            throw failure;
+        } catch (ResourceAccessException failure) {
+            var kind = cancelled(failure) ? PartnerFailure.Kind.CANCELLED
+                    : causedBy(failure, HttpConnectTimeoutException.class) ? PartnerFailure.Kind.CONNECT_TIMEOUT
+                    : causedBy(failure, ConnectException.class) ? PartnerFailure.Kind.CONNECT_FAILED
+                    : causedBy(failure, HttpTimeoutException.class) ? PartnerFailure.Kind.RESPONSE_TIMEOUT : PartnerFailure.Kind.TRANSPORT_FAILED;
+            boolean beforeEffect = kind == PartnerFailure.Kind.CONNECT_FAILED || kind == PartnerFailure.Kind.CONNECT_TIMEOUT;
+            throw new PartnerFailure(kind, sideEffect && !beforeEffect ? PartnerFailure.Outcome.UNKNOWN : PartnerFailure.Outcome.NO_EFFECT, 0, Map.of());
         }
     }
     private static <T> T body(RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response, ParameterizedTypeReference<T> type) throws IOException {
@@ -75,9 +102,14 @@ public class PartnerApplication {
                 throw new PartnerFailure(PartnerFailure.Kind.BAD_RESPONSE, PartnerFailure.Outcome.NO_EFFECT, status, Map.of());
             return result;
         } catch (RestClientException | IOException failure) {
-            var kind = causedBy(failure, ResponseBodyLimit.Exceeded.class) ? PartnerFailure.Kind.RESPONSE_TOO_LARGE : PartnerFailure.Kind.BAD_RESPONSE;
+            var kind = cancelled(failure) ? PartnerFailure.Kind.CANCELLED : causedBy(failure, ResponseBodyLimit.Exceeded.class) ? PartnerFailure.Kind.RESPONSE_TOO_LARGE : PartnerFailure.Kind.BAD_RESPONSE;
             throw new PartnerFailure(kind, PartnerFailure.Outcome.NO_EFFECT, status, Map.of());
         }
+    }
+    private static boolean cancelled(Throwable failure) {
+        if (Thread.currentThread().isInterrupted()) return true;
+        if (causedBy(failure, InterruptedException.class)) { Thread.currentThread().interrupt(); return true; }
+        return false;
     }
     private static boolean causedBy(Throwable failure, Class<? extends Throwable> type) {
         for (int depth = 0; failure != null && depth < 32; depth++, failure = failure.getCause()) {
@@ -100,11 +132,14 @@ public class PartnerApplication {
     }
     private static RestClient client(RestClient.Builder builder, HttpClient transport, Environment environment, String service) {
         var factory = new JdkClientHttpRequestFactory(transport);
-        factory.setReadTimeout(Duration.ofSeconds(2));
+        factory.setReadTimeout(timeout(environment, service));
         return builder.clone().requestFactory(factory)
                 .baseUrl(environment.getRequiredProperty("partners." + service + ".base-url"))
                 .defaultHeaders(headers -> headers.setBearerAuth(environment.getRequiredProperty("partners." + service + ".token")))
                 .requestInterceptor(new ResponseBodyLimit(environment.getProperty("partners." + service + ".max-response-bytes", Long.class, 1_048_576L))).build();
+    }
+    private static Duration timeout(Environment environment, String service) {
+        return Duration.parse(environment.getProperty("partners." + service + ".request-timeout", "PT2S"));
     }
     public static final class PartnerModule {
         private final Catalog catalog;
