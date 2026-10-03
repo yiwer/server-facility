@@ -20,7 +20,7 @@
         <!-- Target platform; tickets 23/24 close Jackson migration and full integration gates. -->
         <spring-boot.version>4.1.1</spring-boot.version>
         <archunit.version>1.5.1</archunit.version>
-        <tika.version>3.2.3</tika.version>
+        <tika.version>4.1.0</tika.version>
         <jsoup.version>1.18.3</jsoup.version>
         <poi.version>5.3.0</poi.version>
 

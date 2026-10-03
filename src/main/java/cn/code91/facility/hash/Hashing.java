@@ -9,12 +9,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 /**
  * <b>哈希计算工具</b>
  * <p>支持任意 JDK 内置算法（MD5、SHA-1、SHA-256 等），返回十六进制小写字符串。</p>
+ * <p>文件流由设施打开并关闭，使用固定读缓冲；文件读取协作式响应中断，不替调用方限制文件大小。
+ * 空文件返回标准摘要；为保留旧协议，空/null byte[] 仍返回 FILE_READ_ERROR。
+ * null/未知算法返回 FILE_HASH_ERROR。MD5/SHA-1 仅供旧非安全校验协议兼容，
+ * 不用于密码存储或对抗恶意篡改的完整性保证。</p>
  */
 public final class Hashing {
 
@@ -32,11 +38,18 @@ public final class Hashing {
         if (file == null || !file.exists()) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));
         }
+        if (algorithm == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.FILE_HASH_ERROR,
+                    new IllegalArgumentException("algorithm must not be null")));
+        }
         try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
             MessageDigest digest = MessageDigest.getInstance(algorithm);
             byte[] buffer = new byte[8192];
             int read;
-            while ((read = is.read(buffer)) != -1) {
+            while (true) {
+                if (Thread.currentThread().isInterrupted()) throw new InterruptedIOException("Hash interrupted");
+                read = is.read(buffer);
+                if (read == -1) break;
                 digest.update(buffer, 0, read);
             }
             return Result.ok(bytesToHex(digest.digest()));
@@ -57,6 +70,10 @@ public final class Hashing {
         if (data == null || data.length == 0) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_READ_ERROR));
         }
+        if (algorithm == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.FILE_HASH_ERROR,
+                    new IllegalArgumentException("algorithm must not be null")));
+        }
         try {
             MessageDigest digest = MessageDigest.getInstance(algorithm);
             return Result.ok(bytesToHex(digest.digest(data)));
@@ -67,10 +84,6 @@ public final class Hashing {
     }
 
     private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
+        return HexFormat.of().formatHex(bytes);
     }
 }
