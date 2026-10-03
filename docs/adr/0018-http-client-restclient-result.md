@@ -1,6 +1,6 @@
 # ADR-0018: HTTP client 选型 RestClient + Result 化门面 + 超时装配(seam)
 
-- **状态**:Accepted(2026-07-04)
+- **状态**:Accepted(2026-07-04)；2026-10-04 私有builder默认推荐、静态业务入口与宽泛错误政策由[ADR0048](0048-application-owned-outbound-http.md)部分替代，保留同步RestClient选型及弃用兼容签名。
 - **源起**:幂等+分布式锁+HTTP client 实现计划(docs/superpowers/plans/2026-07-04-idempotency-lock-http.md),
   簇 D(Task D1 `HttpClients` 门面 + `FacilityErrorType.HTTP_STATUS_ERROR`、Task D2 `FacilityHttpProperties` +
   `FacilityHttpAutoConfiguration`)

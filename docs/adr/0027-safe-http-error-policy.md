@@ -8,6 +8,9 @@ Accepted
 
 Supersedes ADR-0003 的默认关闭、异常原文 detail、请求路径 instance、multipart 统一 413 与每个 handler 各自转换的决定。保留 ProblemDetail、标准 Spring 类型和显式 BaseResponse 迁移入口的原始理由。旧 ADR 的历史正文不改写。
 
+
+2026-10-04 接合补充： [ADR0050](0050-secured-application-template.md) 在独立应用模板中接合标准Spring Security、JWT身份及异步执行上下文；保留本ADR的库边界和历史理由，不把兼容holder升级为认证来源。
+
 ## Context
 
 票 04（FR-03/09，AC-04/05/12）要求真实 Filter、MVC 与 ERROR dispatch 使用一致的 HTTP 协议。旧默认 HTTP 200 会掩盖失败；直接复制异常消息、校验消息或 ErrorResponse body 会把输入、cause 或实现信息交给客户端。仅调用 advice 不能证明容器派发、用户 mapper、multipart 和已提交响应的实际行为。

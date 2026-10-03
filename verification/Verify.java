@@ -68,8 +68,11 @@ class Verify {
                     ioConsumer();
                     csvConsumer();
                     rateLimitConsumer();
+                    claimConsumer();
                     jsonConsumer();
                     platformConsumers();
+                    partnerConsumer();
+                    securedTemplate();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
                     // Each application gets a distinct bounded JVM and must close naturally within 45 seconds.
@@ -202,6 +205,87 @@ class Verify {
                 "-Dmdep.outputFile=" + consumer.resolve("target/classpath.txt"));
     }
 
+    static void securedTemplate() throws Exception {
+        Path application = Files.createTempDirectory("facility-template-").resolve("secured api-示例");
+        Path inputs = report.resolve("template-inputs");
+        Path evidence = Files.createDirectories(report.resolve("template"));
+        Path copier = ROOT.resolve("templates/Instantiate.java");
+        Path client = ROOT.resolve("verification/template-consumer/TemplateConsumer.java");
+        Files.copy(copier, evidence.resolve("Instantiate.java"));
+        Files.copy(client, evidence.resolve("TemplateConsumer.java"));
+        run(ROOT, Map.of(), "template-instantiate", List.of(java(), copier.toString(),
+                ROOT.resolve("templates/secured-api").toString(), application.toString()), 45, null);
+        run(ROOT, Map.of(), "template-refuse-overwrite", List.of(java(), copier.toString(),
+                ROOT.resolve("templates/secured-api").toString(), application.toString()), 45,
+                "Destination must be new and outside the template directory");
+        copyDirectory(application, inputs);
+        try (var files = Files.walk(inputs)) {
+            for (Path input : files.filter(Files::isRegularFile).sorted().toList()) {
+                summary.add("sha256 template-inputs/" + inputs.relativize(input) + "=" + HexFormat.of().formatHex(
+                        MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(input))));
+            }
+        }
+        summary.add("template-independent-directory=" + application);
+        try {
+            maven(application, "template-build", "clean", "verify");
+        } finally {
+            if (Files.isDirectory(application.resolve("target/surefire-reports")))
+                copyDirectory(application.resolve("target/surefire-reports"), evidence.resolve("surefire-reports"));
+            if (Files.isDirectory(application.resolve("target/site/jacoco")))
+                copyDirectory(application.resolve("target/site/jacoco"), evidence.resolve("jacoco"));
+            for (boolean rollback : List.of(false, true)) {
+                Path log = application.resolve("target/decorator-failure-" + rollback + ".log");
+                if (Files.isRegularFile(log)) Files.copy(log, evidence.resolve(log.getFileName()));
+            }
+        }
+        var factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        long tests = 0;
+        var discovered = new HashSet<String>();
+        try (var files = Files.list(evidence.resolve("surefire-reports"))) {
+            for (Path file : files.filter(p -> p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList()) {
+                var suite = factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement();
+                tests += Long.parseLong(suite.getAttribute("tests"));
+                discovered.add(suite.getAttribute("name"));
+                for (String outcome : List.of("failures", "errors", "skipped")) {
+                    if (Long.parseLong(suite.getAttribute(outcome)) != 0) throw new AssertionError("Template " + outcome + ": " + file);
+                }
+            }
+        }
+        if (!discovered.containsAll(Set.of("com.example.api.AuthenticationHttpTest", "com.example.api.FailureLifecycleHttpTest",
+                "com.example.api.JwkLifecycleHttpTest", "com.example.api.ConfigurationHttpTest", "com.example.api.DecoratorFailureTest",
+                "com.example.api.ExecutorOwnershipTest", "com.example.api.BusinessBoundaryTest")))
+            throw new AssertionError("Missing template contract tests: " + discovered);
+        maven(application, "template-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));
+        maven(application, "template-dependencies", "dependency:tree", "-DoutputFile=" + evidence.resolve("dependency-tree.txt"),
+                "dependency:build-classpath", "-Dmdep.outputFile=" + evidence.resolve("classpath.txt"));
+        installedClasspath(application, evidence.resolve("classpath.txt"));
+        Path jar = application.resolve("target/secured-api-1.0.0-SNAPSHOT.jar");
+        try (var archive = new java.util.zip.ZipFile(jar.toFile())) {
+            var library = archive.getEntry("BOOT-INF/lib/server-facility-0.1.0-SNAPSHOT.jar");
+            if (library == null) throw new AssertionError("Template did not package the ordinary library jar");
+            try (var packaged = archive.getInputStream(library)) {
+                if (!Arrays.equals(packaged.readAllBytes(), Files.readAllBytes(ROOT.resolve("target/server-facility-0.1.0-SNAPSHOT.jar"))))
+                    throw new AssertionError("Packaged template consumed another build's library jar");
+            }
+            if (archive.stream().anyMatch(entry -> entry.getName().contains("LocalIssuer") || entry.getName().contains("TestIssuer")))
+                throw new AssertionError("Development/test signing fixtures leaked into production jar");
+        }
+        Files.copy(jar, Files.createDirectories(evidence.resolve("artifacts")).resolve(jar.getFileName()));
+        Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
+                application.toString(), evidence.toString()), 180, null);
+        if (!Files.readString(log).contains("PACKAGED_TEMPLATE_PASS")) throw new AssertionError("Missing packaged template result");
+        Path withoutCoverage = application.getParent().resolve("without-coverage");
+        run(ROOT, Map.of(), "template-coverage-probe-instantiate", List.of(java(), copier.toString(),
+                ROOT.resolve("templates/secured-api").toString(), withoutCoverage.toString()), 45, null);
+        maven(withoutCoverage, "template-missing-coverage-rejected",
+                "Executed coverage data and report are required; missing coverage is not success",
+                List.of("clean", "verify", "-DskipTests"));
+        summary.add("template-coverage-negative=clean independent copy without test execution rejected by required coverage gate");
+        summary.add("template=tests " + tests + " failures=0 errors=0 skipped=0; fresh directory outside checkout; independent Wrapper; actual packaged HTTP platform/virtual");
+        summary.add("sha256 secured-api.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
+    }
+
     static void consumer(String scenario) throws Exception {
         var consumer = ROOT.resolve("verification/consumer");
         String dependencies = Files.readString(consumer.resolve("target/classpath.txt")).trim();
@@ -301,6 +385,82 @@ class Verify {
             throw new AssertionError("Rate-limit consumer did not complete: " + log);
         }
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
+    }
+
+    static void partnerConsumer() throws Exception {
+        Path owned = Files.createTempDirectory("facility-partner-").toRealPath();
+        Path application = owned.resolve("partner app-示例");
+        Path source = ROOT.resolve("examples/partner-aggregation");
+        Path evidence = Files.createDirectories(report.resolve("partner"));
+        Path inputs = Files.createDirectories(report.resolve("partner-inputs"));
+        copyDirectory(source.resolve("src"), application.resolve("src"));
+        Files.copy(source.resolve("pom.xml"), application.resolve("pom.xml"));
+        copyDirectory(ROOT.resolve(".mvn"), application.resolve(".mvn"));
+        for (String name : List.of("mvnw", "mvnw.cmd")) Files.copy(ROOT.resolve(name), application.resolve(name));
+        copyDirectory(application, inputs);
+        summary.add("partner-independent-copy=" + application);
+        maven(application, "partner-build", "clean", "verify", "dependency:build-classpath", "-DincludeScope=runtime",
+                "-Dmdep.outputFile=" + evidence.resolve("runtime-classpath.txt"));
+        maven(application, "partner-model", "help:effective-pom", "dependency:tree", "-DincludeScope=runtime",
+                "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt"));
+        copyDirectory(application.resolve("target/surefire-reports"), evidence.resolve("surefire-reports"));
+        copyDirectory(application.resolve("target/site/jacoco"), evidence.resolve("jacoco"));
+        if (!Files.isRegularFile(evidence.resolve("jacoco/jacoco.xml"))) throw new AssertionError("Partner coverage missing");
+        Path jar = evidence.resolve("partner-aggregation.jar");
+        Files.copy(application.resolve("target/partner-aggregation-1.0-SNAPSHOT.jar"), jar);
+        summary.add("sha256 partner-aggregation.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
+        installedClasspath(application, evidence.resolve("runtime-classpath.txt")); // Validates exact installed library identity.
+        String dependencies = Files.readString(evidence.resolve("runtime-classpath.txt")).trim();
+        Path probe = ROOT.resolve("verification/partner-consumer/PartnerConsumer.java");
+        Files.copy(probe, evidence.resolve("PartnerConsumer.java"));
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        String classpath = jar + File.pathSeparator + dependencies;
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "partner-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8", "-cp", classpath,
+                "-d", classes.toString(), probe.toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "partner-consumer", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-Djdk.net.unixdomain.tmpdir=" + classes, "-cp", classes + File.pathSeparator + classpath, "PartnerConsumer"), 90, null);
+        if (!Files.readString(log).contains("PARTNER_CONSUMER_PASS cycles=5 rejected=200 wire=205")) throw new AssertionError("Partner resource consumer did not finish");
+        // A new clean copy must not mistake skipped/missing instrumentation for successful coverage.
+        Path negative = owned.resolve("negative");
+        copyDirectory(inputs, negative);
+        maven(negative, "partner-missing-coverage-negative", "Executed coverage data and report are required", List.of("clean", "verify", "-DskipTests"));
+        summary.add("partner=independent Unicode/space copy; clean quality gate and absent-coverage negative; ordinary application+library jars; runtime-only graph; real HTTP/tracing/errors/deadlines; 5 lifecycle/200 bounded-tail failures; -Xmx128m/90s");
+        // Only remove the exact directory created above, after evidence and artifacts have been archived.
+        if (!owned.getParent().equals(Path.of(System.getProperty("java.io.tmpdir")).toRealPath())
+                || !owned.getFileName().toString().startsWith("facility-partner-")) throw new AssertionError("Unexpected temporary application root");
+        try (var paths = Files.walk(owned)) { for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(path); }
+    }
+
+    static void claimConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path inputs = ROOT.resolve("verification/claim-consumer");
+        Path saved = report.resolve("claim-consumer/inputs");
+        copyDirectory(inputs, saved);
+        Path classes = Files.createDirectories(report.resolve("claim-consumer/classes"));
+        Path legacy = Files.createDirectories(report.resolve("claim-consumer/legacy-classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "claim-legacy-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", legacy.toString(),
+                saved.resolve("legacy-api/cn/code91/facility/idempotency/IdempotencyStore.java").toString(),
+                saved.resolve("LegacyOnlyStore.java").toString()), 45, null);
+        // Only the historical implementation enters runtime; the historical interface never shadows the new jar.
+        Files.copy(legacy.resolve("LegacyOnlyStore.class"), classes.resolve("LegacyOnlyStore.class"));
+        run(ROOT, Map.of(), "claim-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "-d", classes.toString(), saved.resolve("ClaimConsumer.java").toString(),
+                saved.resolve("ClaimFailureProbe.java").toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "claim-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "ClaimConsumer"), 45, null);
+        if (!Files.readString(log).contains("CLAIM_CONSUMER_PASS seed=110034 rounds=2048 slots=256 churn=32768 workers=16 close-rounds=128 legacy-binary=true framework=absent"))
+            throw new AssertionError("Claim consumer did not complete: " + log);
+        for (String mode : List.of("clone", "close-tables", "clock-error")) {
+            Path faultLog = run(ROOT, Map.of(), "claim-failure-" + mode, List.of(java(), "-Xmx32m", "-XX:ActiveProcessorCount=2",
+                    "-Dfile.encoding=UTF-8", "-cp", classes + File.pathSeparator + jar, "ClaimFailureProbe", mode), 45, null);
+            if (!Files.readString(faultLog).contains("CLAIM_FAILURE_PROBE_PASS mode=" + mode))
+                throw new AssertionError("Claim failure probe did not complete " + mode + ": " + faultLog);
+        }
+        summary.add("claim-consumer=ordinary jar; pre-expansion SPI binary; owner barrier; seed110034/2048; 256 slots/32768 churn/16 workers/128 closed reachable stores; -Xmx64m/2 processors/45s");
+        summary.add("claim-failures=clone OOME with 20MiB input; host Clock Error preserved; 2048 reachable closed stores each formerly holding 4096 mixed entries; -Xmx32m/2 processors/45s per JVM");
     }
 
     static void jsonConsumer() throws Exception {
@@ -524,6 +684,12 @@ class Verify {
                 .contains(expectedFailure.replaceAll("\\s+", ""));
         if (expectedFailure == null ? exit != 0 : exit == 0 || !diagnosticFound) {
             System.err.println(output);
+            if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
+                // Public check annotations keep a bounded failure tail available alongside the archived full log.
+                String tail = output.substring(Math.max(0, output.length() - 10000));
+                System.err.println("::error title=Verification failure detail::" + tail.replace("%", "%25")
+                        .replace("\r", "%0D").replace("\n", "%0A"));
+            }
             throw new AssertionError("Unexpected result for " + name + "; exit=" + exit + "; inspect " + log);
         }
         return log;

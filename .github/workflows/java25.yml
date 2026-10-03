@@ -65,9 +65,14 @@ jobs:
             .verification-results/**/crypto-consumer/CryptoConsumer.java
             .verification-results/**/io-consumer/IoConsumer.java
             .verification-results/**/rate-limit-consumer/RateLimitConsumer.java
+            .verification-results/**/partner/**
+            .verification-results/**/partner-inputs/**
+            .verification-results/**/claim-consumer/inputs/**
             .verification-results/**/artifacts/*.jar
             .verification-results/**/matrix-inputs/**
             .verification-results/**/matrix/**
+            .verification-results/**/template-inputs/**
+            .verification-results/**/template/**
             .verification-results/**/json-golden/**
             .verification-results/**/surefire-reports/**
             .verification-results/**/jacoco/**

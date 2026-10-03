@@ -1,50 +1,46 @@
 package cn.code91.facility.idempotency;
 
-import cn.code91.facility.log.LogUtil;
-
+import java.time.Clock;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.UUID;
 
 /**
- * <b>{@link IdempotencyStore} 默认实现：单机 {@code ConcurrentHashMap}</b>
- * <p>
- * 每个 key 对应一条 {@link IdempotencyRecord}，存储于 {@link ConcurrentHashMap}。
- * </p>
- *
- * <h3>原子占位（{@link #tryBegin}）：</h3>
- * <p>
- * 借助 {@link ConcurrentHashMap#compute} 对单个 key 的原子性——同一 key 并发调用
- * {@link #tryBegin} 时，compute 的 remapping 函数逐一串行执行（不会有两个线程同时看到
- * "尚无记录"的状态），因此写入的占位记录 {@code proc} 与 {@code compute} 的返回值做
- * <b>引用相等</b>比较：只有真正把 {@code proc} 写入 map 的那一次调用，其返回值才与
- * {@code proc} 是同一个对象，从而 {@code result == proc} 仅对恰好一个调用者为
- * {@code true}——这就是"占位成功"的判定依据，无需额外加锁。
- * </p>
- *
- * <h3>单机语义：</h3>
- * <p>
- * 仅在当前 JVM 进程内生效，无法跨进程/跨实例协调。多实例部署下需要跨进程幂等时，
- * 须替换为真正的分布式实现（如基于 Redis），{@link IdempotencyRecord} 为纯数据 record，
- * 可直接序列化落地。
- * </p>
- *
- * <h3>无界防护(fail-closed,F8):</h3>
- * <p>
- * 记录数达到 {@code maxEntries} 且待建 key 不在集合中时,先清除已过期条目;若仍达上限则
- * <b>拒绝占位</b>({@code tryBegin} 返 {@code false},web 侧表现为 409)并记 WARN——<b>未过期的</b>
- * PROCESSING/DONE 记录永不因防护被清(已过期的 PROCESSING 尸体会被清除,{@code find} 本就视其为
- * 不存在;清空未过期在途会打开并发重复执行窗口)。对照限流 clear-all
- * fail-open 的不对称有理:幂等是正确性组件(ADR-0016/0017)。
- * 上限为 advisory bound:size 检查非原子,并发突发下可瞬时小幅越界(随后回到防护语义)。
- * </p>
- *
- * @author yvvb
- * @since 1.0.0
+ * Local, bounded claim store. Qualified command bindings survive receipt expiry until close;
+ * PROCESSING lease expiry alone permits a new owner for the same fingerprint.
+ * Conditional record updates cannot stop external side effects of an expired owner.
+ * Legacy records occupy an isolated namespace with their historical TTL/re-entry semantics.
+ * All mutations share one monitor so entry and byte budgets are strict across both namespaces.
+ * No background threads, durable recovery or cross-process coordination are provided.
  */
-public final class InMemoryIdempotencyStore implements IdempotencyStore {
+public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoCloseable {
 
-    private final ConcurrentHashMap<String, IdempotencyRecord> store = new ConcurrentHashMap<>();
+    private Map<String, IdempotencyRecord> store = new HashMap<>();
     private final int maxEntries;
+    private final int maxReceiptBytes;
+    private final long maxStoredReceiptBytes;
+    private final Clock clock;
+    private long generation;
+    private long lastObservedTime = Long.MIN_VALUE;
+    private long storedReceiptBytes;
+    private boolean closed;
+    private record QualifiedKey(String scope, String key) { }
+    private enum Phase { PROCESSING, DONE, RESULT_EXPIRED, RELEASED, UNKNOWN }
+    private static final class ClaimState {
+        final ClaimRequest request;
+        final ClaimToken token;
+        long expiresAt;
+        Phase phase = Phase.PROCESSING;
+        byte[] receipt;
+        ClaimState(ClaimRequest request, ClaimToken token, long expiresAt) {
+            this.request = request; this.token = token; this.expiresAt = expiresAt;
+        }
+    }
+    private Map<QualifiedKey, ClaimState> claims = new HashMap<>();
+
 
     /**
      * 参数范围守卫（F13/ADR-0013）：非正数启动期快速失败，消除 maxEntries=0「每次先
@@ -53,39 +49,200 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore {
      * @param maxEntries 记录集合的无界防护上限
      */
     public InMemoryIdempotencyStore(int maxEntries) {
-        if (maxEntries <= 0) {
-            throw new IllegalArgumentException("maxEntries must be > 0, got " + maxEntries);
-        }
+        this(maxEntries, 1024 * 1024, 64L * 1024 * 1024, Clock.systemUTC());
+    }
+
+    /** Creates a local store with explicit receipt budgets and a host-owned millisecond clock. */
+    public InMemoryIdempotencyStore(int maxEntries, int maxReceiptBytes, long maxStoredReceiptBytes, Clock clock) {
+        if (maxEntries <= 0) throw new IllegalArgumentException("maxEntries must be > 0");
+        if (maxReceiptBytes <= 0) throw new IllegalArgumentException("maxReceiptBytes must be > 0");
+        if (maxStoredReceiptBytes <= 0) throw new IllegalArgumentException("maxStoredReceiptBytes must be > 0");
         this.maxEntries = maxEntries;
+        this.maxReceiptBytes = maxReceiptBytes;
+        this.maxStoredReceiptBytes = maxStoredReceiptBytes;
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    @Override
-    public boolean tryBegin(String key, long ttlMillis) {
-        long now = System.currentTimeMillis();
-        if (store.size() >= maxEntries && !store.containsKey(key)) {
-            // fail-closed(F8 决策 a):先清过期条目(防过期尸体致永久拒新),复查仍超限则拒绝——
-            // 清空会把在途 PROCESSING 一并抹掉,打开并发重复执行窗口(幂等是正确性组件,ADR-0017)。
-            store.entrySet().removeIf(e -> e.getValue().isExpired(now));
-            if (store.size() >= maxEntries) {
-                LogUtil.warn("idempotency entries exceeded {}, rejecting new key (fail-closed)", maxEntries);
-                return false;
-            }
+    @Override public synchronized ClaimResult claim(ClaimRequest request) {
+        Objects.requireNonNull(request, "request");
+        if (closed) return new ClaimResult.Unavailable(ClaimResult.Reason.CLOSED);
+        long now;
+        try { now = now(); }
+        catch (RuntimeException unavailable) { return new ClaimResult.Unavailable(ClaimResult.Reason.CLOCK); }
+        var key = new QualifiedKey(request.scope(), request.key());
+        ClaimState existing = claims.get(key);
+        if (existing != null && !existing.request.fingerprint().equals(request.fingerprint())) return new ClaimResult.Conflict();
+        if (existing != null && existing.phase == Phase.DONE) {
+            if (now < existing.expiresAt) return new ClaimResult.Replay(existing.receipt);
+            expireReceipt(existing);
         }
+        if (existing != null && existing.phase == Phase.RESULT_EXPIRED)
+            return new ClaimResult.Unavailable(ClaimResult.Reason.RESULT_EXPIRED);
+        if (existing != null && existing.phase == Phase.RELEASED)
+            return new ClaimResult.Unavailable(ClaimResult.Reason.RELEASED);
+        if (existing != null && existing.phase == Phase.UNKNOWN)
+            return new ClaimResult.Unavailable(ClaimResult.Reason.UNKNOWN);
+        if (existing != null && now < existing.expiresAt)
+            return new ClaimResult.Processing(existing.expiresAt - now);
+        if (existing == null && (long) claims.size() + store.size() >= maxEntries) {
+            purgeLegacy(now);
+            if ((long) claims.size() + store.size() >= maxEntries)
+                return new ClaimResult.Unavailable(ClaimResult.Reason.CAPACITY);
+        }
+        long deadline;
+        try { deadline = Math.addExact(now, request.lease().toMillis()); }
+        catch (ArithmeticException overflow) { return new ClaimResult.Unavailable(ClaimResult.Reason.CLOCK); }
+        if (generation == Long.MAX_VALUE) return new ClaimResult.Unavailable(ClaimResult.Reason.CAPACITY);
+        ClaimToken token = new ClaimToken(request.scope(), request.key(), UUID.randomUUID(), ++generation);
+        claims.put(key, new ClaimState(request, token, deadline));
+        return new ClaimResult.Acquired(token);
+    }
 
-        IdempotencyRecord proc = IdempotencyRecord.processing(now + ttlMillis);
-        IdempotencyRecord result = store.compute(key, (k, existing) ->
-                (existing != null && !existing.isExpired(now)) ? existing : proc);
-        return result == proc;
+    @Override public synchronized ClaimUpdate complete(ClaimToken token, byte[] receipt, Duration retention) {
+        Objects.requireNonNull(token, "token");
+        Objects.requireNonNull(receipt, "receipt");
+        ClaimInputs.millis(retention, "retention");
+        if (closed) return ClaimUpdate.UNAVAILABLE;
+        ClaimState existing = claims.get(new QualifiedKey(token.scope(), token.key()));
+        if (existing == null || !existing.token.equals(token) || existing.phase != Phase.PROCESSING)
+            return ClaimUpdate.REJECTED;
+        // Qualified failures, including Error from the host clock, must not grant another execution.
+        existing.phase = Phase.UNKNOWN;
+        long now;
+        try { now = now(); }
+        catch (RuntimeException unavailable) {
+            existing.phase = Phase.UNKNOWN;
+            return ClaimUpdate.UNAVAILABLE;
+        }
+        if (now >= existing.expiresAt) {
+            existing.phase = Phase.PROCESSING; // Known expired qualification: preserve the explicit lease policy.
+            return ClaimUpdate.REJECTED;
+        }
+        long deadline;
+        try { deadline = Math.addExact(now, retention.toMillis()); }
+        catch (ArithmeticException overflow) {
+            existing.phase = Phase.UNKNOWN;
+            return ClaimUpdate.UNAVAILABLE;
+        }
+        if (receipt.length > maxReceiptBytes) {
+            existing.phase = Phase.UNKNOWN;
+            return ClaimUpdate.UNAVAILABLE;
+        }
+        if (receipt.length > maxStoredReceiptBytes - storedReceiptBytes) reclaimPayloads(now);
+        if (receipt.length > maxStoredReceiptBytes - storedReceiptBytes) {
+            existing.phase = Phase.UNKNOWN;
+            return ClaimUpdate.UNAVAILABLE;
+        }
+        // If allocation fails, UNKNOWN remains without swallowing the original Error.
+        byte[] ownedReceipt = receipt.clone();
+        existing.receipt = ownedReceipt;
+        storedReceiptBytes += receipt.length;
+        existing.expiresAt = deadline;
+        existing.phase = Phase.DONE;
+        return ClaimUpdate.APPLIED;
     }
 
     @Override
-    public Optional<IdempotencyRecord> find(String key) {
-        IdempotencyRecord r = store.get(key);
-        return (r == null || r.isExpired(System.currentTimeMillis())) ? Optional.empty() : Optional.of(r);
+    public synchronized ClaimUpdate release(ClaimToken token) {
+        Objects.requireNonNull(token, "token");
+        if (closed) return ClaimUpdate.UNAVAILABLE;
+        ClaimState existing = claims.get(new QualifiedKey(token.scope(), token.key()));
+        if (existing == null || !existing.token.equals(token) || existing.phase != Phase.PROCESSING)
+            return ClaimUpdate.REJECTED;
+        // Qualified failures, including Error from the host clock, must not grant another execution.
+        existing.phase = Phase.UNKNOWN;
+        long now;
+        try { now = now(); }
+        catch (RuntimeException unavailable) {
+            existing.phase = Phase.UNKNOWN;
+            return ClaimUpdate.UNAVAILABLE;
+        }
+        if (now >= existing.expiresAt) {
+            existing.phase = Phase.PROCESSING; // Known expired qualification: preserve the explicit lease policy.
+            return ClaimUpdate.REJECTED;
+        }
+        existing.phase = Phase.RELEASED;
+        return ClaimUpdate.APPLIED;
+    }
+
+    private long now() {
+        lastObservedTime = Math.max(lastObservedTime, clock.millis());
+        return lastObservedTime;
+    }
+
+    /** Closes this local store permanently and releases retained bindings and receipts. */
+    @Override public synchronized void close() {
+        closed = true;
+        // clear() retains a HashMap's expanded table even when this closed store remains reachable.
+        claims = Map.of();
+        store = Map.of();
+        storedReceiptBytes = 0;
+    }
+
+    private void expireReceipt(ClaimState state) {
+        storedReceiptBytes -= state.receipt.length;
+        state.receipt = null;
+        state.phase = Phase.RESULT_EXPIRED;
     }
 
     @Override
-    public void complete(String key, IdempotencyRecord done) {
+    public synchronized boolean tryBegin(String key, long ttlMillis) {
+        ClaimInputs.text(key, "key", 256);
+        if (ttlMillis <= 0) throw new IllegalArgumentException("ttlMillis must be > 0");
+        ensureOpen();
+        long now = now();
+        IdempotencyRecord existing = store.get(key);
+        if (existing != null && !existing.isExpired(now)) return false;
+        if (existing != null || (long) claims.size() + store.size() >= maxEntries) purgeLegacy(now);
+        if ((long) claims.size() + store.size() >= maxEntries) return false;
+        store.put(key, IdempotencyRecord.processing(Math.addExact(now, ttlMillis)));
+        return true;
+    }
+
+    @Override
+    public synchronized Optional<IdempotencyRecord> find(String key) {
+        ClaimInputs.text(key, "key", 256);
+        ensureOpen();
+        IdempotencyRecord record = store.get(key);
+        return record == null || record.isExpired(now()) ? Optional.empty() : Optional.of(record);
+    }
+
+    @Override
+    public synchronized void complete(String key, IdempotencyRecord done) {
+        ClaimInputs.text(key, "key", 256);
+        Objects.requireNonNull(done, "done");
+        ensureOpen();
+        long now = now();
+        IdempotencyRecord existing = store.get(key);
+        if (existing == null || existing.state() != IdempotencyRecord.State.PROCESSING || existing.isExpired(now))
+            throw new IllegalStateException("Legacy completion requires a live legacy PROCESSING record");
+        if (done.state() != IdempotencyRecord.State.DONE || done.isExpired(now))
+            throw new IllegalArgumentException("Legacy completion requires an unexpired DONE record");
+        int length = done.bodyLength();
+        if (length > maxReceiptBytes) throw new IllegalStateException("Receipt exceeds per-record byte budget");
+        if (length > maxStoredReceiptBytes - storedReceiptBytes) reclaimPayloads(now);
+        if (length > maxStoredReceiptBytes - storedReceiptBytes)
+            throw new IllegalStateException("Receipt exceeds total byte budget");
         store.put(key, done);
+        storedReceiptBytes += length;
+    }
+
+    private void ensureOpen() {
+        if (closed) throw new IllegalStateException("Idempotency store is closed");
+    }
+
+    private void purgeLegacy(long now) {
+        store.entrySet().removeIf(entry -> {
+            IdempotencyRecord record = entry.getValue();
+            if (!record.isExpired(now)) return false;
+            storedReceiptBytes -= record.bodyLength();
+            return true;
+        });
+    }
+
+    private void reclaimPayloads(long now) {
+        purgeLegacy(now);
+        for (ClaimState state : claims.values())
+            if (state.phase == Phase.DONE && now >= state.expiresAt) expireReceipt(state);
     }
 }

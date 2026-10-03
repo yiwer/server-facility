@@ -6,6 +6,9 @@ Accepted.
 
 日期：2026-10-04。部分替代 ADR-0014 将所有代理头视为可用 IP 的部署假设，保留其限流 SPI 和算法理由。
 
+
+2026-10-04 接合补充： [ADR0050](0050-secured-application-template.md) 在独立应用模板中接合标准Spring Security、JWT身份及异步执行上下文；保留本ADR的库边界和历史理由，不把兼容holder升级为认证来源。
+
 ## Context
 
 请求工具无条件读取 XFF，trace 覆盖宿主 MDC 后删除，SessionUser 只在 MVC 完成时清除。短路和异步派发可能绕过这些边界。PRD v0.2 的 D06 与票06批准公共 Servlet/HTTP、IP policy 和兼容 holder seam。
