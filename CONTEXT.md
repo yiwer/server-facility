@@ -36,6 +36,12 @@
 ## 独立 claim 术语（ADR0034）
 
 - **命令绑定**：可信scope与client key首次绑定canonical fingerprint；新协议在store生命周期内保留，不随回执正文过期删除。
-- **执行资格（ClaimToken）**：当前scope/key、owner和generation的记录更新资格；只有当前活跃PROCESSING可完成/释放，不代表身份认证或外部副作用锁。
+- **执行资格（ClaimToken）**：当前scope/key、owner和generation的记录更新资格；只有当前活跃PROCESSING可完成；ADR0035允许过期但仍为当前PROCESSING的owner终止，被替换owner不可释放新generation。不代表身份认证或外部副作用锁。
 - **lease / retention**：PROCESSING允许同内容新owner的租约，与从完成时刻起保留receipt正文的时长；正文到期不重新授权执行业务。
 - **终态墓碑**：RESULT_EXPIRED、RELEASED或UNKNOWN保留的命令绑定；默认内存满额拒新，不通过驱逐墓碑恢复执行许可。
+
+## HTTP 重放术语（ADR0035）
+
+- **当前授权 Adapter**：宿主 `IdempotencyAuthorization` 在每次 claim/replay 前检查当前资源/方法权限并规范化输入，仅做授权与规范化，不执行业务副作用。
+- **有限同步目标**：明确 `@Idempotent` 的可有界捕获请求/响应；普通下载/SSE直通，已知异步、流式、form/multipart目标拒绝。
+- **HTTP receipt**：qualified Store中的有界FHR1状态、允许头与正文；重放跳过业务方法，不能依赖被跳过的方法权限检查，也不代表业务事务已和receipt原子提交。

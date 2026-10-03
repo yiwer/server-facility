@@ -176,7 +176,11 @@ class RateLimitHttpContractTest {
     }
     @Configuration(proxyBeanMethods = false)
     @ImportAutoConfiguration(cn.code91.facility.autoconfigure.FacilityIdempotencyAutoConfiguration.class)
-    static class Replay { }
+    static class Replay {
+        @Bean cn.code91.facility.web.idempotency.IdempotencyAuthorization authorization() {
+            return (request, operation, body) -> new cn.code91.facility.web.idempotency.IdempotencyAuthorization.Command("fixture", "fixture", "empty-v1");
+        }
+    }
     @Configuration(proxyBeanMethods = false)
     @Import({cn.code91.facility.web.ratelimit.left.QuotaEndpoint.class, cn.code91.facility.web.ratelimit.right.QuotaEndpoint.class})
     static class Packages { }

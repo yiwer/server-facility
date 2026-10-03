@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 幂等端到端(standalone MockMvc:{@link IdempotencyFilter} + {@link IdempotencyInterceptor} +
  * {@link InMemoryIdempotencyStore} 完整装配链路)。
  * <p>
- * 验证完整幂等语义真实生效——而不仅仅是 preHandle/afterCompletion 各自的单元行为:同一
+ * 验证同步回执重放生效（不宣称业务事务原子性）——而不仅仅是 preHandle/afterCompletion 各自的单元行为:同一
  * {@code Idempotency-Key} 连续两次请求,第二次必须原样返回第一次的响应,且 controller
  * 方法体绝不重复执行。{@code MockMvcBuilders.standaloneSetup(...).addFilters(...)} 注册的
  * 过滤器由 {@code MockFilterChain} 包在最外层、{@code addInterceptors(...)} 注册的拦截器
@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 调用顺序一致,因此本测试是对生产装配行为的真实模拟。
  * </p>
  */
-@DisplayName("幂等端到端(standalone MockMvc:Filter+拦截器+InMemoryIdempotencyStore,完整幂等——同 key 返首次响应,controller 只执行一次)")
+@DisplayName("幂等端到端(standalone MockMvc:Filter+拦截器+InMemoryIdempotencyStore,限定回执重放——同 key 返首次响应,controller 只执行一次)")
 class IdempotencyEndToEndTest {
 
     /** 测试夹具:@Idempotent 标注的支付接口,execCount 记录方法体真实执行次数。 */
@@ -49,7 +49,7 @@ class IdempotencyEndToEndTest {
 
     private MockMvc mockMvcFor(PayController controller) {
         return MockMvcBuilders.standaloneSetup(controller)
-                .addInterceptors(new IdempotencyInterceptor(new InMemoryIdempotencyStore(1000), 60_000))
+                .addInterceptors(new IdempotencyInterceptor(new InMemoryIdempotencyStore(1000), (request, operation, body) -> new IdempotencyAuthorization.Command("fixture", "fixture", "empty-v1"), new cn.code91.facility.idempotency.FacilityIdempotencyProperties()))
                 .addFilters(new IdempotencyFilter())
                 .build();
     }
