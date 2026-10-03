@@ -16,8 +16,9 @@ class ExcelResourceContractTest {
     @Test @Timeout(190)
     void increasingRealWorkbooksAndRepeatedFailuresStayWithin64MiB() throws Exception {
         Path temporary = Files.createDirectory(directory.resolve("temporary"));
-        Path evidence = Path.of(".verification-results/ticket-16/heap-child.log").toAbsolutePath();
-        Files.createDirectories(evidence.getParent());
+        Path evidenceDirectory = Path.of(".verification-results/ticket-16").toAbsolutePath();
+        Files.createDirectories(evidenceDirectory);
+        Path evidence = Files.createTempFile(evidenceDirectory, "heap-child-", ".log");
         String executable = System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
         var process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", executable).toString(),
                 "-Xmx64m", "-XX:MaxDirectMemorySize=8m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
@@ -28,6 +29,7 @@ class ExcelResourceContractTest {
         try {
             assertThat(process.waitFor(180, TimeUnit.SECONDS)).as("Excel child deadline: %s", evidence).isTrue();
             String output = Files.readString(evidence);
+            System.out.println("EXCEL_RESOURCE_EVIDENCE " + evidence + System.lineSeparator() + output);
             assertThat(process.exitValue()).as(output).isZero();
             assertThat(output).contains("EXCEL_RESOURCE_OK rows=400000 failures=200");
             try (var files = Files.list(temporary)) { assertThat(files).isEmpty(); }
