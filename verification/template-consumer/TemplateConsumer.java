@@ -17,14 +17,22 @@ class TemplateConsumer {
         Process helper = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
                 "dev/LocalIssuer.java", app.relativize(state).toString())
                 .directory(app.toFile()).redirectErrorStream(true).redirectOutput(helperLog.toFile()).start();
+        Path databaseRoot = Files.createTempDirectory("facility-packaged-database-");
+        Path databaseState = databaseRoot.resolve("cluster");
+        Path databaseLog = evidence.resolve("local-database.log");
+        Process database = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "dev/LocalDatabase.java", databaseState.toString())
+                .directory(app.toFile()).redirectErrorStream(true).redirectOutput(databaseLog.toFile()).start();
         try {
+            awaitFile(databaseState.resolve("database.properties"), database, databaseLog);
             awaitFile(state.resolve("no-scope-token.txt"), helper, helperLog);
             String token = Files.readString(state.resolve("token.txt")), denied = Files.readString(state.resolve("no-scope-token.txt"));
             Path jar = app.resolve("target/secured-api-1.0.0-SNAPSHOT.jar");
             check(Files.isRegularFile(jar), "packaged application jar missing");
+            String noteLocation = null, workspaceLocation = null;
             for (boolean virtual : new boolean[]{false, true}) {
                 Path log = evidence.resolve("packaged-" + virtual + ".log");
-                Process running = launch(app, jar, log, "--spring.config.additional-location=" + state.resolve("local.properties").toUri().toASCIIString(),
+                Process running = launch(app, jar, log, "--spring.config.additional-location=" + state.resolve("local.properties").toUri().toASCIIString()
+                                + "," + databaseState.resolve("database.properties").toUri().toASCIIString(),
                         "--spring.threads.virtual.enabled=" + virtual);
                 try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()) {
                     String base = awaitServer(running, log);
@@ -42,19 +50,52 @@ class TemplateConsumer {
                     }
                     check(get(client, base, "/api/greeting?access_token=" + token, null).statusCode() == 401, "query token unexpectedly authenticated");
                     check(get(client, base, "/unlisted", token).statusCode() == 403, "unlisted operation allowed");
+                    if (!virtual) {
+                        var workspace = send(client, base, "POST", "/api/workspaces", token, "{\"name\":\"Persistent workspace\"}");
+                        check(workspace.statusCode() == 201, "workspace creation failed: " + workspace.statusCode());
+                        workspaceLocation = workspace.headers().firstValue("Location").orElseThrow();
+                        var created = send(client, base, "POST", workspaceLocation, token,
+                                "{\"slug\":\"restart-proof\",\"title\":\"Persistent 🌱\",\"body\":\"literal first\\nsecond\"}");
+                        check(created.statusCode() == 201, "persistent note creation failed");
+                        noteLocation = created.headers().firstValue("Location").orElseThrow();
+                    }
+                    var stored = get(client, base, noteLocation, token);
+                    check(stored.statusCode() == 200 && stored.body().contains("Persistent 🌱") && stored.body().contains("literal first\\nsecond"), "literal persistent representation lost across process restart");
+                    check(get(client, base, workspaceLocation + "?size=101", token).statusCode() == 400, "page budget not enforced");
+                    check(get(client, base, workspaceLocation + "?sort=slug", token).body().contains("\"total\":1"), "persistent list missing");
+                    if (virtual) {
+                        check(send(client, base, "PUT", noteLocation, token, "{\"title\":\"Updated\",\"body\":\"after restart\"}").statusCode() == 200, "update after restart failed");
+                        check(send(client, base, "DELETE", noteLocation, token, null).statusCode() == 204, "delete failed");
+                        check(get(client, base, noteLocation, token).statusCode() == 404, "deleted note still readable");
+                    }
                     Files.writeString(evidence.resolve("packaged-" + virtual + "-result.txt"),
                             "PASS actual executable jar; health 200; anonymous 401; signed actor 200; denied 403; query-only 401; unlisted 403\n"
-                                    + "virtual=" + virtual + " sha256=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))) + "\n");
+                                    + "PostgreSQL18.6 migrated; signed CRUD; literal persistence across process restart; bounded list; virtual=" + virtual + " sha256=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))) + "\n");
                 } finally { stop(running); }
             }
             Path failedLog = evidence.resolve("production-missing-trust.log");
-            Process invalid = launch(app, jar, failedLog, "--spring.profiles.active=prod");
+            Process invalid = launch(app, jar, failedLog, "--spring.profiles.active=prod", "--spring.config.additional-location=" + databaseState.resolve("database.properties").toUri().toASCIIString());
             try {
                 check(invalid.waitFor(30, TimeUnit.SECONDS), "unconfigured production process did not stop");
                 check(invalid.exitValue() != 0 && Files.readString(failedLog).contains("Invalid application JWT trust policy"), "production silently accepted missing trust");
             } finally { stop(invalid); }
             System.out.println("PACKAGED_TEMPLATE_PASS platform/virtual restart; no repository source or test classpath");
-        } finally { stop(helper); }
+        } finally {
+            try { stop(helper); } finally {
+                database.getOutputStream().close();
+                if (!database.waitFor(25, TimeUnit.SECONDS)) { stop(database); throw new AssertionError("local database cleanup timed out"); }
+                check(database.exitValue() == 0, "local database cleanup failed: " + Files.readString(databaseLog));
+                Path archived = Files.createDirectories(evidence.resolve("postgres"));
+                try (var files = Files.list(databaseState)) {
+                    for (Path file : files.filter(Files::isRegularFile).toList()) Files.copy(file, archived.resolve(file.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+                }
+                check(!Files.exists(databaseState.resolve("data/postmaster.pid")), "native database remained running");
+                Path owned = databaseRoot.toRealPath();
+                check(owned.getParent().equals(Path.of(System.getProperty("java.io.tmpdir")).toRealPath())
+                        && owned.getFileName().toString().startsWith("facility-packaged-database-"), "unexpected owned database directory");
+                try (var files = Files.walk(owned)) { for (Path file : files.sorted(Comparator.reverseOrder()).toList()) Files.delete(file); }
+            }
+        }
     }
     private static Path path(String value) {
         return value.startsWith("file:") ? Path.of(URI.create(value)) : Path.of(value);
@@ -69,6 +110,11 @@ class TemplateConsumer {
         var request = HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(5));
         if (token != null) request.header("Authorization", "Bearer " + token);
         return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+    private static HttpResponse<String> send(HttpClient client, String base, String method, String path, String token, String body) throws Exception {
+        return client.send(HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(5))
+                .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
+                .method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }
     private static void awaitFile(Path file, Process process, Path log) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);

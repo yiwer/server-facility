@@ -9,6 +9,22 @@ Windows 使用系统 PowerShell，Linux 使用 sh、curl 或 wget，以及 unzip
 CI 固定 Temurin `25.0.4+101.0.LTS`（供应商版本 `25.0.4.1+1-LTS`）；Windows 本地记录为 Oracle `25.0.4.1+1-LTS-5`。
 更改固定版本必须同时更新校验和、账本和构建证据，不能只改 URL。
 
+票28起，`integration` / `resources` / `all` 会运行真实PostgreSQL持久化模板，必须先将 `PG_BIN` 指向 PostgreSQL18.6 原生工具的 `bin` 目录（含 `postgres`、`initdb`、`pg_ctl`）。缺失时测试失败，不跳过数据库场景。`fast`、普通库 `mvnw verify`、`platform`、`prerequisites` 本身不需要数据库工具。测试会创建/关闭私有临时集群，不连接既有业务库。
+
+仓库提供固定18.6.0、逐平台SHA-512校验的准备工具；选择新的工具目录，准备成功后设置环境变量：
+
+```powershell
+java templates/secured-api/dev/PreparePostgres.java C:/tools/facility-postgres-18.6
+$env:PG_BIN='C:/tools/facility-postgres-18.6/bin'
+```
+
+```sh
+java templates/secured-api/dev/PreparePostgres.java /tmp/facility-postgres-18.6
+export PG_BIN=/tmp/facility-postgres-18.6/bin
+```
+
+已有相同版本工具也可使用。Windows工具/数据库状态路径需为ASCII；独立应用仍实际在空格/中文/希伯来文路径验证。Linux应以普通用户运行（PostgreSQL拒绝root初始化）。CI准备同一固定工具并归档provenance。模板本地数据库启动/停止、连接预算和迁移政策见[模板README](../../templates/secured-api/README.md)。
+
 从仓库根目录运行：
 
 ```text
@@ -23,8 +39,8 @@ java verification/Verify.java platform --fresh
 | 入口 | 实际执行 | 失败条件 |
 |---|---|---|
 | fast | clean verify：所有库测试、JaCoCo、五条架构规则、依赖分析；归档 effective POM/依赖树 | 构建失败、测试为零、任意失败/跳过、既有五条架构规则任一未发现（允许新增规则） |
-| integration | clean install + 独立消费者 configured/override/invalid + prerequisites | 普通 jar/69 字节码/无 preview/metadata/配置/覆盖/失败诊断任何断言不成立 |
-| resources | clean install + 三种消费场景，再重复五次配置应用启动/使用/关闭 | 每个独立 JVM 上限 256 MiB、45 秒；超时终止本次子进程树且失败 |
+| integration | clean install + 普通jar/可选依赖矩阵/独立HTTP及PostgreSQL模板消费者 + prerequisites | 普通 jar/69 字节码/无 preview/metadata/配置/覆盖/失败诊断任何断言不成立 |
+| resources | clean install + 独立消费者（含PostgreSQL模板），再重复五次配置应用启动/使用/关闭 | 每个独立 JVM 上限 256 MiB、45 秒；超时终止本次子进程树且失败 |
 | all | 合并上述入口；库质量门仅执行一次 | 任一子步骤失败 |
 | prerequisites | 校验损坏下载、缺失 JAVA_HOME、真实错误 JDK 拒绝 | 负向用例意外成功、诊断不匹配或所需 JDK 缺失 |
 | platform | 独立工具链/双引擎/处理器/classfile/JaCoCo/依赖分析探针，解析根目标依赖 | 5 项发现不完整、正向失败、负向未精确失败、处理器/字节码/依赖解析异常；**仅子集，不代替 all** |

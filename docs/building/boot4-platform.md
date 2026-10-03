@@ -61,6 +61,8 @@ java verification/Verify.java all --fresh
 
 `platform` 为独立工具链子集，真实跑 Jupiter / ArchUnit 正向与各自故意失败控制、Lombok/配置处理器、69.0 classfile、JaCoCo 指令探针和 dependency analyzer，并解析根依赖。日志与输入在 `.verification-results/<时间>-platform`；CI 分别保留完整 `all` 与 `platform` 的状态。
 
+票28起，`integration/resources/all` 还需 `PG_BIN` 指向 PostgreSQL18.6 原生工具，按[准备说明](java25-baseline.md)设置；缺失不跳过，库fast和platform子集仍不需数据库。
+
 `all` 执行库全量质量门、纯 Java 与 Spring 普通 jar 消费、旧 JSON 金样/两应用真实 HTTP、五种非 Web 实际依赖图和三种 Web 覆盖/关闭场景，以及 Tika 缺席/选用的实际上传消费者。票15新增 `CsvConsumer`，在原普通 jar consumer 的必需依赖图中执行 CSV，明确排除 Tika/POI；归档其 POM、tree、classpath 与源文件。输入、各图 effective POM/tree/classpath 与结果保存在报告中；安装 jar 必须等于本次根构建 jar。所有 JVM、HTTP 和临时文件范围有界，详见 [矩阵说明](../../verification/platform-consumer/README.md)。
 
 票 22 的 68 个 Jackson 诊断仅是保留的历史迁移证据：[精确交接清单](../verification/ticket-22-jackson-diagnostics.md)。当前没有预期编译红灯或迁移专用 skip；不能把工具链探针的 5 项加入主库总数。非 BOM Tika、jsoup、POI 的全部业务与格式保证分别归 13、32、16；24 的类缺席与普通产物接合不等于验证了所有文件能力，最终由 33 汇总。
