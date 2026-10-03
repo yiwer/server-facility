@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
+
+**当前闭合记录（2026-10-04）**：`80670fa`的Windows/Ubuntu `all --fresh`与独立平台控制全部通过，见[同源CI证据](../../../docs/verification/ticket-24-ci.md)。下列实施记录中“待24/Linux”等为各阶段历史状态，现由此记录闭合；未实施的下游能力仍按各自票负责。
 
 **Traceability:** FR-01、FR-06、FR-09；AC-10、AC-12
 
@@ -14,14 +16,14 @@
 - [x] 集中声明流所有权、暂存和成品可见性、大小/类型允许政策，取消或拒绝不无界 drain 输入。
 - [x] Tika 目标版本升级与流契约回归一并交付，实际版本复核后纳入账本；探测不等于安全审查。
 - [x] 同时登记公共 Hashing 的支持输入、空值/空输入和未知算法契约；保留或显式迁移旧差异，MD5 仅作明确兼容用途，不用于密码存储或安全完整性声明。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
 - [x] 正常/边界：空文件、N−1/N/N+1、多字节；a.txt、空名、路径、设备名、尾空格、长 Unicode 和同名并发。
 - [x] 接合：可/不可 mark 输入经探测和保存后长度及已知摘要一致，伪扩展名/未知类型/容器混淆可解释。
 - [x] 故障/资源：读、写、探测、提交失败及取消；半成品不暴露、自有临时资源清理、借用流按约定处理。
-- [ ] 平台：真实目录与链接逃逸在 Windows/Linux 验证；权限不足标为未验证，不能静默通过。Windows NTFS/junction/实际删除占用已完成，Linux hardlink/symlink/权限拒绝等待集成 CI。
+- [x] 平台：真实目录与链接逃逸在 Windows/Linux 验证；权限不足标为未验证，不能静默通过。Windows NTFS/junction/实际删除占用已完成，Linux hardlink/symlink/权限拒绝等待集成 CI。
 - [x] hash 公共入口：已知向量、File/byte[] 等继续支持形态、空文件与空 byte[] 的既有差异、未知算法、读失败和历史 MD5 使用的处置，不能只以上传 hash 一致代替该包验收。
 
 ## Scope boundary

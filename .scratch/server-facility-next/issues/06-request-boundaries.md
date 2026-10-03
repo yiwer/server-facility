@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
+
+**当前闭合记录（2026-10-04）**：`80670fa`的Windows/Ubuntu `all --fresh`与独立平台控制全部通过，见[同源CI证据](../../../docs/verification/ticket-24-ci.md)。下列实施记录中“待24/Linux”等为各阶段历史状态，现由此记录闭合；未实施的下游能力仍按各自票负责。
 
 **Traceability:** FR-03、FR-05、FR-09；AC-04、AC-07、AC-08、AC-12
 
@@ -13,7 +15,7 @@
 - [x] 可信代理列表决定何时采用转发头，原始请求头不直接成为身份；认证 Principal 的来源和适配边界明确。
 - [x] 兼容 SessionUser 上下文覆盖 SYNC/ASYNC/ERROR 及短路清理，嵌套 MDC 恢复；新模板使用 Security 原生上下文（模板实现归27/31，本票只提供Principal适配边界）。
 - [x] trace/header 长度、非法字符和信任政策有界；不覆盖宿主已建立的有效观测上下文。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 

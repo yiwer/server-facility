@@ -5,6 +5,12 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 历史密文与错误诊断（2026-10-04，ADR-0040）
+
+- 保留原AES-GCM密文和PBKDF2-HMAC-SHA256/210000读取政策，不改变旧密文、key或salt存储格式。
+- 全部crypto Result失败移除原始cause，防止provider异常泄露秘密；只记录稳定错误码，程序Error仍传播。不能继续依赖加密/KDF/MAC失败中的原异常文本。
+- AES key导入在解码前拒绝超过44字符，截断GCM数据在访问key前拒绝。旧raw入口保留历史数据规模；应用必须先限制输入/并发，见[历史读取与预算示例](docs/building/legacy-crypto.md)。
+
 ### 上传、MIME 与摘要迁移（2026-10-04，ADR-0036）
 
 - 保存改按实际字节检查，新增 `saveFile(MultipartFile, Path, long, Set<String>)` 同时限制大小和类型；旧便利方法默认 10 MiB，显式大小 ≤0 返回 Err，不再表示不限制。空文件继续拒绝，拒绝后不 drain。
