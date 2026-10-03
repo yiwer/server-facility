@@ -1,6 +1,6 @@
 # server-facility 设计
 
-Boot4.1.1/Jackson3.1.5目标平台已在`80670fa`通过Windows/Ubuntu完整构建、普通jar消费者、Servlet6.1、真实依赖矩阵和独立引擎控制，见[同源CI闭合](verification/ticket-24-ci.md)。03/05/06/13/17/24适用平台项关闭；其余能力继续实施，最终候选组合由33验收。
+Boot4.1.1/Jackson3.1.5目标平台已在`80670fa`通过Windows/Ubuntu完整构建、普通jar消费者、Servlet6.1、真实依赖矩阵和独立引擎控制，见[同源CI闭合](verification/ticket-24-ci.md)。03/05/06/13/17/24适用平台项关闭；09/14/15随后在`c2f0f6b`通过[两端完整门](verification/ticket-09-14-15-ci.md)。其余能力继续实施，最终候选组合由33验收。
 
 ## 1. Deep module 哲学
 
