@@ -32,6 +32,35 @@ import static org.assertj.core.api.Assertions.*;
 import static example.partners.PartnerApplication.*;
 
 class PartnerContractTest {
+    @Test void invalidCallerInputsAreRejectedBeforeSending() throws Exception {
+        try (var catalog = new PartnerServer(); var inventory = new PartnerServer(); var app = start(catalog, inventory)) {
+            for (String sku : new String[]{null, " ", "x".repeat(129)}) {
+                assertThatIllegalArgumentException().isThrownBy(() -> app.getBean(Catalog.class).find(sku));
+                assertThatIllegalArgumentException().isThrownBy(() -> app.getBean(Catalog.class).findWithRetry(sku));
+                assertThatIllegalArgumentException().isThrownBy(() -> app.getBean(Inventory.class).stock(sku));
+                assertThatIllegalArgumentException().isThrownBy(() -> new Reservation(sku, 1));
+            }
+            for (int quantity : new int[]{0, -1, Integer.MIN_VALUE})
+                assertThatIllegalArgumentException().isThrownBy(() -> new Reservation("book", quantity));
+            assertThatNullPointerException().isThrownBy(() -> app.getBean(Inventory.class).reserve(null));
+            assertThat(catalog.requests).isEmpty(); assertThat(inventory.requests).isEmpty();
+        }
+    }
+    @Test void connectTimeoutIsDistinctFromResponseTimeoutAtTheStandardTransportBoundary() {
+        // A deterministic failed connect future: no external black-hole network or OS firewall assumption.
+        var transport = org.mockito.Mockito.mock(HttpClient.class);
+        org.mockito.Mockito.doReturn(java.util.concurrent.CompletableFuture.failedFuture(
+                new java.net.http.HttpConnectTimeoutException("transport-secret"))).when(transport)
+                .sendAsync(org.mockito.ArgumentMatchers.any(java.net.http.HttpRequest.class), org.mockito.ArgumentMatchers.any(java.net.http.HttpResponse.BodyHandler.class));
+        var environment = new org.springframework.mock.env.MockEnvironment()
+                .withProperty("partners.catalog.base-url", "https://catalog.example")
+                .withProperty("partners.catalog.token", "private-token");
+        var adapter = new Catalog(org.springframework.web.client.RestClient.builder(), transport, environment);
+        var failure = catchThrowableOfType(PartnerFailure.class, () -> adapter.find("book"));
+        assertThat(failure.kind()).isEqualTo(PartnerFailure.Kind.CONNECT_TIMEOUT);
+        assertThat(failure.outcome()).isEqualTo(PartnerFailure.Outcome.NO_EFFECT);
+        assertThat(failure).hasNoCause().hasMessageNotContaining("transport-secret").hasMessageNotContaining("catalog.example");
+    }
     @Test void concurrentApplicationsIsolateCredentialsAndClosingOneDoesNotCloseTheOther() throws Exception {
         try (var catalog = new PartnerServer(); var inventory = new PartnerServer();
              var first = start(catalog, inventory); var second = start(catalog, inventory,
@@ -182,16 +211,17 @@ class PartnerContractTest {
     }
     @Test void invalidEmptyTruncatedAndOversizedBodiesHaveBoundedSafeFailures() throws Exception {
         try (var catalog = new PartnerServer(); var inventory = new PartnerServer(); var app = start(catalog, inventory, "--partners.catalog.max-response-bytes=64")) {
-            for (String body : List.of("{remote-secret", "", "{\"sku\":\"book\",\"product_name\":\"" + "x".repeat(100) + "\"}", "{\"sku\":\"book\",\"product_name\":\"A Book\"}")) {
+            for (String body : List.of("{remote-secret", "", "{}", "{\"sku\":\"book\",\"product_name\":\"" + "x".repeat(100) + "\"}", "{\"sku\":\"book\",\"product_name\":\"A Book\"}")) {
                 catalog.bodyOverride = body; catalog.truncated = body.endsWith("A Book\"}");
                 var thrown = catchThrowable(() -> app.getBean(Catalog.class).find("book"));
                 assertThat(thrown).as("body=%s truncated=%s", body, catalog.truncated).isInstanceOf(PartnerFailure.class);
                 var failure = (PartnerFailure) thrown;
                 assertThat(failure.kind()).isEqualTo(body.length() > 64 ? PartnerFailure.Kind.RESPONSE_TOO_LARGE : PartnerFailure.Kind.BAD_RESPONSE);
                 assertThat(failure.status()).isEqualTo(200);
+                assertThat(failure.headers()).containsEntry("x-request-id", "remote-42");
                 assertThat(failure).hasNoCause().hasMessageNotContaining("remote-secret");
             }
-            assertThat(catalog.requests).hasSize(4);
+            assertThat(catalog.requests).hasSize(5);
         }
     }
     @Test void statusFailuresRetainSafeProtocolHeadersWithoutRemoteSecretsAndNeverRetry() throws Exception {
@@ -280,6 +310,7 @@ class PartnerContractTest {
         String url() { return "http://127.0.0.1:" + server.getAddress().getPort(); }
         void handle(HttpExchange exchange) throws IOException {
             try (exchange) {
+                exchange.getResponseHeaders().set("X-Request-Id", "remote-42");
                 requests.add(exchange.getRequestMethod() + " " + exchange.getRequestURI() + " " + exchange.getRequestHeaders().getFirst("Authorization") + " " + exchange.getRequestHeaders().getFirst("X-Host-Policy"));
                 bodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
                 traces.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-B3-TraceId")));

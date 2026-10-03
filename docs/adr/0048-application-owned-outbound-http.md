@@ -2,13 +2,13 @@
 
 ## Status
 
-Proposed，2026-10-04，票25实施中。保留ADR0018的同步RestClient选型，替代其私有builder作为推荐默认、静态服务定位器作为新业务入口及笼统网络/解析错误策略。旧公共签名先弃用、提供实际迁移消费者，不直接删除。
+Accepted，2026-10-04，票25实现；跨平台验收状态以任务票为准。保留ADR0018的同步RestClient选型，替代其私有builder作为推荐默认、静态服务定位器作为新业务入口及笼统网络/解析错误策略。旧公共签名先弃用、提供实际迁移消费者，不直接删除。
 
 ## Context
 
 旧自动装配直接RestClient.builder并替换factory，绕过Boot的JSON/customizer/观测配置；静态HttpClients把不同第三方塞进同一个全局入口，失败无法表达提交后断连的未知结果。标准框架已提供builder克隆、转换器、观测和HTTP传输，不需要新远程任务DSL。
 
-## Proposed decision
+## Decision
 
 1. 注入宿主管理的RestClient.Builder，每个业务Adapter在配置前克隆；宿主builder存在时设施兼容bean也从它克隆并保留factory。缺builder的历史独立装配路径单独标注兼容政策，不进入新推荐示例。
 2. 两个真实类型化Adapter由一个外部聚合Module消费；业务DTO、第三方协议、凭据、已知失败/未知结果与显式重试由该应用拥有。认证头/base URL/超时为各服务独立配置，不通过全局静态变更。
@@ -19,3 +19,10 @@ Proposed，2026-10-04，票25实施中。保留ADR0018的同步RestClient选型�
 ## Primary sources
 
 2026-10-04核读：[Boot4.1.1 RestClient](https://docs.spring.io/spring-boot/reference/io/rest-client.html)的prototype builder、clone与customizer；[Framework REST clients](https://docs.spring.io/spring-framework/reference/integration/rest-clients.html)的exchange所有权；[Framework7.0.9 JDK request源码](https://github.com/spring-projects/spring-framework/blob/v7.0.9/spring-web/src/main/java/org/springframework/http/client/JdkClientHttpRequest.java)的TimeoutHandler与gzip/deflate处理。配置与budget结论还须真实消费者验证，不能仅从文档推断完成。
+
+
+## 实现与限制
+
+实际消费者位于`examples/partner-aggregation`，协议及配置表见其README。连接拒绝/慢头慢体/截断/断连来自真实loopback；连接超时分支使用标准HttpClient失败future，未假称真实SYN黑洞。单deadline约束网络等待与重试准入，不能抢占任意CPU/customizer。Brave只为测试宿主传播，不进入库或示例生产依赖。
+
+额外核读[Framework7.0.9 JdkClientHttpResponse源码](https://github.com/spring-projects/spring-framework/blob/v7.0.9/spring-web/src/main/java/org/springframework/http/client/JdkClientHttpResponse.java)：close会drain原body。真实RED观测超限后仍等待3秒，ResponseBodyLimit现先关闭body，再调用delegate.close；相同服务回归在1秒内失败且client可终止。独立Unicode/空格副本采用相对JaCoCo agent路径与必须存在的覆盖率文件门，缺覆盖率负控不能通过。

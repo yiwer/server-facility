@@ -21,7 +21,7 @@
 | [0015](0015-cache-facade-cachemanager.md) | Accepted; 装配条件由 [0047](0047-boot4-consumer-integration.md) 补全 | 保留CacheManager门面/成对optional理由；缺任一的真实回退由0047验证，TTL/容量政策归08 |
 | [0016](0016-distributed-lock-seam.md) | Accepted | 分布式锁 DistributedLock SPI + 默认单机 InMemory,real seam 升级 Redisson 示范 |
 | [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted; 部分由 [0028](0028-bounded-web-streams.md) 替代 | 保留幂等历史状态机；全站/无界响应捕获由 0028 替代 |
-| [0018](0018-http-client-restclient-result.md) | Accepted | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
+| [0018](0018-http-client-restclient-result.md) | Accepted; 部分由 [0048](0048-application-owned-outbound-http.md) 替代 | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
 | [0019](0019-crypto-facade-safe-defaults.md) | Accepted; 部分由 [0040](0040-legacy-crypto-reader-policy.md) 替代 | 保留纯JDK/固定历史协议；原始cause安全性、随机IV与never-throw过度保证由0040替代 |
 | [0020](0020-masking-log-pre-write-checksum-suppression.md) | Accepted | 日志脱敏——LogUtil 写前集成(LogPostHandler 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
 | [0021](0021-excel-csv-optional-poi-runtime-probe.md) | Accepted | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
@@ -41,3 +41,5 @@
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |
 | [0046](0046-jackson3-application-ownership.md) | Accepted | Jackson3不可变配置、应用mapper/registry所有权、安全错误与正数字段流预算；保留旧金样和明确静态迁移 |
 | [0047](0047-boot4-consumer-integration.md) | Accepted | 补全0045/0046平台门、0028的Servlet6.1入口与0015缺类装配；真实五图/普通jar/Web/上传消费，OS状态按报告 |
+
+| [0048](0048-application-owned-outbound-http.md) | Accepted | 部分替代0018；宿主拥有HTTP配置、有限响应与应用级重试，双服务实际消费者 |

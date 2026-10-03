@@ -38,10 +38,20 @@ public class PartnerApplication {
     }
     @Bean PartnerModule partnerModule(Catalog catalog, Inventory inventory) { return new PartnerModule(catalog, inventory); }
 
-    public record Product(String sku, String productName) {}
-    public record Stock(String warehouseName, int available) {}
+    public record Product(String sku, String productName) {
+        public Product { requiredText(sku, 128); requiredText(productName, 1024); }
+    }
+    public record Stock(String warehouseName, int available) {
+        public Stock { requiredText(warehouseName, 128); if (available < 0) throw new IllegalArgumentException("Invalid partner stock"); }
+    }
     public record Offer(Product product, List<Stock> stock) { public Offer { stock = List.copyOf(stock); } }
-    public record Reservation(String sku, int quantity) {}
+    public record Reservation(String sku, int quantity) {
+        public Reservation { requiredText(sku, 128); if (quantity <= 0) throw new IllegalArgumentException("Reservation quantity must be positive"); }
+    }
+
+    private static void requiredText(String value, int limit) {
+        if (value == null || value.isBlank() || value.length() > limit) throw new IllegalArgumentException("Invalid partner text");
+    }
 
     public static final class Catalog {
         private final RestClient client;
@@ -56,6 +66,7 @@ public class PartnerApplication {
             return findBefore(sku, System.nanoTime() + timeout.toNanos());
         }
         private Product findBefore(String sku, long deadline) {
+            requiredText(sku, 128);
             return execute(deadline, false, () -> before(client, transport, deadline).get().uri("/products/{sku}", sku).exchange((request, response) -> {
                 requireStatus(response, 200, false);
                 return body(response, ParameterizedTypeReference.forType(Product.class));
@@ -81,6 +92,7 @@ public class PartnerApplication {
             client = client(builder, transport, environment, "inventory");
         }
         public List<Stock> stock(String sku) {
+            requiredText(sku, 128);
             long deadline = System.nanoTime() + timeout.toNanos();
             return execute(deadline, false, () -> before(client, transport, deadline).get().uri("/stock/{sku}", sku).exchange((request, response) -> {
                 requireStatus(response, 200, false);
@@ -88,6 +100,7 @@ public class PartnerApplication {
             }));
         }
         public void reserve(Reservation reservation) {
+            java.util.Objects.requireNonNull(reservation, "reservation");
             long deadline = System.nanoTime() + timeout.toNanos();
             execute(deadline, true, () -> before(client, transport, deadline).post().uri("/reservations").body(reservation).exchange((request, response) -> {
                 requireStatus(response, 204, true); return null;
@@ -123,14 +136,15 @@ public class PartnerApplication {
     }
     private static <T> T body(RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response, ParameterizedTypeReference<T> type) throws IOException {
         int status = response.getStatusCode().value();
+        var headers = safeHeaders(response);
         try {
             T result = response.bodyTo(type);
             if (result == null || response.getBody().read() != -1)
-                throw new PartnerFailure(PartnerFailure.Kind.BAD_RESPONSE, PartnerFailure.Outcome.NO_EFFECT, status, Map.of());
+                throw new PartnerFailure(PartnerFailure.Kind.BAD_RESPONSE, PartnerFailure.Outcome.NO_EFFECT, status, headers);
             return result;
         } catch (RestClientException | IOException failure) {
             var kind = cancelled(failure) ? PartnerFailure.Kind.CANCELLED : causedBy(failure, ResponseBodyLimit.Exceeded.class) ? PartnerFailure.Kind.RESPONSE_TOO_LARGE : PartnerFailure.Kind.BAD_RESPONSE;
-            throw new PartnerFailure(kind, PartnerFailure.Outcome.NO_EFFECT, status, Map.of());
+            throw new PartnerFailure(kind, PartnerFailure.Outcome.NO_EFFECT, status, headers);
         }
     }
     private static boolean cancelled(Throwable failure) {
@@ -150,12 +164,15 @@ public class PartnerApplication {
         var kind = status >= 500 ? PartnerFailure.Kind.SERVER_ERROR : status >= 400 ? PartnerFailure.Kind.CLIENT_ERROR : PartnerFailure.Kind.UNEXPECTED_STATUS;
         // This partner protocol promises its 4xx responses reject the command before any effect.
         var outcome = sideEffect && (status < 400 || status >= 500) ? PartnerFailure.Outcome.UNKNOWN : PartnerFailure.Outcome.NO_EFFECT;
+        throw new PartnerFailure(kind, outcome, status, safeHeaders(response));
+    }
+    private static Map<String, String> safeHeaders(RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response) {
         Map<String, String> headers = new LinkedHashMap<>();
         for (String name : List.of("x-request-id", "retry-after")) {
             String value = response.getHeaders().getFirst(name);
             if (value != null && value.length() <= 256 && value.chars().allMatch(c -> c >= 32 && c < 127)) headers.put(name, value);
         }
-        throw new PartnerFailure(kind, outcome, status, headers);
+        return headers;
     }
     private static RestClient client(RestClient.Builder builder, HttpClient transport, Environment environment, String service) {
         var factory = new JdkClientHttpRequestFactory(transport);

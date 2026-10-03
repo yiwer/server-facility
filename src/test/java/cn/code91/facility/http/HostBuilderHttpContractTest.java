@@ -8,6 +8,9 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.web.client.RestClient;
 
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,20 +25,26 @@ class HostBuilderHttpContractTest {
         server.setExecutor(executor);
         server.createContext("/policy", exchange -> {
             try (exchange) {
-                byte[] body = String.valueOf(exchange.getRequestHeaders().getFirst("X-Host-Policy")).getBytes(StandardCharsets.UTF_8);
+                byte[] body = (exchange.getRequestHeaders().getFirst("X-Host-Policy") + "/"
+                        + exchange.getRequestHeaders().getFirst("X-Factory-Policy")).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, body.length);
                 exchange.getResponseBody().write(body);
             }
         });
         server.start();
-        try {
-            RestClient.Builder host = RestClient.builder().defaultHeader("X-Host-Policy", "configured-by-application");
+        try (var transport = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()) {
+            var factory = new JdkClientHttpRequestFactory(transport); factory.setReadTimeout(Duration.ofSeconds(2));
+            RestClient.Builder host = RestClient.builder().defaultHeader("X-Host-Policy", "configured-by-application")
+                    .requestFactory((uri, method) -> {
+                        var request = factory.createRequest(uri, method); request.getHeaders().set("X-Factory-Policy", "configured-transport"); return request;
+                    });
             new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(FacilityHttpAutoConfiguration.class))
                     .withBean(RestClient.Builder.class, () -> host)
+                    .withPropertyValues("facility.http.read-timeout=0ms") // Legacy policy must not replace the host factory.
                     .run(context -> {
                         String response = context.getBean(RestClient.class).get()
                                 .uri("http://127.0.0.1:" + server.getAddress().getPort() + "/policy").retrieve().body(String.class);
-                        assertThat(response).isEqualTo("configured-by-application");
+                        assertThat(response).isEqualTo("configured-by-application/configured-transport");
                     });
         } finally {
             server.stop(0);

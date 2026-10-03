@@ -34,7 +34,11 @@ import java.util.function.Supplier;
  *
  * @author yvvb
  * @since 1.0.0
+ * @deprecated New application code should inject the Boot-managed RestClient.Builder
+ * into typed adapters. This compatibility facade retains its historical static lookup,
+ * unconfigured fallback and coarse failure mapping; it is not the bounded adapter policy.
  */
+@Deprecated(since = "0.1.0", forRemoval = false)
 public final class HttpClients {
 
     private HttpClients() {

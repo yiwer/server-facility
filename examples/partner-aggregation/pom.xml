@@ -15,9 +15,8 @@
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.4.1</version></plugin>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version></plugin>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.16.0</version><configuration><parameters>true</parameters></configuration></plugin>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.6.0</version><configuration><argLine>@{argLine} -Xmx128m -Dfile.encoding=UTF-8 &quot;-Djdk.net.unixdomain.tmpdir=${project.build.directory}&quot;</argLine><forkedProcessTimeoutInSeconds>120</forkedProcessTimeoutInSeconds></configuration></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.6.0</version><configuration><failIfNoTests>true</failIfNoTests><argLine>@{argLine} -javaagent:target/jacoco-agent.jar=destfile=target/jacoco.exec -Xmx128m -Dfile.encoding=UTF-8 -Djdk.net.unixdomain.tmpdir=target</argLine><forkedProcessTimeoutInSeconds>120</forkedProcessTimeoutInSeconds></configuration></plugin>
     <plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.15</version><executions>
-      <execution><id>agent</id><goals><goal>prepare-agent</goal></goals></execution>
       <execution><id>report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><rules><rule><element>BUNDLE</element><limits>
         <limit><counter>INSTRUCTION</counter><value>COVEREDRATIO</value><minimum>0.88</minimum></limit>
         <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.88</minimum></limit>
@@ -25,6 +24,16 @@
       </limits></rule></rules></configuration></execution>
     </executions></plugin>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.5.1</version></plugin>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version><executions>
+      <execution><id>test-agent</id><phase>initialize</phase><goals><goal>copy</goal></goals><configuration><artifactItems><artifactItem>
+        <groupId>org.jacoco</groupId><artifactId>org.jacoco.agent</artifactId><version>0.8.15</version><classifier>runtime</classifier><type>jar</type>
+        <outputDirectory>${project.build.directory}</outputDirectory><destFileName>jacoco-agent.jar</destFileName>
+      </artifactItem></artifactItems></configuration></execution>
+    </executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.6.3</version><executions>
+      <execution><id>toolchain</id><goals><goal>enforce</goal></goals><configuration><rules><requireJavaVersion><version>[25,26)</version></requireJavaVersion><requireMavenVersion><version>[3.10.0,3.10.1)</version></requireMavenVersion></rules></configuration></execution>
+      <execution><id>coverage-required</id><phase>verify</phase><goals><goal>enforce</goal></goals><configuration><rules><requireFilesExist><files><file>${project.build.directory}/jacoco.exec</file><file>${project.build.directory}/site/jacoco/jacoco.xml</file></files><message>Executed coverage data and report are required</message></requireFilesExist></rules></configuration></execution>
+    </executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-help-plugin</artifactId><version>3.5.1</version></plugin>
   </plugins></build>
 </project>

@@ -10,7 +10,13 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
-/** Actual response-byte limit applied before conversion by the host RestClient. */
+/**
+ * Actual response-byte limit applied before conversion by the host RestClient.
+ * The exchange owns and must close the response; no stream may escape that scope.
+ * Closing first closes the transport body, so the transport's cleanup cannot drain
+ * an unbounded rejected tail. With decompression enabled by the transport, the
+ * budget counts decompressed bytes. This interceptor owns no timer or executor.
+ */
 public final class ResponseBodyLimit implements ClientHttpRequestInterceptor {
     private final long maxBytes;
 
@@ -28,7 +34,11 @@ public final class ResponseBodyLimit implements ClientHttpRequestInterceptor {
             @Override public HttpStatusCode getStatusCode() throws IOException { return response.getStatusCode(); }
             @Override public String getStatusText() throws IOException { return response.getStatusText(); }
             @Override public HttpHeaders getHeaders() { return response.getHeaders(); }
-            @Override public void close() { response.close(); }
+            @Override public void close() {
+                try { getBody().close(); }
+                catch (IOException ignored) { /* ClientHttpResponse.close follows the transport's best-effort contract. */ }
+                finally { response.close(); }
+            }
             @Override public InputStream getBody() throws IOException {
                 if (limited == null) limited = new LimitedBody(response.getBody(), maxBytes);
                 return limited;

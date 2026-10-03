@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 外部服务调用迁移（2026-10-04，ADR-0048）
+
+- 默认兼容RestClient在Boot之后克隆宿主builder，保留JSON/customizer/observation/factory；旧公开单参数构造方法与HttpClients静态签名保留并弃用。
+- 历史facility.http超时仅在无宿主builder的兼容factory使用，拒绝零、负数、不足1ms和超过2147483647ms；宿主存在时改用宿主或应用Adapter自己的配置。
+- 新增ResponseBodyLimit标准interceptor，限制转换前实际响应字节，并先关闭body避免transport在关闭时继续读取被拒绝尾部。两个类型化Adapter、协议错误与一次deadline重试在独立示例应用内；不扩展通用远程DSL。
+- 迁移示例与已声明限制见[partner-aggregation](examples/partner-aggregation/README.md)。旧HttpClients仍有历史无配置回退与URL/cause错误，不具备新Adapter契约。
+
 ### 本地入口配额迁移（2026-10-04，ADR-0032）
 
 - 拒绝非正cost、超容量成本、非有限/非正rate、非法key及同驻留key冲突政策；long大容量保持精确扣费，按实际缺额向上取整等待。
