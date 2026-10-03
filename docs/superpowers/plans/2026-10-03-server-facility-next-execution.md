@@ -97,3 +97,11 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 ## 2026-10-04 限流／ZIP／CSV跨平台闭合
 
 `c2f0f6b4118a3a059993ef53f2d62f547151c560`在现有CI run37147633803两个OS的all、platform与归档全部成功。09/14/15据此closed；精确job/artifact/digest见`docs/verification/ticket-09-14-15-ci.md`，原API JSON本地保存。未下载artifact内容，不混用本地与CI精确计数。当前共16票closed，其余继续沿依赖图实施。
+
+
+## 票27集成与独立应用边界
+
+- 2026-10-04：merger从干净 `5bdfcb0c624653bd8f1b48f167867b187a041749` 以 `--no-ff` 合入最终 `9e8e9377f122767841269b3aa9453427d8a7be4d`，merge `14dbec37dee57e20e7a854bc708e32bd409a2670`，无冲突。相对实际被测 `b2fcfbf4cee05b1176cca3373dbc9dd35b67fd3e` 只有3文档变化；主树src/POM/templates/verification/workflow/Wrapper与其完全相同。
+- 核读 `.verification-results/20261004-040949-437-all/summary.txt` 为PASS：库1535/0/0/0、模板47/0/0/0，原覆盖率/5架构/依赖门、独立空格/Unicode路径构建、真实可执行包两线程模式HTTP、必需coverage缺失负控、既有普通jar/平台矩阵/资源循环/3工具链负控全部通过。精确证据见[27报告](../../verification/ticket-27-secured-template.md)。普通jar SHA `0e71d830446956894058e910c73a4c82599bdeb8557471aa86bcba797cdeb98c`；可执行模板SHA `974d26a86c6339c0a0042e6f2383d5c1fd73f5f6a62f6f2828a7c2962ce07469`。
+- 中央登记ADR0050与40条实际ADR；0027/0029保留原理由，新增Security/Actor/异步接合补充关系。27保持verification-pending，Linux由root现有CI验证；28–30业务持久协议和33最终候选组合独立承担，不把它们反向当成本票实现前置。
+- 合并不改已测产品，未重复同源全门，未push。产品merge tip已先交票11同步启动其最终全门；本次后续中央修改仅文档。
