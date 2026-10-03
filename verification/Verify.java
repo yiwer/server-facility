@@ -63,6 +63,7 @@ class Verify {
                     consumer("configured");
                     consumer("override");
                     consumer("invalid");
+                    coreConsumer();
                     jsonConsumer();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
@@ -214,6 +215,22 @@ class Verify {
 
     static String java() {
         return Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "java.exe" : "java").toString();
+    }
+
+    static void coreConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path source = ROOT.resolve("verification/core-consumer/CoreConsumer.java");
+        Path classes = Files.createDirectories(report.resolve("core-consumer/classes"));
+        Files.copy(source, report.resolve("core-consumer/CoreConsumer.java"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "core-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", classes.toString(), source.toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "core-consumer", List.of(java(), "-Xmx64m", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "CoreConsumer"), 45, null);
+        if (!Files.readString(log).contains("CORE_CONSUMER_PASS seed=180041 iterations=512 framework=absent")) {
+            throw new AssertionError("Core consumer did not complete: " + log);
+        }
+        summary.add("core-consumer=ordinary jar only; no framework/annotation/third-party runtime; domain business and compatibility; seed180041/512; -Xmx64m/45s");
     }
 
     static void jsonConsumer() throws Exception {

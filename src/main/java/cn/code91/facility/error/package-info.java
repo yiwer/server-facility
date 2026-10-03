@@ -2,7 +2,7 @@
  * <h2>cn.code91.facility.error</h2>
  *
  * <p><b>Purpose:</b> Module-prefixed error-code SPI ({@code ErrorTypeInterface}) and
- * immutable {@code WrappedError} container used as the error channel in
+ * reference-stable {@code WrappedError} container with shallow argument-array copying, used as the error channel in
  * {@code Result} and {@code Async} pipelines.</p>
  *
  * <p><b>Entry classes:</b> {@code ErrorTypeInterface}, {@code WrappedError},
