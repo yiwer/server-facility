@@ -92,7 +92,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 
 ## 5. ADR 索引
 
-42 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+43 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -116,7 +116,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
 | 0019 | crypto 加解密门面——安全默认 AES-256-GCM、内管 IV、不透明失败通道、纯 JDK |
 | 0020 | 日志脱敏——`LogUtil` 写前集成(`LogPostHandler` 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
-| 0021 | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
+| 0021 | 保留裸列表、无表头ORM与POI optional；CSV政策由0038、Excel预算/公式/临时资源/实际引擎保证由0039部分替代 |
 | 0022 | `LogUtil` 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
 | 0024 | Java 25、固定校验 Wrapper、独立普通 jar 与跨平台入口；Boot3中间版本由0045部分替代 |
@@ -130,6 +130,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0036 | 正数实际字节预算、借用MIME流不关闭、生成存储键与同卷hardlink不覆盖发布；保留0001 optional边界 |
 | 0037 | ZIP完整关闭后hardlink不覆盖发布，有界目录/归档结果与真实失败清理；纯JDK普通jar消费 |
 | 0038 | Commons CSV明确strict/legacy，有界行消费/便利读取，机器原值与电子表格拒绝政策；部分替代0021 |
+| 0039 | POI5.5.1按格式消费；小XLS/HSSF、有界XLSX/SAX、显式公式缓存与SXSSF自有临时预算；部分替代0021 |
 | 0040 | 保留旧AES-GCM/PBKDF2协议；安全Result失败、应用输入/并发预算与独立普通jar历史回执消费者 |
 | 0041 | 保留Result/领域错误语义；浅引用所有权、必需回调与集合算术边界，纯Java普通jar消费者 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
@@ -142,7 +143,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 ## 6. 质量门
 
 - **09/14/15跨平台闭合**：集成 `c2f0f6b` 的Windows/Ubuntu完整门、平台门和归档全部通过，[CI37147633803](verification/ticket-09-14-15-ci.md)登记同源证据，三票closed。
-- **最新本地接合（11/25/27）**：11被测`956081d` Windows all为库1555/0/0/0、模板47/0/0/0，含64MiB普通jar和三个32MiB claim故障探针；25被测`a9c6400` all --fresh为库1541/0/0/0、聚合应用14/0/0/0，含200次尾流拒绝和5次关闭。各自原质量门与负控通过，见[11报告](verification/ticket-11-qualified-claims.md)、[25报告](verification/ticket-25-outbound-http.md)及[27报告](verification/ticket-27-secured-template.md)。合并后三条消费者入口保留且runner编译通过；联合Windows/Linux CI尚待，三票保持verification-pending，不把不同源计数拼成同源结果。
+- **最新本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过。Excel4种真实引擎依赖图、64MiB400,000行/200失败/恶意XML、独立样本和openpyxl导出oracle通过；原质量门、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](verification/ticket-16-bounded-excel.md)。Windows CI模板失败仍由重跑诊断，新的Excel组合尚待Linux/CI；11/16/25/27均保持verification-pending，不混用本地与CI状态。
 - **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；同产品集成`80670fa`现已通过Windows/Ubuntu完整CI，详见[平台闭合](verification/ticket-24-ci.md)；各环境精确值以各自artifact为准。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载已由24在目标平台复验关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
