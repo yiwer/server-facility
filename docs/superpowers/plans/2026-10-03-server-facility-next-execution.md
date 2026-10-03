@@ -169,3 +169,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 2026-10-04：merger核读冻结`1f307a3c14a77daa65d978586e64192f36c4895e`的`.verification-results/20261004-072426-683-all/summary.txt`：Windows all --fresh共100命令PASS，库1655/0/0/0、模板76/0/0/0，原质量门/5架构/依赖、两个HTML普通jar图、64MiB深度10000和10000次成功/拒绝及工具链负控通过。库jar SHA256 `0531defe321757dc46e913ca48c5be933622ec79219dca48a2c0372c89f1cd04`。该冻结来源未包含12与28后续CI修复，报告分别保留验证范围。
 - 从干净1d6377d以--no-ff合最终`3dda390fee86a1497d7c624169e7e282f2926a7b`，merge`e5e8f028310cdf07e009e7b0f95977e48ae1a6b1`，无冲突；src/POM/verification/workflow与32交接分支完全相同。对比冻结源，32自己的Cookie/HTML产品、测试、POM和消费者未变化，其余差异为已验证12的同步及输入归档。中央登记0055和48条实际ADR，0001的optional理由继续有效，无需标为替代。
 - 32保持verification-pending，07/12/28同样按各自未完成CI状态登记，closed仍21项。HTML、锁与重放consumer归档全部保留。未重跑已通过的相同源码全门；等待28必要修复一起push既有CI验证联合候选，不等待19的独立最终门。
+
+
+## CI15候选：07/12/28/32
+
+- 2026-10-04：merger核读28的CI14修复报告与final-template/final-process两份PASS summary；相同业务代码保留原76项与原质量门，开发进程清理后仅重验三项CLI和真实打包两模式。最后的非空properties目录反例证明删除失败不会跳过native stop。未声称后来32/POM合并后的库jar仍是先前1667来源。
+- 从干净2e79ee7以--no-ff合`c03f3b138d4632e360e7825235ba82d5f8ebdd03`，merge`baeed369d4cde9640ff006b139e3413a2c496df7`，无冲突，src/POM/templates/verification/workflow与交接树相同。保留全部HTML、重放、锁及现有消费者；组合Verify javac和diff-check通过。本次按用户授权直接push已有CI，不等待19的独立全门。
+- 07/12/28/32仍verification-pending，closed仍21项，CI14失败不擦除。下一同源CI15负责新组合双平台结果；19将同步本候选执行Map回调中断修复后的最终完整门，20独立实施不改此候选。
