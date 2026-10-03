@@ -31,6 +31,7 @@ import java.util.Objects;
 public class FacilityHttpErrors {
     private final FrameworkResolver framework = new FrameworkResolver();
     private static final Logger log = LoggerFactory.getLogger(FacilityHttpErrors.class);
+    private static final int MAX_CAUSE_DEPTH = 64;
     private final FacilityWebExceptionProperties properties;
     private final MessageSource messages;
     private final ObjectMapper mapper;
@@ -53,8 +54,14 @@ public class FacilityHttpErrors {
     public ResponseEntity<Object> response(Exception failure, WebRequest request) {
         if (request instanceof ServletWebRequest servlet && servlet.getResponse() != null
                 && servlet.getResponse().isCommitted()) return null;
-        if (failure instanceof ServletException servlet && servlet.getCause() instanceof Exception cause) {
-            return response(cause, request);
+        Exception original = failure;
+        var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Exception, Boolean>());
+        int depth = 0;
+        while (failure instanceof ServletException servlet && servlet.getCause() instanceof Exception cause) {
+            if (depth++ >= MAX_CAUSE_DEPTH || !seen.add(failure)) {
+                return render(original, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+            }
+            failure = cause;
         }
         try {
             return framework.handleException(failure, request);
@@ -93,7 +100,7 @@ public class FacilityHttpErrors {
             if (servlet.getResponse().isCommitted()) return null;
             resetForError(servlet.getResponse());
         }
-        if (status.is5xxServerError()) log.error("HTTP request failed with status {}", status.value(), failure);
+        if (status.is5xxServerError()) logFailure("HTTP request failed with status " + status.value(), failure);
         String detail = status.value() == 500
                 ? message("facility.web.error.system", "Internal server error", locale(request))
                 : Objects.requireNonNullElse(HttpStatus.resolve(status.value()), HttpStatus.INTERNAL_SERVER_ERROR).getReasonPhrase();
@@ -150,11 +157,25 @@ public class FacilityHttpErrors {
                 ? normalized : "request";
     }
 
+    private static void logFailure(String message, Throwable failure) {
+        var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Throwable, Boolean>());
+        Throwable cause = failure;
+        for (int depth = 0; cause != null; depth++) {
+            if (depth >= MAX_CAUSE_DEPTH || !seen.add(cause)) {
+                // Do not hand an unbounded graph to a logger that may recursively construct throwable proxies.
+                log.error("{} (cause diagnostic truncated: {})", message, failure.getClass().getName());
+                return;
+            }
+            cause = cause.getCause();
+        }
+        log.error(message, failure);
+    }
+
     private String message(String key, String fallback, java.util.Locale locale) {
         try {
             return messages.getMessage(key, null, fallback, locale);
         } catch (RuntimeException failure) {
-            log.error("HTTP error message lookup failed", failure);
+            logFailure("HTTP error message lookup failed", failure);
             return fallback;
         }
     }
@@ -188,7 +209,7 @@ public class FacilityHttpErrors {
         try {
             bytes = mapper.writeValueAsBytes(resolved.getBody());
         } catch (Exception serializationFailure) {
-            log.error("HTTP error serialization failed", serializationFailure);
+            logFailure("HTTP error serialization failed", serializationFailure);
             // This fixed fallback cannot invoke the failed application serializer again.
             String traceId = traceId(new ServletWebRequest(request, response));
             bytes = ("{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,"

@@ -234,6 +234,30 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getHeader("X-Trace-Id")).isEqualTo(first.getProperties().get("traceId"));
     }
 
+    @Test
+    void servletCauseCyclesHaveSafe500WithoutRecursion() {
+        var first = new jakarta.servlet.ServletException(SECRET);
+        var second = new jakarta.servlet.ServletException(SECRET);
+        first.initCause(second);
+        second.initCause(first);
+        var response = policy().response(first, request());
+        assertThat(response.getStatusCode().value()).isEqualTo(500);
+        assertThat(((ProblemDetail) response.getBody()).getDetail()).isEqualTo("Internal server error");
+        assertThat(first.getCause()).isSameAs(second);
+        assertThat(second.getCause()).isSameAs(first);
+    }
+
+    @Test
+    void servletUnwrappingBudgetHandlesBoundaryAndDeepInput() {
+        for (int count : new int[]{63, 64, 65, 10_000}) {
+            Exception failure = new ResponseStatusException(HttpStatus.CONFLICT, SECRET);
+            for (int i = 0; i < count; i++) failure = new jakarta.servlet.ServletException(SECRET, failure);
+            var response = policy().response(failure, request());
+            assertThat(response.getStatusCode().value()).as("nested causes %s", count).isEqualTo(count <= 64 ? 409 : 500);
+            assertThat(((ProblemDetail) response.getBody()).getDetail()).doesNotContain(SECRET);
+        }
+    }
+
     private FacilityHttpErrors policy() {
         return new FacilityHttpErrors(new FacilityWebExceptionProperties(), new StaticMessageSource(), Jackson2ObjectMapperBuilder.json().build());
     }
