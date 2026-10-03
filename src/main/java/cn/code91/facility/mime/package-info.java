@@ -15,7 +15,7 @@
  * <p><b>Depends on:</b> {@code error} / {@code result}; tika-core (Maven
  * {@code optional} — consumers needing this package add it explicitly, ADR-0001).</p>
  *
- * <p><b>Depended on by:</b> {@code web} ({@code SafeUpload} / {@code HttpFileResponses},
- * downstream application code).</p>
+ * <p><b>Depended on by:</b> {@code web} ({@code SafeUpload} / {@code HttpFileResponses}),
+ * downstream application code.</p>
  */
 package cn.code91.facility.mime;
