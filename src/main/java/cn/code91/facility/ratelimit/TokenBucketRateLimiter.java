@@ -55,12 +55,7 @@ public final class TokenBucketRateLimiter implements RateLimiter {
 
     @Override
     public synchronized RateLimitResult acquire(String key, int permits, long capacity, double permitsPerSecond) {
-        if (key == null || key.isBlank() || key.length() > 512 || key.chars().anyMatch(Character::isISOControl))
-            throw new IllegalArgumentException("key must contain 1..512 characters without controls");
-        if (permits <= 0) throw new IllegalArgumentException("permits must be > 0");
-        if (capacity <= 0 || permits > capacity) throw new IllegalArgumentException("capacity must be positive and cover permits");
-        if (!(permitsPerSecond > 0) || !Double.isFinite(permitsPerSecond))
-            throw new IllegalArgumentException("permitsPerSecond must be finite and > 0");
+        RateLimitInputs.request(key, permits, capacity, permitsPerSecond);
         if (buckets.size() >= maxBuckets && !buckets.containsKey(key) && !reclaimFullBucket()) {
             throw new RateLimiterUnavailableException();
         }
