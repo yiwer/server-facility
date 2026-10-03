@@ -4,7 +4,7 @@
  * <p><b>Purpose:</b> Servlet-stack web integration for rate limiting — the method-level
  * {@code @RateLimit} annotation, {@code RateLimitInterceptor} (a {@code HandlerInterceptor}
  * that reads the annotation off the matched {@code HandlerMethod}, defaults the limiting
- * key to {@code class#method#clientIp} when {@code @RateLimit.key()} is blank, and
+ * key to full class/method/parameter identity plus the selected scope, and
  * delegates the actual accept/reject decision to the {@code cn.code91.facility.ratelimit}
  * SPI), and {@code RateLimitExceededException} (thrown when the SPI rejects an
  * acquisition; carries {@code retryAfterMillis} — the HTTP 429 response precursor).</p>
@@ -27,7 +27,10 @@
  * from {@code RequestUtil.getClientIp}: connection peer by default, with forwarded origins only
  * under an explicit trusted-proxy policy. IP denotes network origin, not an authenticated
  * principal. Users behind one NAT can share an IP budget. An explicit {@code @RateLimit.key()}
- * is a fixed literal, not a user-ID expression.</p>
+ * is a fixed literal, not a user-ID expression. PRINCIPAL uses only the verified host Servlet principal;
+ * GLOBAL shares one operation budget. DEFAULT preserves empty-key IP / explicit-key GLOBAL.
+ * Missing infrastructure rejects by default; explicit fail-open changes only infrastructure failures.
+ * Entrance charging precedes the default idempotency interceptor; ASYNC completion does not double debit.</p>
  *
  * <p><b>Depends on:</b> {@code ratelimit} ({@code RateLimiter} SPI, {@code RateLimitResult}),
  * {@code web.util} ({@code RequestUtil.getClientIp} for the default key), spring-webmvc

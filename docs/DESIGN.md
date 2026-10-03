@@ -157,14 +157,15 @@ FALLBACK；其旧 detect(InputStream,String) 的IO失败现抛UncheckedIOExcepti
 **C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
 ADR-0046 的 JSON InputStream 字段是正预算例外：显式 ≤0 拒绝，无参注解入口固定1MiB。
 ADR-0036 的上传预算也必须为正数，≤0 经Result拒绝，便利入口固定10MiB；无无界上传路径。
+ADR-0032 的限流capacity/rate/cost/maxBuckets均必须正且rate有限；注解capacity/rate=0仅表示继承默认，绝不表示无限制。
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
 高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。现状审计(2026-07-06,
 全部符合):WARN 侧——锁 executeWithLock 无 bean 降级执行、锁/幂等溢出 fail-closed 拒绝、
-限流 maxBuckets clear-all、cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
-CopyUtil null key drop;静默侧——LockUtil.tryLock/unlock 无 bean、RateLimiterUtil 无 bean
-放行(remaining=-1 哨兵)、CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
+CopyUtil null key drop;静默侧——LockUtil.tryLock/unlock 无 bean、CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+ADR-0032已替代限流clear-all与默认无Bean放行：新key只回收补满桶或拒绝；普通门面不可用抛异常，Optional显式降级仍不逐请求记日志。
 
 **C4 门面命名双家族**:`XxxUtil` = 静态门面(可能有状态/参与 Spring 边缘/装配交互);
 复数名词 = 纯函数无状态工具。新组件按此归家族,存量零改名。历史例外:`HttpClients`

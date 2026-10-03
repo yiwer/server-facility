@@ -5,6 +5,14 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 本地入口配额迁移（2026-10-04，ADR-0032）
+
+- 拒绝非正cost、超容量成本、非有限/非正rate、非法key及同驻留key冲突政策；long大容量保持精确扣费，按实际缺额向上取整等待。
+- maxBuckets改为严格槽位预算，只回收已经补满的桶；无法准入抛设施不可用，不再整体清空恢复其他主体额度。
+- RateLimiterUtil普通入口从缺Bean放行改为必需；显式tryAcquireOptional/acquireOptional保留可接受的降级。HTTP缺Adapter/运行故障默认安全503；fail-open=true显式允许降级，enabled=false只关闭默认provider，仍保留注解守卫。
+- @RateLimit新增IP/PRINCIPAL/GLOBAL scope；DEFAULT保留旧空key/IP、固定key/global选择，操作默认含完整类名与参数类型。SPI key编码改变且限512单元，外部后端需迁移旧key；Principal只由宿主认证提供。
+- 入口额度先于默认幂等重放扣费，新重试仍计费，同请求ASYNC完成不重复扣费；业务配额不因此获得事务语义。见USAGE及ADR0032。
+
 ### 历史密文与错误诊断（2026-10-04，ADR-0040）
 
 - 保留原AES-GCM密文和PBKDF2-HMAC-SHA256/210000读取政策，不改变旧密文、key或salt存储格式。

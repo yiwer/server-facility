@@ -44,14 +44,15 @@ class TokenBucketRateLimiterTest {
     }
 
     @Test
-    @DisplayName("耗尽后等待补充，refill 恢复放行")
-    void refill_afterWait_recovers() throws InterruptedException {
-        TokenBucketRateLimiter limiter = new TokenBucketRateLimiter(1, 1000, 10);
+    @DisplayName("耗尽后到达单调时间补充边界，refill 恢复放行")
+    void refill_afterWait_recovers() {
+        var nanos = new java.util.concurrent.atomic.AtomicLong();
+        TokenBucketRateLimiter limiter = new TokenBucketRateLimiter(1, 1000, 10, nanos::get);
 
         assertThat(limiter.tryAcquire("k")).isTrue();
         assertThat(limiter.tryAcquire("k")).isFalse();
 
-        Thread.sleep(5);
+        nanos.set(1_000_000);
 
         assertThat(limiter.tryAcquire("k")).isTrue();
     }
@@ -106,17 +107,15 @@ class TokenBucketRateLimiterTest {
     }
 
     @Test
-    @DisplayName("maxBuckets 超限触发 clear 防护，旧 key 桶重建为满桶")
-    void maxBuckets_exceeded_clears() {
+    @DisplayName("maxBuckets 超限拒绝新增主体，保留旧 key 已耗尽额度")
+    void maxBuckets_exceeded_preservesExistingQuota() {
         TokenBucketRateLimiter limiter = new TokenBucketRateLimiter(1, 0.0001, 2);
 
         assertThat(limiter.tryAcquire("k1")).isTrue();
         assertThat(limiter.tryAcquire("k1")).isFalse();
         assertThat(limiter.tryAcquire("k2")).isTrue();
-        // 第3个不同 key 到来时，桶数(2) 已达 maxBuckets(2)，触发 clear() 防护后再建桶
-        assertThat(limiter.tryAcquire("k3")).isTrue();
-        // 证据：k1 原本已耗尽（若未被 clear，此处应为 false）；clear 后 k1 重建为满桶，此次应放行
-        assertThat(limiter.tryAcquire("k1")).isTrue();
+        assertThatThrownBy(() -> limiter.tryAcquire("k3")).isInstanceOf(RateLimiterUnavailableException.class);
+        assertThat(limiter.tryAcquire("k1")).isFalse();
     }
 
     @Test
