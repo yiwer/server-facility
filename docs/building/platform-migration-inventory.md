@@ -54,7 +54,9 @@
 
 消费者显式选择 `facility.web.exception.use-problem-detail=true`，使旧平台 malformed / strict trailing HTTP 输入返回真实 400；旧默认 envelope 的 HTTP 200 缺陷交 04 修复，不把缺陷冻结成协议。错误 message/detail 不是兼容金样；23 必须移除 Jsons 中 payload 截断日志与 WrappedError 参数，21 不宣称已满足这项安全契约。
 
-流字段新正数预算按解码后字节计，序列化最多读 N+1，解码前按 Base64 长度拒绝明显超限，再验证实际字节数；JSON 文本本身已由 parser 读取，需要宿主另外设置文档/字符串预算。字段输入归 serializer、返回解码流归 caller；根 JSON I/O 归属遵从 AUTO_CLOSE_SOURCE / AUTO_CLOSE_TARGET。旧 no-arg / ≤0 无上限是兼容入口，不是受限入口的安全保证。票 21 测试有可重放 seed 210025、128 例、1–32 字节预算，不通过耗尽宿主内存测试上限。
+流字段新正数预算按解码后字节计，序列化最多读 N+1，解码前按 Base64 长度拒绝明显超限，再验证实际字节数。长度闸门把临时解码数组限制在 N+2 字节以内（3 字节分组的最多 2 字节固定舍入开销），返回结果严格 ≤N；没有先无界分配后再判断。JSON 文本本身已由 parser 读取，需要宿主另外设置文档/字符串预算。字段输入归 serializer、返回解码流归 caller；根 JSON I/O 归属遵从 AUTO_CLOSE_SOURCE / AUTO_CLOSE_TARGET。旧 no-arg / ≤0 无上限是兼容入口，不是受限入口的安全保证。票 21 测试有可重放 seed 210025、128 例、1–32 字节预算，不通过耗尽宿主内存测试上限。
+
+**23 收缩要求**：迁移后的新推荐 InputStream 字段入口必须提供正数预算，或明确不注册该能力；不能仍以无参/≤0 默认无界作为新默认。继续在 Base64 解码数组分配前控制上界，并在 parser 读取/形成完整 JSON 字符串前设置应用输入预算。关闭 Jsons 敏感 payload 日志/错误参数以及预期解析异常和程序错误的 catch 边界缺口，不把兼容旧实现当成目标平台已完成。
 
 ## 22–24 合入规则
 
