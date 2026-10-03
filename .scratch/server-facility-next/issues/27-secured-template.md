@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 在真实 HTTP 链路统一安全错误与显式兼容协议；24 把目标平台集成为可发布的真实消费者组合
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-03、FR-07；AC-03、AC-04、AC-07
 
@@ -28,3 +28,5 @@
 此票可以不接数据库；持久化用例在票 28，标准身份必须先可验证。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+2026-10-04 领取：基于 `8cfaa6e933b4a098f5d2d934ac9433b0ec18cbee`；04/24 已 closed（24 CI37143955128 Windows/Ubuntu）。批准的测试入口为独立应用真实HTTP、业务Module及公开配置，不另建私有测试接口；ADR0050。计划记录于 worktrees/coordination/ticket-27-security-plan.md。
