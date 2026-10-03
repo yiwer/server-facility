@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class DatabaseConfigurationTest {
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings = {"100ms", "1500ms"})
+    void fractionalJdbcTimeoutsCannotBeSilentlyTruncatedToSeconds(String duration) throws Exception {
+        try (var issuer = new TestIssuer()) {
+            assertThatThrownBy(() -> { try (var ignored = new RunningApp(issuer,
+                    "--spring.jdbc.template.query-timeout=" + duration, "--logging.level.root=OFF")) {} })
+                    .hasStackTraceContaining("Invalid application database policy");
+        }
+    }
     @Test void unboundedOrSilentlyNormalizedDatabaseSettingsNeverStartAnApplication() throws Exception {
         try (var issuer = new TestIssuer()) {
             for (String invalid : new String[]{"--spring.datasource.hikari.connection-timeout=0", "--spring.datasource.hikari.maximum-pool-size=17",

@@ -30,7 +30,7 @@ class DatabaseConfiguration {
             int statement = Integer.parseInt(options.group(1)), lock = Integer.parseInt(options.group(2));
             if (statement < 100 || statement > 10000 || lock < 50 || lock > 5000 || lock >= statement) throw invalid();
             Duration query = Binder.get(environment).bind("spring.jdbc.template.query-timeout", Duration.class).orElseThrow(DatabaseConfiguration::invalid);
-            if (query.compareTo(Duration.ofMillis(100)) < 0 || query.compareTo(Duration.ofSeconds(3)) > 0) throw invalid();
+            if (query.getNano() != 0 || query.getSeconds() < 1 || query.getSeconds() > 3) throw invalid();
             if (!environment.getProperty("spring.flyway.enabled", Boolean.class, true)
                     || environment.getProperty("spring.flyway.baseline-on-migrate", Boolean.class, false)
                     || !environment.getProperty("spring.flyway.validate-on-migrate", Boolean.class, true)
