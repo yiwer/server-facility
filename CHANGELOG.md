@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 独立 claim 执行资格（2026-10-04，ADR-0034）
+
+- 新增scope/fingerprint与owner/generation条件更新，区分取得、处理中、回执、冲突和不可用；旧自定义SPI默认不支持新能力，保持三方法二进制迁移路径。
+- 结果保存期与租约分离，DONE过期、RELEASED和UNKNOWN保留命令绑定；只有PROCESSING租约例外允许同内容新owner。CAS仅保护记录，不能撤销外部副作用。
+- maxEntries成为共享硬上限，新增单条/总回执字节预算和永久关闭；旧complete不能凭空插入，旧记录改为防御性字节所有权。新输入/旧key、TTL与记录形状严格校验。
+- 旧HTTP路径未在本票迁移，不宣布整体HTTP幂等安全。详见[迁移说明](docs/building/qualified-claims.md)；12迁HTTP，29负责同库事务receipt。
+
 ### 本地入口配额迁移（2026-10-04，ADR-0032）
 
 - 拒绝非正cost、超容量成本、非有限/非正rate、非法key及同驻留key冲突政策；long大容量保持精确扣费，按实际缺额向上取整等待。

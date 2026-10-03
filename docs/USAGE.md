@@ -385,9 +385,13 @@ Result<User, WrappedError> h = HttpClients.get(url, Map.of("Authorization", "Bea
 - **错误映射**:4xx/5xx 响应 → `Result.err`(`FacilityErrorType.HTTP_STATUS_ERROR`,args[0]=HTTP 状态码);网络/超时异常 → `err`(`HTTP_SEND_AND_PARSE_ERROR`,args[0]=url)。
 - **超时**:经 `facility.http.connect-timeout` / `read-timeout` 配置(装配的 `RestClient` bean);消费方可声明自己的 `RestClient` bean 替换(换 Apache HttpComponents/OkHttp requestFactory)。
 
+## 独立 claim 与执行资格
+
+`IdempotencyStore` 新增 `claim(ClaimRequest)`、`complete(ClaimToken, byte[], Duration)` 与 `release(ClaimToken)`；五类决定区分取得、处理中、回执、内容冲突与不可用。新结果到期只释放正文，不重新许可执行；释放和无法保存结果也保留终态。默认内存新旧命名空间共享严格条目/字节预算，当前owner资格只能保护记录更新。参见[迁移与边界](building/qualified-claims.md)及ADR0034。旧自定义SPI未实现新协议时默认不可用。
+
 ## 幂等:@Idempotent
 
-旧 HTTP 响应重放(`web.idempotency` + `idempotency` 存储)：对已保存 DONE 的同 key 返回状态、Content-Type 和正文。当前旧 key/TTL 协议不等于跨身份隔离、事务 exactly-once 或安全的过期重试；授权、业务保存资格与持久化恢复由票 11/12 的协议收敛负责。
+旧 HTTP 响应重放(`web.idempotency` + `idempotency` 存储)：对已保存 DONE 的同 key 返回状态、Content-Type 和正文。当前旧 key/TTL 协议不等于跨身份隔离、事务 exactly-once 或安全的过期重试；票11已提供独立执行资格入口；HTTP整条路径迁移由票12负责，持久业务命令由票29负责。
 
 ```java
 @Idempotent                                        // header 默认 Idempotency-Key

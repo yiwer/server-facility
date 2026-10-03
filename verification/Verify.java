@@ -66,6 +66,7 @@ class Verify {
                     coreConsumer();
                     cryptoConsumer();
                     rateLimitConsumer();
+                    claimConsumer();
                     jsonConsumer();
                     platformConsumers();
                 }
@@ -266,6 +267,29 @@ class Verify {
             throw new AssertionError("Rate-limit consumer did not complete: " + log);
         }
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
+    }
+
+    static void claimConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path inputs = ROOT.resolve("verification/claim-consumer");
+        Path saved = report.resolve("claim-consumer/inputs");
+        copyDirectory(inputs, saved);
+        Path classes = Files.createDirectories(report.resolve("claim-consumer/classes"));
+        Path legacy = Files.createDirectories(report.resolve("claim-consumer/legacy-classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "claim-legacy-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", legacy.toString(),
+                saved.resolve("legacy-api/cn/code91/facility/idempotency/IdempotencyStore.java").toString(),
+                saved.resolve("LegacyOnlyStore.java").toString()), 45, null);
+        // Only the historical implementation enters runtime; the historical interface never shadows the new jar.
+        Files.copy(legacy.resolve("LegacyOnlyStore.class"), classes.resolve("LegacyOnlyStore.class"));
+        run(ROOT, Map.of(), "claim-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "-d", classes.toString(), saved.resolve("ClaimConsumer.java").toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "claim-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "ClaimConsumer"), 45, null);
+        if (!Files.readString(log).contains("CLAIM_CONSUMER_PASS seed=110034 rounds=2048 slots=256 churn=32768 workers=16 close-rounds=128 legacy-binary=true framework=absent"))
+            throw new AssertionError("Claim consumer did not complete: " + log);
+        summary.add("claim-consumer=ordinary jar; pre-expansion SPI binary; owner barrier; seed110034/2048; 256 slots/32768 churn/16 workers/128 closed reachable stores; -Xmx64m/2 processors/45s");
     }
 
     static void jsonConsumer() throws Exception {

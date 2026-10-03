@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-04、FR-09；AC-06、AC-12
 
@@ -27,3 +27,8 @@
 这是旧协议的 expand 票，与新模板同库事务无依赖关系。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+
+## 领取记录（2026-10-04）
+
+工作树 `E:/GenCode/server-facility-worktrees/ticket-11`，分支 `codex/ticket-11`，起点09中央 `c32e72e86de7e4f708e0b423c18f84c955ab683a`。ADR0034。沿用已批准公共claim接口、外部Clock和普通jar消费者seam，不重复请求确认；日志保存 `.verification-results/ticket-11`，不借用09结果作为11验证。
