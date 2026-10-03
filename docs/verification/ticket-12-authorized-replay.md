@@ -1,6 +1,6 @@
 # Ticket 12 verification — authorized bounded HTTP replay
 
-In progress. This report is not a completed acceptance claim. Worktree `ticket-12`, branch `codex/ticket-12`; initial source `6a6667269551eae3d46b7c6bf626fe5f9fd101b3`, implementation baseline advanced to `b7b7ea46778972822c7a757cf593d441bc1cde3c` (runner diagnostics only). The coordinator authorized implementation after ticket 11's actual Ubuntu all completed; the unrelated combined Windows consumer build remained under separate diagnosis.
+Windows final all passed; verification-pending only for Linux CI. This report distinguishes the retained first-run migration failure from the final successful candidate. Worktree `ticket-12`, branch `codex/ticket-12`; initial source `6a6667269551eae3d46b7c6bf626fe5f9fd101b3`, implementation baseline advanced to `b7b7ea46778972822c7a757cf593d441bc1cde3c` (runner diagnostics only). The coordinator authorized implementation after ticket 11's actual Ubuntu all completed; the unrelated combined Windows consumer build remained under separate diagnosis.
 
 Public seams: actual loopback Tomcat HTTP via `EmbeddedServletApplication`, fixture business effects exposed through HTTP, qualified store public operations, fake clock and real worker barriers. ADR-0035 and the ticket-specific plan describe the interface and migration. Raw logs are in `.verification-results/ticket-12` and survive Maven clean.
 
@@ -83,15 +83,43 @@ Ticket 11's clock-rollback test previously asserted an expired current owner's r
 | Q06 | Independently specified FHR1 hex literal and explicit legacy error fields; all truncations and invalid headers/framing rejected before stored bytes are emitted. Deprecated interceptor constructor remains linkable but refuses missing authorization; old Store SPI binary compatibility remains in ClaimConsumer. HTTP behavior migration intentionally removes unsafe ownerless lookup assertions, mapped above. |
 | Q07 | Deterministic exhaustive truncation of the fixed receipt plus finite magic/status/length/header mutations; no random seed needed. Stable literal receipts and effect counts across scope/permission/churn sequences; existing claim state-machine seed110034 retained by the final runner. |
 | Q08 | Exact candidate/environment/OS/JDK/dependencies and raw failures are recorded by the final runner below. Safe error sentinels cover selected paths. Committed host Store/container exception logging boundary is explicitly retained, with coordinated33 follow-up. Linux result is separate, never inferred from Windows. |
-| Q09 | Root coverage88% instruction/line and75% branch, architecture/dependency gates unchanged. Historical SPI tests remain; old HTTP assertions migrated to public qualified contracts with actual network coverage. Final gate results are pending below. |
+| Q09 | Root coverage88% instruction/line and75% branch, architecture/dependency gates unchanged. Historical SPI tests remain; old HTTP assertions migrated to public qualified contracts with actual network coverage. Final Windows gate results are recorded below; Linux remains pending. |
 | Q10 | Source, public migration, ADR, tests and original RED/GREEN logs delivered together. Local full gate and Linux closure are explicitly separate.29/33 own future durable/release-candidate combinations. |
 
 J07 is exercised by `ReplayQuotaHttpTest`: four distinct attempts (first, replay, conflict, new key) consume four entry tokens; a fifth is429. Only the two acquired operations consume business quota. A second real HTTP barrier case holds the first operation and proves a Processing409 consumes the second/final entry token, so the next request is429 while business effects stay one. `ReplayOwnershipHttpTest` separately proves exact lease Retry-After and late-owner behavior. The09 identity/IP tests and these new HTTP combinations run together in the final library gate.
 
 ## Outstanding evidence
 
-Incremental public seams above are complete. Final installed-jar consumers/resource processes, full coverage/architecture/dependency gates, exact integrated source and Windows/Linux platform evidence remain pending. The formal ticket stays in progress until the local final gate succeeds; subsequent Linux verification remains an explicit platform handoff. Tickets 29/33 own their later durable/release-candidate combinations and do not retroactively replace this ticket's own evidence.
+Incremental public seams and the final Windows all are complete. Linux CI remains the only ticket12 platform closure item; status is verification-pending. Tickets29/33 own their later durable/release-candidate combinations and do not retroactively replace this ticket's own evidence.
 
 ## First integrated all — retained migration failure
 
 Candidate `5c759b5111e48675a9a36218e8f53e30c37dfd95` began clean, with explicit PG_BIN and valid Java21 negative-control home. `.verification-results/20261004-070251-893-all/summary.txt` is **RESULT=FAIL**, not a completed all claim. The root library passed1643/0/0/0 with unchanged coverage/architecture/dependency gates; ordinary core/crypto/IO/CSV/Excel/rate-limit/claim consumers, claim fault JVMs, the new Security replay consumer, JSON consumer and default/user platform HTTP consumers passed before `platform-web-disabled` failed its obsolete expectation of naked annotated execution. Cycle43 corrects only that migrated consumer assertion, preserving the real503 response/zero effects. Cycle42 additionally closes the combined Processing entry-charge evidence gap; no production file changed after5c759b5. The next integrated all verifies both changes and the latest07 integration.
+
+## Review and second integrated candidate
+
+Implementation03 reviewed the unchanged5c759b5 production code through both specification and standards axes without editing the worktree. The review checked current authorize-before-claim/replay, trusted tenant/actor/full operation scope, late-owner/current-generation termination, advice/oversize/disconnect receipt refusal, deferred emission after inner filters and current denial, positive resource budgets, deprecated ABI migration, original failure plus suppressed cleanup, ordinary pass-through and allowed headers. No blocking finding was reported. The review explicitly retained the structural wrapper limitation and host/container exception-logging boundary; it did not execute or replace the final all or ticket33's candidate review.
+
+Second candidate `3563d920f355db61c1fa9249efd8eefc1da5ac1a` merges07 central `d28072fb4c5a6a60b81f3ed675cac1d2552bbae0`, preserving `lockConsumer`, `httpReplayConsumer` and every existing runner entry. It began with a clean worktree. `.verification-results/20261004-071310-376-all` is the second full-run evidence directory. Its final summary is RESULT=PASS, exit0; all stages passed as detailed below.
+
+## Final Windows all and exact artifact
+
+Tested source: `3563d920f355db61c1fa9249efd8eefc1da5ac1a`. The run began clean. Command:
+
+```powershell
+$env:PG_BIN='C:/Users/yiwer/AppData/Local/Temp/server-facility-research-tools/postgres-18.6.0-windows/bin'
+$env:VERIFY_WRONG_JAVA_HOME='C:/Users/yiwer/AppData/Local/Temp/server-facility-research-tools/jdk21/jdk-21.0.12.1+1'
+java verification/Verify.java all
+```
+
+`.verification-results/20261004-071310-376-all/summary.txt` is **RESULT=PASS**, process exit0. Oracle JDK25.0.4.1+1-LTS-5, checked-in Maven Wrapper3.10.0, Windows11 amd64, Asia/Shanghai, zh_CN; isolated repository, fresh=false. PostgreSQL18.6 binaries were explicitly supplied; the template owned its temporary cluster and lifecycle.
+
+- Root library1667 tests,0 failures/errors/skips; all five named architecture rules and dependency analysis passed. Instruction25894/27905=92.793%, line5015/5325=94.178%, branch2784/3294=84.517%; original88%/88%/75% limits remain.
+- Ordinary core/crypto/IO/CSV/Excel/lock/rate-limit/claim consumers, real missing-library graphs, JSON and actual platform HTTP/default/user/disabled cases all passed. Historical SPI/binary consumers and32MiB claim fault probes remain.
+- `46-http-replay-security.log` contains the full PASS sentinel for trusted tenant/actor/route, current permission revoke/restore,32 bindings/512 churn/2 application cycles with128MiB/2CPU/120s. It uses the installed ordinary jar; JUnit/library test fixtures are absent.
+- The actual HTTP suites cover finite input/output limits, current authorization, different/inherited/overloaded operations, normalizer/controller ownership, async refusal, advice/serialization/inner-filter faults, late generation, qualified Store UNKNOWN failure and real socket RST. Root streaming/resource tests also passed; ordinary downloads/SSE retain their streaming behavior.
+- Partner independent build, executable HTTP and missing-coverage negative control passed. Secured template76 tests passed with no failures/errors/skips, followed by actual executable-jar platform/virtual and restart HTTP cases using PostgreSQL. Template no-overwrite and missing-coverage negative controls passed.
+- Five repeated independent application startup/use/close cycles and checksum/missing-JDK/realJava21 negative controls passed. No product/test/runner source changed during this final run; only this ticket's explanatory documentation was edited afterward.
+- Library jar SHA256: `faa5383527384643f490496239d6d305f000eb6284804aa8b6cd5c62f770589f`. Secured template jar SHA256: `40c4b4b207d3f6e03c926ac48f5421fca0dfa80149af5f0aa35ebf48f433c53f`.
+
+Integration remained `d28072fb4c5a6a60b81f3ed675cac1d2552bbae0` at completion and is already an ancestor. Final delivery adds only CHANGELOG/CONTEXT/migration/report/formal ticket notes to the exact tested source. `coordination/ticket-12-premerge-review.md` records implementation03's short two-axis review. Linux CI must still run on the merged candidate before closed; local PostgreSQL success is not substituted for the coordinator's separate CI14 Windows diagnosis on ticket28.
