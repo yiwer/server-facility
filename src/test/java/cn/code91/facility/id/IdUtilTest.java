@@ -2,7 +2,6 @@ package cn.code91.facility.id;
 
 import cn.code91.facility.id.support.SnowIdGenerator;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,12 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("IdUtil ID 生成工具类测试")
 class IdUtilTest {
-
-    @BeforeEach
-    void setUp() {
-        // 确保使用默认生成器，不依赖 Spring 上下文
-        IdUtil.setGenerator(new SnowIdGenerator(0, 0));
-    }
 
     // ==================== snowId ====================
 

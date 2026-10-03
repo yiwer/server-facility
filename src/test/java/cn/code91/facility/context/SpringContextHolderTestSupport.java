@@ -1,13 +1,26 @@
 package cn.code91.facility.context;
 
-/**
- * 测试专用桥:向其他包的测试暴露包私有的 {@link SpringContextHolder#clear()}(RP-12 下
- * 生产 API 不提供全局重置,测试清理只能经由本类)。
- */
-public final class SpringContextHolderTestSupport {
-    private SpringContextHolderTestSupport() {}
+import org.springframework.context.support.GenericApplicationContext;
 
-    public static void reset() {
-        SpringContextHolder.clear();
+import java.util.ArrayList;
+import java.util.List;
+
+/** Owns only the application contexts created by one test; no global state reset. */
+public final class SpringContextHolderTestSupport implements AutoCloseable {
+    private final List<GenericApplicationContext> contexts = new ArrayList<>();
+
+    public <T extends GenericApplicationContext> T refresh(T context) {
+        contexts.add(context);
+        context.registerBean(SpringContextHolder.class);
+        context.refresh();
+        return context;
+    }
+
+    @Override
+    public void close() {
+        for (int i = contexts.size() - 1; i >= 0; i--) {
+            contexts.get(i).close();
+        }
+        contexts.clear();
     }
 }

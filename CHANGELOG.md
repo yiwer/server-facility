@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### Context 生命周期迁移（2026-10-03，ADR-0025）
+
+- `SpringContextHolder` 弃用，推荐构造器注入所需服务。兼容门面改为成功刷新时发布，并仅由发布的 holder 实例撤销；被拒绝的容器关闭、启动失败、父子事件或重复 destroy 不清理另一个应用的注册。
+- `setApplicationContextManually` 不再替换已有 owner，只接受 refresh 已返回、未开始关闭且使用 Spring singleton registry 的活跃 `AbstractApplicationContext`，自动随其关闭/原地刷新撤销；无效生命周期输入抛 `IllegalArgumentException`。必需 Class 查询参数 null fail-fast；null 名称返回缺席语义。
+- `IdUtil` 与 `LogUtil` 不再跨 context 关闭缓存 Spring bean，重启使用新应用的服务。显式 `IdUtil.setGenerator`/`resetGenerator` 的调用方管理语义保留；`LogUtil.clearHandlerCache` 已弃用并成为兼容空操作。
+- 测试迁移：持有并关闭自己创建的 Spring context；移除全局 holder reset/反射清理。旧静态入口仍只代表一个 owner，多个应用使用构造器注入保持各自政策。
+
 ### Java 25 中间基线（2026-10-03，ticket 01）
 
 - 最低运行/编译版本改为 Java 25，产物 class major 69，不使用 preview；Java 21 消费方须先升级 JDK。

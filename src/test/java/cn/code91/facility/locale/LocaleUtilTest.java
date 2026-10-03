@@ -1,10 +1,9 @@
 package cn.code91.facility.locale;
 
-import cn.code91.facility.context.SpringContextHolder;
+import cn.code91.facility.context.SpringContextHolderTestSupport;
 import cn.code91.facility.error.ErrorTypeInterface;
 import cn.code91.facility.error.FacilityErrorType;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -12,21 +11,18 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.context.support.GenericApplicationContext;
 
-import java.lang.reflect.Field;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("LocaleUtil - i18n 门面与 C1 边界本地化(ADR-0010)")
 class LocaleUtilTest {
 
-    @BeforeEach
+    private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
+
     @AfterEach
-    void clearHolder() throws Exception {
-        Field f = SpringContextHolder.class.getDeclaredField("CONTEXT_REF");
-        f.setAccessible(true);
-        ((AtomicReference<?>) f.get(null)).set(null);
+    void closeContexts() {
+        contexts.close();
     }
 
     private static ErrorTypeInterface customType(String key, String template) {
@@ -37,7 +33,7 @@ class LocaleUtilTest {
         };
     }
 
-    private static void installBundleContext() {
+    private void installBundleContext() {
         ResourceBundleMessageSource ms = new ResourceBundleMessageSource();
         ms.setBasename("i18n/facility-messages");
         ms.setDefaultEncoding("UTF-8");
@@ -47,8 +43,7 @@ class LocaleUtilTest {
         // initMessageSource 即采用之,getBean(MessageSource.class) 恰一个 bean
         GenericApplicationContext ctx = new GenericApplicationContext();
         ctx.getBeanFactory().registerSingleton("messageSource", ms);
-        ctx.refresh();
-        SpringContextHolder.setApplicationContextManually(ctx);
+        contexts.refresh(ctx);
     }
 
     @Nested

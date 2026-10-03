@@ -1,6 +1,5 @@
 package cn.code91.facility.ratelimit;
 
-import cn.code91.facility.context.SpringContextHolder;
 import cn.code91.facility.context.SpringContextHolderTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,11 +12,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("RateLimiterUtil - 限流门面(委托 RateLimiter bean + 无 bean 降级放行)")
 class RateLimiterUtilTest {
 
+    private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
+
     @AfterEach
     void cleanup() {
-        // 毒化清理:refresh 过的 GenericApplicationContext 若不清理会串到后续测试类
-        // (P6-T5 事故根因),经 context 包测试桥调用包私有 clear()。
-        SpringContextHolderTestSupport.reset();
+        contexts.close();
     }
 
     @Test
@@ -32,8 +31,7 @@ class RateLimiterUtilTest {
         GenericApplicationContext ctx = new GenericApplicationContext();
         ctx.getBeanFactory().registerSingleton("rateLimiter",
                 new TokenBucketRateLimiter(1, 1, 100));
-        ctx.refresh();
-        SpringContextHolder.setApplicationContextManually(ctx);
+        contexts.refresh(ctx);
 
         assertThat(RateLimiterUtil.tryAcquire("k")).isTrue();
         assertThat(RateLimiterUtil.tryAcquire("k")).isFalse();
@@ -54,8 +52,7 @@ class RateLimiterUtilTest {
         GenericApplicationContext ctx = new GenericApplicationContext();
         ctx.getBeanFactory().registerSingleton("rateLimiter",
                 new TokenBucketRateLimiter(1, 0.0001, 100));
-        ctx.refresh();
-        SpringContextHolder.setApplicationContextManually(ctx);
+        contexts.refresh(ctx);
 
         assertThat(RateLimiterUtil.acquire("k", 1, 1, 0.0001).allowed()).isTrue();
         RateLimitResult second = RateLimiterUtil.acquire("k", 1, 1, 0.0001);

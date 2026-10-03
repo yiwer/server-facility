@@ -54,73 +54,30 @@ public final class IdUtil {
     private static volatile boolean warnedDefaultFallback = false;
 
     /**
-     * 缓存的ID生成器引用
-     * <p>重构说明：初始值为 null，第一次调用时初始化</p>
+     * 显式手工设置的ID生成器引用（不缓存 Spring bean）
+     * <p>仅 setGenerator 显式设置；resetGenerator 恢复 Spring/default 查找。</p>
      */
     private static volatile SnowIdGenerator cachedGenerator = null;
 
-    /**
-     * Spring查找是否已完成的标志
-     * <p>重构说明：避免重复查找Spring Bean</p>
-     */
-    private static volatile boolean springLookupDone = false;
-
-    /**
-     * <b>获取ID生成器</b>
-     * <p>
-     * 重构说明：修复了双重检查锁定的逻辑问题。
-     * 初始化流程：
-     * 1. 首次调用时尝试从 Spring 容器获取
-     * 2. 如果获取成功，缓存 Spring Bean
-     * 3. 如果获取失败，缓存默认生成器
-     * 4. 后续调用直接返回缓存的生成器
-     * </p>
-     * <p>
-     * 性能特征(F20 决策 a):Spring 未就绪期间每次调用都经全局锁+bean 查找(非闩锁回退)——换取
-     * 容器迟到也能接上 Spring 配置;仅静态回退场景有此税,有实测热点再优化。
-     * </p>
-     *
-     * @return ID生成器实例
-     */
+    /** Resolves the current application's generator without retaining a Spring bean after close. */
     private static SnowIdGenerator getIdGenerator() {
-        // 快速路径：已初始化
-        SnowIdGenerator cached = cachedGenerator;
-        if (cached != null) {
-            return cached;
+        SnowIdGenerator explicit = cachedGenerator;
+        if (explicit != null) {
+            return explicit;
         }
-
-        // 慢速路径：初始化
-        synchronized (IdUtil.class) {
-            cached = cachedGenerator;
-            if (cached != null) {
-                return cached;
-            }
-
-            // 只在尚未确定时尝试从 Spring 获取
-            if (!springLookupDone) {
-                SnowIdGenerator springBean = SpringContextHolder
-                        .getBean(SnowIdGenerator.class)
-                        .orElseGet(() -> null);
-
-                if (springBean != null) {
-                    cachedGenerator = springBean;
-                    springLookupDone = true;
-                    return cachedGenerator;
-                }
-
-                // Spring 未就绪：暂用 DEFAULT，但【不缓存、不置 springLookupDone】，下次调用继续重试 lookup。
+        SnowIdGenerator springBean = SpringContextHolder.getBean(SnowIdGenerator.class).orElse(null);
+        if (springBean != null) {
+            return springBean;
+        }
+        if (!warnedDefaultFallback) {
+            synchronized (IdUtil.class) {
                 if (!warnedDefaultFallback) {
-                    log.warn("IdUtil: SnowIdGenerator Spring bean 未就绪，暂用 DEFAULT(dataCenterId=0/workerId=0)"
-                            + " 并将持续重试 Spring lookup。分布式环境下若长期落 DEFAULT，多节点 workerId 全为 0"
-                            + " 会导致雪花 ID 冲突。");
+                    log.warn("IdUtil: SnowIdGenerator Spring bean unavailable; using DEFAULT(dataCenterId=0/workerId=0)");
                     warnedDefaultFallback = true;
                 }
-                return DEFAULT_GENERATOR;
             }
-
-            // 理论上不会到达这里，但为了安全起见
-            return DEFAULT_GENERATOR;
         }
+        return DEFAULT_GENERATOR;
     }
 
     // ==================== ID 生成方法 ====================
@@ -282,7 +239,6 @@ public final class IdUtil {
      */
     public static synchronized void resetGenerator() {
         cachedGenerator = null;
-        springLookupDone = false;
         warnedDefaultFallback = false;
     }
 
@@ -301,6 +257,5 @@ public final class IdUtil {
             throw new IllegalArgumentException("Generator cannot be null");
         }
         cachedGenerator = generator;
-        springLookupDone = true;
     }
 }
