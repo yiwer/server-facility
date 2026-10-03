@@ -4,6 +4,8 @@
 
 Accepted，2026-10-03。票 21；补充 ADR-0024 的 Java 25 中间基线和 ADR-0025 的构造器注入方向。旧 ADR 中没有单独定义 JSON registry；本决策替代 USAGE 中“多上下文共享 JSON 注册表是推荐设计”的表述，保留其旧 API 行为。
 
+实施进展（2026-10-04）：决策5中的票22依赖、技术模块和工具链阶段已按 [ADR-0045](0045-boot4-platform-toolchain.md) 完成。旧 Jackson Java 类型和应用 mapper 行为仍由23迁移，本决策的23/24责任与非发布边界保持。
+
 ## Context
 
 Boot 3 的 MVC 使用应用 ObjectMapper，但 FacilityJsonAutoConfiguration 只把它发布到进程级 JsonUtil registry。应用 B 会覆盖 A 的默认值，关闭也不恢复。JsonConfig 在 build 后突变 mapper；Jackson 3 的不可变 builder 生命周期不能机械迁移这条路径。公开 Jackson 类型、独立协议样本和真实 HTTP 接合都必须在旧平台仍能验证时登记。

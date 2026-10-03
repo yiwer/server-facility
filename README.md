@@ -20,7 +20,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（29 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（30 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -34,7 +34,8 @@
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **快照（2026-10-04，Windows / Java 25 中间基线）**：测试 1323 项全绿（含 5 条 ArchUnit）；instruction 92.9939% / line 93.3940% / branch 86.1614%。被测提交 `5a59d2f`，合并保留相同源码/POM/验证入口，见 [票 05 证据](docs/verification/ticket-05-bounded-web-streams.md)。票 04 的 `66bf4d0` 已通过两端 CI；票 05 的集成 CI 尚待验证。Boot 4 仍由票 22–24 收敛。
+- **当前验证边界（2026-10-04，Boot 4.1.1 / Jackson 3.1.5）**：目标依赖与独立工具链5项探针通过；根编译仍有68条已登记的Jackson旧类型错误，由23关闭，主库测试尚未执行。票22已按批准的中间批次验收，24才恢复完整平台门，见 [票22证据](docs/verification/ticket-22-platform.md)。
+- **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图
 
@@ -48,7 +49,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 26 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 30 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
@@ -176,6 +177,8 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 修改本仓库代码时的成文规则。完整条款：DESIGN §7 一致性宪法；工作流：SDD（spec → plan → TDD 实施，档案在 `docs/superpowers/`）。
 
 **完成判定**：`./mvnw verify` 库质量门全绿，发布/集成另运行 `java verification/Verify.java all --fresh`。门槛失败修代码、补测试，**不得调低 pom 门槛值或随手加 ignore**（依赖账目确需 ignore 时必须注明理由，样例见 pom 注释）。
+
+票22/23是已批准的非发布迁移例外：只在 `codex/server-facility-next` 记录明确归属的暂时失败，独立 `platform` 子集不能代替 `all`。票24恢复完整门后才进入主线或候选发布。
 
 **架构红线**（ArchUnit，`src/test/java/cn/code91/facility/architecture/ArchitectureTest.java`，违反即测试红）：
 

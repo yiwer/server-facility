@@ -1,6 +1,6 @@
 # 票 22：Boot 4 平台与工具链子集证据
 
-日期 2026-10-04。实现可供非发布集成线审阅，状态 `verification-pending` 等待集成复核。本票允许的窄迁移边界是 **工具链/依赖子集通过、主库 Jackson 编译明确失败**，不是全库绿色或可发布版本。Linux 与完整同产物保证由 24 闭合；22 未执行目标 Linux 验证，不借用 04/05 旧平台结果。
+日期 2026-10-04。非发布集成复核完成，票22 `closed`，解除23前置。本票允许的窄迁移边界是 **工具链/依赖子集通过、主库 Jackson 编译明确失败**，不是全库绿色或可发布版本。Linux 与完整同产物保证由 24 闭合；22 未执行目标 Linux 验证，不借用 04/05 旧平台结果。
 
 ## 被测提交与最终同步
 
@@ -8,6 +8,7 @@
 - 合入 05 后的根源码、测试与 POM：`7e4215b1dd96309fc71f3a35eb282f6b7e18308d`。实际 `clean verify` 失败于主 compile，**68 个 Jackson 类型诊断、未执行 testCompile/Surefire**；逐条文件/行列/类型/owner 见 [精确交接](ticket-22-jackson-diagnostics.md)。没有达到 javac 默认100条截断，没有非 Jackson 诊断混入。
 - 已合入最新 integration `2304a57103b8c6f6a0791a783b80440dd652c1b0`，本树合并提交 `fac1a33c028753e5b61a4e17dcaae987227eb7f1`。对比 7e4215b 的 `src`、`pom.xml`、`verification`、workflow 均无变化；只新增中央文档/CI关闭记录，因此不重复同源全量测试。
 - 04 新增 `FacilityHttpErrors` 的 mapper 公开类型与自动装配 fallback 纳入 23；05 移除私有 413 mapper，诊断由69减为68。05 显式 `junit-jupiter-params` 保留，由目标 BOM 解析6.0.3；05三个真实HTTP场景的容器自动装配进口已迁移。
+- 集成复核：先把只更新05 CI文档的 `bfbc3d9` 合入票22为 `7257aa54ae8fc29944adde806e227aa8fe728377`，再从干净 integration `bfbc3d9` 以 `--no-ff` 合入为 `be8ea22ce7cd909e60d7e13e9913b591143d070e`。主checkout的源码/POM/verification/workflow与被测7e4215b一致，独立探针与被测0f15f13一致；root另行审阅后确认符合22例外。仅补中央文档、ADR部分替代与状态，不重跑同源全门，不push。
 
 ## 环境与可重放命令
 

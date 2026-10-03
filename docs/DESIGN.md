@@ -1,5 +1,7 @@
 # server-facility 设计
 
+当前处于票22完成后的 Boot4.1.1/Jackson3.1.5 非发布迁移中间态：工具链与目标依赖已验收，68条旧Jackson类型编译错误交23，主库完整运行与跨平台产物保证交24。下述长期契约不代表这些目标平台场景已全部复验，详见 [平台账本](building/boot4-platform.md)。
+
 ## 1. Deep module 哲学
 
 server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现宽。消费方看到的是
@@ -90,7 +92,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-29 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+30 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -117,18 +119,20 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0021 | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
 | 0022 | `LogUtil` 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
-| 0024 | Java 25 中间基线、固定校验 Wrapper、独立普通 jar 消费与跨平台验证入口 |
+| 0024 | Java 25、固定校验 Wrapper、独立普通 jar 与跨平台入口；Boot3中间版本由0045部分替代 |
 | 0025 | Context 注册归实例所有、刷新/关闭隔离；构造器注入为默认，ID/日志兼容入口不跨 context 缓存 Spring bean |
 | 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
 | 0027 | 安全 RFC 9457 错误策略贯通 Filter/MVC/ERROR，真实状态和必要头；已提交边界、宿主政策与显式 legacy 迁移 |
 | 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
+| 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 
 ## 6. 质量门
 
-- **测试快照（2026-10-04，Windows / Java 25 / Boot 3.5.16）**:1323 项、0失败/错误/跳过，含 5 条 ArchUnit；`clean verify` 的原覆盖率/依赖门通过。被测提交 `5a59d2f`，合并保留相同源码/POM/验证入口，详见 [票05证据](verification/ticket-05-bounded-web-streams.md)。票04的 `66bf4d0` 已通过 Windows/Ubuntu `all --fresh`；票05的集成 CI 与目标 Servlet6.1 仍待验证。
+- **当前目标平台（2026-10-04）**：独立工具链5项及两引擎负向控制通过，目标依赖解析成功；`7e4215b` 的根compile报68条已登记Jackson错误，未进入主库testCompile/Surefire。票22的窄迁移验收已完成，23/24继续关闭目标平台欠项，见 [票22证据](verification/ticket-22-platform.md)。
+- **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载责任仍由24关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
-  (上述快照 instruction92.9939% / line93.3940% / branch86.1614%),达标即门,退化即红。
+  (旧平台快照 instruction92.9939% / line93.3940% / branch86.1614%)，当前目标覆盖率尚未执行，门槛保持。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
 
