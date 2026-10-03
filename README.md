@@ -143,7 +143,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `lock` | `LockUtil` / `DistributedLock`（SPI） | 分布式锁：高阶 `executeWithLock` 自动获取释放 + `tryLock`/`unlock`；默认单机 ReentrantLock，SPI 可替换 Redisson |
 | `http` | `HttpClients` | HTTP client 门面：委托 RestClient，`get`/`post`/`put`/`delete`→`Result`；超时可配 |
 | `idempotency` | `IdempotencyStore`（SPI） | 执行资格、指纹绑定与有界回执；lease/retention分离，旧入口保留迁移（ADR0034） |
-| `web.idempotency` | `@Idempotent` | 旧HTTP响应重放与有界捕获；安全claim路径迁移由票12完成 |
+| `web.idempotency` | `@Idempotent` | 当前授权/可信身份/操作隔离的有界同步响应重放；必须提供宿主授权 Adapter（ADR0035） |
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex（静态门面，纯 JDK，无需配置） |
 | `masking` | `MaskUtil` | 纯函数脱敏（旧 LogUtil 默认集成）：秘密/JWT/身份证/银行卡/邮箱/手机号六规则，校验位（mod11-2/Luhn）抑误伤；`LogUtil` 写前集成，`setMaskingEnabled(false)` 可关（静态门面，纯 JDK，无需配置） |
 | `csv` | `CsvUtil` | 有界 CSV 读写（Commons CSV required）：strict/legacy 方言、逐行消费、UTF-8 字节/行列/字段预算；机器与电子表格导出政策分离 |
@@ -165,7 +165,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `facility.cache` | 缓存：`default-ttl` / `maximum-size`（仅 Caffeine 后端生效） |
 | `facility.lock` | 分布式锁：`max-locks`（锁集合无界防护上限） |
 | `facility.http` | HTTP client：`connect-timeout` / `read-timeout` |
-| `facility.idempotency` | 幂等：`default-ttl` / `max-entries` |
+| `facility.idempotency` | 幂等：`lease` / `result-retention` / `max-entries` / 请求、响应与合计回执字节预算；`default-ttl` 仅兼容回退 |
 
 ## 消费方陷阱速查
 

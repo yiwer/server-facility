@@ -28,6 +28,9 @@ public final class PlatformWebConsumer {
     @SpringBootConfiguration @EnableAutoConfiguration
     static class Application {
         @Bean Endpoint endpoint() { return new Endpoint(); }
+        @Bean IdempotencyAuthorization authorization() {
+            return (request, operation, body) -> new IdempotencyAuthorization.Command("platform-fixture", "fixture", "empty-v1");
+        }
 
         @Bean @ConditionalOnProperty(name="platform.user", havingValue="true")
         JsonMapper applicationMapper() {

@@ -13,7 +13,8 @@ import java.io.IOException;
  * are passed through. The interceptor may select a finite synchronous response before
  * output is accessed, retaining up to the positive budget while every write goes to the container.
  * Overflow, I/O failure or async handoff discards the copy. No container stream is closed,
- * no body is copied again at filter exit, and no retry is performed here.
+ * the first response is not drained again at filter exit, and no retry is performed here.
+ * A qualified replay is emitted once after successful inner filter completion (ADR-0035).
  */
 public class IdempotencyFilter extends OncePerRequestFilter {
     private final int maxCaptureBytes;

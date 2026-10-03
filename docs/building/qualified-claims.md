@@ -39,6 +39,6 @@ try (var store = new InMemoryIdempotencyStore(1024, 64 * 1024, 8L * 1024 * 1024,
 
 迁移必须把首次占位、重复决策、完成和释放整条路径切换。旧 `tryBegin/find/complete(String,...)` 保留并弃用，使用独立命名空间；对同一业务混用两套入口没有互斥保证。旧 complete 现在要求活跃旧PROCESSING，不能凭空插入、覆盖旧DONE或突破预算；旧key也限256单元，TTL必须正数，旧record的状态与Content-Type校验收紧。旧TTL仍保持历史 `now > expiresAt` 才过期与可重入政策，不能据此宣称安全业务重试。
 
-票11没有迁移HTTP拦截器，因此不宣布整体HTTP幂等已安全。票12会迁移仓库内旧调用、当前身份/授权、状态与允许头编码、捕获失败/断连/异步时的UNKNOWN及结果重放；票29负责持久业务命令。旧自定义Adapter须提供其真实后端上的原子资格比较、故障保留与容量证据，内存测试不能替代网络分区或跨实例验证。
+票12已把仓库 HTTP 消费者迁至 qualified 入口，要求当前授权 Adapter 并定义有界状态/允许头、终态与异步拒绝，见[HTTP 迁移](authorized-http-replay.md)。ADR0035 的窄例外允许过期但仍为当前 PROCESSING 的 owner 终止；被替换 owner 不得终止新 generation，完成仍要求有效租约。票29负责持久业务命令。旧自定义Adapter须提供其真实后端上的原子资格比较、故障保留与容量证据，内存测试不能替代网络分区或跨实例验证。
 
 普通jar验证入口是 `java verification/Verify.java integration` 或 `all`，包含仅JDK的claim消费者：历史三方法SPI二进制兼容、A/B迟到owner屏障、固定seed110034、硬容量churn以及128个保持可达的已关闭store（64MiB堆）。完整状态表见[ADR0034](../adr/0034-qualified-legacy-claims.md)。

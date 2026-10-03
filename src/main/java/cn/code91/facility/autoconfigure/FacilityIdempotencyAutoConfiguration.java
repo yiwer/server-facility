@@ -21,13 +21,14 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * 幂等自动装配(ADR-0017)。
+ * Qualified claim 与已授权 HTTP 重放自动装配（ADR-0034/0035）。
  * <p>
  * {@code facilityIdempotencyStore} 不带 web 条件——纯通用能力,非 web 场景(内部 RPC 等)
  * 可直接注入 {@link IdempotencyStore}。{@link IdempotencyInterceptor} 与其
  * {@link FilterRegistrationBean}/{@link WebMvcConfigurer} 注册仅在 servlet 栈 web 应用中
- * 装配——{@link IdempotencyFilter} 默认直通，既有 claim 成功后才开启有界响应副本，
- * 超限或传输失败不保存。捕获与流所有权见 ADR-0028；旧状态机边界见 ADR-0017。
+ * 装配——{@link IdempotencyFilter} 默认直通，qualified claim 成功后才开启有界响应副本。
+ * HTTP 目标必须提供当前授权 Adapter；关闭 provider/filter 后注解守卫仍拒绝无保护执行。
+ * 超限或传输失败不保存且不隐式重新授予资格。捕获与流所有权见 ADR-0028。
  * 全部 bean 均 {@code @ConditionalOnMissingBean}(或
  * {@code @ConditionalOnMissingBean(name = ...)})——消费方声明同类型(或同名)bean 即可
  * 整体覆盖默认实现。

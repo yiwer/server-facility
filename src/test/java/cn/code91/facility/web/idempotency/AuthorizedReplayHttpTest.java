@@ -242,11 +242,11 @@ class AuthorizedReplayHttpTest {
 
     @Test void unsupportedRepresentationMetadataNeverProducesAReplayReceipt() throws Exception {
         try (var app = application(Authorized.class); var client = HttpClient.newHttpClient()) {
-            for (String kind : java.util.List.of("encoded", "range", "large-location")) {
+            for (String kind : java.util.List.of("encoded", "range", "large-location", "multiple-encoding")) {
                 assertThat(request(app, client, "/representation/" + kind, "Idempotency-Key", "metadata").statusCode()).isEqualTo(200);
                 assertThat(request(app, client, "/representation/" + kind, "Idempotency-Key", "metadata").statusCode()).as(kind).isEqualTo(503);
             }
-            assertThat(request(app, client, "/effects").body()).isEqualTo("3");
+            assertThat(request(app, client, "/effects").body()).isEqualTo("4");
         }
     }
 
@@ -259,6 +259,57 @@ class AuthorizedReplayHttpTest {
             for (String name : java.util.List.of("Content-Encoding", "Content-Disposition", "Content-Range", "ETag", "Last-Modified"))
                 assertThat(replay.headers().allValues(name)).as(name).isEmpty();
             assertThat(replay.headers().firstValue("X-Frame-Options")).contains("DENY");
+        }
+    }
+
+    @Test void responseSerializationFailureCannotTurnAPartialResultIntoAReceipt() throws Exception {
+        try (var app = application(Authorized.class, ControlledTime.class); var client = HttpClient.newHttpClient()) {
+            var first = request(app, client, "/serialization-failure", "Idempotency-Key", "serializer");
+            assertThat(first.statusCode()).isEqualTo(500);
+            assertThat(first.body()).doesNotContain("PRIVATE-SERIALIZATION", "visible-prefix", "Exception");
+            assertThat(request(app, client, "/clock/1000000").statusCode()).isEqualTo(200);
+            assertThat(request(app, client, "/serialization-failure", "Idempotency-Key", "serializer").statusCode()).isEqualTo(503);
+            assertThat(request(app, client, "/effects").body()).isEqualTo("1");
+        }
+    }
+
+    @Test void explicitLegacyErrorEnvelopeDoesNotRestoreUnsafeExecutionOrExposeTheKey() throws Exception {
+        try (var app = application(new String[]{"facility.web.exception.use-problem-detail=false"}); var client = HttpClient.newHttpClient()) {
+            var response = request(app, client, "/command", "Idempotency-Key", "PRIVATE-KEY");
+            assertThat(response.statusCode()).isEqualTo(200);
+            var body = new tools.jackson.databind.ObjectMapper().readTree(response.body());
+            assertThat(body.get("code").asInt()).isEqualTo(503);
+            assertThat(body.get("message").asString()).isEqualTo("Service Unavailable");
+            assertThat(response.body()).doesNotContain("PRIVATE-KEY", "Exception", "stackTrace");
+            assertThat(request(app, client, "/effects").body()).isEqualTo("0");
+        }
+    }
+
+    @Test void anAlreadyAsynchronousRequestCannotAcquireAFiniteCommand() throws Exception {
+        try (var app = application(Authorized.class, AlreadyAsync.class); var client = HttpClient.newHttpClient()) {
+            assertThat(request(app, client, "/command", "Idempotency-Key", "already-async").statusCode()).isEqualTo(503);
+            assertThat(request(app, client, "/effects").body()).isEqualTo("0");
+        }
+    }
+
+    @Test void inconsistentEntityFramingCannotSaveBytesDifferentFromTheFirstWireResponse() throws Exception {
+        try (var app = application(Authorized.class); var client = HttpClient.newHttpClient()) {
+            var first = request(app, client, "/short-framing", "Idempotency-Key", "framing");
+            assertThat(first.statusCode()).isEqualTo(200);
+            assertThat(first.body()).isEqualTo("ab");
+            assertThat(request(app, client, "/short-framing", "Idempotency-Key", "framing").statusCode()).isEqualTo(503);
+            assertThat(request(app, client, "/effects").body()).isEqualTo("1");
+        }
+    }
+
+    @Test void fullOverloadSignatureSeparatesOperationsWhileHostNormalizationIncludesBusinessQueryValues() throws Exception {
+        try (var app = application(OverloadAuthorization.class); var client = HttpClient.newHttpClient()) {
+            assertThat(request(app, client, "/overloaded", "Idempotency-Key", "overload").body()).isEqualTo("plain-1");
+            assertThat(request(app, client, "/overloaded?mode=fast", "Idempotency-Key", "overload").body()).isEqualTo("fast-2");
+            assertThat(request(app, client, "/overloaded", "Idempotency-Key", "overload").body()).isEqualTo("plain-1");
+            assertThat(request(app, client, "/overloaded?mode=fast", "Idempotency-Key", "overload").body()).isEqualTo("fast-2");
+            assertThat(request(app, client, "/overloaded?mode=other", "Idempotency-Key", "overload").statusCode()).isEqualTo(409);
+            assertThat(request(app, client, "/effects").body()).isEqualTo("2");
         }
     }
 
@@ -309,6 +360,13 @@ class AuthorizedReplayHttpTest {
                 return new IdempotencyAuthorization.Command("tenant-a", "actor-a",
                         "purchase-v1:" + command.get("currency").asString() + ":" + command.get("amount").asInt());
             };
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false) static class OverloadAuthorization {
+        @Bean IdempotencyAuthorization authorization() {
+            return (request, operation, body) -> new IdempotencyAuthorization.Command("tenant", "actor",
+                    "mode-v1:" + java.util.Objects.requireNonNullElse(request.getParameter("mode"), "fast"));
         }
     }
 
@@ -407,6 +465,20 @@ class AuthorizedReplayHttpTest {
     static class SwallowingAdvice {
         @ExceptionHandler(PlannedFailure.class) org.springframework.http.ResponseEntity<String> swallow(PlannedFailure failure) {
             return org.springframework.http.ResponseEntity.status(failure.status).body("advice-result");
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false) static class AlreadyAsync {
+        @Bean org.springframework.boot.web.servlet.FilterRegistrationBean<jakarta.servlet.Filter> alreadyAsync() {
+            var registration = new org.springframework.boot.web.servlet.FilterRegistrationBean<jakarta.servlet.Filter>();
+            registration.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE + 4); registration.setAsyncSupported(true);
+            registration.setFilter((request, response, chain) -> {
+                if (((jakarta.servlet.http.HttpServletRequest) request).getRequestURI().equals("/command")) {
+                    var async = request.startAsync(request, response);
+                    try { chain.doFilter(request, response); } finally { async.complete(); }
+                } else chain.doFilter(request, response);
+            });
+            return registration;
         }
     }
 
@@ -522,9 +594,20 @@ class AuthorizedReplayHttpTest {
         @Idempotent @GetMapping("/representation/{kind}") org.springframework.http.ResponseEntity<String> representation(@PathVariable("kind") String kind) {
             var result = org.springframework.http.ResponseEntity.ok();
             if (kind.equals("encoded")) result.header("Content-Encoding", "gzip");
+            if (kind.equals("multiple-encoding")) result.header("Content-Encoding", "identity", "gzip");
             if (kind.equals("range")) result.header("Content-Range", "bytes 0-5/10");
             if (kind.equals("large-location")) result.header("Location", "/" + "x".repeat(4096));
             return result.body("metadata-" + effects.incrementAndGet());
         }
+        @Idempotent @GetMapping("/serialization-failure") PoisonResult serializationFailure() { effects.incrementAndGet(); return new PoisonResult(); }
+        @Idempotent @GetMapping("/short-framing") void shortFraming(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+            effects.incrementAndGet(); response.setContentLength(2); response.getOutputStream().write(new byte[]{'a', 'b', 'c'});
+        }
+        @Idempotent @GetMapping(value = "/overloaded", params = "!mode") String overloaded() { return "plain-" + effects.incrementAndGet(); }
+        @Idempotent @GetMapping(value = "/overloaded", params = "mode") String overloaded(@RequestParam("mode") String mode) { return mode + "-" + effects.incrementAndGet(); }
+    }
+    public static class PoisonResult {
+        public String getVisible() { return "visible-prefix"; }
+        public String getPoison() { throw new IllegalStateException("PRIVATE-SERIALIZATION"); }
     }
 }

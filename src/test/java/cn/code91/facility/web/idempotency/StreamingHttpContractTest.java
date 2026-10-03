@@ -41,7 +41,7 @@ class StreamingHttpContractTest {
             if (mode.endsWith("keep")) assertThat(first.body()).isEqualTo("prefix");
             else assertThat(first.body()).doesNotContain("prefix");
             var replay = client.send(request, HttpResponse.BodyHandlers.ofString());
-            assertThat(replay.statusCode()).isEqualTo(409);
+            assertThat(replay.statusCode()).isEqualTo(503);
             assertThat(replay.headers().firstValue("Location")).isEmpty();
             assertThat(replay.body()).doesNotContain("prefix");
         }
@@ -92,7 +92,7 @@ class StreamingHttpContractTest {
             assertThat(first.body()).isEqualTo("prefix");
             var retry = client.send(HttpRequest.newBuilder(app.uri("/partial-error"))
                     .header("Idempotency-Key", "partial").GET().build(), HttpResponse.BodyHandlers.ofString());
-            assertThat(retry.statusCode()).isEqualTo(409);
+            assertThat(retry.statusCode()).isEqualTo(503);
             var error = client.send(HttpRequest.newBuilder(app.uri("/send-error")).GET().build(), HttpResponse.BodyHandlers.ofString());
             assertThat(error.statusCode()).isEqualTo(404);
             assertThat(error.headers().firstValue("Content-Type").orElse("")).startsWith("application/problem+json");
@@ -139,6 +139,9 @@ class StreamingHttpContractTest {
             org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration.class})
     static class WebConfiguration {
         @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); }
+        @Bean IdempotencyAuthorization authorization() {
+            return (request, operation, body) -> new IdempotencyAuthorization.Command("fixture", "fixture", "stream-contract-v1");
+        }
     }
 
     @RestController

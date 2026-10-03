@@ -66,7 +66,7 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         var annotation = method.getMethodAnnotation(Idempotent.class);
         if (annotation == null) return true;
         if (authorization == null || store == null) throw unavailable();
-        if (!finiteReturnType(method)) throw unavailable();
+        if (request.isAsyncStarted() || !finiteReturnType(method)) throw unavailable();
         var capture = WebUtils.getNativeResponse(response, BoundedResponseCapture.class);
         if (capture == null || !capture.selectable()) throw unavailable();
         var keys = request.getHeaders(annotation.headerName());
@@ -138,7 +138,7 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
                 execution.store.release(execution.token); return;
             }
             var body = capture.body();
-            if (body.isEmpty()) { execution.store.release(execution.token); return; }
+            if (body.isEmpty() || !consistentLength(response, body.get().length)) { execution.store.release(execution.token); return; }
             var bytes = new ByteArrayOutputStream();
             try (var output = new DataOutputStream(bytes)) {
                 output.writeInt(0x46485231); output.writeInt(response.getStatus());
@@ -172,6 +172,7 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
     private static boolean eligibleMetadata(HttpServletResponse response) {
         String encoding = response.getHeader("Content-Encoding");
         return (encoding == null || encoding.equalsIgnoreCase("identity"))
+                && response.getHeaders("Content-Encoding").size() <= 1
                 && response.getHeader("Content-Range") == null && response.getTrailerFields() == null
                 && response.getHeaders("Content-Type").size() <= 1 && response.getHeaders("Location").size() <= 1
                 && headerValue(response.getContentType()) && headerValue(response.getHeader("Location"));
@@ -179,6 +180,14 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
 
     private static boolean headerValue(String value) {
         return value == null || value.length() <= 4096 && value.chars().allMatch(character -> character >= 32 && character < 127);
+    }
+
+    private static boolean consistentLength(HttpServletResponse response, int bodyLength) {
+        String length = response.getHeader("Content-Length");
+        if (length == null) return true;
+        if (response.getHeaders("Content-Length").size() != 1) return false;
+        try { return Long.parseLong(length) == bodyLength; }
+        catch (NumberFormatException invalid) { return false; }
     }
 
     private boolean finiteReturnType(HandlerMethod method) {
