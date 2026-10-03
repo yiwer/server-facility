@@ -25,7 +25,7 @@
 
 修复生命周期与默认注入路径，不在本票重构所有 JSON/日志/locale 政策。
 
-本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际实施、测试与验收结果见下文。
 
 
 ## 实施与决策（2026-10-03）
@@ -62,5 +62,5 @@
 ## 集成基线复验与提交
 
 - 实现提交：`49d18d3`；同步集成 `fbdcd45`（含ticket01）后的本分支merge提交：`0e4f3ca`。仅在ticket-02 worktree合入上游，未修改主checkout/未发布。
-- 2026-10-03 22:56 +08:00：`./mvnw.cmd -B -ntp verify` 成功，Maven Wrapper3.10.0、release25、Boot3.5.16、JaCoCo0.8.15；1215 tests，0 failure/error/skipped；ArchUnit、覆盖率门与dependency analyze均成功。
+- 2026-10-03 22:56 +08:00：`./mvnw.cmd -B -ntp verify` 成功，Maven Wrapper3.10.0、release25、Boot3.5.16、JaCoCo0.8.15；1215 tests，0 failure/error/skipped；ArchUnit、覆盖率门与dependency analyze均成功。最终覆盖率instruction93.805%、line93.367%、branch87.382%。
 - 最终日志：`target/evidence/ticket-02/integrated-verify.log`。该结果覆盖本票与新的Java25集成基线；Boot4/Jackson3、Linux原生产物及最终跨票J05/J15组合仍按票24/23/26/33各自范围闭合，不在本票宣称完成。
