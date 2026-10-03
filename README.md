@@ -20,7 +20,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（28 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（29 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -34,7 +34,7 @@
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **快照（2026-10-04，Windows / Java 25 中间基线）**：测试 1276 项全绿（含 5 条 ArchUnit）；instruction 93.1880% / line 93.3512% / branch 86.5100%。被测提交 `37ee5f5`，普通 jar 与 JSON/HTTP 消费者均通过；票 04 最终集成 CI 待验证，见 [票 04 证据](docs/verification/ticket-04-http-errors.md)。Boot 4 仍由票 22–24 收敛。
+- **快照（2026-10-04，Windows / Java 25 中间基线）**：测试 1323 项全绿（含 5 条 ArchUnit）；instruction 92.9939% / line 93.3940% / branch 86.1614%。被测提交 `5a59d2f`，合并保留相同源码/POM/验证入口，见 [票 05 证据](docs/verification/ticket-05-bounded-web-streams.md)。票 04 的 `66bf4d0` 已通过两端 CI；票 05 的集成 CI 尚待验证。Boot 4 仍由票 22–24 收敛。
 
 ## 仓库地图
 
@@ -104,7 +104,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 - **失败走 `Result`**：可预期失败（IO / 解析 / 序列化 / 外部交互）一律返回 `Result<T,E>`，不抛受检异常、不以 null 表示失败；`Result.empty()` 表达「成功但无值」（ADR-0007）。
 - **命名双家族（C4）**：`XxxUtil` = 静态门面（可能有状态、参与 Spring 装配交互）；复数名词类（`Numbers` / `Patterns` / `Filenames` / `Collects` / `Hashing` …）= 纯函数无状态工具。历史例外：`HttpClients` 复数名但按门面对待。
 - **null 契约（C1）**：数据参数 null → null-safe 语义回退；函数型与必需依赖参数 null → `requireNonNull` fail-fast；公共 API 可空性以 `jakarta.annotation.Nullable` 标注（error 包例外，javadoc 散文表达，C5）。
-- **「≤0 = 不限制」（C2）**：所有配置项中表达「无限制」的统一拼法。
+- **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028 明确例外：启用 repeatable body 与响应捕获必须配置正预算，0/负数拒绝。
 
 ## 特性矩阵
 

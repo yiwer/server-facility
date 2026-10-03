@@ -90,7 +90,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-28 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+29 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -110,7 +110,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0014 | 限流令牌桶 + `RateLimiter` SPI(Seam),web 集成分离 `web.ratelimit` 避环 |
 | 0015 | 缓存 `CacheUtil` 门面复用 Spring `CacheManager`,Caffeine + spring-context-support 成对 optional |
 | 0016 | 分布式锁 `DistributedLock` SPI + 单机 `InMemory`,real seam Redisson 升级示范 |
-| 0017 | 完整幂等(同 key 返首次响应)+ 响应捕获,通用/web 分离避环 |
+| 0017 | 完整幂等历史状态机；全站/无界捕获部分由 0028 替代 |
 | 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
 | 0019 | crypto 加解密门面——安全默认 AES-256-GCM、内管 IV、不透明失败通道、纯 JDK |
 | 0020 | 日志脱敏——`LogUtil` 写前集成(`LogPostHandler` 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
@@ -121,13 +121,14 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0025 | Context 注册归实例所有、刷新/关闭隔离；构造器注入为默认，ID/日志兼容入口不跨 context 缓存 Spring bean |
 | 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
 | 0027 | 安全 RFC 9457 错误策略贯通 Filter/MVC/ERROR，真实状态和必要头；已提交边界、宿主政策与显式 legacy 迁移 |
+| 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 
 ## 6. 质量门
 
-- **测试快照（2026-10-04，Windows / Java 25 / Boot 3.5.16）**:1276 项、0失败/错误/跳过，含 5 条 ArchUnit；`clean verify` 与普通 jar/真实 JSON HTTP 消费者 integration runner 通过。被测提交 `37ee5f5`，合并保留相同源码/POM/验证入口；票 04 最终集成 CI 仍待取得，详见 [票04证据](verification/ticket-04-http-errors.md)。
+- **测试快照（2026-10-04，Windows / Java 25 / Boot 3.5.16）**:1323 项、0失败/错误/跳过，含 5 条 ArchUnit；`clean verify` 的原覆盖率/依赖门通过。被测提交 `5a59d2f`，合并保留相同源码/POM/验证入口，详见 [票05证据](verification/ticket-05-bounded-web-streams.md)。票04的 `66bf4d0` 已通过 Windows/Ubuntu `all --fresh`；票05的集成 CI 与目标 Servlet6.1 仍待验证。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
-  (上述快照 instruction93.1880% / line93.3512% / branch86.5100%),达标即门,退化即红。
+  (上述快照 instruction92.9939% / line93.3940% / branch86.1614%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
 
@@ -144,8 +145,7 @@ FALLBACK(吞 IOException 的是 detect(InputStream,String))、`Patterns` 全员 
 `compile` 底层原语刻意 fail-fast)。
 
 **C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
-不引入公共常量。`RepeatableRequestWrapper` 便利构造器传 0(与旧 Long.MAX_VALUE 行为等价,
-限制判定为 `max > 0`)。
+不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
 高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。现状审计(2026-07-06,

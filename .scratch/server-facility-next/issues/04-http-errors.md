@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-03、FR-09；AC-04、AC-05、AC-12
 
@@ -14,7 +14,7 @@
 - [x] 覆盖状态及必要响应头，区分坏请求、multipart 过大、业务拒绝和内部返回值错误。
 - [x] 内部 cause 留在服务端；任意异常消息、输入秘密与调试栈不直接进入生产响应。
 - [x] 明确已提交响应、用户 advice 覆盖及兼容模式的处理，不二次写坏响应。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -30,7 +30,7 @@
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
 
 
-## 实施与真实验证（2026-10-04，Windows；跨平台 CI 待合入）
+## 实施与真实验证（2026-10-04，Windows；跨平台 CI 已闭合）
 
 - 公共策略 `FacilityHttpErrors.response/write` 在 MVC、Filter 和 REQUEST/ASYNC/ERROR 边界共享；默认安全 RFC 9457，显式 legacy 200 金样。标准 Spring 状态及必要头、字段预算、traceId、本地化与宿主 mapper/advice 均有实际请求证据。
 - 17 个真实 Tomcat HTTP 场景验证 400/404/405/406/409/413/415/422/429/500/503、401/403 adapter复用、Boot/宿主部分错误映射、坏 multipart与63/64/65字节上传、serializer自身失败、flush前后Writer及旧实体头、16并发请求locale/trace隔离。身份系统仍归27；流和重放接合归05/12。
@@ -40,4 +40,4 @@
 - 独立消费者 configured/override/invalid、constructed/injected JSON/HTTP、多应用mapper与关闭重建，以及工具链负向检查全通过；本票普通jar SHA-256 `d7269428cbba095a193c67d79ac5b813102cd9b750b487fb9b207e0a4e56a7c2`。
 - 原始RED/GREEN/完整日志在 `.verification-results/ticket-04/`；完整runner报告 `.verification-results/20261004-000725-683-integration/`，隔离repository第三方依赖预热、fresh=false，本票SNAPSHOT重新构建安装。全部命令、环境、Q01–Q10/J03/J14映射、测试数迁移说明见 [验证报告](../../../docs/verification/ticket-04-http-errors.md)。
 
-保持 **verification-pending**：本机功能、资源/故障与普通jar接合证据齐全，但本票最终集成提交的 Linux/Windows CI `all --fresh` 尚未取得；Q08/Q10待root合入后闭合，不能先标closed。Boot4/Jackson3目标平台验证归22–24，未把当前Boot3证据当作目标平台完成。
+集成 `66bf4d04be3b40a5d81a80fa418cbe213c2307f4` 已通过 GitHub Actions 37136353128 的 Windows/Ubuntu `all --fresh`，root 已通过 API 核对确切 SHA、全部步骤和归档；[CI证据](../../../docs/verification/ticket-04-ci.md) 闭合 Q08/Q10，票04标为 **closed**。各环境计数留在原始报告，不以本机1276代替Linux精确数。Boot4/Jackson3目标平台验证归22–24，未把当前Boot3证据当作目标平台完成。
