@@ -1,5 +1,7 @@
 # ADR-0027: 真实 Servlet 边界的安全 HTTP 错误策略
 
+> 2026-10-04：部分由 [ADR0049](0049-application-owned-observability.md) 替代。默认本地化由宿主MessageSource拥有；标准trace或无span时incident reference关联诊断。安全HTTP协议、状态和头策略保留。
+
 ## Status
 
 Accepted

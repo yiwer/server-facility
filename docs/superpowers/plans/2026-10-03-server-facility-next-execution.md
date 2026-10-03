@@ -129,3 +129,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - CI12 run37156503739 的精确候选 `2b06f527a24602842721c4ed800ad71bca255319` 在 Windows/Ubuntu 的 all、platform、归档全部 success，原API JSON保存 `.verification-results/ci-11-16-27/`；精确 job/artifact/digest及证据限制见[验收报告](../../verification/ticket-11-16-27-ci.md)。没有下载artifact内部文件，不把Windows本地计数当Linux观测。
 - 11、16、27据此closed，正式票合计19项closed。历史CI8–11失败记录继续保留；Unicode原生agent/argv与短路径问题均有实际RED/GREEN和最终CI证据，未删门。12、28–31与33继续负责自身后续组合。
 - 25新增Inventory `[null]` 产品修复在CI12之后才以 `6ff81c371b1fe171dc11a88b4d6d5c331e94e0c2` 合入，15测试组合待CI13，本票仍verification-pending。此次仅提交验收与状态文档，未修改产品或重复已通过的全门，未push。
+
+
+## 票26应用观测联合候选
+
+- 2026-10-04：核读票26冻结 `72a37b6e1981e12a5dc292e22d55c28d5b93c5a8` 的 `.verification-results/20261004-054819-067-all/summary.txt`，92命令RESULT=PASS。Windows库1614/0/0/0、模板52/0/0/0、partner14/0/0/0，原88/88/75、5架构/依赖门、普通jar/真实Web/观测两应用/5资源周期/全部负控通过；库jar SHA `e97cedb5ab07ac9cabe638bf001ded6a5bb2f22ac521351fe09755d3ebc59595`。精确范围见[26报告](../../verification/ticket-26-host-observability.md)。
+- 交接 `f11ab410bb0264b336f622ffce3d80896044747d` 已包含main6ff81c3；merger先将CI12文档a271061同步为 `e941a38ec002dcd579114fc2f33918fca3adf119`，再从干净a271061以--no-ff合入，merge `1b65e35643d897fa6f3ae8dc8a3800d10c8f5e4b`。合入后的src/POM/templates/examples/verification/workflow与交接分支完全相同，无冲突或额外产品改动。
+- 中央登记0049、44条实际ADR及0010/0020/0022/0027/0029明确部分替代范围，历史理由保留。26冻结门不含后续Windows短路径修复及25第15项库存null场景，25/26均保持verification-pending，由本次授权push启动的CI13联合验证；不把多个来源的本地结果拼成新候选通过。未重复已通过的同源全门。
