@@ -92,7 +92,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-39 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+40 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -135,10 +135,12 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
 | 0047 | 真实依赖图和普通jar/HTTP平台门；补全Servlet6.1重载与缺任一缓存依赖回退，OS证据分别登记 |
+| 0050 | 独立JWT保护MVC模板：应用信任/Actor、标准Security授权、安全401/403/503与上下文所有权；扩展0027/0029接合 |
 
 ## 6. 质量门
 
-- **最新本地接合（票14/15）**：共同09 tip上，IO `58a1e83` integration为1507/0/0/0，CSV `e1f078a` all --fresh为1506/0/0/0；各自原门/5架构/依赖及普通jar/矩阵/负控通过。IO覆盖93.3210/93.9019/85.6394%，CSV为92.9119/93.5963/85.6103%（指令/行/分支），见[14](verification/ticket-14-io-integrity.md)/[15](verification/ticket-15-bounded-csv.md)。合并后同源完整门与Linux仍待批次CI，不合并两分支计数冒充实测。
+- **09/14/15跨平台闭合**：集成 `c2f0f6b` 的Windows/Ubuntu完整门、平台门和归档全部通过，[CI37147633803](verification/ticket-09-14-15-ci.md)登记同源证据，三票closed。
+- **最新本地接合（票27）**：Windows `b2fcfbf` 的 `all --fresh` 为库1535/0/0/0、模板47/0/0/0；库指令93.23%/行93.91%/分支85.63%，模板95.81%/94.26%/86.76%。独立空格/Unicode目录的实际可执行包、平台/虚拟线程HTTP、缺coverage负控与既有普通jar/依赖图/生命周期/工具链门全部通过，见[27报告](verification/ticket-27-secured-template.md)。模板Security依赖属于应用，不进入普通库jar；27仅Linux待验证。
 - **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；同产品集成`80670fa`现已通过Windows/Ubuntu完整CI，详见[平台闭合](verification/ticket-24-ci.md)；各环境精确值以各自artifact为准。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载已由24在目标平台复验关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
