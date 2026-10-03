@@ -1,5 +1,9 @@
 # Changelog
 
+## 进程内锁契约（票07）
+
+新增明确实例范围的LocalKeyedMutex：严格活动key预算、包含等待者的安全引用回收、线程owner/重入和关闭政策。缺所需锁不执行业务；默认不再将单机实现注册为DistributedLock。保留旧公开签名并给出迁移，异常释放保留首因、诊断不复制key；真实Async observer终止不得提前解锁。
+
 面向消费方的破坏性变更与行为变更记录(含迁移指引)。格式取意 [Keep a Changelog](https://keepachangelog.com/);
 当前尚无已发布版本,以下均为 0.1.0-SNAPSHOT 发布前的演进记录。内部决策全史见 [ADR 索引](docs/adr/INDEX.md)。
 
