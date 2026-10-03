@@ -6,14 +6,15 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("RequestUtil.getClientIp - 行为锁定 (RV2-07 doc-only)")
+@DisplayName("RequestUtil.getClientIp - explicit peer trust")
 class RequestUtilClientIpTest {
 
-    @Test @DisplayName("X-Forwarded-For 多段取第一段")
-    void xffFirstSegment() {
+    @Test @DisplayName("默认忽略可伪造代理头")
+    void directPeerIgnoresForgedForwardingChain() {
         MockHttpServletRequest req = new MockHttpServletRequest();
+        req.setRemoteAddr("9.9.9.9");
         req.addHeader("X-Forwarded-For", "1.1.1.1, 2.2.2.2, 3.3.3.3");
-        assertThat(RequestUtil.getClientIp(req)).isEqualTo("1.1.1.1");
+        assertThat(RequestUtil.getClientIp(req)).isEqualTo("9.9.9.9");
     }
 
     @Test @DisplayName("无代理头回落 remoteAddr")

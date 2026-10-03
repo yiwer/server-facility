@@ -5,6 +5,12 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 请求边界迁移（2026-10-04，ADR-0029）
+
+- 客户端IP默认只采用数值remoteAddr；显式 `facility.web.proxy.trusted-proxies` 才按有界可信链解析XFF，旧厂商头不再生效。
+- 请求边界统一清理兼容SessionUser，适配宿主Principal，覆盖短路、Callable与ASYNC/ERROR；`isLoggedIn()`弃用为非认证检查。
+- trace尊重并恢复宿主MDC，提供accept-inbound政策；TraceIdFilter通过唯一边界调用，旧独立注册禁用。迁移与资源边界见ADR0029和USAGE。
+
 ### Boot 4 平台迁移中间态（2026-10-04，ADR-0045）
 
 - 目标依赖切换 Boot 4.1.1 / Spring 7.0.9 / Jackson 3.1.5，测试引擎切换 JUnit 6.0.3 和 ArchUnit JUnit 6。Jackson annotations 保留原组；合并进 databind 的 Java 8 模块移除。

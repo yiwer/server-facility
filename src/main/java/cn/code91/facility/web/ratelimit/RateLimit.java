@@ -34,11 +34,10 @@ public @interface RateLimit {
      * <p>默认为空串，此时由拦截器按 {@code 类#方法#clientIp} 规则构造；
      * 非空时使用固定的全局 key（不同调用方/IP 共享同一限流额度）。</p>
      *
-     * <p><b>安全警告（默认 IP 维度）</b>：空 key 时的 {@code clientIp} 取自
-     * {@code RequestUtil.getClientIp}，它信任 {@code X-Forwarded-For} 头，而该头**可被客户端伪造**。
-     * 若服务可被公网直连（前面没有会覆写 XFF 的受信反向代理），攻击者可轮换伪造 IP 绕过按 IP 限流，
-     * 或伪造海量唯一 IP 顶到 {@code max-buckets} 触发桶集合清空、抹掉合法用户限流状态。
-     * <b>公网直连服务请设置显式 {@code key()}（如按已认证用户 ID），或仅在前置受信反代覆写 XFF 的部署中依赖默认 IP 维度。</b></p>
+     * <p>空 key 时的 {@code clientIp} 取自 {@code RequestUtil.getClientIp}，默认使用连接 peer；
+     * 只有显式 {@code facility.web.proxy.trusted-proxies} 才采用可信链上的 X-Forwarded-For。
+     * IP 是网络来源，不代表已认证用户；同一 NAT 后的用户可能共享额度。
+     * 非空 key 是固定字面量，不解析用户 ID 表达式。</p>
      *
      * @return 限流 key
      */
