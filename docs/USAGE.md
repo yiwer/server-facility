@@ -177,7 +177,7 @@ public <T> CompletableFuture<Result<T, Throwable>> intercept(AsyncContext ctx, A
 
 - **统一响应**:`BaseResponse<T>` / `PageBaseResponse<T>`;`BaseResponse.fromResult(result)` 把 `Result` 桥到响应体。
 - **全局异常**:默认注册 `DefaultGlobalExceptionHandler`，失败使用真实 HTTP 状态与 RFC 9457 ProblemDetail，成功 DTO 不包装（ADR-0027 替代 ADR-0003 的默认协议）。宿主较高优先级 `@RestControllerAdvice` 可以处理自己的异常；`AbstractGlobalExceptionHandler` 子类会使默认 advice 退让。
-- **过滤链**:`TraceIdFilter`(MDC traceId)、`RepeatableRequestFilter`(可重复读请求体,超限 413)。
+- **过滤链**:`TraceIdFilter`(MDC traceId)、显式启用的 `RepeatableRequestFilter`(有界同步重复读，超限 413)。
 - **访问日志**:`AccessLogInterceptor`(慢请求阈值告警)。
 - **安全上传下载**:`SafeUpload`(路径穿越防御 + 危险扩展名拦截 + 类型/大小校验)、`HttpFileResponses`
   (中文文件名 RFC 5987 编码、Content-Type 推断)。
@@ -207,7 +207,11 @@ return errors.response(failure, new ServletWebRequest(request, response));
 
 策略使用应用 ObjectMapper 和 MessageSource。宿主可以覆盖 `facility.web.error.system`、`facility.web.error.invalid_value` 等安全文案；不把输入值放入文案模板。新 advice 子类注入 `FacilityHttpErrors` 并 `super(errors)`；旧 `(properties, environment)` 构造器仅作为弃用的源代码兼容入口，无法采用宿主 mapper/MessageSource。
 
-过滤顺序约定为 TraceIdFilter（最高优先级）、FacilityHttpErrorFilter（+1）、RepeatableRequestFilter（票 05 接合后 +2）。ERROR dispatch 也走统一边界；Boot 和宿主错误页映射仍可选目的路径，部分状态注册不会撤掉其他错误的兜底。已提交响应保持原样；未提交的响应清除旧正文和实体头，保留安全/CORS/追踪头并设置 `Cache-Control: no-store`。错误 serializer 失败时回退为固定英文安全 500 ProblemDetail。
+过滤顺序为 TraceIdFilter（最高优先级）、FacilityHttpErrorFilter（+1）、RepeatableRequestFilter（+2）、IdempotencyFilter（+3）。ERROR dispatch 也走统一边界；Boot 和宿主错误页映射仍可选目的路径，部分状态注册不会撤掉其他错误的兜底。已提交响应保持原样；未提交的响应清除旧正文和实体头，保留安全/CORS/追踪头并设置 `Cache-Control: no-store`。错误 serializer 失败时回退为固定英文安全 500 ProblemDetail。
+
+重复读默认关闭。需要 webhook 验签等同步原始字节重读时，显式配置 `facility.web.repeatable-request.enabled=true`，用 `include-paths` 和媒体类型限定目标，`max-body-bytes` 必须为正数（默认 10 MiB）。0/负数不再表示无上限，启用时会构造失败；无参数 `RepeatableRequestWrapper` 构造也使用 10 MiB。预算按实际字节计算，Content-Length 不用于接受或预分配，chunked 同样受限；本地溢出经公共错误边界返回 413。默认媒体类型含合法 `application/*+json`，不会把 `application/json-unknown` 当作 JSON。
+
+每次 `getInputStream/getReader` 都是独立游标，允许混合或重复读取，字节相同；声明 charset 在包装时冻结，缺省 UTF-8，非法 charset 为 400，畸形字节采用 JDK reader 替换字符。此 wrapper 只支持同步读取，`setReadListener` 每次明确拒绝，不假装完成非阻塞回调。它不关闭容器输入。`HttpFileResponses` 用固定缓冲复制文件，关闭自己打开的文件输入，借用而不关闭 Servlet 输出；写失败或线程中断返回 Err，停止复制，不再追加错误正文。应用自己创建的其他流/生产任务仍由应用管理取消和清理。
 
 旧客户端必须显式配置 `facility.web.exception.use-problem-detail=false`。这保留 `{code,message,data,description,success}` 字段形状、HTTP 200（429 仍为 429）与必要头；消息已安全化，`description` 为空，dev/test/local 也不恢复调试栈。依赖旧异常消息或原始 ErrorResponse body 的客户端应迁移到稳定 code 和 traceId。完整决策与真实 HTTP 证据见 [ADR-0027](adr/0027-safe-http-error-policy.md) 与票 04。
 
@@ -296,13 +300,13 @@ Result<User, WrappedError> h = HttpClients.get(url, Map.of("Authorization", "Bea
 
 ## 幂等:@Idempotent
 
-完整幂等(`web.idempotency` 集成 + `idempotency` 通用存储):同幂等 key 的重复请求返回**首次的响应**,业务方法只执行一次。
+旧 HTTP 响应重放(`web.idempotency` + `idempotency` 存储)：对已保存 DONE 的同 key 返回状态、Content-Type 和正文。当前旧 key/TTL 协议不等于跨身份隔离、事务 exactly-once 或安全的过期重试；授权、业务保存资格与持久化恢复由票 11/12 的协议收敛负责。
 
 ```java
 @Idempotent                                        // header 默认 Idempotency-Key
 @PostMapping("/pay")
 public BaseResponse<PayResult> pay(@RequestBody PayRequest req) {
-    return BaseResponse.ok(paymentService.charge(req));   // 同 key 重复请求不会再次扣款
+    return BaseResponse.ok(paymentService.charge(req));   // 支付侧仍需自身事务/幂等与恢复保证
 }
 @Idempotent(headerName = "X-Request-Id", ttlSeconds = 600)   // 自定义 header + TTL
 @PostMapping("/order")
@@ -311,7 +315,7 @@ public BaseResponse<Order> createOrder(...) { ... }
 
 - **语义**:客户端每次业务请求带唯一 `Idempotency-Key` 头。首次 → 处理并缓存响应(status+body);重复(同 key,TTL 内)→ 直接返回首次缓存的响应,业务方法**不再执行**;首次仍处理中的并发重复 → **409**;缺 key 头 → **400**。
 - **存储**:默认内存 `InMemoryIdempotencyStore`(PROCESSING/DONE 状态机 + TTL);SPI 可替换 Redis(多实例共享)。
-- **机制**:`IdempotencyFilter` 包装响应捕获 body,`IdempotencyInterceptor` 读 `@Idempotent` 执行状态机(ADR-0017)。
+- **捕获**：`IdempotencyFilter` 默认直接流出，包括下载与 SSE；旧 claim 成功后才开启选定响应的有界副本，写入同时到达容器，flush 不等待整个响应生成。`facility.idempotency.max-response-bytes` 默认 1 MiB、必须为正数（ADR-0028）。超限时原响应仍完整流出，副本被丢弃；写失败、已被 MVC 解析的异常和异步移交也不保存不完整结果。旧 PROCESSING 仍保留至 TTL，这不是安全重试承诺。手工提供旧 `ContentCachingResponseWrapper` 不再绕过预算写 DONE，须装配有界 filter。
 - **非异常的 4xx/5xx 同样固化**:handler 直接 `return ResponseEntity.status(...)`(非异常的 4xx/5xx)
   同样被固化为幂等首响并回放至 TTL——非异常路径视为业务定论;要避免固化请改抛异常(异常路径不缓存)。
 
@@ -493,9 +497,10 @@ facility:
       mdc-key: traceId
       generate-if-absent: true
     repeatable-request:
-      enabled: true
-      max-body-bytes: 10485760   # 10MB;≤0 = 不限制
-      include-content-types: [application/json, application/xml, "text/"]
+      enabled: false            # 显式选择同步重复读取场景
+      max-body-bytes: 10485760   # 正数预算；0/负数拒绝构造
+      include-paths: ["/**"]    # 可缩小为 ["/webhooks/**"]；空列表=无目标
+      include-content-types: [application/json, "application/*+json", application/xml, "application/*+xml", "text/*"]
       exclude-paths: ["/actuator/**"]
     access-log:
       enabled: true
@@ -529,6 +534,7 @@ facility:
   idempotency:
     enabled: true
     default-ttl: 5m                      # 幂等记录保留时长
+    max-response-bytes: 1048576          # 选定响应副本的正数预算，超限只放弃保存
     max-entries: 100000                  # 记录上限(超限先清过期再拒新,fail-closed,F8)
 ```
 
@@ -547,12 +553,13 @@ facility:
   - ① **`@ConditionalOnMissingBean` 真回退**:`messageSource`、`facilityAsyncExecutor`(按 `Executor`
     类型)、全局异常处理器(按 `AbstractGlobalExceptionHandler` 类型)、三个 `WebMvcConfigurer`(按 bean 名)
     —— 你声明同类/同名 bean 即让位,facility 只填空缺。
-  - ② **Web 过滤器/拦截器靠开关,不靠竞争 bean**:`TraceIdFilter`、`RepeatableRequestFilter`、
+  - ② **部分 Web 过滤器/拦截器靠开关,不靠竞争 bean**:`TraceIdFilter`、
     `AccessLogInterceptor` **不走** `@ConditionalOnMissingBean`,仅
     `@ConditionalOnProperty(...enabled, matchIfMissing=true)` —— 声明同类型的 filter/interceptor **不会**顶替
-    facility 的(两者并存,双重入链),要停用请 `facility.web.{trace|repeatable-request|access-log}.enabled=false`,
+    facility 的(两者并存,双重入链),要停用请 `facility.web.{trace|access-log}.enabled=false`,
     再注册自己的。`SessionUserClearInterceptor` 无 `enabled` 开关、恒装,要抑制其入链需声明同名的
     `facilitySessionWebMvcConfigurer` bean(归 ① 的按名回退)。
+  - `RepeatableRequestFilter` 与 `IdempotencyFilter` 按类型让位；各自默认注册使用该实例，注册 bean 也按名称让位。不要另给同一 filter 添加第二项容器注册。重复读默认关闭，启用时才注册。
 - **配置属性无校验 provider 依赖**:properties 类不用 `@Validated`(ADR-0013),即便消费方 classpath
   没有 Bean Validation provider 也能正常启动;取值约束(如 worker-id 范围)在组件构造器兜底。
 
