@@ -24,12 +24,10 @@
  * so the top-level slice graph stays acyclic (architecture erratum, commit 8eae58a).</p>
  *
  * <p><b>Security (default IP key):</b> the blank-{@code key()} default embeds {@code clientIp}
- * from {@code RequestUtil.getClientIp}, which trusts the spoofable {@code X-Forwarded-For}
- * header. On a publicly-reachable service without a trusted reverse proxy that overwrites XFF,
- * the default IP-dimension limit can be bypassed by rotating forged IPs, or amplified by forging
- * many unique IPs to overflow {@code max-buckets} and trigger a full bucket clear (wiping all
- * legitimate limit state). Set an explicit {@code @RateLimit.key()} (e.g. authenticated user id)
- * for public services, or rely on the default only behind a trusted XFF-overwriting proxy.</p>
+ * from {@code RequestUtil.getClientIp}: connection peer by default, with forwarded origins only
+ * under an explicit trusted-proxy policy. IP denotes network origin, not an authenticated
+ * principal. Users behind one NAT can share an IP budget. An explicit {@code @RateLimit.key()}
+ * is a fixed literal, not a user-ID expression.</p>
  *
  * <p><b>Depends on:</b> {@code ratelimit} ({@code RateLimiter} SPI, {@code RateLimitResult}),
  * {@code web.util} ({@code RequestUtil.getClientIp} for the default key), spring-webmvc
