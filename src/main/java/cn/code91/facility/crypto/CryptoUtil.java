@@ -26,6 +26,8 @@ import javax.crypto.spec.SecretKeySpec;
  * 随机IV不等于无限调用下的无碰撞保证，密钥生命周期由应用管理。
  * 返回 Result 的入口仅携带安全错误码，不附原始异常或输入；程序 Error 不捕获，
  * 非Result入口仍可能抛校验/配置异常。
+ * 这些同步内存原语不为旧数据暗加长度上限；消费应用必须先限制数据/口令/salt规模和并发。
+ * 固定历史PBKDF2参数不是外部可调预算，也不承诺同步JCE操作可被中断。
  * </p>
  *
  * @author yvvb
