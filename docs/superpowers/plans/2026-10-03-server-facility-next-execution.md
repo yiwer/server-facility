@@ -17,7 +17,9 @@
 - 初始可用 Maven：临时工具目录中的 3.9.16；01 将加入正式 Wrapper。
 - Docker Desktop 引擎不可用；WSL 报告所需虚拟化功能未启用。用户已授权使用仓库 CI 进行 Linux 验证；远端 GitHub Actions 工作流数为零，01 将补齐流水线并实际运行。
 - Windows 原生 PostgreSQL 18.6 测试二进制已从 Zonky Maven Central 分发下载，SHA-512 校验通过；仅解压到临时工具目录，不安装系统服务。官方项目支持 Windows，来源：https://github.com/zonkyio/embedded-postgres 。数据库场景仍需实际运行并记录结果。
+- 已实际完成 Windows PostgreSQL 的 initdb、仅监听 127.0.0.1 的启动/status/fast shutdown 冒烟；进程已关闭，后续场景仍需独立事务与恢复验证。
 
 ## 集成记录
 
 - 建立集成分支，提交已批准研究、PRD、测试策略与本地 tickets；尚未关闭实现票。
+- 首批实现分支：codex/ticket-01、codex/ticket-02、codex/ticket-03，各自在独立 worktree 上执行 TDD。
