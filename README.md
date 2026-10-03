@@ -27,14 +27,14 @@
 ## 硬事实
 
 - **坐标**：`cn.code91:server-facility:0.1.0-SNAPSHOT`，单模块 jar。
-- **环境**：JDK 25；Spring Boot 4.1.1 目标依赖已由票 22 切换，Jackson 3 公共类型与应用作用域已由票23迁移，Windows目标全门已通过；完整跨平台和Servlet矩阵仍由票24闭合。当前是非发布迁移中间态，见 [平台账本](docs/building/boot4-platform.md)。Maven Wrapper 固定 3.10.0 并校验下载。
+- **环境**：JDK25、Spring Boot4.1.1、Jackson3.1.5；Maven Wrapper固定3.10.0并校验下载。目标平台普通jar和跨平台消费者已通过票24，见[平台账本](docs/building/boot4-platform.md)。其他票继续在集成分支实施，尚未发布制品。
 - **命名**：包根 `cn.code91.facility.*`；类前缀 `Facility*`；配置前缀 `facility.*`；i18n bundle `i18n/facility-messages_*`。
 - **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。完整命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
 - **质量门**（不达即构建失败，禁止以调低门槛的方式通过）：
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **当前验证边界（2026-10-04，Boot 4.1.1 / Jackson 3.1.5）**：票24含06/13/17/18的 `31e7765` Windows空仓库 `all --fresh` 通过，1449测试、0失败/错误/跳过，原5架构/覆盖率/依赖门通过；普通jar/core/crypto/JSON双应用、3真实Web、5依赖图11JVM、Tika有无上传、5次资源周期与3负控均通过，见 [票24证据](docs/verification/ticket-24-platform-integration.md)。03/05/06/13/17/24仍保留Linux适用项，等待同源CI；未把平台装配结果当作尚未实施业务协议的通过。
+- **当前验证边界（2026-10-04，Boot4.1.1/Jackson3.1.5）**：`80670fa`的Windows/Ubuntu `all --fresh`和独立平台控制全部通过，[同源CI与artifact](docs/verification/ticket-24-ci.md)已登记。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、有/无Tika上传、资源周期及负控均已执行；03/05/06/13/17/24适用平台项关闭。本地完整门为1449/0/0/0，各CI精确数值见对应原报告；尚未实施的业务协议不在此通过范围。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图

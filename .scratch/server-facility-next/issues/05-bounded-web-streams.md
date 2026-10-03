@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
+
+**当前闭合记录（2026-10-04）**：`80670fa`的Windows/Ubuntu `all --fresh`与独立平台控制全部通过，见[同源CI证据](../../../docs/verification/ticket-24-ci.md)。下列实施记录中“待24/Linux”等为各阶段历史状态，现由此记录闭合；未实施的下游能力仍按各自票负责。
 
 **Traceability:** FR-03、FR-05；AC-05、AC-07、AC-10
 
@@ -14,14 +16,14 @@
 - [x] Repeatable body 与响应捕获分别定义限额、未知长度、溢出和部分提交政策。
 - [x] 消费者取消/断开时停止无意义工作并清理自身资源；流所有权公开。
 - [x] 重复读取必须返回一致字节，明确 charset 与 reader/stream 组合规则；Servlet 非阻塞读取实现约定回调或确定拒绝，禁止 setReadListener 静默无动作。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
 - [x] 正常/接合：实际客户端在服务端生成完成前读到下载/SSE 前缀，HEAD、空体和错误派发遵守协议。
 - [x] 边界：Content-Length 正确/缺失/失真、chunked、N−1/N/N+1、超大但受控输入与多字节边界。
 - [x] 故障：慢读慢写、客户端断开、写失败、取消、已提交后异常，资源清理且不二次写入。
-- [ ] 资源：受限堆的独立进程里响应规模增加不会无界增长；不耗尽宿主模拟极端情况。Windows/JDK25/Boot3已完成（96MiB堆、64/256MiB普通与选定响应），新增Linux场景已由CI37137011984通过；仅待24的Boot4/Servlet6.1复验。
+- [x] 资源：受限堆的独立进程里响应规模增加不会无界增长；不耗尽宿主模拟极端情况。Windows/JDK25/Boot3已完成（96MiB堆、64/256MiB普通与选定响应），新增Linux场景已由CI37137011984通过；仅待24的Boot4/Servlet6.1复验。
 - [x] 请求协议：两次读取正文相同；合法 application/problem+json、伪 application/json-unknown、声明字符集/畸形 charset、非阻塞回调的完成/错误和重复注册按约定验证。
 
 ## Scope boundary
