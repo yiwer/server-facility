@@ -38,7 +38,7 @@
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
 - **当前验证边界（2026-10-04，Boot4.1.1/Jackson3.1.5）**：`80670fa`的Windows/Ubuntu `all --fresh`和独立平台控制全部通过，[同源CI与artifact](docs/verification/ticket-24-ci.md)已登记。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、有/无Tika上传、资源周期及负控均已执行；03/05/06/13/17/24适用平台项关闭。本地完整门为1449/0/0/0，各CI精确数值见对应原报告；尚未实施的业务协议不在此通过范围。
 - **09/14/15跨平台闭合**：集成 `c2f0f6b` 已通过Windows/Ubuntu完整门、平台门与归档，见[同源CI37147633803](docs/verification/ticket-09-14-15-ci.md)。各环境精确数值以其artifact为准，三票已closed。
-- **最新本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过，含4种Excel实际依赖图、64MiB400,000行与恶意XML/200失败清理、独立格式样本及openpyxl导出oracle。原覆盖率/5架构/依赖、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](docs/verification/ticket-16-bounded-excel.md)。此前Windows CI模板构建失败仍由重跑诊断，新的Excel组合尚待同源Linux/CI；11/16/25/27均保持verification-pending，不把本地通过当CI通过。
+- **最新本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过，含4种Excel实际依赖图、64MiB400,000行与恶意XML/200失败清理、独立格式样本及openpyxl导出oracle。原覆盖率/5架构/依赖、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](docs/verification/ticket-16-bounded-excel.md)。同源CI12已通过Windows/Ubuntu完整门、平台门和归档，11/16/27 closed，详见[CI37156503739](docs/verification/ticket-11-16-27-ci.md)。25后加Inventory `[null]` 修复尚待CI13，保持verification-pending；本段精确计数仅为原本地来源。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图

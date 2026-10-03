@@ -122,3 +122,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 正式报告记录真实12MiB属性SAX前分配OOM的RED与64KiB事件间读取预算GREEN；64MiB child处理400,000行、200失败，线程8→8、保留堆13,559,904 vs13,969,056，无自有临时文件遗留。独立xlwt/XlsxWriter样本及openpyxl最终导出oracle均有证据。没有新XML词法器、全局POI临时策略或通用报表框架。
 - 后同步49b3148仅为Verify失败tail10,000→3,000及25报告；产品/POM/测试/消费者/templates/examples/工作流与被测99ae71a相同。最终票分支 `cdefb01da542549240f8e4a0fb2c886e002dca69` 从干净49b3148以--no-ff合入，merge `7ab12b9cca78dec2f35269dd65f168b58f39c887`，无冲突。未重复相同产品全门。
 - 中央登记0039及0021明确部分替代、43条实际ADR。16保持verification-pending：新Excel源Linux及POSIX文件占用待CI；11/25/27原CI问题仍按其真实状态处理。31/33未来业务/候选组合责任独立，不反向阻塞本票。Excel合并未push，中央提交后释放main。
+
+
+## 2026-10-04 claim／Excel／受保护模板跨平台闭合
+
+- CI12 run37156503739 的精确候选 `2b06f527a24602842721c4ed800ad71bca255319` 在 Windows/Ubuntu 的 all、platform、归档全部 success，原API JSON保存 `.verification-results/ci-11-16-27/`；精确 job/artifact/digest及证据限制见[验收报告](../../verification/ticket-11-16-27-ci.md)。没有下载artifact内部文件，不把Windows本地计数当Linux观测。
+- 11、16、27据此closed，正式票合计19项closed。历史CI8–11失败记录继续保留；Unicode原生agent/argv与短路径问题均有实际RED/GREEN和最终CI证据，未删门。12、28–31与33继续负责自身后续组合。
+- 25新增Inventory `[null]` 产品修复在CI12之后才以 `6ff81c371b1fe171dc11a88b4d6d5c331e94e0c2` 合入，15测试组合待CI13，本票仍verification-pending。此次仅提交验收与状态文档，未修改产品或重复已通过的全门，未push。
