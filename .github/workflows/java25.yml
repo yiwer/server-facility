@@ -36,6 +36,9 @@ jobs:
         env:
           VERIFY_WRONG_JAVA_HOME: ${{ steps.java21.outputs.path }}
         run: java verification/Verify.java all --fresh
+      - name: Independent platform toolchain and engine controls
+        if: ${{ !cancelled() }}
+        run: java verification/Verify.java platform --fresh
       - name: Archive evidence even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -56,4 +59,7 @@ jobs:
             .verification-results/**/json-golden/**
             .verification-results/**/surefire-reports/**
             .verification-results/**/jacoco/**
+            .verification-results/**/platform-inputs/**
+            .verification-results/**/platform-positive/platform-probe.jar
+            .verification-results/**/platform-positive/spring-configuration-metadata.json
             target/*.jar

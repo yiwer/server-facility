@@ -5,6 +5,12 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### Boot 4 平台迁移中间态（2026-10-04，ADR-0045）
+
+- 目标依赖切换 Boot 4.1.1 / Spring 7.0.9 / Jackson 3.1.5，测试引擎切换 JUnit 6.0.3 和 ArchUnit JUnit 6。Jackson annotations 保留原组；合并进 databind 的 Java 8 模块移除。
+- Web 应用使用 `spring-boot-starter-webmvc`；库只声明实际技术模块，不传递生产容器。Boot 错误页、Servlet context、Tomcat 和 MVC 类型按新模块归属迁移。
+- 此提交仅供非发布集成线：旧 Jackson Java 签名仍有精确编译缺口，由票 23 迁移；票 24 恢复完整门后才可消费候选版本。不提供同 jar 的双 Boot/Jackson 主版本兼容。当前范围、迁移清单和工具链子集入口见 [平台账本](docs/building/boot4-platform.md)。
+
 ### 有界 Web 流迁移（2026-10-03，ADR-0028）
 
 - 普通下载、SSE 与非目标响应直接发送，不再全量缓冲。旧幂等 claim 成功后才开启 1 MiB 默认响应副本；`facility.idempotency.max-response-bytes` 必须正数。超限继续发送原响应但不保存副本；失败/部分提交不会变成完整重放，原 claim 的过期语义仍需业务协议处理。

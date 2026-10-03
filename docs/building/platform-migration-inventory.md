@@ -1,6 +1,6 @@
-# Boot / Jackson 迁移影响登记（票 21）
+# Boot / Jackson 迁移影响登记（票 21–24）
 
-日期 2026-10-03。当前仍为 Java 25 / Boot 3.5.16 / Framework 6.2.19 / Jackson 2.21.4（annotations 2.21）。本文件是 22–24 的迁移清单，不能据此宣称目标平台已经编译或通过。决策见 [ADR-0044](../adr/0044-json-application-scope-expand.md)，执行证据见 [票 21 报告](../verification/ticket-21-json-expand.md)。
+旧协议基线为 Java 25 / Boot 3.5.16 / Framework 6.2.19 / Jackson 2.21.4（annotations 2.21），票 21 已由真实消费者和两 OS CI 冻结。票 22 于 2026-10-04 切换 [Boot 4.1.1 目标依赖](boot4-platform.md)，下面旧 API 清单仍是 23 的迁移输入；不能据此宣称目标主库已经编译或通过。决策见 [ADR-0044](../adr/0044-json-application-scope-expand.md) 与 [ADR-0045](../adr/0045-boot4-platform-toolchain.md)。
 
 ## 公共类型与真实调用链
 
@@ -13,8 +13,10 @@
 | `json/support/TypeRef` | 继承 Jackson TypeReference；集合/Map 工厂和 getType | 23 更换父类型，回归无直接 Jackson import 的 TypeRefTest |
 | `json/support/InputStreamSerializer` / `Deserializer` | Jackson 基类、generator/parser/context 签名；无参无上限兼容，新增 int 解码字节预算 | 23 迁移签名并复验预算/所有权/Result 失败；保留 21 金样 |
 | `autoconfigure/FacilityJsonAutoConfiguration` | after Boot JacksonAutoConfiguration，ObjectMapper class/bean 条件；新 Jsons 应用 bean，用户 bean 让位；旧 registry 仍全局发布 | 22 更新技术模块归属；23 用 JsonMapper/标准 builder 和本应用生命周期 |
-| `web/filter/RepeatableRequestFilter` | 私有 **全限定名** Jackson ObjectMapper，不在 import 搜索结果中；固定 413 结构有独立策略 | 23 必须迁移；04/05 协调安全错误协议，不机械换成应用 mapper |
+| `web/filter/RepeatableRequestFilter` | 21 时有私有 **全限定名** Jackson ObjectMapper；05 已删除，改用应用 FacilityHttpErrors | 原隐藏 Jackson 入口已退出；23 迁 FacilityHttpErrors，24 复验默认禁用和显式预算的 413 协议 |
 | `web/util/ResponseUtil` | 通过静态 JsonUtil 写响应，受全局默认影响 | 23/26 迁移依赖归属；04 负责 HTTP 错误状态 |
+| `web/exception/FacilityHttpErrors`（04 新增） | 构造器暴露 ObjectMapper，Servlet 错误写入使用注入 mapper；私有 FrameworkResolver 组合 Spring 标准异常解析 | 23 迁移公开 Jackson 类型，保留已验证的安全错误、提交后处理、traceId 与 HTTP 状态政策 |
+| `autoconfigure/FacilityWebAutoConfiguration.facilityHttpErrors`（04 新增） | ObjectProvider<ObjectMapper> 与 Jackson2ObjectMapperBuilder fallback；错误页 Bean 暴露 Boot 类型 | 22 已迁 ErrorPage/Registrar/Registry；23 迁 mapper 归属与 fallback，24 实测 ERROR 派发 |
 | `http/HttpClients` / `FacilityHttpAutoConfiguration` | 静态 holder 查 RestClient；自动装配自己调用 RestClient.builder，不能推定使用了 Boot JSON/customizer | 25 主责宿主 builder；23/26 接合 |
 
 路径均相对 `src/main/java/cn/code91/facility`。除了以上代码，JsonsRegistry 的 Javadoc 也直接提及 Jackson；搜索必须覆盖全限定名和父类型，不能只看 import。
@@ -30,7 +32,7 @@
 - annotation processor paths 的 Boot configuration processor 与 Lombok 版本仍需同步；`AutoConfiguration.imports`、configuration metadata、普通 jar 无 BOOT-INF 与 class major 69 由独立非 Web consumer 检查。
 - 21 新增的独立 Web consumer 显式选择 Boot 3 `spring-boot-starter-web`。22/24 必须把其 MVC/Jackson/Servlet 技术依赖一起迁移；不能依赖根 test scope 掩盖 consumer 缺包。04 的根测试容器是单独的测试 fixture，不成为生产库传递依赖。
 
-当前完整声明账本见 [Java 25 基线](java25-baseline.md)。运行报告保存根与 Web consumer 的 `effective-pom.xml` 和 `dependency-tree.txt`，含所有实际传递版本；版本表不能替代运行时解析证据。
+旧完整声明账本见 [Java 25 基线](java25-baseline.md)，目标模块与版本见 [Boot 4 平台](boot4-platform.md)。运行报告保存根与 Web consumer 的 `effective-pom.xml` 和 `dependency-tree.txt`，含所有实际传递版本；版本表不能替代运行时解析证据。
 
 ## 官方目标版本复核
 
@@ -61,3 +63,13 @@
 ## 22–24 合入规则
 
 唯一非发布集成线为 `codex/server-facility-next`。22 改 BOM、技术模块、processor、测试引擎，并精确列出归 23 的 Jackson 编译缺口；23 完成公开类型/serializer/不可变 mapper/错误通道迁移，并清空缺口。24 在同一候选提交及普通产物上闭合 Windows/Linux 全质量门、非 Web/Web consumer、缺席/覆盖和 imports/metadata/注册顺序。24 闭合前不进入 master、不发布中间制品、不宣称同 jar 双主版本二进制兼容。
+
+## 22 新增接合交接
+
+- 根实际目标编译诊断逐项见 [Jackson 清单](../verification/ticket-22-jackson-diagnostics.md)。仅有主编译阶段的真实输出；测试和消费者因上游未产出 jar 尚未编译，不将静态 import 清单冒充实际测试错误，更不能把工具链探针的 5 项说成原全库测试已发现。
+- 根使用 `spring-boot-jackson`，Web consumer 使用 `spring-boot-starter-webmvc`。FilterRegistrationBean、TaskExecutionAutoConfiguration、MessageSourceAutoConfiguration 和 context runner 保持旧包；新 Jackson/MVC/Tomcat/Servlet context 归属逐项核对，见目标账本。Jackson2ObjectMapperBuilderCustomizer 的 Java 签名和策略迁移归 23。
+- 24 必须覆盖无 Servlet、无 Jackson 技术模块、无 validation provider、无 Tika/POI、Caffeine 或 context-support 仅缺一个、用户 Bean 覆盖与实际过滤器注册顺序。22 只解析声明依赖，不承诺这些运行组合已通过。
+- 04 的真实 HTTP 错误策略/Servlet ERROR 派发与共享 Tomcat fixture 在目标平台继续保留；测试容器不能变成库的生产依赖。其完整运行归 24；23 要避免 JSON 错误 catch 或消息转换迁移改变既有 HTTP 状态/安全错误输出。
+- 04 的 `GlobalExceptionHandlerTest` 与 `HttpErrorContractTest` 仍使用 Jackson2ObjectMapperBuilder、ObjectMapper、SimpleModule/serializer 和 MappingJackson2HttpMessageConverter；这些是 23 的额外 Jackson 测试迁移输入。22 只更新 Boot 技术进口，未执行这些受主编译阻塞的测试。
+- 已同步 05，保留其 BOM 管理的显式 `junit-jupiter-params` 测试依赖；下载、请求重读、流式幂等三个 HTTP 场景的容器自动装配归属已更新。05 移除私有 413 mapper，因此该类不再属于 23 编译缺口。05 在旧平台的1323项绿色不外推为目标平台已发现。
+- 05 `BoundedResponseCapture` 的 Servlet 6.0 旧覆盖不能直接外推到 6.1：`HttpServletResponseWrapper` 三个新 `sendRedirect` 重载和 `ServletResponseWrapper.setCharacterEncoding(Charset)` 直接委托 wrapped response，可绕过旧 String 重载。**24 必须在目标 Servlet 6.1 补齐覆盖并实际测试响应捕获、commit 与预算语义**。官方依据：[HTTP wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/http/httpservletresponsewrapper)、[Servlet wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/servletresponsewrapper)。本登记不算这些场景已绿。

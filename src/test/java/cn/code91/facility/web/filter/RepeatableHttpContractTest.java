@@ -119,7 +119,7 @@ class RepeatableHttpContractTest {
 
     @Configuration(proxyBeanMethods = false) @EnableWebMvc
     @Import({FacilityWebAutoConfiguration.class, FacilityIdempotencyAutoConfiguration.class, Endpoints.class,
-            org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.class})
+            org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration.class})
     static class WebConfiguration {
         @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); }
     }

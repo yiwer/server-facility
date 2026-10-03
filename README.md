@@ -27,7 +27,7 @@
 ## 硬事实
 
 - **坐标**：`cn.code91:server-facility:0.1.0-SNAPSHOT`，单模块 jar。
-- **环境**：JDK 25；Spring Boot 3.5.16 中间基线（最终 Boot 4 / Jackson 3 由票 21–24 完成）。Maven Wrapper 固定 3.10.0 并校验下载。
+- **环境**：JDK 25；Spring Boot 4.1.1 目标依赖已由票 22 切换，Jackson 公开类型及完整平台门仍由票 23/24 闭合。当前是非发布迁移中间态，见 [平台账本](docs/building/boot4-platform.md)。Maven Wrapper 固定 3.10.0 并校验下载。
 - **命名**：包根 `cn.code91.facility.*`；类前缀 `Facility*`；配置前缀 `facility.*`；i18n bundle `i18n/facility-messages_*`。
 - **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。完整命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
 - **质量门**（不达即构建失败，禁止以调低门槛的方式通过）：

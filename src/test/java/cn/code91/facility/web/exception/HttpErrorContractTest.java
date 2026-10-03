@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.util.TestPropertyValues;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -251,7 +251,7 @@ class HttpErrorContractTest {
 
     @Test
     void bootStandardErrorMappingRemainsSafeWithDiagnosticPropertiesEnabled() throws Exception {
-        try (var app = application(new Class<?>[]{org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration.class},
+        try (var app = application(new Class<?>[]{org.springframework.boot.webmvc.autoconfigure.error.ErrorMvcAutoConfiguration.class},
                 "server.error.path=/host-error", "server.error.include-message=always", "server.error.include-stacktrace=always");
              var client = HttpClient.newHttpClient()) {
             var response = client.send(HttpRequest.newBuilder(app.uri("/send-error?status=502")).GET().build(), HttpResponse.BodyHandlers.ofString());
@@ -359,7 +359,7 @@ class HttpErrorContractTest {
     @Configuration(proxyBeanMethods = false)
     @EnableWebMvc
     @Import({FacilityWebAutoConfiguration.class, Endpoints.class,
-            org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.class})
+            org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration.class})
     static class WebConfiguration implements org.springframework.web.servlet.config.annotation.WebMvcConfigurer {
         @org.springframework.beans.factory.annotation.Autowired ObjectMapper mapper;
         @Override public void extendMessageConverters(java.util.List<org.springframework.http.converter.HttpMessageConverter<?>> converters) {
@@ -375,9 +375,9 @@ class HttpErrorContractTest {
         @Bean org.springframework.web.servlet.DispatcherServlet dispatcherServlet() {
             return new org.springframework.web.servlet.DispatcherServlet();
         }
-        @Bean org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean dispatcherRegistration(
+        @Bean org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean dispatcherRegistration(
                 org.springframework.web.servlet.DispatcherServlet servlet) {
-            var registration = new org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean(servlet, "/");
+            var registration = new org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean(servlet, "/");
             registration.setMultipartConfig(new jakarta.servlet.MultipartConfigElement("", 64, 1024, 0));
             return registration;
         }
@@ -427,8 +427,8 @@ class HttpErrorContractTest {
             registration.setOrder(20);
             return registration;
         }
-        @Bean org.springframework.boot.web.server.ErrorPageRegistrar hostPartialErrorPage() {
-            return registry -> registry.addErrorPages(new org.springframework.boot.web.server.ErrorPage(
+        @Bean org.springframework.boot.web.error.ErrorPageRegistrar hostPartialErrorPage() {
+            return registry -> registry.addErrorPages(new org.springframework.boot.web.error.ErrorPage(
                     org.springframework.http.HttpStatus.NOT_FOUND, "/host-not-found"));
         }
         @Bean org.springframework.boot.web.servlet.FilterRegistrationBean<jakarta.servlet.Filter> dispatchObserver() {
