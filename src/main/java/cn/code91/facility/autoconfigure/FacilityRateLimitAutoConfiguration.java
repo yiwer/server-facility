@@ -6,11 +6,13 @@ import cn.code91.facility.ratelimit.TokenBucketRateLimiter;
 import cn.code91.facility.web.ratelimit.RateLimitInterceptor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -39,22 +41,26 @@ public class FacilityRateLimitAutoConfiguration {
                 props.getDefaultCapacity(), props.getDefaultPermitsPerSecond(), props.getMaxBuckets());
     }
 
-    @Bean
-    @ConditionalOnMissingBean
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = {"jakarta.servlet.Servlet", "org.springframework.web.servlet.config.annotation.WebMvcConfigurer"})
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public RateLimitInterceptor rateLimitInterceptor(RateLimiter rateLimiter, FacilityRateLimitProperties props) {
-        return new RateLimitInterceptor(rateLimiter, props.getDefaultCapacity(), props.getDefaultPermitsPerSecond());
-    }
+    static class ServletConfiguration {
+        @Bean
+        @ConditionalOnMissingBean
+        public RateLimitInterceptor rateLimitInterceptor(RateLimiter rateLimiter, FacilityRateLimitProperties props) {
+            return new RateLimitInterceptor(rateLimiter, props.getDefaultCapacity(), props.getDefaultPermitsPerSecond());
+        }
 
-    @Bean("facilityRateLimitWebMvcConfigurer")
-    @ConditionalOnMissingBean(name = "facilityRateLimitWebMvcConfigurer")
-    @ConditionalOnBean(RateLimitInterceptor.class)
-    public WebMvcConfigurer facilityRateLimitWebMvcConfigurer(RateLimitInterceptor interceptor) {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addInterceptors(InterceptorRegistry registry) {
-                registry.addInterceptor(interceptor);
-            }
-        };
+        @Bean("facilityRateLimitWebMvcConfigurer")
+        @ConditionalOnMissingBean(name = "facilityRateLimitWebMvcConfigurer")
+        @ConditionalOnBean(RateLimitInterceptor.class)
+        public WebMvcConfigurer facilityRateLimitWebMvcConfigurer(RateLimitInterceptor interceptor) {
+            return new WebMvcConfigurer() {
+                @Override
+                public void addInterceptors(InterceptorRegistry registry) {
+                    registry.addInterceptor(interceptor);
+                }
+            };
+        }
     }
 }

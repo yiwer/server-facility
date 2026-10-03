@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### Java 25 中间基线（2026-10-03，ticket 01）
+
+- 最低运行/编译版本改为 Java 25，产物 class major 69，不使用 preview；Java 21 消费方须先升级 JDK。
+- Maven Wrapper 固定 3.10.0 并校验下载，Boot 3.5.16 为中间基线，尚不代表 Boot 4 / Jackson 3 已完成。
+- 无 Servlet/MVC 依赖的非 Web 应用不再因幂等/限流自动装配提前链接 Web 类型而启动失败；Web 条件、Bean 名和业务语义保留。
+- 增加独立普通 jar 消费者和跨平台验证入口，见 [构建与依赖账本](docs/building/java25-baseline.md)。
+
 ### Breaking(API 变更,2026-07-06 一致性宪法批)
 
 - **`ErrorTypeInterface.formatFallback(...)` 移出接口契约面(降为 private 实现细节)**。
