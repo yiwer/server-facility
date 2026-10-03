@@ -70,3 +70,7 @@
 - 2026-10-04：13先同步18、06并完成复验；最终被测源码 `e698642be82eb9d6d036e09a06dab21face34929` 的 Windows `mvnw.cmd -B -ntp clean verify` 为 **1433/0/0/0**，instruction92.8138%、line93.3884%、branch85.2437%，5原架构/原覆盖率门/依赖分析全部通过。普通jar SHA256 `dac3a1dc91d4706d3144336a2504bf4daacd5073f04db467e6f6ca1b4268cd34`；8次真实multipart请求、96MiB堆256MiB上传/100次故障、缺Tika与冷取消子进程见[票13报告](../../verification/ticket-13-upload-integrity.md)。
 - merger从干净 `5faff896` 以 `--no-ff` 合入票13最终文档提交 `99a0eabc40519d8a63d1754f404747c3e79372da`，合并 `283f018635195bbafa57f028f4927770ea0eb35e`；src/POM/verification/Wrapper与被测源码相同。中央登记ADR0036、34条实际ADR和正上传预算例外，保留0001 optional理由。没有重复同源码全门，没有push。
 - 13保持verification-pending：Linux hardlink/symlink/权限拒绝分支待root CI，24负责新上传/Tika普通jar完整optional矩阵。本次13的clean verify未执行独立integration消费者，不以06旧消费者结果代替；31上传至CSV、33候选组合独立登记，不反向创建实现依赖。
+
+- 2026-10-04：merger复核17实际summary、密码原语diff与独立消费者，无阻断；从干净 `d4922df` 以 `--no-ff` 合入最终 `1234f2ae12438cb00f979a64c4f3875cda21d5df`，merge `538e7d9709ed928a9b46e3643d700b31243e842d`。src/POM/verification/Wrapper与被测 `6f7f06c10aee2717a90f783fb938df1b0e31156f` 完全相同，后续中央文档不改产品。
+- 17 Windows integration 1442/0/0/0，5原架构/原覆盖率/依赖门、ordinaryjar/core/crypto64MiB消费者/JSON真实HTTP双应用/3工具链负控全PASS；jar SHA256 `2fa7c58a20b14ddc6fd65eb5da3465f6955b9e3db44e628b132de1280d456098`。原始summary在ticket-17 `.verification-results/20261004-015807-675-integration`，详见[报告](../../verification/ticket-17-crypto-legacy.md)。本轮integration没有all额外资源周期。
+- 中央登记0040/0019部分替代、35条实际ADR。17仍verification-pending，仅同源Linux CI待24闭合；原协议/KDF参数不变、应用预算由可执行消费者展示。未重复同源码完整门，未push；主checkout释放，24可由此tip继续验证。
