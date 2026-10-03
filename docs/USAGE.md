@@ -67,6 +67,18 @@ worker/dataCenter 经 `facility.id.*` 配置(见开关全表)。范围校验在 
 
 ## JSON:JsonUtil
 
+Spring 服务代码优先注入应用拥有的 `Jsons`（ADR-0044）；它复用本应用的 ObjectMapper 和 Boot Jackson customizer，两个应用的实例各自保有其策略。用户自有 `Jsons` bean 优先，此时与 MVC 策略的一致性由用户负责。
+
+```java
+final class OrderExport {
+    private final Jsons jsons;
+    OrderExport(Jsons jsons) { this.jsons = jsons; }
+    Result<String, WrappedError> encode(Order order) { return jsons.serialize(order); }
+}
+```
+
+非 Spring 代码继续显式构造 `new Jsons(mapper)`。构造 mapper 时可以使用 `JsonConfig.standard().customizeBuilder(builder -> builder.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)).build()`；预设/模块/特性先应用，再按顺序执行 builder 回调，随后构建。旧 `customize(mapper -> ...)` 仍在构建后最后执行；新代码优先选构建期入口，发布后不再突变 mapper。
+
 序列化/反序列化返回 `Result`,不抛异常。支持多命名空间(不同 ObjectMapper 策略)。
 
 ```java
@@ -81,6 +93,8 @@ Result<String, WrappedError> pj = pretty.serialize(user);
 ```
 
 `JsonsRegistry`(经 `JsonUtil.registry()`)是进程级单例 —— 见[消费方须知](#消费方须知)。
+
+InputStream 字段可用 `new SimpleModule().addSerializer(InputStream.class, new InputStreamSerializer(1024)).addDeserializer(InputStream.class, new InputStreamDeserializer(1024))` 注册显式字节预算，再通过 `JsonConfig.Builder.addModule` 或宿主 Jackson builder 装配。正数限制原始/解码字节数；serializer 最多读取上限加一个探测字节，并在成功、超限和 I/O 失败时关闭字段源流。解码后的返回流由调用方关闭。无参及 ≤0 仍无上限；JSON 文本读取预算由宿主单独设置。根 JSON 输入/输出流的关闭由 mapper 的 AUTO_CLOSE_SOURCE / AUTO_CLOSE_TARGET 决定，与字段源流分别管理。解析、预算和 I/O 失败通过 `Jsons` 的 Result 错误通道返回；必需依赖/回调为 null 时立即失败。
 
 ## 日志:LogUtil
 
@@ -500,10 +514,7 @@ facility:
   `spring.messages.basename` 等配置**不影响** facility 自带文案(facility 的 basename 固定为
   `i18n/facility-messages`)。你自己的 `MessageSource` bean 会被聚合进来一起解析;若要完全接管,
   声明名为 `messageSource` 的 bean 即可(`@ConditionalOnMissingBean(name="messageSource")` 让位)。
-- **JsonUtil 单例 × 多上下文**:`JsonsRegistry` 是进程级(静态)单例,不随 Spring 上下文创建。
-  同一 JVM 内多个 `ApplicationContext`(如测试并行、多模块)共享同一套 ObjectMapper 命名空间 ——
-  这是刻意设计(门面无状态、零上下文耦合),但若你在不同上下文注册了不同的 Jackson 定制,注意它们
-  作用于同一注册表。
+- **JsonUtil 兼容单例 × 多上下文**：旧静态 JsonUtil / JsonsRegistry 共享进程级命名空间，后创建应用会覆盖默认 mapper，关闭不恢复；bean 初始化中捕获 DEFAULT 还可能早于 registry 装配。多个应用使用构造器注入的 `Jsons` 保持各自策略；不要依赖静态注册表表达应用归属。GENERIC/CANONICAL/PRETTY 仍是旧独立预设，并不自动继承宿主 customizer。
 - **Context 生命周期与注入**：新代码将 `CacheManager`、`MessageSource`、业务 Module 等必需依赖写在构造器中，由各应用自己的 Spring 容器装配。不要通过静态 holder 再查一次依赖。例如 `OrderQueries(CacheManager cacheManager)` 的实例始终使用本应用传入的缓存管理器；父子容器按 Spring 的常规依赖解析规则工作。
 - **SpringContextHolder 兼容入口（已弃用，ADR-0025）**：首个成功发出本容器 `ContextRefreshedEvent` 的 holder 取得唯一进程级注册，刷新中不可查。只有取得注册的实例可以撤销；被拒绝的 B 关闭/启动失败不清理 A，A 关闭后不会自动将曾被拒绝的 B 提升为 owner。新的应用或显式重新成功刷新可以竞争空位。关闭事件先撤销，destroy 兜底且幂等；lookup 与关闭竞争返回既有 Result 错误，已经返回的 bean/正在执行的业务由应用生命周期负责。
 - **兼容测试迁移**：用真实 context 注册 holder、refresh、close；不要全局 reset 或用反射清空 holder。`setApplicationContextManually` 只在 `refresh()` 返回后接受活跃且未开始关闭、使用 Spring 标准 singleton registry 的 `AbstractApplicationContext`，不替换已有 owner，并随自己的 context 关闭/原地刷新撤销；原地刷新后须重新手工登记，不支持与 refresh 并发调用。null 保持忽略；未刷新/关闭中/已关闭/不支持该生命周期的对象抛 `IllegalArgumentException`。查询的必需 Class 参数 null 立即报错，null bean 名按缺席返回错误/false。`IdUtil` 和 `LogUtil` 不缓存 Spring bean，因此应用重新创建后使用新服务；`IdUtil.setGenerator` 的显式进程级 override 仍由调用方管理。`LogUtil.clearHandlerCache()` 仅保留为已弃用空操作。
