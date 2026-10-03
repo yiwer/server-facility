@@ -2,6 +2,8 @@
 
 本报告分别记录 Windows / Boot 3 中间基线与 Windows / Boot 4 目标平台证据；Linux 尚未完成。票 13 保持 verification-pending，不把未来 31/33 的组合验收反向列为本票实现依赖。
 
+最新合并源码 `e698642be82eb9d6d036e09a06dab21face34929` 已包含票 18、票 06 和中央登记；2026-10-04 01:49:16 +08:00 的 Windows `clean verify` 为 **1433/0/0/0**。详细证据见末节；此前各次结果保留为有明确源码的历史记录。
+
 ## 固定源码与完整质量门
 
 - 初始集成基线 `1c61c1b4c3539a4396794fed3c8c3f3379c7fb2c`；产品、测试与迁移 checkpoint `efea850000dc50be05970a899470c1828b62058a`。后续报告提交只修正文档/注释；目标平台同步另记于下。
@@ -107,3 +109,13 @@ Hashing 的 MD5 查询覆盖 `src/main/java`：仅两个公共 MD5 便利方法�
 最终普通 jar SHA-256 `cf4bb756819ec90a6ad39230bdfdaa8e9bc1b703fcca0fb04c446f381a768a61`；日志 `target-clean-verify.log`，原始 XML、coverage、子进程日志已归档 `target-artifacts/`；另保存 `target-dependency-tree.txt` / `target-effective-pom.xml`。最终 Tika 4.1.0 的 optional 传递版本同上述基线。
 
 最终资源进程：预热 retained 10763816 字节，64 MiB 后 10787880，256 MiB 后 10795112，100 次故障后 10797232；最终增长 33416 字节，仍小于 16 MiB 阈值。线程 7→7、temporaryFiles=0。两个冷进程分别先中断 multipart/byte[] MIME 调用，再清除测试中断、正常检测成功，均输出 `COLD_INTERRUPT_OK nextCallWorks=true`。这些是目标平台本票资源证据，Linux 尚不据此勾选。
+
+## 最终核心值与请求边界集成复验
+
+先合入票 18 中央 tip `8ca516c`，被测源码 `6385db683bafa5abc0aa6ed43ee480dc3b267ec6` 于 01:43:09 +08:00 完成完整 `clean verify`，1404/0/0/0；日志 `final-with-core-clean-verify.log`，XML 与进程证据保留在 `with-core-artifacts/`。之后合入票 06 中央 tip `5faff896d04a1b15ed10310be81bed91a14121b7`，最终被测源码 **`e698642be82eb9d6d036e09a06dab21face34929`**。合并仅 CHANGELOG 冲突，保留两票说明；产品/POM/测试自动合并。命令启动时 CHANGELOG 尚待提交，运行期间只解决并提交该文档，产品/POM/测试始终与该源码相同。
+
+`mvnw.cmd -B -ntp clean verify` 于 **2026-10-04 01:49:16 +08:00** 完成，62 秒，**1433 tests / 0 failures / 0 errors / 0 skipped**。相对票 06 的 1368 项净增本票 65 项；5 条原 ArchUnit、原 88/88/75 覆盖率门和 dependency analyze 均通过，没有调低门槛。JaCoCo：INSTRUCTION 18831/20289 = **92.8138%**，LINE 3842/4114 = **93.3884%**，BRANCH 1941/2277 = **85.2437%**。
+
+最终普通 jar SHA-256：`dac3a1dc91d4706d3144336a2504bf4daacd5073f04db467e6f6ca1b4268cd34`。完整日志 `final-with-request-clean-verify.log`，Surefire/JaCoCo 与子进程日志归档到 `with-request-artifacts/`，均位于 `.verification-results/ticket-13/`，不受 clean 删除。
+
+本次 96 MiB 堆进程：预热 retained 10714456 字节，64 MiB 后 10737808，256 MiB 后 10744728，100 次故障后 10746856；增长 **32400 字节**，线程 7→7，temporaryFiles=0。缺 Tika 和两个冷初始化取消进程也通过。本次命令没有运行独立 integration consumer runner；最新普通 jar 消费者证据属于票 06 的 `ee95d074` integration，票 13 的新 optional/上传普通 jar 组合仍由 24 接合。Linux 关键文件系统分支仍待 CI，不据 Windows 全门将平台项勾选。

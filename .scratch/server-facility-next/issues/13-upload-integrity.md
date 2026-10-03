@@ -37,3 +37,5 @@
 2026-10-04 实现提交 `efea850`，冷 Tika 初始化取消修复 `395b1f0`；合入正式目标平台集成 `7e16819` 后被测源码 `101b3b3bbf4ff17414e7ae845d4791020992159b`。最终 `mvnw.cmd -B -ntp clean verify`：1400/0/0/0，5 原架构规则、88/88/75 原门及依赖分析全部通过；Boot4.1.1/Spring7.0.9/Jackson3.1.5/Tomcat11.0.24/JDK25。报告 [ticket-13-upload-integrity](../../../docs/verification/ticket-13-upload-integrity.md) 逐项映射 Q01–Q10 与原始 RED/GREEN、94 个相关测试、8 次真实 multipart 请求和 96MiB 堆/256MiB 上传进程证据。
 
 ADR0036 保留 ADR0001 optional/按需调用理由，明确同卷硬链接、owned root、生成存储键、有限默认预算和 borrowed stream 迁移。实际 OS 拒绝删除时保留 suppressed 首因与自有残留的恢复责任，不伪称绝对清理。Linux 关键平台证据未取得，故 verification-pending；24 负责普通 jar/optional 矩阵，31 负责上传到 CSV 的交接，33 负责候选组合重验，不反向创建 13 的实现依赖。
+
+2026-10-04 最终已同步票 18、06 中央 tip `5faff896d04a1b15ed10310be81bed91a14121b7`，被测源码 `e698642be82eb9d6d036e09a06dab21face34929`。01:49:16 +08:00 完整 `clean verify` 为 **1433/0/0/0**，原 5 架构/88-88-75 覆盖率/依赖门通过；最终 jar SHA-256 `dac3a1dc91d4706d3144336a2504bf4daacd5073f04db467e6f6ca1b4268cd34`。日志与 XML 已归档 `.verification-results/ticket-13/final-with-request-clean-verify.log` 和 `with-request-artifacts/`。本次没有执行独立普通 jar integration runner，不以 06 的消费者结果代替 24 对新上传/Tika 组合的验证；本票仍因实际 Linux 分支缺证保持 verification-pending。
