@@ -11,8 +11,11 @@ import com.example.api.greeting.Greetings;
 @RestController
 class GreetingController {
     private final Greetings greetings = new Greetings();
+    private final org.springframework.context.MessageSource messages;
+    GreetingController(org.springframework.context.MessageSource messages) { this.messages = messages; }
     @GetMapping("/health") Map<String, String> health() { return Map.of("status", "UP"); }
-    @GetMapping("/api/greeting") Greetings.Greeting greeting(@AuthenticationPrincipal Jwt jwt) {
-        return greetings.greet(new Actor(jwt.getClaimAsString("iss"), jwt.getSubject()));
+    @GetMapping("/api/greeting") Greetings.Greeting greeting(@AuthenticationPrincipal Jwt jwt, java.util.Locale locale) {
+        var greeting = greetings.greet(new Actor(jwt.getClaimAsString("iss"), jwt.getSubject()));
+        return new Greetings.Greeting(greeting.actor(), messages.getMessage("greeting", null, greeting.message(), locale));
     }
 }

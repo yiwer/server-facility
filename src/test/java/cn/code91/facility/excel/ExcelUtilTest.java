@@ -127,7 +127,9 @@ class ExcelUtilTest {
                     List.of("张三", "含,逗号 和\"引号"),
                     List.of("", "空首格"));
             assertThat(ExcelUtil.write(f, rows).isOk()).isTrue();
-            assertThat(ExcelUtil.read(f).get()).isEqualTo(rows);
+            var result = ExcelUtil.read(f);
+            if (result.isErr()) throw new AssertionError("Excel read", result.getErr().getException());
+            assertThat(result.get()).isEqualTo(rows);
         }
 
         @Test
@@ -147,12 +149,16 @@ class ExcelUtilTest {
                 var r0 = sheet.createRow(0);
                 r0.createCell(0).setCellValue(42.0);           // General 整数 → 「42」
                 r0.createCell(1).setCellValue(3.5);            // General 小数 → 「3.5」
-                r0.createCell(2).setCellFormula("1+2");        // 公式 → 计算值「3」
+                r0.createCell(2).setCellFormula("1+2");
+                // The producer stores the cache; the facility never evaluates formulas (ADR-0039).
+                wb.getCreationHelper().createFormulaEvaluator().evaluateAll();
                 try (var os = Files.newOutputStream(f)) {
                     wb.write(os);
                 }
             }
-            List<List<String>> rows = ExcelUtil.read(f).get();
+            var result = ExcelUtil.read(f);
+            if (result.isErr()) throw new AssertionError("Excel read", result.getErr().getException());
+            List<List<String>> rows = result.get();
             assertThat(rows).containsExactly(List.of("42", "3.5", "3"));
         }
 
@@ -169,7 +175,9 @@ class ExcelUtilTest {
                     wb.write(os);
                 }
             }
-            List<List<String>> rows = ExcelUtil.read(f).get();
+            var result = ExcelUtil.read(f);
+            if (result.isErr()) throw new AssertionError("Excel read", result.getErr().getException());
+            List<List<String>> rows = result.get();
             assertThat(rows).containsExactly(
                     List.of("a", "", "c"),
                     List.of(),                                  // 空行 → 空 List(spec §5.1)

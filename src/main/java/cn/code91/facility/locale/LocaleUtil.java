@@ -30,9 +30,12 @@ import java.util.Locale;
  * String msg = LocaleUtil.translateMessage("user.not_exist", Locale.ENGLISH);
  * }</pre>
  *
+ * @deprecated Constructor-inject the application MessageSource and pass an explicit Locale.
+ * Static lookup retains historical single-context behavior only.
  * @author yvvb
  * @since 2025/5/4
  */
+@Deprecated(since = "0.1.0", forRemoval = false)
 @UtilityClass
 public class LocaleUtil {
 
@@ -135,7 +138,7 @@ public class LocaleUtil {
                                                       String fallbackPattern,
                                                       Locale locale) {
         if (NullSafe.isBlank(messageKey)) {
-            return renderFallback(fallbackPattern, args);
+            return renderFallback(fallbackPattern, args, locale);
         }
         String resolved = SpringContextHolder.getBean(MessageSource.class)
                 .map(ms -> {
@@ -149,7 +152,7 @@ public class LocaleUtil {
         if (resolved != null) {
             return resolved;
         }
-        return fallbackPattern == null ? messageKey : renderFallback(fallbackPattern, args);
+        return fallbackPattern == null ? messageKey : renderFallback(fallbackPattern, args, locale);
     }
 
     // ==================== ErrorTypeInterface 边界本地化(C1,ADR-0010) ====================
@@ -181,13 +184,13 @@ public class LocaleUtil {
         return localize(errorType, args, getLocale());
     }
 
-    private static String renderFallback(String pattern, Object[] args) {
+    private static String renderFallback(String pattern, Object[] args, Locale locale) {
         if (pattern == null) {
             return "";
         }
         if (args == null || args.length == 0) {
             return pattern;
         }
-        return MessageFormat.format(pattern, args);
+        return new MessageFormat(pattern, locale == null ? getLocale() : locale).format(args);
     }
 }

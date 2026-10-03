@@ -48,7 +48,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 
 | 循环 | 成因 | 断法 |
 |---|---|---|
-| **C1** `error → locale → context → error` | 错误消息在 error 包内做 i18n 解析,拉入 locale/context | error 包退回纯 JDK,i18n 解析上移到展示边界(`LocaleUtil.localize`);ADR-0010 |
+| **C1** `error → locale → context → error` | 错误消息在 error 包内做 i18n 解析,拉入 locale/context | error 包退回纯 JDK,i18n 解析上移到展示边界；新路径注入宿主 MessageSource，旧 LocaleUtil 兼容；ADR-0010/0049 |
 | **C2** `common → structure → copy → common` | `WrappedContainer`/`WrappedDataType` 横跨 structure 与 copy | 二者零消费者,直接 drop;structure 退为纯值叶子 |
 | **C3** `web → autoconfigure`(properties 反向边) | 5 个 web properties 曾住 `autoconfigure.properties`,web 组件依赖它 → 又被 autoconfigure 依赖 | properties 归位到各自消费组件同包(trace/repeatable→`web.filter`,access-log→`web.interceptor`,exception→`web.exception`,cors→`web`);`autoconfigure.properties` 包消亡 |
 
@@ -56,7 +56,7 @@ server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现�
 `error_package_depends_only_on_jdk`、`main_code_does_not_depend_on_logback`、
 `autoconfigure_is_not_depended_on_by_main_packages`、
 `excel_facade_does_not_depend_on_poi`(ADR-0021:锁定 `ExcelUtil` 门面零 POI 类型引用,
-POI 只能出现在包私有 `ExcelSupport`)。
+POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)。
 
 ## 4. 自动装配范式
 
@@ -69,11 +69,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
   `@ConditionalOnMissingBean(Executor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
   —— 让 Boot 的 `applicationTaskExecutor` 先注册；facility 仅缺席时提供有界平台线程池。
   消费方显式向 Async 传入 Executor；静态默认不查容器；执行段上下文、整体预算和取消见 ADR-0026（部分替代 ADR-0002）。
-- **i18n 聚合抢注 primary**:`FacilityLocaleAutoConfiguration` 以 `@AutoConfigureBefore(MessageSourceAutoConfiguration)`
-  注册 `@Primary` 的 `AggregatedMessageSource`(名为 `messageSource`),把各模块贡献的具名
-  `MessageSource` bean 聚合为一个;`facilityMessageSource` 提供 facility 自带的 i18n 文案
-  (basename `i18n/facility-messages`,含 base + en/zh_CN/zh_TW 四份,`fallbackToSystemLocale=false`
-  使非中英 locale 确定性回落英文 base)。
+- **应用拥有 i18n**:`FacilityLocaleAutoConfiguration` 在 Boot `MessageSourceAutoConfiguration` 之后提供缺席兜底；Boot basename 或用户具名 `messageSource` 优先。设施 bundle `i18n/facility-messages` 由应用明确排在 basename 之后；独立 `facilityMessageSource` 不是默认注入候选，不会引起构造注入歧义。新路径不扫描或聚合其他消息源，显式旧聚合调用者负责无环委托，见 ADR0049。
 - **Web 条件门**:`FacilityWebAutoConfiguration` 整体 `@ConditionalOnWebApplication(SERVLET)`,
   各组件再由 `facility.web.*.enabled` 单独 `@ConditionalOnProperty` 开关。
 - **并非所有能力簇都装配**:11 是「需要 bean/配置属性」的子集数,不是能力簇总数——无状态、无可
@@ -81,7 +77,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
   无 `facility.*` properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020、
   ADR-0021)。`masking` 的引擎是单个预编译合并 `Pattern`(六规则 alternation)+ 单遍 `Matcher`
   扫描 + 按命中组 dispatch 到对应遮蔽函数 + 身份证/银行卡的校验位级联(mod11-2/Luhn 通过才遮,
-  详见 ADR-0020);`log` 包在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎(单向依赖
+  详见 ADR-0020);兼容 `LogUtil` 在消息写盘与 `LogPostHandler` 分发之前默认调用该引擎（新访问/错误路径直接使用 SLF4J 有限元数据，不经二次分发；ADR0049）(单向依赖
   `log → masking`,由 `MaskUtil` 零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit
   `packages_are_cycle_free` 守护的是未来出现反向边时立即报警,而非断言方向本身),`masking`
   自身零依赖、零装配、零 bean。`csv`/`excel` 同属这一类:`CsvUtil` 以 Commons CSV required 依赖提供有界逐行消费与明确方言（ADR-0038）;
@@ -92,7 +88,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-42 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+44 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -116,7 +112,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0018 | HTTP client `HttpClients` 门面委托 `RestClient` + `Result` 化 |
 | 0019 | crypto 加解密门面——安全默认 AES-256-GCM、内管 IV、不透明失败通道、纯 JDK |
 | 0020 | 日志脱敏——`LogUtil` 写前集成(`LogPostHandler` 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
-| 0021 | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
+| 0021 | 保留裸列表、无表头ORM与POI optional；CSV政策由0038、Excel预算/公式/临时资源/实际引擎保证由0039部分替代 |
 | 0022 | `LogUtil` 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
 | 0024 | Java 25、固定校验 Wrapper、独立普通 jar 与跨平台入口；Boot3中间版本由0045部分替代 |
@@ -130,6 +126,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0036 | 正数实际字节预算、借用MIME流不关闭、生成存储键与同卷hardlink不覆盖发布；保留0001 optional边界 |
 | 0037 | ZIP完整关闭后hardlink不覆盖发布，有界目录/归档结果与真实失败清理；纯JDK普通jar消费 |
 | 0038 | Commons CSV明确strict/legacy，有界行消费/便利读取，机器原值与电子表格拒绝政策；部分替代0021 |
+| 0039 | POI5.5.1按格式消费；小XLS/HSSF、有界XLSX/SAX、显式公式缓存与SXSSF自有临时预算；部分替代0021 |
 | 0040 | 保留旧AES-GCM/PBKDF2协议；安全Result失败、应用输入/并发预算与独立普通jar历史回执消费者 |
 | 0041 | 保留Result/领域错误语义；浅引用所有权、必需回调与集合算术边界，纯Java普通jar消费者 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
@@ -137,12 +134,14 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
 | 0047 | 真实依赖图和普通jar/HTTP平台门；补全Servlet6.1重载与缺任一缓存依赖回退，OS证据分别登记 |
 | 0048 | 宿主builder/应用Adapter拥有外部HTTP配置，实际字节预算、有限重试与未知副作用结果；部分替代0018 |
+| 0049 | 应用MessageSource/SLF4J/Micrometer所有权；旧静态本地化/日志/trace兼容迁移，真实异步scope与两应用观测隔离 |
 | 0050 | 独立JWT保护MVC模板：应用信任/Actor、标准Security授权、安全401/403/503与上下文所有权；扩展0027/0029接合 |
 
 ## 6. 质量门
 
 - **09/14/15跨平台闭合**：集成 `c2f0f6b` 的Windows/Ubuntu完整门、平台门和归档全部通过，[CI37147633803](verification/ticket-09-14-15-ci.md)登记同源证据，三票closed。
-- **最新本地接合（11/25/27）**：11被测`956081d` Windows all为库1555/0/0/0、模板47/0/0/0，含64MiB普通jar和三个32MiB claim故障探针；25被测`a9c6400` all --fresh为库1541/0/0/0、聚合应用14/0/0/0，含200次尾流拒绝和5次关闭。各自原质量门与负控通过，见[11报告](verification/ticket-11-qualified-claims.md)、[25报告](verification/ticket-25-outbound-http.md)及[27报告](verification/ticket-27-secured-template.md)。合并后三条消费者入口保留且runner编译通过；联合Windows/Linux CI尚待，三票保持verification-pending，不把不同源计数拼成同源结果。
+- **前次本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过。Excel4种真实引擎依赖图、64MiB400,000行/200失败/恶意XML、独立样本和openpyxl导出oracle通过；原质量门、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](verification/ticket-16-bounded-excel.md)。同源CI12已通过Windows/Ubuntu完整门、平台门和归档，11/16/27 closed，详见[CI37156503739](verification/ticket-11-16-27-ci.md)。25后加Inventory `[null]` 修复尚待CI13，保持verification-pending；本段精确计数仅为原本地来源。
+- **最新本地完整门（26）**：冻结`72a37b6` Windows `all --fresh`为库1614/0/0/0、模板52/0/0/0、聚合应用14/0/0/0，92命令与原质量门/负控全部PASS，见[26报告](verification/ticket-26-host-observability.md)。合入候选额外含25的库存null修复与第15项测试，25/26保持verification-pending，等待联合CI13。
 - **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；同产品集成`80670fa`现已通过Windows/Ubuntu完整CI，详见[平台闭合](verification/ticket-24-ci.md)；各环境精确值以各自artifact为准。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载已由24在目标平台复验关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
