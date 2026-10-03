@@ -1,5 +1,7 @@
 # ADR-0029: Explicit request origin and scoped compatibility context
 
+> 2026-10-04：部分由 [ADR0049](0049-application-owned-observability.md) 替代。默认关闭自造trace过滤器，应用标准观测scope负责传播；代理来源、请求身份和清理边界保留。
+
 ## Status
 
 Accepted.

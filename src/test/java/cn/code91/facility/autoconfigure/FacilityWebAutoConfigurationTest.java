@@ -24,10 +24,15 @@ class FacilityWebAutoConfigurationTest {
     @Test
     void registersWebBeansInServletContext() {
         runner.run(ctx -> assertThat(ctx)
-            .hasSingleBean(TraceIdFilter.class)
+            .doesNotHaveBean(TraceIdFilter.class)
             .doesNotHaveBean(RepeatableRequestFilter.class)
             .hasSingleBean(AccessLogInterceptor.class)
             .hasSingleBean(AbstractGlobalExceptionHandler.class));
+    }
+
+    @Test void legacyTraceRequiresExplicitOptIn() {
+        runner.withPropertyValues("facility.web.trace.enabled=true")
+                .run(context -> assertThat(context).hasSingleBean(TraceIdFilter.class));
     }
 
     @Test

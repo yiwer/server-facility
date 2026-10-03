@@ -4,27 +4,33 @@
 
 **Blocked by:** 24 把目标平台集成为可发布的真实消费者组合
 
-**Status:** ready-for-agent
+**Status:** closed
 
 **Traceability:** FR-02、FR-03、FR-08、FR-09；AC-04、AC-07、AC-11、AC-12
 
 ## Acceptance criteria
 
-- [ ] 应用拥有 MessageSource，库按明示优先级贡献 bundle，避免循环委托或抢占用户配置。
-- [ ] 新路径使用 SLF4J/Micrometer，退出静态二次日志分发和自造 trace 默认协议；审计不与通用日志混同。
-- [ ] masking 保留纯辅助函数，敏感输出优先字段白名单；明确脱敏不能覆盖任意秘密。
-- [ ] 每个继续支持的旧入口有替代说明和消费者示例，不直接删除未知外部调用。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 应用拥有 MessageSource，库按明示优先级贡献 bundle，避免循环委托或抢占用户配置。
+- [x] 新路径使用 SLF4J/Micrometer，退出静态二次日志分发和自造 trace 默认协议；审计不与通用日志混同。
+- [x] masking 保留纯辅助函数，敏感输出优先字段白名单；明确脱敏不能覆盖任意秘密。
+- [x] 每个继续支持的旧入口有替代说明和消费者示例，不直接删除未知外部调用。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
-- [ ] 正常/接合：用户 bundle 覆盖、缺 key/locale fallback、纯核心错误进入 HTTP 边界时本地化。
-- [ ] 隔离：两个应用不同语言/观测配置、父子 context、线程切换、嵌套 MDC 和关闭。
-- [ ] 故障/边界：格式参数不匹配、日志后端失败、超长/Unicode/控制字符输入；业务失败不被日志失败覆盖。
-- [ ] 隐私：密码/token/SQL/上传内容秘密哨兵不进入响应或不该记录的日志；一个事件不被第二管线重复输出。
+- [x] 正常/接合：用户 bundle 覆盖、缺 key/locale fallback、纯核心错误进入 HTTP 边界时本地化。
+- [x] 隔离：两个应用不同语言/观测配置、父子 context、线程切换、嵌套 MDC 和关闭。
+- [x] 故障/边界：格式参数不匹配、日志后端失败、超长/Unicode/控制字符输入；业务失败不被日志失败覆盖。
+- [x] 隐私：密码/token/SQL/上传内容秘密哨兵不进入响应或不该记录的日志；一个事件不被第二管线重复输出。
 
 ## Scope boundary
 
 不建审计平台或通用秘密检测器；全站脱敏不是安全保证。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+2026-10-04：从已关闭24的集成5bdfcb0创建独立ticket-26；沿已批准MessageSource/SLF4J/Micrometer与真实HTTP seam逐项TDD。
+
+2026-10-04：本地冻结72a37b6的空仓库完整92命令PASS，库1614/0/0/0、模板52/0/0/0，架构/依赖/原88/88/75门通过。ADR0049 Accepted；实现与兼容迁移齐备，完整Q01–Q10与TDD证据见 `docs/verification/ticket-26-host-observability.md`。Linux与合入后Windows CI待执行，暂不关闭。
+
+2026-10-04：集成90098104ec8bb0edcc3eb93db848d4f2f0f51207已通过CI13 run37157891623的Windows/Ubuntu完整门、独立平台门与归档，闭合Q08/Q10，票closed。精确OS/job/artifact与证据边界见 `docs/verification/ticket-25-26-ci.md`。此前pending文字为实施历史，不代表当前状态。

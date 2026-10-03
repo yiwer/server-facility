@@ -122,3 +122,21 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 正式报告记录真实12MiB属性SAX前分配OOM的RED与64KiB事件间读取预算GREEN；64MiB child处理400,000行、200失败，线程8→8、保留堆13,559,904 vs13,969,056，无自有临时文件遗留。独立xlwt/XlsxWriter样本及openpyxl最终导出oracle均有证据。没有新XML词法器、全局POI临时策略或通用报表框架。
 - 后同步49b3148仅为Verify失败tail10,000→3,000及25报告；产品/POM/测试/消费者/templates/examples/工作流与被测99ae71a相同。最终票分支 `cdefb01da542549240f8e4a0fb2c886e002dca69` 从干净49b3148以--no-ff合入，merge `7ab12b9cca78dec2f35269dd65f168b58f39c887`，无冲突。未重复相同产品全门。
 - 中央登记0039及0021明确部分替代、43条实际ADR。16保持verification-pending：新Excel源Linux及POSIX文件占用待CI；11/25/27原CI问题仍按其真实状态处理。31/33未来业务/候选组合责任独立，不反向阻塞本票。Excel合并未push，中央提交后释放main。
+
+
+## 2026-10-04 claim／Excel／受保护模板跨平台闭合
+
+- CI12 run37156503739 的精确候选 `2b06f527a24602842721c4ed800ad71bca255319` 在 Windows/Ubuntu 的 all、platform、归档全部 success，原API JSON保存 `.verification-results/ci-11-16-27/`；精确 job/artifact/digest及证据限制见[验收报告](../../verification/ticket-11-16-27-ci.md)。没有下载artifact内部文件，不把Windows本地计数当Linux观测。
+- 11、16、27据此closed，正式票合计19项closed。历史CI8–11失败记录继续保留；Unicode原生agent/argv与短路径问题均有实际RED/GREEN和最终CI证据，未删门。12、28–31与33继续负责自身后续组合。
+- 25新增Inventory `[null]` 产品修复在CI12之后才以 `6ff81c371b1fe171dc11a88b4d6d5c331e94e0c2` 合入，15测试组合待CI13，本票仍verification-pending。此次仅提交验收与状态文档，未修改产品或重复已通过的全门，未push。
+
+
+## 票26应用观测联合候选
+
+- 2026-10-04：核读票26冻结 `72a37b6e1981e12a5dc292e22d55c28d5b93c5a8` 的 `.verification-results/20261004-054819-067-all/summary.txt`，92命令RESULT=PASS。Windows库1614/0/0/0、模板52/0/0/0、partner14/0/0/0，原88/88/75、5架构/依赖门、普通jar/真实Web/观测两应用/5资源周期/全部负控通过；库jar SHA `e97cedb5ab07ac9cabe638bf001ded6a5bb2f22ac521351fe09755d3ebc59595`。精确范围见[26报告](../../verification/ticket-26-host-observability.md)。
+- 交接 `f11ab410bb0264b336f622ffce3d80896044747d` 已包含main6ff81c3；merger先将CI12文档a271061同步为 `e941a38ec002dcd579114fc2f33918fca3adf119`，再从干净a271061以--no-ff合入，merge `1b65e35643d897fa6f3ae8dc8a3800d10c8f5e4b`。合入后的src/POM/templates/examples/verification/workflow与交接分支完全相同，无冲突或额外产品改动。
+- 中央登记0049、44条实际ADR及0010/0020/0022/0027/0029明确部分替代范围，历史理由保留。26冻结门不含后续Windows短路径修复及25第15项库存null场景，25/26均保持verification-pending，由本次授权push启动的CI13联合验证；不把多个来源的本地结果拼成新候选通过。未重复已通过的同源全门。
+
+## 2026-10-04 外部HTTP与观测跨平台闭合
+
+集成90098104ec8bb0edcc3eb93db848d4f2f0f51207通过现有CI13 run37157891623的Windows job111305028022与Ubuntu job111305028159；完整all、独立platform和artifact归档全部success。25/26 closed，当前21张票closed。公开元数据与精确范围见[25/26 CI报告](../../verification/ticket-25-26-ci.md)；不把本地1541/1614或14/15/52计数充作Linux精确值。07/08/10/12/19/20/28–33及最终双轴审查继续执行，最终33仍须单一候选全组合。

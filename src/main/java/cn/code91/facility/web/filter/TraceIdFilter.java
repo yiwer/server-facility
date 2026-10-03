@@ -16,8 +16,11 @@ import java.util.regex.Pattern;
  * Bounded correlation, not authentication or a distributed tracing implementation.
  * A valid host MDC value wins over the saved request and optional inbound header. The owned key is restored
  * in finally; unrelated MDC entries remain untouched. Configuration is captured at construction.
+ * @deprecated Use application-owned Micrometer tracing and its standard propagation. This filter
+ * remains available only for explicit legacy opt-in and is disabled by default.
  * REQUEST/ASYNC/ERROR share the request snapshot. Registration is owned by FacilityRequestContextFilter.
  */
+@Deprecated(since = "0.1.0", forRemoval = false)
 public class TraceIdFilter extends OncePerRequestFilter {
 
     /**

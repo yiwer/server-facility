@@ -4,7 +4,7 @@
 
 **Blocked by:** 24 把目标平台集成为可发布的真实消费者组合
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-08；AC-11、AC-15
 
@@ -14,7 +14,7 @@
 - [x] 必要状态、头和失败信息保留；连接/读取超时、4xx、5xx、坏响应和未知结果可区分。
 - [x] 有副作用请求默认只发送一次；显式重试需要幂等依据、次数和整体预算，不延长 deadline。
 - [x] 迁移一个实际外部聚合消费者，明确返回流/大响应的限额和关闭责任。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -34,3 +34,5 @@
 2026-10-04：root从integration c32e72e建立codex/ticket-25独立worktree。24已由真实Windows/Linux CI闭合。公开seam为宿主管理的RestClient.Builder及两个类型化聚合Adapter，沿实际HTTP请求验证；标准RestClient承担传输/转换/观测，只为重复的响应预算添加小型设施能力。先复现宿主builder配置被默认装配绕过，再逐项TDD。替代ADR0018的私有builder默认推荐与静态默认路径，兼容API先弃用并提供真实消费替代。
 
 2026-10-04：Windows完整 all --fresh 已通过；详见 [ticket-25验证报告](../../../..//docs/verification/ticket-25-outbound-http.md)。与27合并后的同源Windows/Linux CI尚待执行，Q10未关闭。
+
+2026-10-04：集成90098104ec8bb0edcc3eb93db848d4f2f0f51207已通过CI13 run37157891623的Windows/Ubuntu完整门、独立平台门与归档，闭合Q08/Q10，票closed。精确OS/job/artifact与证据边界见 `docs/verification/ticket-25-26-ci.md`。此前pending文字为实施历史，不代表当前状态。

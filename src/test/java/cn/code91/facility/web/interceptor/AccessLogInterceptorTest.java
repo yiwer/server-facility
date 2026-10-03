@@ -48,6 +48,7 @@ class AccessLogInterceptorTest {
         AccessLogInterceptor interceptor = interceptorWithThreshold(1000);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/fast");
         request.setAttribute(ATTR_START_TIME, System.currentTimeMillis());   // 刚开始,耗时≈0
+        request.setAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, request.getRequestURI());
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         interceptor.afterCompletion(request, response, new Object(), null);
@@ -64,6 +65,7 @@ class AccessLogInterceptorTest {
         AccessLogInterceptor interceptor = interceptorWithThreshold(1000);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/slow");
         request.setAttribute(ATTR_START_TIME, System.currentTimeMillis() - 5_000);   // 5s 前"开始"
+        request.setAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, request.getRequestURI());
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         interceptor.afterCompletion(request, response, new Object(), null);
@@ -80,6 +82,7 @@ class AccessLogInterceptorTest {
         AccessLogInterceptor interceptor = interceptorWithThreshold(0);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/x");
         request.setAttribute(ATTR_START_TIME, System.currentTimeMillis() - 60_000);
+        request.setAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, request.getRequestURI());
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         interceptor.afterCompletion(request, response, new Object(), null);
