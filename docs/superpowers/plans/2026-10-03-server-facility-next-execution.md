@@ -15,7 +15,8 @@
 
 - 主机：Windows，JDK 25.0.4.1。
 - 初始可用 Maven：临时工具目录中的 3.9.16；01 将加入正式 Wrapper。
-- Docker 与 WSL 的运行能力正在检查；平台/数据库证据以实际运行结果登记，缺环境不算通过。
+- Docker Desktop 引擎不可用；WSL 报告所需虚拟化功能未启用。用户已授权使用仓库 CI 进行 Linux 验证；远端 GitHub Actions 工作流数为零，01 将补齐流水线并实际运行。
+- Windows 原生 PostgreSQL 18.6 测试二进制已从 Zonky Maven Central 分发下载，SHA-512 校验通过；仅解压到临时工具目录，不安装系统服务。官方项目支持 Windows，来源：https://github.com/zonkyio/embedded-postgres 。数据库场景仍需实际运行并记录结果。
 
 ## 集成记录
 
