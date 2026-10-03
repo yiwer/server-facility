@@ -186,6 +186,47 @@ class GlobalExceptionHandlerTest {
         assertThat(handler.exposesTrace()).isFalse();
     }
 
+    @jakarta.validation.constraints.NotNull public Object serviceResult() { return null; }
+
+    @Test
+    void serviceReturnConstraintIsInternalFailureAndNeverAnInputError() throws Exception {
+        try (var factory = Validation.byDefaultProvider().configure()
+                .messageInterpolator(new org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator()).buildValidatorFactory()) {
+            var violations = factory.getValidator().forExecutables().validateReturnValue(this, getClass().getMethod("serviceResult"), null);
+            var result = policy().response(new jakarta.validation.ConstraintViolationException(violations), request());
+            assertThat(result.getStatusCode().value()).isEqualTo(500);
+            assertThat(((ProblemDetail) result.getBody()).getProperties().get("errors")).isEqualTo(List.of());
+        }
+    }
+
+    @Test
+    void messageSourceFailureFallsBackWithoutExposingItsDiagnostic() {
+        var messages = new org.springframework.context.MessageSource() {
+            @Override public String getMessage(String code, Object[] args, String fallback, java.util.Locale locale) {
+                throw new IllegalStateException(SECRET);
+            }
+            @Override public String getMessage(String code, Object[] args, java.util.Locale locale) {
+                throw new IllegalStateException(SECRET);
+            }
+            @Override public String getMessage(org.springframework.context.MessageSourceResolvable resolvable, java.util.Locale locale) {
+                throw new IllegalStateException(SECRET);
+            }
+        };
+        var policy = new FacilityHttpErrors(new FacilityWebExceptionProperties(), messages, Jackson2ObjectMapperBuilder.json().build());
+        var result = policy.response(new Exception(SECRET), request());
+        assertThat(((ProblemDetail) result.getBody()).getDetail()).isEqualTo("Internal server error");
+    }
+
+    @Test
+    void repeatedResolutionRetainsTraceInBothBodyAndNewResponseHeader() throws Exception {
+        var request = new MockHttpServletRequest();
+        var policy = policy();
+        var first = (ProblemDetail) policy.response(new Exception(SECRET), new ServletWebRequest(request)).getBody();
+        var response = new MockHttpServletResponse();
+        policy.write(request, response, new Exception(SECRET));
+        assertThat(response.getHeader("X-Trace-Id")).isEqualTo(first.getProperties().get("traceId"));
+    }
+
     private FacilityHttpErrors policy() {
         return new FacilityHttpErrors(new FacilityWebExceptionProperties(), new StaticMessageSource(), Jackson2ObjectMapperBuilder.json().build());
     }

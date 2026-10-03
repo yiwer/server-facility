@@ -154,7 +154,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `facility.web.repeatable-request` | 可重复读请求体：`max-body-bytes` / `include-content-types` / `exclude-paths` |
 | `facility.web.access-log` | 访问日志拦截器：`slow-threshold-millis`（超阈升 WARN 标记 slow；0=禁用） |
 | `facility.web.cors` | CORS：`allowed-origins`（默认空 = 不开）/ `allowed-methods` / `allow-credentials` |
-| `facility.web.exception` | 全局异常：`include-trace-profiles` / `use-problem-detail`（RFC 7807） |
+| `facility.web.exception` | 安全 HTTP 错误：默认 RFC 9457 ProblemDetail；`use-problem-detail=false` 显式旧 envelope（ADR-0027） |
 | `facility.ratelimit` | 限流：`default-capacity` / `default-permits-per-second` / `max-buckets` |
 | `facility.cache` | 缓存：`default-ttl` / `maximum-size`（仅 Caffeine 后端生效） |
 | `facility.lock` | 分布式锁：`max-locks`（锁集合无界防护上限） |

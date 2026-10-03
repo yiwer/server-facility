@@ -152,15 +152,40 @@ CompletableFuture<Result<String, Throwable>> f = task.submit();   // 非阻塞
 需要 servlet 栈 optional 依赖(见矩阵)。整体在 servlet Web 应用下装配,各组件由 `facility.web.*` 开关控制。
 
 - **统一响应**:`BaseResponse<T>` / `PageBaseResponse<T>`;`BaseResponse.fromResult(result)` 把 `Result` 桥到响应体。
-- **全局异常**:默认注册 `DefaultGlobalExceptionHandler`;继承 `AbstractGlobalExceptionHandler`
-  并声明 `@RestControllerAdvice` 即可覆盖(`@ConditionalOnMissingBean` 让位)。`use-problem-detail=true`
-  切 RFC 7807(ADR-0003)。
+- **全局异常**:默认注册 `DefaultGlobalExceptionHandler`，失败使用真实 HTTP 状态与 RFC 9457 ProblemDetail，成功 DTO 不包装（ADR-0027 替代 ADR-0003 的默认协议）。宿主较高优先级 `@RestControllerAdvice` 可以处理自己的异常；`AbstractGlobalExceptionHandler` 子类会使默认 advice 退让。
 - **过滤链**:`TraceIdFilter`(MDC traceId)、`RepeatableRequestFilter`(可重复读请求体,超限 413)。
 - **访问日志**:`AccessLogInterceptor`(慢请求阈值告警)。
 - **安全上传下载**:`SafeUpload`(路径穿越防御 + 危险扩展名拦截 + 类型/大小校验)、`HttpFileResponses`
   (中文文件名 RFC 5987 编码、Content-Type 推断)。
 - **会话**:`SessionUtil` / `SessionUserHolder`(ThreadLocal 当前用户,请求结束由 `SessionUserClearInterceptor` 清理)。
 - **工具**:`RequestUtil`(客户端 IP 等)、`ResponseUtil`(写 JSON / 下载头)、`CookieUtil`、`XssUtil`(jsoup allowlist)。
+
+### HTTP 错误迁移与扩展
+
+默认错误体的 `code` 为业务短码（FacilityException）或 HTTP 状态；`detail` 使用安全文案，`errors` 为字段错误数组，`traceId` 与追踪响应头一致。实例 URI 使用 `urn:facility:error:<traceId>`，不会反射请求路径、查询或秘密输入。字段错误最多 32 项，包含 `field`、`code=invalid`、安全 `message`；不公开 rejectedValue、校验注解原文或 cause。
+
+| 场景 | 默认 HTTP | 必要头 |
+|---|---|---|
+| 输入解析/校验、业务拒绝、坏 multipart | 400 | — |
+| 无匹配资源/方法/媒体 | 404/405/406/415 | 405 Allow、415 Accept |
+| 显式业务状态、上传超限 | 409/413/422 | 标准 ErrorResponse 携带的协议头 |
+| 限流 | 429 | Retry-After，毫秒向上取整为秒且至少 1 |
+| 内部异常、内部返回值校验、异步超时 | 500/503 | — |
+| 认证入口/权限拒绝 adapter | 401/403 | 401 可携带 WWW-Authenticate；身份实现由宿主提供 |
+
+`FacilityHttpErrors` 是可替换 bean，MVC、Filter 和 ERROR dispatch 共享相同策略。程序式 adapter 注入它并使用 Spring 标准异常：
+
+```java
+errors.write(request, response, new ErrorResponseException(HttpStatus.FORBIDDEN));
+// MVC 或宿主 advice 需要响应对象时：
+return errors.response(failure, new ServletWebRequest(request, response));
+```
+
+策略使用应用 ObjectMapper 和 MessageSource。宿主可以覆盖 `facility.web.error.system`、`facility.web.error.invalid_value` 等安全文案；不把输入值放入文案模板。新 advice 子类注入 `FacilityHttpErrors` 并 `super(errors)`；旧 `(properties, environment)` 构造器仅作为弃用的源代码兼容入口，无法采用宿主 mapper/MessageSource。
+
+过滤顺序约定为 TraceIdFilter（最高优先级）、FacilityHttpErrorFilter（+1）、RepeatableRequestFilter（票 05 接合后 +2）。ERROR dispatch 也走统一边界；Boot 和宿主错误页映射仍可选目的路径，部分状态注册不会撤掉其他错误的兜底。已提交响应保持原样；未提交的响应清除旧正文和实体头，保留安全/CORS/追踪头并设置 `Cache-Control: no-store`。错误 serializer 失败时回退为固定英文安全 500 ProblemDetail。
+
+旧客户端必须显式配置 `facility.web.exception.use-problem-detail=false`。这保留 `{code,message,data,description,success}` 字段形状、HTTP 200（429 仍为 429）与必要头；消息已安全化，`description` 为空，dev/test/local 也不恢复调试栈。依赖旧异常消息或原始 ErrorResponse body 的客户端应迁移到稳定 code 和 traceId。完整决策与真实 HTTP 证据见 [ADR-0027](adr/0027-safe-http-error-policy.md) 与票 04。
 
 ## 限流:RateLimiterUtil / @RateLimit
 
@@ -459,8 +484,8 @@ facility:
       allow-credentials: false
       max-age: 3600
     exception:
-      include-trace-profiles: [dev, test, local]   # 仅这些 profile 暴露堆栈摘要
-      use-problem-detail: false                     # true = RFC 7807
+      use-problem-detail: true        # 默认 RFC 9457；false 显式选择安全的旧 HTTP 200 envelope
+      # include-trace-profiles 已弃用；任何 profile 都不自动输出异常原文或调试栈
   ratelimit:
     enabled: true
     default-capacity: 100                # 令牌桶容量(未被 @RateLimit 覆盖时的默认)

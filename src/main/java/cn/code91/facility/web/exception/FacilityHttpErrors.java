@@ -64,8 +64,13 @@ public class FacilityHttpErrors {
             if (failure instanceof ErrorResponse error) {
                 status = error.getStatusCode();
                 headers.putAll(error.getHeaders());
-            } else if (failure instanceof BusinessException || failure instanceof BindException
-                    || failure instanceof ConstraintViolationException || failure instanceof MultipartException) {
+            } else if (failure instanceof ConstraintViolationException validation) {
+                boolean returnValue = validation.getConstraintViolations().stream().anyMatch(violation -> {
+                    for (var node : violation.getPropertyPath()) if (node.getKind() == jakarta.validation.ElementKind.RETURN_VALUE) return true;
+                    return false;
+                });
+                status = returnValue ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.BAD_REQUEST;
+            } else if (failure instanceof BusinessException || failure instanceof BindException || failure instanceof MultipartException) {
                 status = HttpStatus.BAD_REQUEST;
             } else if (failure instanceof RateLimitExceededException limited) {
                 status = HttpStatus.TOO_MANY_REQUESTS;
@@ -90,7 +95,7 @@ public class FacilityHttpErrors {
         }
         if (status.is5xxServerError()) log.error("HTTP request failed with status {}", status.value(), failure);
         String detail = status.value() == 500
-                ? messages.getMessage("facility.web.error.system", null, "Internal server error", locale(request))
+                ? message("facility.web.error.system", "Internal server error", locale(request))
                 : Objects.requireNonNullElse(HttpStatus.resolve(status.value()), HttpStatus.INTERNAL_SERVER_ERROR).getReasonPhrase();
         int code = failure instanceof FacilityException facility ? facility.getCode() : status.value();
         String traceId = traceId(request);
@@ -132,7 +137,7 @@ public class FacilityHttpErrors {
         } else if (failure instanceof ConstraintViolationException validation) {
             fields = validation.getConstraintViolations().stream().map(result -> result.getPropertyPath().toString());
         } else return java.util.List.of();
-        String message = messages.getMessage("facility.web.error.invalid_value", null, "Invalid value", locale(request));
+        String message = message("facility.web.error.invalid_value", "Invalid value", locale(request));
         return fields.map(FacilityHttpErrors::safeField).distinct().sorted().limit(32)
                 .map(field -> java.util.Map.of("field", field, "code", "invalid", "message", message)).toList();
     }
@@ -145,6 +150,15 @@ public class FacilityHttpErrors {
                 ? normalized : "request";
     }
 
+    private String message(String key, String fallback, java.util.Locale locale) {
+        try {
+            return messages.getMessage(key, null, fallback, locale);
+        } catch (RuntimeException failure) {
+            log.error("HTTP error message lookup failed", failure);
+            return fallback;
+        }
+    }
+
     private static java.util.Locale locale(WebRequest request) {
         return request instanceof ServletWebRequest servlet
                 ? org.springframework.web.servlet.support.RequestContextUtils.getLocale(servlet.getRequest())
@@ -153,9 +167,8 @@ public class FacilityHttpErrors {
 
     private String traceId(WebRequest request) {
         Object previous = request.getAttribute(TRACE_ATTRIBUTE, WebRequest.SCOPE_REQUEST);
-        if (previous instanceof String value) return value;
-        String value = null;
-        if (request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
+        String value = previous instanceof String saved ? saved : null;
+        if (value == null && request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
             value = servlet.getResponse().getHeader(trace.getHeaderName());
         }
         if (value == null || !value.matches("[0-9A-Za-z_-]{1,64}")) value = java.util.UUID.randomUUID().toString();
