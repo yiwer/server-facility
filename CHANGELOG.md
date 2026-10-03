@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### JSON 配置扩展（2026-10-03，ADR-0044）
+
+- 新增应用作用域 `Jsons` 自动装配，复用本应用 ObjectMapper/customizer，用户 Jsons bean 优先；服务通过构造器注入。静态 JsonUtil/registry 的旧共享行为保留。
+- 新增 `JsonConfig.Builder.customizeBuilder`，在预设之后、build 之前定制；旧 mapper 回调仍最后执行。Boot 3/Jackson 2 平台和旧签名保留，主版本替换归票 22–24。
+- InputStream 字段 serializer/deserializer 新增显式 `int maxBytes` 构造参数，正数限制原始/解码字节数，默认及 ≤0 保留无上限。字段源流在成功/超限/读写失败时关闭，解码结果由调用方管理。
+- 新增独立普通 jar JSON/真实 HTTP 消费者及旧协议金样，覆盖默认/用户定制、两个应用和关闭重建；详见 [迁移影响登记](docs/building/platform-migration-inventory.md)。
+
 ### Context 生命周期迁移（2026-10-03，ADR-0025）
 
 - `SpringContextHolder` 弃用，推荐构造器注入所需服务。兼容门面改为成功刷新时发布，并仅由发布的 holder 实例撤销；被拒绝的容器关闭、启动失败、父子事件或重复 destroy 不清理另一个应用的注册。

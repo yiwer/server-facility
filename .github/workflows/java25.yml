@@ -49,6 +49,11 @@ jobs:
             .verification-results/**/*.log
             .verification-results/**/effective-pom.xml
             .verification-results/**/dependency-tree.txt
+            .verification-results/**/json-consumer-effective-pom.xml
+            .verification-results/**/json-consumer-pom.xml
+            .verification-results/**/json-consumer-dependency-tree.txt
+            .verification-results/**/JsonConsumer.java
+            .verification-results/**/json-golden/**
             .verification-results/**/surefire-reports/**
             .verification-results/**/jacoco/**
             target/*.jar

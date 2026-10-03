@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 用固定 JDK 25 工具链构建并消费普通库产物
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-01、FR-08、FR-09；AC-02、AC-11、AC-12、AC-13
 
