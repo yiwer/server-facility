@@ -1,8 +1,8 @@
 # ADR-0017: 幂等完整语义(同 key 返首次响应)+ Filter 响应捕获 + PROCESSING/DONE 状态机
 
-- **状态**:Accepted(2026-07-04); partially superseded by [ADR-0028](0028-bounded-web-streams.md) / [ADR-0034](0034-qualified-legacy-claims.md) (2026-10-04).
+- **状态**:Accepted(2026-07-04); partially superseded by [ADR-0028](0028-bounded-web-streams.md) / [ADR-0034](0034-qualified-legacy-claims.md) / [ADR-0035](0035-authorized-bounded-http-replay.md) (2026-10-04).
 
-0028 替代全站、无界、延迟提交的响应捕获：普通响应直通，仅显式目标保留有界副本；保留本记录的历史 claim/PROCESSING/DONE 理由，保存资格与恢复政策由票12继续定义。0034进一步替代独立store的无owner完成、结果到期隐式重授和advisory容量，保留旧SPI签名与Web分包理由；HTTP接合由12负责。下文为原决策记录。
+0028 替代全站、无界、延迟提交的响应捕获：普通响应直通，仅显式目标保留有界副本；保留本记录的历史 claim/PROCESSING/DONE 理由，保存资格与恢复政策由票12继续定义。0034进一步替代独立store的无owner完成、结果到期隐式重授和advisory容量，保留旧SPI签名与Web分包理由；0035替代旧HTTP无当前授权、无scope/owner及泛称完整幂等的政策：每次授权、有限同步目标、条件完成和安全头回放；不承诺事务性业务效果。下文保留原决策记录。
 - **源起**:幂等+分布式锁+HTTP client 实现计划(docs/superpowers/plans/2026-07-04-idempotency-lock-http.md),
   簇 E(Task E1 `IdempotencyStore` SPI + `InMemoryIdempotencyStore`,已提交;Task E2 web 集成 `@Idempotent` +
   拦截器 + Filter,已提交;Task E3 装配 + properties + 端到端,本任务补记三者共同的决策依据)

@@ -26,6 +26,7 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
     private boolean outputAccessed;
     private boolean failed;
     private boolean completed;
+    private boolean deferredReplay;
     private Charset writerCharset;
     private OutputStreamWriter encoder;
 
@@ -34,12 +35,21 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
         this.limit = limit;
     }
 
+    boolean selectable() { return !selected && !outputAccessed && !isCommitted(); }
+
     void start() {
         if (selected || outputAccessed || isCommitted()) return;
         selected = true;
         buffer = new ByteArrayOutputStream(Math.min(limit, 1024));
     }
     void discard() { buffer = null; }
+
+    boolean deferReplay() {
+        if (selected || outputAccessed || isCommitted()) return false;
+        selected = true;
+        deferredReplay = true;
+        return true;
+    }
 
     Optional<byte[]> body() throws IOException {
         if (buffer == null) return Optional.empty();
@@ -60,6 +70,15 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
 
     private ServletOutputStream output() throws IOException {
         if (stream == null) {
+            if (deferredReplay) {
+                stream = new ServletOutputStream() {
+                    @Override public boolean isReady() { return true; }
+                    @Override public void setWriteListener(WriteListener listener) { throw new IllegalStateException("HTTP replay is synchronous"); }
+                    @Override public void write(int value) { }
+                    @Override public void write(byte[] bytes, int offset, int length) { java.util.Objects.checkFromIndexSize(offset, length, bytes.length); }
+                };
+                return stream;
+            }
             ServletOutputStream delegate = super.getOutputStream();
             stream = new ServletOutputStream() {
                 @Override public boolean isReady() { return delegate.isReady(); }
@@ -141,6 +160,7 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
     }
 
     @Override public void flushBuffer() throws IOException {
+        if (deferredReplay) return;
         try { finish(); super.flushBuffer(); }
         catch (IOException | RuntimeException failure) { failed = true; discard(); throw failure; }
     }

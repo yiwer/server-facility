@@ -392,24 +392,21 @@ this.client = hostBuilder.clone()
 
 ## 幂等:@Idempotent
 
-旧 HTTP 响应重放(`web.idempotency` + `idempotency` 存储)：对已保存 DONE 的同 key 返回状态、Content-Type 和正文。当前旧 key/TTL 协议不等于跨身份隔离、事务 exactly-once 或安全的过期重试；票11已提供独立执行资格入口；HTTP整条路径迁移由票12负责，持久业务命令由票29负责。
+显式有限同步目标通过 qualified claim 进行响应重放。必须提供 `IdempotencyAuthorization` bean：它在每次取得资格和重放之前检查当前操作权限，并返回可信 tenant/actor 与规范化内容 fingerprint；它不得执行业务副作用。仅有 Principal 或方法上的 `@PreAuthorize` 不足以授权重放，因为重放跳过业务方法调用。完整接口、可编译 Security 消费者和规范化示例见[迁移说明](building/authorized-http-replay.md)。
 
 ```java
-@Idempotent                                        // header 默认 Idempotency-Key
+// 前提：应用已注册执行当前权限检查和命令规范化的 IdempotencyAuthorization bean。
+@Idempotent  // header 默认 Idempotency-Key；lease/retention 分别使用配置
 @PostMapping("/pay")
 public BaseResponse<PayResult> pay(@RequestBody PayRequest req) {
-    return BaseResponse.ok(paymentService.charge(req));   // 支付侧仍需自身事务/幂等与恢复保证
+    return BaseResponse.ok(paymentService.charge(req)); // 业务侧仍需事务、唯一键及恢复保证
 }
-@Idempotent(headerName = "X-Request-Id", ttlSeconds = 600)   // 自定义 header + TTL
-@PostMapping("/order")
-public BaseResponse<Order> createOrder(...) { ... }
 ```
 
-- **语义**:客户端每次业务请求带唯一 `Idempotency-Key` 头。首次 → 处理并缓存响应(status+body);重复(同 key,TTL 内)→ 直接返回首次缓存的响应,业务方法**不再执行**;首次仍处理中的并发重复 → **409**;缺 key 头 → **400**。
-- **存储**:默认内存 `InMemoryIdempotencyStore`(PROCESSING/DONE 状态机 + TTL);SPI 可替换 Redis(多实例共享)。
-- **捕获**：`IdempotencyFilter` 默认直接流出，包括下载与 SSE；旧 claim 成功后才开启选定响应的有界副本，写入同时到达容器，flush 不等待整个响应生成。`facility.idempotency.max-response-bytes` 默认 1 MiB、必须为正数（ADR-0028）。超限时原响应仍完整流出，副本被丢弃；写失败、已被 MVC 解析的异常和异步移交也不保存不完整结果。旧 PROCESSING 仍保留至 TTL，这不是安全重试承诺。手工提供旧 `ContentCachingResponseWrapper` 不再绕过预算写 DONE，须装配有界 filter。
-- **非异常的 4xx/5xx 同样固化**:handler 直接 `return ResponseEntity.status(...)`(非异常的 4xx/5xx)
-  同样被固化为幂等首响并回放至 TTL——非异常路径视为业务定论;要避免固化请改抛异常(异常路径不缓存)。
+- **资格与隔离**：scope 含可信身份、具体控制器和完整方法签名、HTTP 方法/路径；同 key 不同 fingerprint 为 409，处理中为 409 并带 Retry-After；只有 Acquired 可执行业务。缺少授权、provider 或有界捕获支持时明确拒绝。旧无 owner SPI 不作为回退。
+- **保存政策**：有限 2xx（除 206）及显式 400/404/409/410/422 可保存；advice 转换的异常（包括 200）、其他状态、超限、不完整写出、断连、编码/分段响应与异步逃逸均不保存。结果到期、释放与 UNKNOWN 保留终态绑定，不能自动重新执行。
+- **流与头**：普通下载/SSE 直通；目标在正数请求/响应预算内捕获，首响应写入立即到容器，内层 filter 完成后才保存。重放仅保留状态、Content-Type、Location 和正文，清理旧实体/传输头，保留当前安全头。选定 multipart/form 和已知异步/流式返回类型拒绝。
+- **边界**：租约过期允许新 owner，而旧业务可能仍运行；条件更新只保护记录。容量满明确不可用，终态绑定留至关闭。提交响应后 Store 故障可能导致连接/终帧失败。内存重放不承诺持久业务效果或跨系统 exactly-once，票29负责同库业务命令/回执。
 
 ## 加解密:CryptoUtil
 
@@ -636,9 +633,12 @@ facility:
     read-timeout: 10s                    # RestClient 读超时
   idempotency:
     enabled: true
-    default-ttl: 5m                      # 幂等记录保留时长
-    max-response-bytes: 1048576          # 选定响应副本的正数预算，超限只放弃保存
-    max-entries: 100000                  # 记录上限(超限先清过期再拒新,fail-closed,F8)
+    lease: 30s                          # 执行资格租约；不能取消过期 owner 的外部副作用
+    result-retention: 5m                # 到期只释放正文，不重新授权执行
+    max-request-bytes: 1048576          # 选定有限请求的正数预算
+    max-response-bytes: 1048576         # 选定响应副本的正数预算
+    max-stored-receipt-bytes: 67108864   # 默认 Store 合计正文/元数据驻留预算
+    max-entries: 100000                 # 永久绑定硬上限，满额明确拒绝至关闭/业务核对
 ```
 
 ## 消费方须知

@@ -81,6 +81,10 @@ jobs:
             .verification-results/**/partner/**
             .verification-results/**/partner-inputs/**
             .verification-results/**/claim-consumer/inputs/**
+            .verification-results/**/lock-consumer/inputs/**
+            .verification-results/**/HttpReplayConsumer.java
+            .verification-results/**/http-replay-consumer-*.xml
+            .verification-results/**/http-replay-consumer-*.txt
             .verification-results/**/artifacts/*.jar
             .verification-results/**/matrix-inputs/**
             .verification-results/**/matrix/**

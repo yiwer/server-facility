@@ -1,137 +1,248 @@
 package cn.code91.facility.web.idempotency;
 
-import cn.code91.facility.idempotency.IdempotencyRecord;
-import cn.code91.facility.idempotency.IdempotencyStore;
-import cn.code91.facility.log.LogUtil;
-
+import cn.code91.facility.idempotency.*;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.annotation.Nullable;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.util.WebUtils;
 
-import java.io.IOException;
-import java.util.Optional;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.util.HexFormat;
+import java.util.Objects;
 
-/**
- * <b>方法级幂等拦截器</b>
- * <p>
- * 读取 Controller 方法上的 {@link Idempotent} 注解，委托构造注入的 {@code IdempotencyStore}
- * 提供旧 HTTP 响应重放适配：同一 key 可返回已保存的状态、Content-Type 与正文。
- * 这不是事务或跨身份的 exactly-once 保证。未标注 {@link Idempotent} 的方法、非 {@link HandlerMethod} 的 handler（如静态资源）
- * 一律放行。
- * </p>
- *
- * <h3>{@link #preHandle} 状态机：</h3>
- * <ul>
- *     <li>缺失/空白 key 请求头 —— HTTP 400，方法体不执行；</li>
- *     <li>key 已有 {@link IdempotencyRecord.State#DONE} 记录 —— 直接写回首次响应
- *     （状态码/Content-Type/body），方法体不执行；</li>
- *     <li>key 已有 {@link IdempotencyRecord.State#PROCESSING} 记录，或
- *     {@code IdempotencyStore#tryBegin} 竞态落败,或存储容量 fail-closed 拒绝(F8) —— HTTP 409，方法体不执行；</li>
- *     <li>其余情况 —— 占位成功，放行方法体执行，key 记入请求属性供 {@link #afterCompletion}
- *     使用。</li>
- * </ul>
- * <p>
- * 只有由 {@link IdempotencyFilter} 在现有 claim 成功后开启的有界捕获才可写入终态。
- * 超限、写失败、Servlet 异步移交或 MVC 已解析的异常均不保存不完整副本。
- * 捕获不延迟发送；未装配 filter 时记 WARN 并跳过保存，旧的手工无界 wrapper 不再作为旁路。
- * 未保存结果的旧 claim 保留至原 TTL，这不证明到期重试安全；授权、保存资格与恢复政策由业务适配负责。
- * </p>
- *
- * @author yvvb
- * @see Idempotent
- * @see IdempotencyFilter
- * @since 1.0.0
- */
+/** Qualified finite HTTP response replay; requires a current-operation host authorization Adapter. */
 public class IdempotencyInterceptor implements HandlerInterceptor {
-
-    private static final String ATTR_KEY = "facility.idempotency.key";
-    private static final String ATTR_TTL = "facility.idempotency.ttl";
-
-    private final IdempotencyStore store;
-    private final long defaultTtlMillis;
+    private static final String EXECUTION = IdempotencyInterceptor.class.getName() + ".execution";
+    private static final String REPLAY = IdempotencyInterceptor.class.getName() + ".replay";
+    private final @Nullable IdempotencyStore store;
+    private final @Nullable IdempotencyAuthorization authorization;
+    private final Duration defaultLease;
+    private final Duration defaultRetention;
+    private final int responseLimit;
+    private final org.springframework.core.ReactiveAdapterRegistry reactiveTypes = new org.springframework.core.ReactiveAdapterRegistry();
+    private record Replay(int status, String type, String location, byte[] body) { }
+    private static final class Execution {
+        final IdempotencyStore store;
+        final ClaimToken token;
+        final Duration retention;
+        boolean mvcCompleted;
+        Execution(IdempotencyStore store, ClaimToken token, Duration retention) {
+            this.store = store; this.token = token; this.retention = retention;
+        }
+    }
 
     /**
-     * @param store            幂等存储 SPI
-     * @param defaultTtlMillis {@link Idempotent#ttlSeconds()} 为 0 时使用的默认 TTL（毫秒）
+     * Compatibility constructor: annotated operations reject until a current-authorization Adapter is supplied.
+     * @deprecated Use the explicit authorization constructor; this path never falls back to ownerless claims.
      */
+    @Deprecated(since = "0.1.0", forRemoval = false)
     public IdempotencyInterceptor(IdempotencyStore store, long defaultTtlMillis) {
-        this.store = java.util.Objects.requireNonNull(store, "store");
-        this.defaultTtlMillis = defaultTtlMillis;
+        this.store = Objects.requireNonNull(store, "store");
+        this.authorization = null;
+        this.defaultLease = duration(Duration.ofMillis(defaultTtlMillis));
+        this.defaultRetention = defaultLease;
+        this.responseLimit = 1024 * 1024;
     }
 
-    @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
-            throws IOException {
-        if (!(handler instanceof HandlerMethod hm)) {
-            return true;
+    public IdempotencyInterceptor(@Nullable IdempotencyStore store, @Nullable IdempotencyAuthorization authorization,
+                                  FacilityIdempotencyProperties properties) {
+        this.store = store;
+        this.authorization = authorization;
+        this.defaultLease = duration(properties.getLease() == null ? properties.getDefaultTtl() : properties.getLease());
+        this.defaultRetention = duration(properties.getResultRetention() == null ? properties.getDefaultTtl() : properties.getResultRetention());
+        this.responseLimit = properties.getMaxResponseBytes();
+        if (responseLimit <= 0) throw new IllegalArgumentException("maxResponseBytes must be positive");
+    }
+
+    @Override public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
+        if (!(handler instanceof HandlerMethod method)) return true;
+        var annotation = method.getMethodAnnotation(Idempotent.class);
+        if (annotation == null) return true;
+        if (authorization == null || store == null) throw unavailable();
+        if (request.isAsyncStarted() || !finiteReturnType(method)) throw unavailable();
+        var capture = WebUtils.getNativeResponse(response, BoundedResponseCapture.class);
+        if (capture == null || !capture.selectable()) throw unavailable();
+        var keys = request.getHeaders(annotation.headerName());
+        String key = keys.hasMoreElements() ? keys.nextElement() : null;
+        if (key == null || key.isBlank() || key.length() > 256 || key.chars().anyMatch(Character::isISOControl)
+                || keys.hasMoreElements()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        if (request.getContentType() != null) {
+            org.springframework.http.MediaType type;
+            try { type = org.springframework.http.MediaType.parseMediaType(request.getContentType()); }
+            catch (IllegalArgumentException invalid) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST); }
+            if (type.getType().equalsIgnoreCase("multipart")
+                    || org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED.isCompatibleWith(type))
+                throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
         }
-        Idempotent ann = hm.getMethodAnnotation(Idempotent.class);
-        if (ann == null) {
-            return true;
+        var input = ReplayRequest.selectedInput(request);
+        var command = Objects.requireNonNull(authorization.authorize(request, method, input.select()), "authorized command");
+        Duration lease = annotation.ttlSeconds() == 0 ? defaultLease : duration(Duration.ofSeconds(annotation.ttlSeconds()));
+        Duration retention = annotation.ttlSeconds() == 0 ? defaultRetention : lease;
+        ClaimResult result;
+        try { result = store.claim(new ClaimRequest(scope(request, method, command), key, command.fingerprint(), lease)); }
+        catch (RuntimeException failure) { throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, null, failure); }
+        if (result instanceof ClaimResult.Replay replay) {
+            var receipt = readReceipt(replay.receipt());
+            applyReceiptMetadata(response, receipt);
+            if (!capture.deferReplay()) throw unavailable();
+            request.setAttribute(REPLAY, receipt); return false;
         }
-        String key = request.getHeader(ann.headerName());
-        if (key == null || key.isBlank()) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing idempotency key header: " + ann.headerName());
-            return false;
+        if (result instanceof ClaimResult.Acquired acquired) {
+            request.setAttribute(EXECUTION, new Execution(store, acquired.token(), retention));
+            capture.start(); return true;
         }
-        Optional<IdempotencyRecord> found = store.find(key);
-        if (found.isPresent()) {
-            IdempotencyRecord record = found.get();
-            if (record.state() == IdempotencyRecord.State.DONE) {
-                writeCached(response, record);
-                return false;
+        if (result instanceof ClaimResult.Processing processing) {
+            var failure = new org.springframework.web.ErrorResponseException(HttpStatus.CONFLICT);
+            failure.getHeaders().set("Retry-After", Long.toString(1 + (processing.retryAfterMillis() - 1) / 1000));
+            throw failure;
+        }
+        if (result instanceof ClaimResult.Conflict)
+            throw new ResponseStatusException(HttpStatus.CONFLICT);
+        throw unavailable();
+    }
+
+    @Override public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
+                                          @Nullable Exception failure) {
+        var execution = (Execution) request.getAttribute(EXECUTION);
+        if (execution == null) return;
+        execution.mvcCompleted = failure == null
+                && request.getAttribute(org.springframework.web.servlet.DispatcherServlet.EXCEPTION_ATTRIBUTE) == null;
+    }
+
+    static void finishRequest(HttpServletRequest request, HttpServletResponse response, boolean successful) throws IOException {
+        var capture = WebUtils.getNativeResponse(response, BoundedResponseCapture.class);
+        var replay = (Replay) request.getAttribute(REPLAY);
+        request.removeAttribute(REPLAY);
+        if (replay != null) {
+            if (successful && capture != null && !capture.isCommitted()) {
+                if (capture.getStatus() != replay.status())
+                    throw new ResponseStatusException(capture.getStatus() >= 400
+                            ? org.springframework.http.HttpStatusCode.valueOf(capture.getStatus()) : HttpStatus.SERVICE_UNAVAILABLE);
+                writeReceipt((HttpServletResponse) capture.getResponse(), replay);
             }
-            response.sendError(HttpServletResponse.SC_CONFLICT, "Duplicate request in progress");
-            return false;
-        }
-        long ttl = ann.ttlSeconds() > 0 ? ann.ttlSeconds() * 1000 : defaultTtlMillis;
-        if (!store.tryBegin(key, ttl)) {
-            response.sendError(HttpServletResponse.SC_CONFLICT, "Duplicate request in progress");
-            return false;
-        }
-        request.setAttribute(ATTR_KEY, key);
-        request.setAttribute(ATTR_TTL, ttl);   // afterCompletion 写 DONE 记录时复用同一 ttl(含 @Idempotent.ttlSeconds 覆盖)
-        var capture = org.springframework.web.util.WebUtils.getNativeResponse(response, BoundedResponseCapture.class);
-        if (capture != null) capture.start();
-        return true;
-    }
-
-    @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex)
-            throws IOException {
-        String key = (String) request.getAttribute(ATTR_KEY);
-        if (key == null) {
             return;
         }
-        if (ex != null || request.getAttribute(org.springframework.web.servlet.DispatcherServlet.EXCEPTION_ATTRIBUTE) != null) {
-            return;
-        }
-        var capture = org.springframework.web.util.WebUtils.getNativeResponse(response, BoundedResponseCapture.class);
-        if (capture != null) {
+        var execution = (Execution) request.getAttribute(EXECUTION);
+        if (execution == null) return;
+        request.removeAttribute(EXECUTION);
+        try {
+            if (!successful || !execution.mvcCompleted || capture == null || !eligibleStatus(response.getStatus())
+                    || !eligibleMetadata(response)) {
+                execution.store.release(execution.token); return;
+            }
             var body = capture.body();
-            if (body.isPresent()) {
-                long ttl = (long) request.getAttribute(ATTR_TTL);
-                store.complete(key, IdempotencyRecord.done(response.getStatus(), response.getContentType(), body.get(),
-                        System.currentTimeMillis() + ttl));
+            if (body.isEmpty() || !consistentLength(response, body.get().length)) { execution.store.release(execution.token); return; }
+            var bytes = new ByteArrayOutputStream();
+            try (var output = new DataOutputStream(bytes)) {
+                output.writeInt(0x46485231); output.writeInt(response.getStatus());
+                output.writeUTF(Objects.requireNonNullElse(response.getContentType(), ""));
+                output.writeUTF(Objects.requireNonNullElse(response.getHeader("Location"), ""));
+                output.writeInt(body.get().length); output.write(body.get());
             }
-        } else {
-            // 配置故障信号:IdempotencyFilter 未装配或顺序错乱,响应未被包装——无法捕获响应体,
-            // 本次结果不落 DONE 记录;占位 PROCESSING 存续至 TTL 到期(期间同 key 一律 409)。
-            LogUtil.warn("[Idempotency] response has no bounded response capture "
-                    + "(IdempotencyFilter missing or misordered); key={} left PROCESSING until TTL expiry, "
-                    + "response not cached", key);
+            if (execution.store.complete(execution.token, bytes.toByteArray(), execution.retention) != ClaimUpdate.APPLIED)
+                execution.store.release(execution.token);
+        } catch (IOException | RuntimeException | Error failure) {
+            try { execution.store.release(execution.token); }
+            catch (RuntimeException | Error cleanup) { if (cleanup != failure) failure.addSuppressed(cleanup); }
+            throw failure;
         }
     }
 
-    private void writeCached(HttpServletResponse response, IdempotencyRecord record) throws IOException {
-        response.setStatus(record.statusCode());
-        if (record.contentType() != null) {
-            response.setContentType(record.contentType());
+    private static String scope(HttpServletRequest request, HandlerMethod method, IdempotencyAuthorization.Command command) {
+        try {
+            String identity = String.join("\u0000", command.tenant(), command.actor(),
+                    org.springframework.util.ClassUtils.getUserClass(method.getBeanType()).getName(), method.getMethod().toGenericString(),
+                    request.getMethod(), request.getRequestURI());
+            return "http-v1:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(identity.getBytes(StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+    }
+
+    private static boolean eligibleStatus(int status) {
+        return status >= 200 && status < 300 && status != 206
+                || status == 400 || status == 404 || status == 409 || status == 410 || status == 422;
+    }
+
+    private static boolean eligibleMetadata(HttpServletResponse response) {
+        String encoding = response.getHeader("Content-Encoding");
+        return (encoding == null || encoding.equalsIgnoreCase("identity"))
+                && response.getHeaders("Content-Encoding").size() <= 1
+                && response.getHeader("Content-Range") == null && response.getTrailerFields() == null
+                && response.getHeaders("Content-Type").size() <= 1 && response.getHeaders("Location").size() <= 1
+                && headerValue(response.getContentType()) && headerValue(response.getHeader("Location"));
+    }
+
+    private static boolean headerValue(String value) {
+        return value == null || value.length() <= 4096 && value.chars().allMatch(character -> character >= 32 && character < 127);
+    }
+
+    private static boolean consistentLength(HttpServletResponse response, int bodyLength) {
+        String length = response.getHeader("Content-Length");
+        if (length == null) return true;
+        if (response.getHeaders("Content-Length").size() != 1) return false;
+        try { return Long.parseLong(length) == bodyLength; }
+        catch (NumberFormatException invalid) { return false; }
+    }
+
+    private boolean finiteReturnType(HandlerMethod method) {
+        var type = org.springframework.core.ResolvableType.forMethodReturnType(method.getMethod());
+        for (int depth = 0; depth < 4; depth++) {
+            Class<?> raw = type.resolve(Object.class);
+            if (org.springframework.http.HttpEntity.class.isAssignableFrom(raw)) {
+                type = type.as(org.springframework.http.HttpEntity.class).getGeneric(0);
+                continue;
+            }
+            return !java.util.concurrent.Callable.class.isAssignableFrom(raw)
+                    && !java.util.concurrent.CompletionStage.class.isAssignableFrom(raw)
+                    && !java.util.concurrent.Flow.Publisher.class.isAssignableFrom(raw)
+                    && !org.springframework.web.context.request.async.DeferredResult.class.isAssignableFrom(raw)
+                    && !org.springframework.web.context.request.async.WebAsyncTask.class.isAssignableFrom(raw)
+                    && !org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter.class.isAssignableFrom(raw)
+                    && !org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody.class.isAssignableFrom(raw)
+                    && reactiveTypes.getAdapter(raw) == null;
         }
-        response.getOutputStream().write(record.body());
-        response.flushBuffer();
+        return false;
+    }
+
+    private Replay readReceipt(byte[] bytes) {
+        if (bytes.length > (long) responseLimit + 8208) throw unavailable();
+        try (var input = new DataInputStream(new ByteArrayInputStream(bytes))) {
+            if (input.readInt() != 0x46485231) throw unavailable();
+            int status = input.readInt(); String type = input.readUTF(); String location = input.readUTF();
+            int length = input.readInt();
+            if (!eligibleStatus(status) || !headerValue(type) || !headerValue(location)
+                    || length < 0 || length > responseLimit || length != input.available()) throw unavailable();
+            return new Replay(status, type, location, input.readNBytes(length));
+        } catch (IOException invalid) { throw unavailable(); }
+    }
+
+    private static void writeReceipt(HttpServletResponse response, Replay replay) throws IOException {
+        for (String header : new String[]{"Content-Length", "Content-Encoding", "Content-Disposition", "Content-Range",
+                "ETag", "Last-Modified", "Accept-Ranges", "Trailer", "Transfer-Encoding", "Content-Type", "Location"})
+            response.setHeader(header, null);
+        applyReceiptMetadata(response, replay);
+        response.getOutputStream().write(replay.body()); response.flushBuffer();
+    }
+
+    private static void applyReceiptMetadata(HttpServletResponse response, Replay replay) {
+        response.setStatus(replay.status());
+        if (!replay.type().isEmpty()) response.setContentType(replay.type());
+        if (!replay.location().isEmpty()) response.setHeader("Location", replay.location());
+    }
+
+    private static ResponseStatusException unavailable() { return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE); }
+
+    private static Duration duration(Duration value) {
+        Objects.requireNonNull(value, "HTTP replay duration");
+        long millis = value.toMillis();
+        if (millis <= 0 || !value.equals(Duration.ofMillis(millis)))
+            throw new IllegalArgumentException("HTTP replay durations must be positive whole milliseconds");
+        return value;
     }
 }

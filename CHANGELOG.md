@@ -9,6 +9,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 已授权有界 HTTP 重放（2026-10-04，ADR-0035）
+
+- `@Idempotent` 整条 HTTP 路径迁至 qualified claim。新增必需 `IdempotencyAuthorization`：每次取得或重放前进行当前操作授权与命令规范化；可信 tenant/actor、具体方法与路由隔离结果。缺 Adapter/provider/capture 明确拒绝，不回落旧无 owner 执行。
+- 请求/响应仅在显式有限同步目标上有界捕获；普通流式响应直通。内层 filter 成功退出后才保存允许状态与 Content-Type/Location；advice 异常、5xx、超限、断连及异步逃逸终止，不因等待更久重新执行。
+- `lease` 与 `result-retention` 独立，旧 `default-ttl`/注解 TTL 仅作明确兼容。过期但仍为当前 PROCESSING 的 owner 可终止；迟到旧 owner 不得更新已替换 generation。记录 CAS 不取消旧业务副作用。
+- 保留旧 SPI/构造器签名并隔离不安全回退；既有消费者必须迁移授权政策、字节预算与状态/头政策，见 [HTTP 迁移说明](docs/building/authorized-http-replay.md)。提交响应后的 Store 故障仍可能导致连接失败与宿主容器日志，不伪造完整成功响应。
+
 ### 应用消息、日志与观测（2026-10-04，ADR0049）
 
 - MessageSource 改为 Boot/宿主优先，设施 bundle 通过明确 basename 顺序贡献；退出默认聚合委托。BusinessException 的公开本地化只查宿主 bundle，不插入异常 args/defaultMessage。
