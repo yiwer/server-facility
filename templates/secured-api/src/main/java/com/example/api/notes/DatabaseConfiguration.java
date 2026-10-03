@@ -36,13 +36,28 @@ class DatabaseConfiguration {
                     || !environment.getProperty("spring.flyway.validate-on-migrate", Boolean.class, true)
                     || !environment.getProperty("spring.flyway.clean-disabled", Boolean.class, true)
                     || !environment.getProperty("spring.flyway.fail-on-missing-locations", Boolean.class, true)
+                    || !"latest".equals(environment.getProperty("spring.flyway.target", "latest"))
+                    || !environment.getProperty("spring.flyway.ignore-migration-patterns", "").isBlank()
                     || !"never".equals(environment.getRequiredProperty("spring.sql.init.mode"))) throw invalid();
         } catch (RuntimeException invalid) { throw invalid(); }
     }
     @Bean FlywayMigrationStrategy requiredDatabaseMigrations(HikariDataSource dataSource) {
         // URL parameters take precedence over driver properties. Keep finite budgets in one declared surface.
         if (dataSource.getJdbcUrl() == null || dataSource.getJdbcUrl().contains("?") || dataSource.getJdbcUrl().contains("@")) throw invalid();
-        return flyway -> flyway.migrate();
+        return flyway -> {
+            var configuration = flyway.getConfiguration();
+            if (configuration.getDataSource() != dataSource || configuration.getIgnoreMigrationPatterns().length != 0
+                    || !org.flywaydb.core.api.MigrationVersion.LATEST.equals(configuration.getTarget())
+                    || !configuration.isValidateOnMigrate() || configuration.isBaselineOnMigrate()
+                    || configuration.getLockRetryCount() < 0 || configuration.getLockRetryCount() > 5) throw invalid();
+            flyway.migrate();
+            if (flyway.info().pending().length != 0) throw invalid();
+            var applied = java.util.Arrays.stream(flyway.info().applied())
+                    .filter(migration -> migration.getState().isApplied() && !migration.getState().isFailed())
+                    .map(migration -> migration.getVersion() == null ? "" : migration.getVersion().getVersion())
+                    .collect(java.util.stream.Collectors.toSet());
+            if (!applied.containsAll(java.util.Set.of("1", "2"))) throw invalid();
+        };
     }
     private static int number(Environment environment, String property, int minimum, int maximum) {
         int value = environment.getRequiredProperty(property, Integer.class);

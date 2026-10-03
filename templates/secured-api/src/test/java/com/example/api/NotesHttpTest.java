@@ -10,6 +10,24 @@ import static org.assertj.core.api.Assertions.*;
 
 class NotesHttpTest {
     static final JsonMapper JSON = JsonMapper.builder().build();
+    @Test void chunkedJsonDocumentsAndNestingAreBoundedBeforeBusinessWrites() throws Exception {
+        try (var issuer = new TestIssuer(); var app = new RunningApp(issuer, "--spring.datasource.url=" + Postgres.freshUrl())) {
+            String token = issuer.token("a", Map.of("scope", "notes:read notes:write"), Set.of());
+            String workspace = JSON.readTree(send(app, "POST", "/api/workspaces", token, "{\"name\":\"Parser\"}").body()).path("id").asString();
+            String path = "/api/workspaces/" + workspace + "/notes";
+            for (String ignored : List.of("\"" + "x".repeat(70000) + "\"", "[".repeat(20) + "0" + "]".repeat(20))) {
+                byte[] body = ("{\"slug\":\"bounded\",\"title\":\"Title\",\"body\":\"\",\"ignored\":" + ignored + "}").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                var request = HttpRequest.newBuilder(URI.create(app.base + path)).timeout(Duration.ofSeconds(10))
+                        .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofInputStream(() -> new java.io.ByteArrayInputStream(body))).build();
+                var failed = app.client.send(request, HttpResponse.BodyHandlers.ofString());
+                assertThat(failed.statusCode()).isEqualTo(400);
+                assertThat(failed.body()).doesNotContain("xxxx", "StreamConstraints", "Exception");
+            }
+            assertThat(JSON.readTree(app.get(path, token).body()).path("total").asLong()).isZero();
+            assertThat(send(app, "POST", path, token, "{\"slug\":\"bounded\",\"title\":\"Title\",\"body\":\"\"}").statusCode()).isEqualTo(201);
+        }
+    }
     @Test void duplicateSlugsConflictOnlyInsideTheirWorkspaceWithoutChangingTheOriginal() throws Exception {
         try (var issuer = new TestIssuer(); var app = new RunningApp(issuer, "--spring.datasource.url=" + Postgres.freshUrl())) {
             String token = issuer.token("a", Map.of("scope", "notes:read notes:write"), Set.of());

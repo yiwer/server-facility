@@ -6,6 +6,36 @@ import static com.example.api.NotesHttpTest.*;
 import static org.assertj.core.api.Assertions.*;
 
 class PersistenceFailureHttpTest {
+    @Test void aDatabaseOutageFailsClosedAndRecoversWithoutLeakingApplicationConnections() throws Exception {
+        String database = Postgres.freshUrl(), name = database.substring(database.lastIndexOf('/') + 1);
+        String application = "notes-" + UUID.randomUUID();
+        try (var issuer = new TestIssuer()) {
+            for (int cycle = 0; cycle < 3; cycle++) {
+                try (var app = new RunningApp(issuer, "--spring.datasource.url=" + database,
+                        "--spring.datasource.hikari.data-source-properties.ApplicationName=" + application)) {
+                    String token = issuer.token("a", Map.of("scope", "notes:read notes:write"), Set.of());
+                    String workspace = JSON.readTree(send(app, "POST", "/api/workspaces", token, "{\"name\":\"Outage\"}").body()).path("id").asString();
+                    String path = "/api/workspaces/" + workspace + "/notes";
+                    Postgres.execute(Postgres.adminUrl(), "alter database " + name + " allow_connections false");
+                    try {
+                        Postgres.execute(Postgres.adminUrl(), "select pg_terminate_backend(pid) from pg_stat_activity where datname = '" + name + "'");
+                        long started = System.nanoTime();
+                        var failure = app.get(path, token);
+                        assertThat(failure.statusCode()).isEqualTo(503);
+                        assertThat(java.time.Duration.ofNanos(System.nanoTime() - started)).isLessThan(java.time.Duration.ofSeconds(4));
+                        assertThat(failure.body()).doesNotContain(name, "jdbc:postgresql", "FATAL", "postgres");
+                    } finally { Postgres.execute(Postgres.adminUrl(), "alter database " + name + " allow_connections true"); }
+                    // Hikari retries establishing connections with backoff; recovery is eventual within this declared budget.
+                    long deadline = System.nanoTime() + java.time.Duration.ofSeconds(5).toNanos();
+                    int status;
+                    do { status = app.get(path, token).statusCode(); if (status == 200) break; assertThat(status).isEqualTo(503); } while (System.nanoTime() < deadline);
+                    assertThat(status).isEqualTo(200);
+                    assertThat(count(database, "select count(*) from pg_stat_activity where application_name = '" + application + "'")).isBetween(1L, 4L);
+                }
+                awaitCount(database, "select count(*) from pg_stat_activity where application_name = '" + application + "'", 0);
+            }
+        }
+    }
     @Test void actualPostgresqlRowLocksAndStatementCancellationHaveBoundedRollbackAndRecovery() throws Exception {
         String database = Postgres.freshUrl();
         try (var issuer = new TestIssuer(); var app = new RunningApp(issuer, "--spring.datasource.url=" + database)) {

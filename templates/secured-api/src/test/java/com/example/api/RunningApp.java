@@ -9,12 +9,18 @@ import org.springframework.boot.web.server.servlet.context.ServletWebServerAppli
 
 final class RunningApp implements AutoCloseable {
     final ServletWebServerApplicationContext context;
-    final HttpClient client = HttpClient.newHttpClient();
+    final HttpClient client;
     final String base;
     RunningApp(TestIssuer issuer, String... extra) {
         this(issuer, new Class<?>[0], extra);
     }
     RunningApp(TestIssuer issuer, Class<?>[] sources, String... extra) {
+        this(issuer, sources, application -> {}, extra);
+    }
+    RunningApp(TestIssuer issuer, java.util.function.Consumer<SpringApplication> configure, String... extra) {
+        this(issuer, new Class<?>[0], configure, extra);
+    }
+    private RunningApp(TestIssuer issuer, Class<?>[] sources, java.util.function.Consumer<SpringApplication> configure, String... extra) {
         var args = new ArrayList<>(List.of("--server.port=0", "--server.address=127.0.0.1", "--spring.main.banner-mode=off",
                 "--logging.level.root=WARN", "--server.shutdown=immediate", "--spring.profiles.active=local",
                 "--spring.datasource.url=" + Postgres.sharedUrl(), "--spring.datasource.username=postgres", "--spring.datasource.password=",
@@ -26,7 +32,9 @@ final class RunningApp implements AutoCloseable {
             args.removeIf(existing -> existing.startsWith(name)); args.add(option);
         }
         var types = new ArrayList<Class<?>>(); types.add(ApiApplication.class); types.addAll(Arrays.asList(sources));
-        context = (ServletWebServerApplicationContext) new SpringApplication(types.toArray(Class<?>[]::new)).run(args.toArray(String[]::new));
+        var application = new SpringApplication(types.toArray(Class<?>[]::new)); configure.accept(application);
+        context = (ServletWebServerApplicationContext) application.run(args.toArray(String[]::new));
+        client = HttpClient.newHttpClient();
         base = "http://127.0.0.1:" + context.getWebServer().getPort();
     }
     HttpResponse<String> get(String path, String token, String... headers) throws Exception {
