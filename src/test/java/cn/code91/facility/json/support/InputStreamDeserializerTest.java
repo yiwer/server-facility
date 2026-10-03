@@ -1,7 +1,7 @@
 package cn.code91.facility.json.support;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIOException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("InputStreamDeserializer - Base64 → InputStream")
 class InputStreamDeserializerTest {
@@ -21,9 +21,7 @@ class InputStreamDeserializerTest {
         SimpleModule module = new SimpleModule();
         module.addSerializer(InputStream.class, new InputStreamSerializer());
         module.addDeserializer(InputStream.class, new InputStreamDeserializer());
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(module);
-        return mapper;
+        return tools.jackson.databind.json.JsonMapper.builder().addModule(module).build();
     }
 
     @Test
@@ -40,9 +38,9 @@ class InputStreamDeserializerTest {
     }
 
     @Test
-    void invalidBase64_throwsIOException() {
-        assertThatIOException().isThrownBy(() ->
-                mapperWithStreamModule().readValue("\"@@not-base64@@\"", InputStream.class));
+    void invalidBase64_throwsJacksonInputException() {
+        assertThatThrownBy(() ->
+                mapperWithStreamModule().readValue("\"@@not-base64@@\"", InputStream.class)).isInstanceOf(tools.jackson.core.JacksonException.class);
     }
 
     @Test

@@ -13,10 +13,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Autowired JsonsRegistry jsons;
  * String pretty = jsons.use("pretty").serializeUnsafe(obj);
  * }</pre>
- * Spring 应用中 {@link cn.code91.facility.autoconfigure.FacilityJsonAutoConfiguration} 会
- * 在启动时注册一个 {@code JsonsRegistry} bean，并让默认 namespace 复用 Spring 自动配置的
- * {@link com.fasterxml.jackson.databind.ObjectMapper}，从而消除"controller 出口与 JsonUtil 出口
- * 序列化结果不一致"的隐患。</p>
+ * Spring 应用中该 registry 是每个应用独有的实例，默认入口复用注入 Jsons。
+ * generic/canonical/pretty 是显式独立预设，不代表应用 HTTP 政策；需要其他政策时显式注册。
+ * JsonUtil.registry() 只管理 standalone 静态入口，应用启停不修改它。</p>
  */
 public final class JsonsRegistry {
 

@@ -2,12 +2,12 @@ package example;
 
 import cn.code91.facility.json.Jsons;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ser.std.ToStringSerializer;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.*;
@@ -21,8 +21,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
-import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
+import org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.*;
@@ -47,17 +47,25 @@ public final class JsonConsumer {
         }
 
         @Bean
+        @org.springframework.core.annotation.Order(-1)
+        JsonMapperBuilderCustomizer historicalInputPolicy() {
+            // The frozen Boot 3 default accepted trailing tokens. Compatibility is now an explicit host choice.
+            return builder -> builder.disable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+        }
+
+        @Bean
+        @org.springframework.core.annotation.Order(0)
         @ConditionalOnProperty(name = "consumer.policy", havingValue = "custom")
-        Jackson2ObjectMapperBuilderCustomizer policy() {
+        JsonMapperBuilderCustomizer policy() {
             return builder -> {
                 var numbers = new SimpleModule("consumer-numbers");
                 numbers.addSerializer(Long.class, ToStringSerializer.instance);
                 numbers.addSerializer(Long.TYPE, ToStringSerializer.instance);
                 numbers.addSerializer(BigDecimal.class, ToStringSerializer.instance);
-                builder.modulesToInstall(numbers);
+                builder.addModule(numbers);
                 builder.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
-                builder.serializationInclusion(JsonInclude.Include.NON_EMPTY);
-                builder.featuresToEnable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                builder.changeDefaultPropertyInclusion(value -> value.withValueInclusion(JsonInclude.Include.NON_EMPTY));
+                builder.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
                         DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
             };
         }
@@ -122,7 +130,7 @@ public final class JsonConsumer {
             var response = send(app, client, path, null);
             require(response.statusCode() == 200, policy + path + " status=" + response.statusCode());
             require(response.headers().firstValue("content-type").orElse("").startsWith("application/json"), "JSON content type");
-            require(response.body().equals(expected), policy + path + " expected=" + expected + " actual=" + response.body());
+            require(sameJson(response.body(), expected), policy + path + " expected=" + expected + " actual=" + response.body());
         }
         var jsons = app.getBean(Endpoint.class).jsons;
         require(jsons.serialize(null).get().equals("null"), "null root");
@@ -136,7 +144,7 @@ public final class JsonConsumer {
         var trailing = jsons.deserialize(fixture("trailing.json"), Item.class);
         require(custom ? trailing.isErr() : trailing.get().equals(new Item("first", 1)), "trailing data policy");
         var echo = send(app, client, "/echo", "{\"name\":\"中文 🧪\",\"quantity\":2}");
-        require(echo.statusCode() == 200 && echo.body().equals("{\"name\":\"中文 \\uD83E\\uDDEA\",\"quantity\":2}"), "UTF-8 HTTP input/output");
+        require(echo.statusCode() == 200 && sameJson(echo.body(), "{\"name\":\"中文 \\uD83E\\uDDEA\",\"quantity\":2}"), "UTF-8 HTTP input/output");
         var malformed = send(app, client, "/echo", fixture("invalid.txt"));
         require(malformed.statusCode() == 400, "malformed HTTP input status=" + malformed.statusCode() + " body=" + malformed.body());
         require(send(app, client, "/echo", fixture("trailing.json")).statusCode() == (custom ? 400 : 200), "HTTP trailing policy");
@@ -161,6 +169,13 @@ public final class JsonConsumer {
         try (var input = JsonConsumer.class.getResourceAsStream("/golden/" + name)) {
             return new String(Objects.requireNonNull(input, name).readAllBytes(), StandardCharsets.UTF_8).stripTrailing();
         }
+    }
+
+    static boolean sameJson(String actual, String expected) {
+        // Expected values come from the preserved literal fixtures, never from serializing expected Java objects.
+        var parser = tools.jackson.databind.json.JsonMapper.builder()
+                .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
+        return parser.readTree(actual).equals(parser.readTree(expected));
     }
 
     static void require(boolean condition, String message) {

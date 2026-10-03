@@ -2,10 +2,10 @@ package cn.code91.facility.autoconfigure;
 
 import cn.code91.facility.json.Jsons;
 import cn.code91.facility.json.support.JsonConfig;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.PropertyNamingStrategies;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,9 +17,20 @@ class JsonsApplicationScopeTest {
     public record Customer(String displayName) {}
 
     @Test
+    void explicitApplicationJsonMapperIsUsedWithoutCopyingOrChangingItsPolicy() {
+        var mapper = tools.jackson.databind.json.JsonMapper.builder()
+                .propertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE).build();
+        runner.withBean(tools.jackson.databind.json.JsonMapper.class, () -> mapper).run(context -> {
+            assertThat(context.getBean(Jsons.class).mapper()).isSameAs(mapper);
+            assertThat(context.getBean(Jsons.class).serialize(new Customer("mine")).get())
+                    .isEqualTo("{\"display-name\":\"mine\"}");
+        });
+    }
+
+    @Test
     void explicitApplicationJsonsWinsOverAutomaticMapperWrapping() {
-        Jsons supplied = new Jsons(JsonConfig.standard().customize(mapper ->
-                mapper.setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)).build());
+        Jsons supplied = new Jsons(JsonConfig.standard() .customizeBuilder(mapper ->
+                mapper.propertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)).build());
         runner.withBean(Jsons.class, () -> supplied).run(context -> {
             assertThat(context).hasSingleBean(Jsons.class);
             assertThat(context.getBean(Jsons.class).serialize(new Customer("mine")).get())

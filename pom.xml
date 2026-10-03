@@ -17,8 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- Java 25 intermediate baseline; Boot 4/Jackson 3 are tracked by tickets 21–24. -->
-        <spring-boot.version>3.5.16</spring-boot.version>
+        <!-- Target platform; tickets 23/24 close Jackson migration and full integration gates. -->
+        <spring-boot.version>4.1.1</spring-boot.version>
         <archunit.version>1.5.1</archunit.version>
         <tika.version>4.1.0</tika.version>
         <jsoup.version>1.18.3</jsoup.version>
@@ -90,16 +90,21 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
+        <!-- Boot 4 JacksonAutoConfiguration belongs to this technical module. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson</artifactId>
+        </dependency>
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
         <!-- ===== P4 序列化簇所需 ===== -->
-        <!-- jackson-core / jackson-annotations 直接使用(Jsons/JsonUtil 引用 JsonProcessingException 等、
-             JsonConfig 引用 @JsonInclude 等注解),显式声明而非依赖 databind 传递 -->
+        <!-- Jackson 3 core/databind move groups; annotations deliberately remain com.fasterxml.
+             Public Java signatures are migrated in ticket 23, not hidden with a Jackson 2 fallback. -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
         </dependency>
         <dependency>
@@ -107,21 +112,10 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jdk8</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-parameter-names</artifactId>
-        </dependency>
+        <!-- JDK 8 / Java time / parameter names support is built into Jackson 3 databind. -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
@@ -195,6 +189,23 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Actual Servlet fixture imports moved out of Boot core/autoconfigure in Boot 4.
+             Keep these modules test-only; the library does not choose a production container. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-web-server</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-tomcat</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
@@ -212,7 +223,7 @@
         </dependency>
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit-junit5</artifactId>
+            <artifactId>archunit-junit6</artifactId>
             <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
@@ -360,13 +371,13 @@
                             <failOnWarning>true</failOnWarning>
                             <ignoredUnusedDeclaredDependencies>
                                 <!-- 聚合 POM / 运行时引擎:字节码不直接引用但功能必需
-                                     (starter-test 聚合、hibernate-validator FilteredClassLoader 回归、archunit-junit5 引擎) -->
+                                     (starter-test 聚合、hibernate-validator FilteredClassLoader 回归、archunit-junit6 引擎) -->
                                 <dep>org.springframework.boot:spring-boot-starter-test</dep>
                                 <dep>org.hibernate.validator:hibernate-validator</dep>
-                                <dep>com.tngtech.archunit:archunit-junit5</dep>
+                                <dep>com.tngtech.archunit:archunit-junit6</dep>
                             </ignoredUnusedDeclaredDependencies>
                             <ignoredUsedUndeclaredDependencies>
-                                <!-- test 依赖经 starter-test / archunit-junit5 聚合传递,惯例不单列 -->
+                                <!-- test 依赖经 starter-test / archunit-junit6 聚合传递,惯例不单列 -->
                                 <dep>org.junit.jupiter:junit-jupiter-api</dep>
                                 <dep>org.mockito:mockito-core</dep>
                                 <dep>org.assertj:assertj-core</dep>
@@ -374,7 +385,7 @@
                                 <dep>org.springframework.boot:spring-boot-test</dep>
                                 <dep>ch.qos.logback:logback-core</dep>
                                 <dep>com.tngtech.archunit:archunit</dep>
-                                <dep>com.tngtech.archunit:archunit-junit5-api</dep>
+                                <dep>com.tngtech.archunit:archunit-junit6-api</dep>
                             </ignoredUsedUndeclaredDependencies>
                         </configuration>
                     </execution>

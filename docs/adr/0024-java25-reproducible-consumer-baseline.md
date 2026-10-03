@@ -4,6 +4,8 @@
 
 Accepted，2026-10-03，已批准 ticket 01。
 
+2026-10-04：Boot 3.5.16 中间平台版本部分由 [ADR-0045](0045-boot4-platform-toolchain.md) 替代为 Boot 4.1.1 目标依赖与工具链。Java 25、固定校验 Wrapper、普通 jar 消费边界和原质量门继续有效；完整目标平台保证仍由票24完成。
+
 ## Context
 
 原构建运行于 JDK 25 时仍编译 Java 21 字节码，旧 JaCoCo / ArchUnit 不提供 Java 25 字节码的完整支持。

@@ -1,6 +1,6 @@
 # 票 05：有界 Web 流的 Windows 验证证据
 
-日期：2026-10-04。本票实现可合并，保留 `verification-pending`：当前证据是 Java 25 / Boot 3.5 / Servlet 6.0，尚未取得本票集成后的 Linux CI 与 Boot 4 / Servlet 6.1 复验，不将后续票的范围写成已通过。
+日期：2026-10-04。下文保留实现时的Windows证据及待办快照；此后集成提交2304a57已通过[Windows/Ubuntu完整CI](ticket-05-ci.md)。当前仅待Boot4/Servlet6.1复验，故票仍为 `verification-pending`；不能把后续平台范围写成已通过。
 
 ## 固定源码、命令与质量门
 

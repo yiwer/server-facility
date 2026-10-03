@@ -1,8 +1,8 @@
 package cn.code91.facility.web.util;
 
 import cn.code91.facility.web.response.BaseResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -23,10 +23,10 @@ class ResponseUtilTest {
         assertThat(resp.getContentType()).contains("application/json");
         assertThat(resp.getCharacterEncoding()).isEqualTo("UTF-8");
 
-        JsonNode node = new ObjectMapper().readTree(resp.getContentAsString());
+        JsonNode node = tools.jackson.databind.json.JsonMapper.builder().build().readTree(resp.getContentAsString());
         assertThat(node.get("code").asInt()).isEqualTo(200);
-        assertThat(node.get("message").asText()).isEqualTo("greet");
-        assertThat(node.get("data").asText()).isEqualTo("hi");
+        assertThat(node.get("message").asString()).isEqualTo("greet");
+        assertThat(node.get("data").asString()).isEqualTo("hi");
     }
 
     @Test
@@ -37,9 +37,9 @@ class ResponseUtilTest {
 
         assertThat(result.isOk()).isTrue();
         assertThat(resp.getStatus()).isEqualTo(401);
-        JsonNode node = new ObjectMapper().readTree(resp.getContentAsString());
+        JsonNode node = tools.jackson.databind.json.JsonMapper.builder().build().readTree(resp.getContentAsString());
         assertThat(node.get("code").asInt()).isEqualTo(401);
-        assertThat(node.get("message").asText()).isEqualTo("未认证");
+        assertThat(node.get("message").asString()).isEqualTo("未认证");
     }
 
     @Test

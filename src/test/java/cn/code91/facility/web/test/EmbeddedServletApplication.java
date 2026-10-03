@@ -2,8 +2,8 @@ package cn.code91.facility.web.test;
 
 import org.apache.catalina.connector.Connector;
 import org.springframework.boot.test.util.TestPropertyValues;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 
 import java.net.URI;
 import java.nio.file.Path;

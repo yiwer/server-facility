@@ -1,6 +1,6 @@
 # Java 25 中间构建基线与验证入口
 
-本文件对应 ticket 01 / ADR-0024。Boot 3.5.16 仅是 Java 25 中间平台；最终 Boot 4、Jackson 3 和完整可选依赖矩阵由票 21–24 负责。
+本文件保留 ticket 01 / ADR-0024 的 Java 25 验证入口及历史 Boot 3.5.16 依赖账本。**票 22 已切换目标 Boot 4.1.1；当前依赖归属与中间态限制以 [Boot 4 平台账本](boot4-platform.md) 为准**，Jackson 行为和完整可选依赖矩阵由票 23/24 闭合。
 
 ## 先决条件与命令
 
@@ -17,6 +17,7 @@ java verification/Verify.java integration
 java verification/Verify.java resources
 java verification/Verify.java all --fresh
 java verification/Verify.java prerequisites
+java verification/Verify.java platform --fresh
 ```
 
 | 入口 | 实际执行 | 失败条件 |
@@ -26,6 +27,7 @@ java verification/Verify.java prerequisites
 | resources | clean install + 三种消费场景，再重复五次配置应用启动/使用/关闭 | 每个独立 JVM 上限 256 MiB、45 秒；超时终止本次子进程树且失败 |
 | all | 合并上述入口；库质量门仅执行一次 | 任一子步骤失败 |
 | prerequisites | 校验损坏下载、缺失 JAVA_HOME、真实错误 JDK 拒绝 | 负向用例意外成功、诊断不匹配或所需 JDK 缺失 |
+| platform | 独立工具链/双引擎/处理器/classfile/JaCoCo/依赖分析探针，解析根目标依赖 | 5 项发现不完整、正向失败、负向未精确失败、处理器/字节码/依赖解析异常；**仅子集，不代替 all** |
 
 integration / all / prerequisites 需要设置 `VERIFY_WRONG_JAVA_HOME` 为**真实的非 Java 25 JDK**（CI 使用 Temurin 21）。
 这不是可选跳过项；缺少变量时入口会失败，日志解释需要安装测试用 JDK。日常仅跑 fast 不需要第二个 JDK。
@@ -65,7 +67,7 @@ configuration metadata 存在，并通过真实 Boot 非 Web 启动验证配置�
 
 ## 直接依赖、BOM 与 processor 账本
 
-版本读取自 2026-10-03 可实际获取的官方 Central POM。无显式版本项由 Boot 3.5.16 BOM 管理，optional/test 语义保留。
+下表是票 01 的历史账本，版本读取自 2026-10-03 官方 Central POM。当时无显式版本项由 Boot 3.5.16 BOM 管理；当前目标账本见 [Boot 4 平台](boot4-platform.md)。
 执行时 `effective-pom.xml` 和 `dependency-tree.txt` 是本次解析结果，下面是本票固定配置的归属说明。
 
 | 依赖（group:artifact） | 版本 | 归属 / 语义 |
@@ -113,7 +115,7 @@ configuration metadata 存在，并通过真实 Boot 非 Web 启动验证配置�
 | maven-clean-plugin | 3.4.1 | 干净编译 |
 | maven-resources-plugin | 3.3.1 | 生产和测试资源 |
 | maven-compiler-plugin | 3.16.0 | release 25，parameters，显式 annotation processor paths |
-| maven-surefire-plugin | 3.6.0 | JUnit Jupiter 5 / ArchUnit 引擎发现 |
+| maven-surefire-plugin | 3.6.0 | JUnit Platform；票 22 切换 Jupiter 6 / ArchUnit JUnit 6 引擎 |
 | maven-jar-plugin | 3.5.1 | 普通库 jar，无 Boot repackage |
 | maven-install-plugin | 3.1.4 | 安装至验证隔离仓库 |
 | maven-help-plugin | 3.5.1 | effective POM 归档 |

@@ -1,16 +1,16 @@
 package cn.code91.facility.web.exception;
 
 import cn.code91.facility.autoconfigure.FacilityWebAutoConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.util.TestPropertyValues;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -36,9 +36,9 @@ class HttpErrorContractTest {
             assertThat(response.statusCode()).isEqualTo(500);
             assertThat(response.headers().firstValue("Content-Type").orElse(""))
                     .startsWith("application/problem+json");
-            var body = new ObjectMapper().readTree(response.body());
+            var body = tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body());
             assertThat(body.path("status").asInt()).isEqualTo(500);
-            assertThat(body.path("detail").asText()).isEqualTo("Internal server error");
+            assertThat(body.path("detail").asString()).isEqualTo("Internal server error");
             assertThat(response.body()).doesNotContain("SECRET-INPUT", "IllegalStateException", "stackTrace");
         }
     }
@@ -61,7 +61,7 @@ class HttpErrorContractTest {
                     .timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
             assertThat(response.statusCode()).isEqualTo(500);
             assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("application/problem+json");
-            assertThat(new ObjectMapper().readTree(response.body()).path("detail").asText()).isEqualTo("Internal server error");
+            assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("detail").asString()).isEqualTo("Internal server error");
             assertThat(response.body()).doesNotContain("SECRET-INPUT", "IllegalStateException");
         }
     }
@@ -85,20 +85,20 @@ class HttpErrorContractTest {
         try (var app = application(); var client = HttpClient.newHttpClient()) {
             var response = client.send(HttpRequest.newBuilder(app.uri("/failure/SECRET-INPUT?token=SECRET-INPUT"))
                     .header("X-Trace-Id", "contract-trace").GET().build(), HttpResponse.BodyHandlers.ofString());
-            var body = new ObjectMapper().readTree(response.body());
-            assertThat(body).isEqualTo(new ObjectMapper().readTree("""
+            var body = tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body());
+            assertThat(body).isEqualTo(tools.jackson.databind.json.JsonMapper.builder().build().readTree("""
                     {"type":"about:blank","title":"Internal Server Error","status":500,"detail":"Internal server error",
                      "instance":"urn:facility:error:contract-trace","code":500,"traceId":"contract-trace","errors":[]}
                     """));
             assertThat(body.path("code").asInt()).isEqualTo(500);
-            assertThat(body.path("traceId").asText()).isEqualTo("contract-trace");
-            assertThat(body.path("instance").asText()).isEqualTo("urn:facility:error:contract-trace");
+            assertThat(body.path("traceId").asString()).isEqualTo("contract-trace");
+            assertThat(body.path("instance").asString()).isEqualTo("urn:facility:error:contract-trace");
             assertThat(body.path("errors").isArray()).isTrue();
             assertThat(body.path("errors")).isEmpty();
             assertThat(response.body()).doesNotContain("SECRET-INPUT");
             var success = client.send(HttpRequest.newBuilder(app.uri("/success")).GET().build(), HttpResponse.BodyHandlers.ofString());
             assertThat(success.statusCode()).isEqualTo(200);
-            assertThat(new ObjectMapper().readTree(success.body())).isEqualTo(new ObjectMapper().readTree("{\"name\":\"sample\"}"));
+            assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(success.body())).isEqualTo(tools.jackson.databind.json.JsonMapper.builder().build().readTree("{\"name\":\"sample\"}"));
         }
     }
 
@@ -112,7 +112,7 @@ class HttpErrorContractTest {
                 var response = client.send(HttpRequest.newBuilder(app.uri(entry.getKey()))
                         .timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
                 assertThat(response.statusCode()).as(entry.getKey()).isEqualTo(entry.getValue());
-                assertThat(new ObjectMapper().readTree(response.body()).path("status").asInt()).isEqualTo(entry.getValue());
+                assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("status").asInt()).isEqualTo(entry.getValue());
                 assertThat(response.body()).doesNotContain("SECRET-INPUT", "Exception", "stackTrace");
                 if (entry.getValue() == 429) assertThat(response.headers().firstValue("Retry-After")).contains("2");
             }
@@ -132,11 +132,11 @@ class HttpErrorContractTest {
             var response = client.send(HttpRequest.newBuilder(app.uri("/body")).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString("{\"password\":\"SECRET-INPUT\"}")).build(), HttpResponse.BodyHandlers.ofString());
             assertThat(response.statusCode()).isEqualTo(400);
-            var body = new ObjectMapper().readTree(response.body());
+            var body = tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body());
             assertThat(body.path("errors").size()).isEqualTo(1);
-            assertThat(body.path("errors").get(0).path("field").asText()).isEqualTo("password");
-            assertThat(body.path("errors").get(0).path("code").asText()).isEqualTo("invalid");
-            assertThat(body.path("errors").get(0).path("message").asText()).isEqualTo("Invalid value");
+            assertThat(body.path("errors").get(0).path("field").asString()).isEqualTo("password");
+            assertThat(body.path("errors").get(0).path("code").asString()).isEqualTo("invalid");
+            assertThat(body.path("errors").get(0).path("message").asString()).isEqualTo("Invalid value");
             assertThat(response.body()).doesNotContain("SECRET-INPUT", "Size", "rejectedValue");
             var malformed = client.send(HttpRequest.newBuilder(app.uri("/body")).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString("{SECRET-INPUT")).build(), HttpResponse.BodyHandlers.ofString());
@@ -152,7 +152,7 @@ class HttpErrorContractTest {
             for (String path : new String[]{"/failure", "/filter-failure"}) {
                 var response = client.send(HttpRequest.newBuilder(app.uri(path)).GET().build(), HttpResponse.BodyHandlers.ofString());
                 assertThat(response.statusCode()).isEqualTo(200);
-                assertThat(new ObjectMapper().readTree(response.body())).isEqualTo(new ObjectMapper().readTree(
+                assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body())).isEqualTo(tools.jackson.databind.json.JsonMapper.builder().build().readTree(
                         "{\"code\":500,\"message\":\"Internal server error\",\"data\":null,\"description\":\"\",\"success\":false}"));
                 assertThat(response.body()).doesNotContain("SECRET-INPUT", "Exception");
             }
@@ -164,7 +164,7 @@ class HttpErrorContractTest {
         try (var app = application(new Class<?>[]{HostAdvice.class}); var client = HttpClient.newHttpClient()) {
             var response = client.send(HttpRequest.newBuilder(app.uri("/failure")).GET().build(), HttpResponse.BodyHandlers.ofString());
             assertThat(response.statusCode()).isEqualTo(409);
-            assertThat(new ObjectMapper().readTree(response.body()).path("handled").asText()).isEqualTo("host");
+            assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("handled").asString()).isEqualTo("host");
         }
     }
 
@@ -175,9 +175,9 @@ class HttpErrorContractTest {
                 var response = client.send(HttpRequest.newBuilder(app.uri(path)).header("Accept-Language", "fr")
                         .GET().build(), HttpResponse.BodyHandlers.ofString());
                 assertThat(response.statusCode()).isEqualTo(500);
-                var body = new ObjectMapper().readTree(response.body());
+                var body = tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body());
                 assertThat(body.path("hostMapper").asBoolean()).isTrue();
-                assertThat(body.path("detail").asText()).isEqualTo("Erreur serveur");
+                assertThat(body.path("detail").asString()).isEqualTo("Erreur serveur");
                 assertThat(response.body()).doesNotContain("SECRET-INPUT");
             }
         }
@@ -191,10 +191,10 @@ class HttpErrorContractTest {
                         .GET().build(), HttpResponse.BodyHandlers.ofString());
                 assertThat(response.statusCode()).isEqualTo(500);
                 assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("application/problem+json");
-                var body = new ObjectMapper().readTree(response.body());
+                var body = tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body());
                 assertThat(body.path("status").asInt()).isEqualTo(500);
-                assertThat(body.path("detail").asText()).isEqualTo("Internal server error");
-                assertThat(body.path("traceId").asText()).isNotBlank();
+                assertThat(body.path("detail").asString()).isEqualTo("Internal server error");
+                assertThat(body.path("traceId").asString()).isNotBlank();
                 assertThat(response.body()).doesNotContain("SECRET-INPUT", "Exception", "Tomcat");
             }
         }
@@ -224,8 +224,8 @@ class HttpErrorContractTest {
                         .header("Content-Type", "multipart/form-data; boundary=boundary")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
                 assertThat(response.statusCode()).as("file bytes %s", size).isEqualTo(size > 64 ? 413 : 200);
-                if (size > 64) assertThat(new ObjectMapper().readTree(response.body()).path("status").asInt()).isEqualTo(413);
-                else assertThat(new ObjectMapper().readTree(response.body()).path("bytes").asLong()).isEqualTo(size);
+                if (size > 64) assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("status").asInt()).isEqualTo(413);
+                else assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("bytes").asLong()).isEqualTo(size);
             }
         }
     }
@@ -243,7 +243,7 @@ class HttpErrorContractTest {
             assertThat(response.headers().firstValue("Content-Length")).isNotEqualTo(java.util.Optional.of("999"));
             assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
             assertThat(response.headers().firstValue("X-Content-Type-Options")).contains("nosniff");
-            assertThat(new ObjectMapper().readTree(response.body()).path("status").asInt()).isEqualTo(500);
+            assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("status").asInt()).isEqualTo(500);
             assertThat(response.body()).doesNotContain("SECRET-INPUT");
             }
         }
@@ -251,13 +251,13 @@ class HttpErrorContractTest {
 
     @Test
     void bootStandardErrorMappingRemainsSafeWithDiagnosticPropertiesEnabled() throws Exception {
-        try (var app = application(new Class<?>[]{org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration.class},
-                "server.error.path=/host-error", "server.error.include-message=always", "server.error.include-stacktrace=always");
+        try (var app = application(new Class<?>[]{org.springframework.boot.webmvc.autoconfigure.error.ErrorMvcAutoConfiguration.class},
+                "spring.web.error.path=/host-error", "spring.web.error.include-message=always", "spring.web.error.include-stacktrace=always");
              var client = HttpClient.newHttpClient()) {
             var response = client.send(HttpRequest.newBuilder(app.uri("/send-error?status=502")).GET().build(), HttpResponse.BodyHandlers.ofString());
             assertThat(response.statusCode()).isEqualTo(502);
             assertThat(response.headers().firstValue("X-Error-Target")).contains("/host-error");
-            assertThat(new ObjectMapper().readTree(response.body()).path("status").asInt()).isEqualTo(502);
+            assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("status").asInt()).isEqualTo(502);
             assertThat(response.body()).doesNotContain("SECRET-INPUT", "stackTrace", "exception");
         }
     }
@@ -269,7 +269,7 @@ class HttpErrorContractTest {
                 var response = client.send(HttpRequest.newBuilder(app.uri("/adapter-status?status=" + status))
                         .GET().build(), HttpResponse.BodyHandlers.ofString());
                 assertThat(response.statusCode()).isEqualTo(status);
-                assertThat(new ObjectMapper().readTree(response.body()).path("code").asInt()).isEqualTo(status);
+                assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("code").asInt()).isEqualTo(status);
                 if (status == 401) assertThat(response.headers().firstValue("WWW-Authenticate")).contains("Bearer realm=api");
                 assertThat(response.body()).doesNotContain("SECRET-INPUT");
             }
@@ -288,9 +288,9 @@ class HttpErrorContractTest {
             for (int index = 0; index < pending.size(); index++) {
                 var response = pending.get(index).join();
                 assertThat(response.statusCode()).isEqualTo(500);
-                var body = new ObjectMapper().readTree(response.body());
-                assertThat(body.path("detail").asText()).isEqualTo(index % 2 == 0 ? "Erreur serveur" : "Internal server error");
-                assertThat(body.path("traceId").asText()).isEqualTo("request-" + index);
+                var body = tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body());
+                assertThat(body.path("detail").asString()).isEqualTo(index % 2 == 0 ? "Erreur serveur" : "Internal server error");
+                assertThat(body.path("traceId").asString()).isEqualTo("request-" + index);
                 assertThat(response.headers().firstValue("X-Trace-Id")).contains("request-" + index);
             }
         }
@@ -320,15 +320,15 @@ class HttpErrorContractTest {
 
     @Configuration(proxyBeanMethods = false)
     static class BrokenMapper {
-        @Bean @org.springframework.context.annotation.Primary ObjectMapper brokenMapper() {
-            var module = new com.fasterxml.jackson.databind.module.SimpleModule();
-            module.addSerializer(org.springframework.http.ProblemDetail.class, new com.fasterxml.jackson.databind.JsonSerializer<>() {
-                @Override public void serialize(org.springframework.http.ProblemDetail value, com.fasterxml.jackson.core.JsonGenerator gen,
-                                                com.fasterxml.jackson.databind.SerializerProvider serializers) throws java.io.IOException {
-                    throw new java.io.IOException("SECRET-INPUT");
+        @Bean @org.springframework.context.annotation.Primary JsonMapper brokenMapper() {
+            var module = new tools.jackson.databind.module.SimpleModule();
+            module.addSerializer(org.springframework.http.ProblemDetail.class, new tools.jackson.databind.ValueSerializer<>() {
+                @Override public void serialize(org.springframework.http.ProblemDetail value, tools.jackson.core.JsonGenerator gen,
+                                                tools.jackson.databind.SerializationContext serializers) {
+                    throw tools.jackson.core.exc.JacksonIOException.construct(new java.io.IOException("SECRET-INPUT"));
                 }
             });
-            return Jackson2ObjectMapperBuilder.json().modulesToInstall(module).build();
+            return JsonMapper.builder().addModule(module).build();
         }
     }
 
@@ -339,33 +339,32 @@ class HttpErrorContractTest {
             messages.addMessage("facility.web.error.system", java.util.Locale.FRENCH, "Erreur serveur");
             return messages;
         }
-        @Bean @org.springframework.context.annotation.Primary ObjectMapper hostMapper() {
-            var module = new com.fasterxml.jackson.databind.module.SimpleModule();
-            module.addSerializer(org.springframework.http.ProblemDetail.class, new com.fasterxml.jackson.databind.JsonSerializer<>() {
-                @Override public void serialize(org.springframework.http.ProblemDetail value, com.fasterxml.jackson.core.JsonGenerator gen,
-                                                com.fasterxml.jackson.databind.SerializerProvider serializers) throws java.io.IOException {
+        @Bean @org.springframework.context.annotation.Primary JsonMapper hostMapper() {
+            var module = new tools.jackson.databind.module.SimpleModule();
+            module.addSerializer(org.springframework.http.ProblemDetail.class, new tools.jackson.databind.ValueSerializer<>() {
+                @Override public void serialize(org.springframework.http.ProblemDetail value, tools.jackson.core.JsonGenerator gen,
+                                                tools.jackson.databind.SerializationContext serializers) {
                     gen.writeStartObject();
-                    gen.writeBooleanField("hostMapper", true);
-                    gen.writeStringField("detail", value.getDetail());
-                    gen.writeNumberField("status", value.getStatus());
-                    gen.writeStringField("traceId", (String) value.getProperties().get("traceId"));
+                    gen.writeBooleanProperty("hostMapper", true);
+                    gen.writeStringProperty("detail", value.getDetail());
+                    gen.writeNumberProperty("status", value.getStatus());
+                    gen.writeStringProperty("traceId", (String) value.getProperties().get("traceId"));
                     gen.writeEndObject();
                 }
             });
-            return Jackson2ObjectMapperBuilder.json().modulesToInstall(module).build();
+            return JsonMapper.builder().addModule(module).build();
         }
     }
 
     @Configuration(proxyBeanMethods = false)
     @EnableWebMvc
     @Import({FacilityWebAutoConfiguration.class, Endpoints.class,
-            org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.class})
+            org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration.class})
     static class WebConfiguration implements org.springframework.web.servlet.config.annotation.WebMvcConfigurer {
-        @org.springframework.beans.factory.annotation.Autowired ObjectMapper mapper;
+        @org.springframework.beans.factory.annotation.Autowired JsonMapper mapper;
         @Override public void extendMessageConverters(java.util.List<org.springframework.http.converter.HttpMessageConverter<?>> converters) {
-            converters.stream().filter(org.springframework.http.converter.json.MappingJackson2HttpMessageConverter.class::isInstance)
-                    .map(org.springframework.http.converter.json.MappingJackson2HttpMessageConverter.class::cast)
-                    .forEach(converter -> converter.setObjectMapper(mapper));
+            converters.removeIf(org.springframework.http.converter.json.JacksonJsonHttpMessageConverter.class::isInstance);
+            converters.add(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter(mapper));
         }
         @Override @Bean public org.springframework.validation.Validator getValidator() {
             var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
@@ -375,9 +374,9 @@ class HttpErrorContractTest {
         @Bean org.springframework.web.servlet.DispatcherServlet dispatcherServlet() {
             return new org.springframework.web.servlet.DispatcherServlet();
         }
-        @Bean org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean dispatcherRegistration(
+        @Bean org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean dispatcherRegistration(
                 org.springframework.web.servlet.DispatcherServlet servlet) {
-            var registration = new org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean(servlet, "/");
+            var registration = new org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean(servlet, "/");
             registration.setMultipartConfig(new jakarta.servlet.MultipartConfigElement("", 64, 1024, 0));
             return registration;
         }
@@ -427,8 +426,8 @@ class HttpErrorContractTest {
             registration.setOrder(20);
             return registration;
         }
-        @Bean org.springframework.boot.web.server.ErrorPageRegistrar hostPartialErrorPage() {
-            return registry -> registry.addErrorPages(new org.springframework.boot.web.server.ErrorPage(
+        @Bean org.springframework.boot.web.error.ErrorPageRegistrar hostPartialErrorPage() {
+            return registry -> registry.addErrorPages(new org.springframework.boot.web.error.ErrorPage(
                     org.springframework.http.HttpStatus.NOT_FOUND, "/host-not-found"));
         }
         @Bean org.springframework.boot.web.servlet.FilterRegistrationBean<jakarta.servlet.Filter> dispatchObserver() {
@@ -442,7 +441,7 @@ class HttpErrorContractTest {
             registration.setOrder(Integer.MIN_VALUE);
             return registration;
         }
-        @Bean ObjectMapper objectMapper() { return Jackson2ObjectMapperBuilder.json().build(); }
+        @Bean JsonMapper objectMapper() { return new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper(); }
     }
 
     @RestController
