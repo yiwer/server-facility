@@ -15,13 +15,14 @@
 | 你的任务 | 去处 |
 |---|---|
 | 在应用中使用某能力（API 语义、示例、返回约定） | 本文[特性矩阵](#特性矩阵)定位簇 → [USAGE](docs/USAGE.md) 同名小节 |
+| 接合多个外部HTTP服务与失败政策 | [真实聚合应用](examples/partner-aggregation/README.md)（类型化Adapter、自有client与有限预算） |
 | 创建独立的JWT保护MVC应用 | [应用模板](templates/secured-api/README.md)（独立POM/Wrapper，应用自有信任与Actor） |
 | 配置或关闭某个自动装配组件 | 本文[装配开关](#装配开关) → USAGE「装配开关全表」（权威、含默认值） |
 | 用自己的 bean 替换 facility 默认实现 | USAGE「消费方须知 · 两类让位机制」 |
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（40 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（42 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -37,7 +38,7 @@
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
 - **当前验证边界（2026-10-04，Boot4.1.1/Jackson3.1.5）**：`80670fa`的Windows/Ubuntu `all --fresh`和独立平台控制全部通过，[同源CI与artifact](docs/verification/ticket-24-ci.md)已登记。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、有/无Tika上传、资源周期及负控均已执行；03/05/06/13/17/24适用平台项关闭。本地完整门为1449/0/0/0，各CI精确数值见对应原报告；尚未实施的业务协议不在此通过范围。
 - **09/14/15跨平台闭合**：集成 `c2f0f6b` 已通过Windows/Ubuntu完整门、平台门与归档，见[同源CI37147633803](docs/verification/ticket-09-14-15-ci.md)。各环境精确数值以其artifact为准，三票已closed。
-- **最新本地接合（票27）**：被测 `b2fcfbf` 的Windows `all --fresh` 为库1535/0/0/0、独立模板47/0/0/0；原质量门、实际UTF-8/空格路径独立构建、可执行包两线程模式HTTP、缺coverage及工具链负控通过。见[27证据](docs/verification/ticket-27-secured-template.md)；Linux同源CI仍待，27保持verification-pending。
+- **最新本地接合（11/25/27）**：11被测`956081d` Windows all为库1555/0/0/0、模板47/0/0/0，含64MiB普通jar和三个32MiB claim故障探针；25被测`a9c6400` all --fresh为库1541/0/0/0、聚合应用14/0/0/0，含200次尾流拒绝和5次关闭。各自原质量门与负控通过，见[11报告](docs/verification/ticket-11-qualified-claims.md)、[25报告](docs/verification/ticket-25-outbound-http.md)及[27报告](docs/verification/ticket-27-secured-template.md)。合并后三条消费者入口保留且runner编译通过；联合Windows/Linux CI尚待，三票保持verification-pending，不把不同源计数拼成同源结果。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图
@@ -52,7 +53,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 40 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 42 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
