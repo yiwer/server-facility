@@ -151,16 +151,13 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoClo
             return ClaimUpdate.REJECTED;
         // Qualified failures, including Error from the host clock, must not grant another execution.
         existing.phase = Phase.UNKNOWN;
-        long now;
-        try { now = now(); }
+        try { now(); }
         catch (RuntimeException unavailable) {
             existing.phase = Phase.UNKNOWN;
             return ClaimUpdate.UNAVAILABLE;
         }
-        if (now >= existing.expiresAt) {
-            existing.phase = Phase.PROCESSING; // Known expired qualification: preserve the explicit lease policy.
-            return ClaimUpdate.REJECTED;
-        }
+        // Termination removes permission; it does not renew execution or write a late receipt.
+        // The exact owner/generation above still prevents damaging a replacement owner.
         existing.phase = Phase.RELEASED;
         return ClaimUpdate.APPLIED;
     }

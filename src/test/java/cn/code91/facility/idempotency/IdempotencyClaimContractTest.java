@@ -184,8 +184,8 @@ class IdempotencyClaimContractTest {
         assertThat(store.claim(request)).isEqualTo(new ClaimResult.Processing(3));
         clock.time.set(10);
         assertThat(store.complete(first, new byte[0], Duration.ofMillis(1))).isEqualTo(ClaimUpdate.REJECTED);
-        assertThat(store.release(first)).isEqualTo(ClaimUpdate.REJECTED);
         var next = ((ClaimResult.Acquired) store.claim(request)).token();
+        assertThat(store.release(first)).isEqualTo(ClaimUpdate.REJECTED);
         clock.time.set(0);
         assertThat(store.claim(request)).isEqualTo(new ClaimResult.Processing(10));
         assertThat(store.complete(next, new byte[0], Duration.ofMillis(Long.MAX_VALUE))).isEqualTo(ClaimUpdate.UNAVAILABLE);

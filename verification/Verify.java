@@ -69,6 +69,7 @@ class Verify {
                     csvConsumer();
                     rateLimitConsumer();
                     claimConsumer();
+                    httpReplayConsumer();
                     jsonConsumer();
                     platformConsumers();
                     partnerConsumer();
@@ -461,6 +462,26 @@ class Verify {
         }
         summary.add("claim-consumer=ordinary jar; pre-expansion SPI binary; owner barrier; seed110034/2048; 256 slots/32768 churn/16 workers/128 closed reachable stores; -Xmx64m/2 processors/45s");
         summary.add("claim-failures=clone OOME with 20MiB input; host Clock Error preserved; 2048 reachable closed stores each formerly holding 4096 mixed entries; -Xmx32m/2 processors/45s per JVM");
+    }
+
+    static void httpReplayConsumer() throws Exception {
+        Path consumer = ROOT.resolve("verification/http-replay-consumer");
+        maven(consumer, "http-replay-consumer-build", "clean", "compile", "dependency:build-classpath",
+                "-Dmdep.outputFile=" + consumer.resolve("target/classpath.txt"));
+        maven(consumer, "http-replay-consumer-dependencies", "dependency:tree",
+                "-DoutputFile=" + report.resolve("http-replay-consumer-dependency-tree.txt"));
+        Files.copy(consumer.resolve("pom.xml"), report.resolve("http-replay-consumer-pom.xml"));
+        Files.copy(consumer.resolve("src/main/java/example/HttpReplayConsumer.java"), report.resolve("HttpReplayConsumer.java"));
+        String dependencies = Files.readString(consumer.resolve("target/classpath.txt")).trim();
+        for (String entry : dependencies.split(java.util.regex.Pattern.quote(File.pathSeparator))) {
+            if (!entry.endsWith(".jar") || !Path.of(entry).toAbsolutePath().startsWith(repository))
+                throw new AssertionError("HTTP replay consumer dependency is not an isolated repository jar: " + entry);
+        }
+        Path log = run(ROOT, Map.of(), "http-replay-security", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", consumer.resolve("target/classes") + File.pathSeparator + dependencies, "example.HttpReplayConsumer"), 120, null);
+        if (!Files.readString(log).contains("HTTP_REPLAY_SECURITY_PASS identity=tenant/actor/route current-permission=revoked/restored capacity=32 churn=512 cycles=2"))
+            throw new AssertionError("HTTP replay Security consumer did not complete: " + log);
+        summary.add("http-replay-consumer=installed ordinary jar; real Boot Security wrappers/method authorization; current permission revoke/restore; trusted tenant/actor/route; 32 bindings/512 churn/2 application lifecycles; -Xmx128m/2 processors/120s");
     }
 
     static void jsonConsumer() throws Exception {

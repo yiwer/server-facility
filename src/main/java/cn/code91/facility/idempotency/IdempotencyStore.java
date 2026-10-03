@@ -39,8 +39,10 @@ public interface IdempotencyStore {
     }
 
     /**
-     * Permanently stops the current live token without granting re-execution. Repeated, stale,
-     * foreign and terminal updates are REJECTED. This is not rollback of external business work.
+     * Permanently stops the still-current PROCESSING token without granting re-execution,
+     * including after its lease expires if no replacement owner has acquired it. Repeated,
+     * replaced, foreign and terminal updates are REJECTED. This is not rollback of external
+     * business work and cannot undo an execution qualification already granted to a new owner.
      */
     default ClaimUpdate release(ClaimToken token) {
         Objects.requireNonNull(token, "token");

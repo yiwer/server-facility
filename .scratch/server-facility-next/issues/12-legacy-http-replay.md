@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 在真实 HTTP 链路统一安全错误与显式兼容协议；05 让普通下载与请求体处理保持流式和有界；11 扩展旧幂等协议以拒绝迟到 owner 覆盖
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-03、FR-04、FR-09；AC-04、AC-05、AC-06、AC-12
 
@@ -28,3 +28,5 @@
 不复用本协议作为新模板同库事务模型，不宣称响应重放解决跨系统 exactly-once。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+2026-10-04 领取：从集成 `6a66672` 创建工作树后同步 `b7b7ea4`。票 11 的真实 Linux all 已通过，协调者明确允许本票实施；联合 Windows 的票 25 示例构建问题由 root 单独诊断，不能当本票通过证据。设计/TDD 顺序见 `docs/superpowers/plans/2026-10-04-ticket-12-http-replay.md`，替代决定草案 ADR-0035；原始证据存 `.verification-results/ticket-12`。

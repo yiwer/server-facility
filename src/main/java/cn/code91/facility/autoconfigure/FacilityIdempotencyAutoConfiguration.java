@@ -38,13 +38,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @AutoConfiguration
 @EnableConfigurationProperties(FacilityIdempotencyProperties.class)
-@ConditionalOnProperty(prefix = "facility.idempotency", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class FacilityIdempotencyAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(IdempotencyStore.class)
+    @ConditionalOnProperty(prefix = "facility.idempotency", name = "enabled", havingValue = "true", matchIfMissing = true)
     public IdempotencyStore facilityIdempotencyStore(FacilityIdempotencyProperties props) {
-        return new InMemoryIdempotencyStore(props.getMaxEntries());
+        if (props.getMaxResponseBytes() <= 0) throw new IllegalArgumentException("maxResponseBytes must be positive");
+        // FHR1: 16 framing bytes and at most two 4096-byte ASCII metadata values.
+        return new InMemoryIdempotencyStore(props.getMaxEntries(), Math.addExact(props.getMaxResponseBytes(), 8208),
+                props.getMaxStoredReceiptBytes(), java.time.Clock.systemUTC());
     }
 
     // A method-level condition cannot protect optional types during configuration introspection.
@@ -54,18 +57,22 @@ public class FacilityIdempotencyAutoConfiguration {
     static class ServletConfiguration {
         @Bean
         @ConditionalOnMissingBean
-        public IdempotencyInterceptor idempotencyInterceptor(IdempotencyStore store, FacilityIdempotencyProperties props) {
-            return new IdempotencyInterceptor(store, props.getDefaultTtl().toMillis());
+        public IdempotencyInterceptor idempotencyInterceptor(org.springframework.beans.factory.ObjectProvider<IdempotencyStore> store,
+                FacilityIdempotencyProperties props,
+                org.springframework.beans.factory.ObjectProvider<cn.code91.facility.web.idempotency.IdempotencyAuthorization> authorization) {
+            return new IdempotencyInterceptor(store.getIfAvailable(), authorization.getIfAvailable(), props);
         }
 
         @Bean
         @ConditionalOnMissingBean(IdempotencyFilter.class)
+        @ConditionalOnProperty(prefix = "facility.idempotency", name = "enabled", havingValue = "true", matchIfMissing = true)
         public IdempotencyFilter idempotencyFilter(FacilityIdempotencyProperties props) {
-            return new IdempotencyFilter(props.getMaxResponseBytes());
+            return new IdempotencyFilter(props.getMaxResponseBytes(), props.getMaxRequestBytes());
         }
 
         @Bean
         @ConditionalOnMissingBean(name = "idempotencyFilterRegistration")
+        @ConditionalOnProperty(prefix = "facility.idempotency", name = "enabled", havingValue = "true", matchIfMissing = true)
         public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration(IdempotencyFilter filter) {
             FilterRegistrationBean<IdempotencyFilter> registration = new FilterRegistrationBean<>();
             registration.setFilter(filter);
