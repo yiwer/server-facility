@@ -43,7 +43,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class FacilityWebAutoConfiguration {
 
     @Bean
-    @ConditionalOnProperty(prefix = "facility.web.trace", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "facility.web.trace", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean(TraceIdFilter.class)
     public TraceIdFilter traceIdFilter(FacilityWebTraceProperties props) {
         return new TraceIdFilter(props);

@@ -232,7 +232,10 @@ class GlobalExceptionHandlerTest {
         var first = (ProblemDetail) policy.response(new Exception(SECRET), new ServletWebRequest(request)).getBody();
         var response = new MockHttpServletResponse();
         policy.write(request, response, new Exception(SECRET));
-        assertThat(response.getHeader("X-Trace-Id")).isEqualTo(first.getProperties().get("traceId"));
+        assertThat(response.getHeader("X-Trace-Id")).isNull();
+        assertThat(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper()
+                .readTree(response.getContentAsByteArray()).path("traceId").asString())
+                .isEqualTo(first.getProperties().get("traceId"));
     }
 
     @Test

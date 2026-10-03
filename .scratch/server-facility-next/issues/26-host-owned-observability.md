@@ -4,7 +4,7 @@
 
 **Blocked by:** 24 把目标平台集成为可发布的真实消费者组合
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-02、FR-03、FR-08、FR-09；AC-04、AC-07、AC-11、AC-12
 
@@ -28,3 +28,5 @@
 不建审计平台或通用秘密检测器；全站脱敏不是安全保证。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+2026-10-04：从已关闭24的集成5bdfcb0创建独立ticket-26；沿已批准MessageSource/SLF4J/Micrometer与真实HTTP seam逐项TDD。

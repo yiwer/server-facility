@@ -301,7 +301,7 @@ class HttpErrorContractTest {
     }
 
     private cn.code91.facility.web.test.EmbeddedServletApplication application(Class<?>[] additional, String... properties) {
-        String[] defaults = {"facility.web.repeatable-request.enabled=false", "facility.web.access-log.enabled=false"};
+        String[] defaults = {"facility.web.trace.enabled=true", "facility.web.repeatable-request.enabled=false", "facility.web.access-log.enabled=false"};
         String[] all = java.util.stream.Stream.concat(java.util.Arrays.stream(defaults), java.util.Arrays.stream(properties))
                 .toArray(String[]::new);
         return cn.code91.facility.web.test.EmbeddedServletApplication.start(directory,

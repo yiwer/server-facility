@@ -160,17 +160,14 @@ public class FacilityHttpErrors {
     }
 
     private static void logFailure(String message, Throwable failure) {
-        var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Throwable, Boolean>());
-        Throwable cause = failure;
-        for (int depth = 0; cause != null; depth++) {
-            if (depth >= MAX_CAUSE_DEPTH || !seen.add(cause)) {
-                // Do not hand an unbounded graph to a logger that may recursively construct throwable proxies.
-                log.error("{} (cause diagnostic truncated: {})", message, failure.getClass().getName());
-                return;
-            }
-            cause = cause.getCause();
+        // Throwable messages, suppressed exceptions and stack frames can contain request data.
+        // Emit only application-independent metadata; the host may supply its own reviewed diagnostic policy.
+        String kind = failure.getClass().getName();
+        if (kind.length() > 200) kind = kind.substring(0, 200);
+        try { log.error("{} (failureType={})", message, kind); }
+        catch (RuntimeException ignored) {
+            // Diagnostics are best effort; never recursively log a broken logging backend.
         }
-        log.error(message, failure);
     }
 
     private String message(String key, String fallback, java.util.Locale locale) {
@@ -191,12 +188,20 @@ public class FacilityHttpErrors {
     private String traceId(WebRequest request) {
         Object previous = request.getAttribute(TRACE_ATTRIBUTE, WebRequest.SCOPE_REQUEST);
         String value = previous instanceof String saved ? saved : null;
-        if (value == null && request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
+        if (value == null && trace.isEnabled() && request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
             value = servlet.getResponse().getHeader(trace.getHeaderName());
         }
+        if (value == null && !trace.isEnabled()) {
+            try {
+                String observed = org.slf4j.MDC.get("traceId");
+                if (observed != null && observed.matches("(?:[0-9a-f]{16}|[0-9a-f]{32})")
+                        && !observed.matches("0+")) value = observed;
+            } catch (RuntimeException ignored) { /* A broken MDC backend cannot change the HTTP result. */ }
+        }
+        // Without an active host span this is only an incident reference, not a newly created trace.
         if (value == null || !value.matches("[0-9A-Za-z_-]{1,64}")) value = java.util.UUID.randomUUID().toString();
         request.setAttribute(TRACE_ATTRIBUTE, value, WebRequest.SCOPE_REQUEST);
-        if (request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
+        if (trace.isEnabled() && request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
             servlet.getResponse().setHeader(trace.getHeaderName(), value);
         }
         return value;

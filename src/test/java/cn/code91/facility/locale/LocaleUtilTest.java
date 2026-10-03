@@ -46,6 +46,11 @@ class LocaleUtilTest {
         contexts.refresh(ctx);
     }
 
+    @Test void explicitFallbackLocaleDoesNotUseProcessDefault() {
+        assertThat(LocaleUtil.translateMessageWithFallback("missing", new Object[]{1234.5},
+                "{0,number,#,##0.00}", Locale.GERMANY)).isEqualTo("1.234,50");
+    }
+
     @Nested
     @DisplayName("无 Spring(holder 空)——回退语义")
     class NoSpring {

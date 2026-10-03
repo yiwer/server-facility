@@ -135,7 +135,7 @@ public class LocaleUtil {
                                                       String fallbackPattern,
                                                       Locale locale) {
         if (NullSafe.isBlank(messageKey)) {
-            return renderFallback(fallbackPattern, args);
+            return renderFallback(fallbackPattern, args, locale);
         }
         String resolved = SpringContextHolder.getBean(MessageSource.class)
                 .map(ms -> {
@@ -149,7 +149,7 @@ public class LocaleUtil {
         if (resolved != null) {
             return resolved;
         }
-        return fallbackPattern == null ? messageKey : renderFallback(fallbackPattern, args);
+        return fallbackPattern == null ? messageKey : renderFallback(fallbackPattern, args, locale);
     }
 
     // ==================== ErrorTypeInterface 边界本地化(C1,ADR-0010) ====================
@@ -181,13 +181,13 @@ public class LocaleUtil {
         return localize(errorType, args, getLocale());
     }
 
-    private static String renderFallback(String pattern, Object[] args) {
+    private static String renderFallback(String pattern, Object[] args, Locale locale) {
         if (pattern == null) {
             return "";
         }
         if (args == null || args.length == 0) {
             return pattern;
         }
-        return MessageFormat.format(pattern, args);
+        return new MessageFormat(pattern, locale == null ? getLocale() : locale).format(args);
     }
 }

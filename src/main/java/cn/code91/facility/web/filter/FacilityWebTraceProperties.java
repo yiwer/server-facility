@@ -8,7 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 @ConfigurationProperties(prefix = "facility.web.trace")
 public class FacilityWebTraceProperties {
-    private boolean enabled = true;
+    /** Explicit opt-in for the legacy correlation filter; applications own standard Micrometer tracing. */
+    private boolean enabled = false;
     private String headerName = "X-Trace-Id";
     private String mdcKey = "traceId";
     /** When true, generate a UUID traceId if the inbound header is absent. */
