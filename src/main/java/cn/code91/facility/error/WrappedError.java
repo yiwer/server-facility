@@ -10,14 +10,14 @@ import java.util.Objects;
 /**
  * <b>错误包装类</b>
  * <p>
- * 封装错误类型、异常和参数的不可变容器。
- * 设计为线程安全的不可变对象。
+ * 固定错误类型、异常与参数数组的引用；构造和读取时复制数组本身。
+ * 参数元素、错误类型和 Exception 仍共享，不保证任意载荷深不可变或线程安全。
  * </p>
  *
  * <h3>设计原则：</h3>
  * <ul>
- *     <li><b>不可变性</b>：所有字段 final，防御性复制</li>
- *     <li><b>线程安全</b>：不可变对象天然线程安全</li>
+ *     <li><b>所有权</b>：数组结构防御性复制，可变元素的同步/复制由调用方管理</li>
+ *     <li><b>诊断边界</b>：格式化、完整消息和 toString 可能含参数或异常细节，不是安全 HTTP 文本</li>
  *     <li><b>类型安全</b>：强制要求 ErrorTypeInterface</li>
  * </ul>
  *
@@ -42,7 +42,7 @@ import java.util.Objects;
  *
  * @author yvvb
  * @since 2.0.0
- * @apiNote 重构版本，修复了不可变性和线程安全问题
+ * @apiNote equals/hashCode 也受共享可变元素影响，不宜把含可变元素的实例作为长期 hash key。
  */
 public final class WrappedError implements Serializable {
 
@@ -60,7 +60,7 @@ public final class WrappedError implements Serializable {
     private final Exception exception;
 
     /**
-     * 错误参数（不可变）
+     * 私有参数数组（元素仍共享）
      */
     private final Object[] args;
 
@@ -72,7 +72,7 @@ public final class WrappedError implements Serializable {
     private WrappedError(ErrorTypeInterface errorType, Exception exception, Object[] args) {
         this.errorType = Objects.requireNonNull(errorType, "errorType cannot be null");
         this.exception = exception;
-        // 防御性复制，确保不可变性
+        // 只复制数组结构，不复制任意业务对象。
         this.args = args != null && args.length > 0 ? args.clone() : new Object[0];
     }
 
@@ -190,14 +190,16 @@ public final class WrappedError implements Serializable {
      * 获取指定索引的参数，并转换为指定类型
      *
      * @param index 参数索引（从 0 开始）
-     * @param type  目标类型
+     * @param type  目标类型（必需，即使参数值为 null）
      * @param <T>   类型参数
      * @return 转换后的参数值（若该位置的参数本身是 null，返回 null）
      * @throws IndexOutOfBoundsException 如果索引超出范围
      * @throws ClassCastException        如果类型转换失败
+     * @throws NullPointerException      如果 type 为 null
      */
     @SuppressWarnings("unchecked")
     public <T> T getArg(int index, Class<T> type) {
+        Objects.requireNonNull(type, "type cannot be null");
         Object arg = getArg(index);
         if (arg == null) {
             return null;

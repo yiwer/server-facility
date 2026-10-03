@@ -1,6 +1,7 @@
 # ADR-0014: 限流令牌桶算法选择 + RateLimiter SPI seam
 
 - **状态**:Accepted(2026-07-03)
+- **部分替代（2026-10-04）**：ADR-0029 替代无条件采用转发头作为 IP 的部署假设；默认连接 peer，显式可信 CIDR 才读取 XFF。令牌桶、RateLimiter SPI 及本 ADR 其余历史理由保留；限流新语义由对应票负责。
 - **源起**:限流+缓存实现计划 簇A(docs/superpowers/plans/2026-07-03-ratelimit-cache.md),spec §10 新组件
 
 ## 背景

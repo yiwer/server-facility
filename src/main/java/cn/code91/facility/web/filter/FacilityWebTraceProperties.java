@@ -13,4 +13,6 @@ public class FacilityWebTraceProperties {
     private String mdcKey = "traceId";
     /** When true, generate a UUID traceId if the inbound header is absent. */
     private boolean generateIfAbsent = true;
+    /** Accept a bounded correlation header, never an authenticated identity. Set false at untrusted boundaries. */
+    private boolean acceptInbound = true;
 }

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -17,6 +18,8 @@ import java.util.function.Function;
  * <p>null 安全：null 输入视为空集合处理；除 {@code longListToLongArray}（null 入参返回
  * null，行为已被测试锁定）外，返回值不为 null。</p>
  * <p>命名取动词形式（{@code Collects}），避免与 {@link java.util.Collections} 冲突。</p>
+ * <p>mapper/keyExtractor/valueExtractor 必须非空，包括输入为空时；未使用的回调不执行。
+ * 返回集合可修改，只复制结构，不复制元素；这些操作按输入规模使用 O(n) 内存，调用方拥有规模预算。</p>
  */
 @UtilityClass
 public class Collects {
@@ -27,6 +30,7 @@ public class Collects {
      * 集合转 Map（putIfAbsent，保留先插入的值，跳过 null）。
      */
     public static <K, V> Map<K, V> toMap(@Nullable Collection<V> originCollection, Function<V, K> keyExtractor) {
+        Objects.requireNonNull(keyExtractor, "keyExtractor cannot be null");
         if (NullSafe.isEmpty(originCollection)) return new HashMap<>();
         Map<K, V> resultMap = new HashMap<>(calculateCapacity(originCollection.size()));
         for (V origin : originCollection) {
@@ -44,6 +48,8 @@ public class Collects {
     public static <K, V, E> Map<K, V> toMap(@Nullable Collection<E> originCollection,
                                             Function<E, K> keyExtractor,
                                             Function<E, V> valueExtractor) {
+        Objects.requireNonNull(keyExtractor, "keyExtractor cannot be null");
+        Objects.requireNonNull(valueExtractor, "valueExtractor cannot be null");
         if (NullSafe.isEmpty(originCollection)) return new HashMap<>();
         Map<K, V> resultMap = new HashMap<>(calculateCapacity(originCollection.size()));
         for (E origin : originCollection) {
@@ -84,13 +90,14 @@ public class Collects {
     // ==================== List 聚合与映射 ====================
 
     /**
-     * 安全聚合多个列表（跳过 null/空）。
+     * 聚合多个列表（跳过 null/空，保留元素顺序、null 与重复值）。
+     * @throws ArithmeticException 合并长度超过 int 上限时，在分配和遍历前失败
      */
     @SafeVarargs
     public static <E> List<E> safelyJoin(List<E>... lists) {
         if (lists == null || lists.length == 0) return new ArrayList<>();
         int totalSize = 0;
-        for (List<E> list : lists) if (list != null) totalSize += list.size();
+        for (List<E> list : lists) if (list != null) totalSize = Math.addExact(totalSize, list.size());
         List<E> resultList = new ArrayList<>(totalSize);
         for (List<E> list : lists) {
             if (NullSafe.isNotEmpty(list)) resultList.addAll(list);
@@ -103,6 +110,7 @@ public class Collects {
      */
     @SafeVarargs
     public static <E, R> List<R> safelyMappingAndJoin(Function<E, R> mapper, List<E>... lists) {
+        Objects.requireNonNull(mapper, "mapper cannot be null");
         if (lists == null || lists.length == 0) return new ArrayList<>();
         List<R> resultList = new ArrayList<>();
         for (List<E> list : lists) {
@@ -122,6 +130,7 @@ public class Collects {
      * 映射列表（跳过 null 元素与 null 映射结果，因此结果数量不保证等于输入）。
      */
     public static <E, R> List<R> mapNonNull(@Nullable List<E> originList, Function<E, R> mapper) {
+        Objects.requireNonNull(mapper, "mapper cannot be null");
         if (NullSafe.isEmpty(originList)) return new ArrayList<>();
         List<R> resultList = new ArrayList<>(originList.size());
         for (E e : originList) {
@@ -134,7 +143,7 @@ public class Collects {
     }
 
     /**
-     * 两列表差：list1 中存在但 list2 中不存在（或数量不足）的元素。
+     * 两列表的多重集差：list1 中存在但 list2 中不存在（或数量不足）的元素。不承诺输出顺序。
      */
     public static <T> List<T> listDiff(@Nullable List<T> list1, @Nullable List<T> list2) {
         if (NullSafe.isEmpty(list1)) return new ArrayList<>();
@@ -154,11 +163,12 @@ public class Collects {
     // ==================== HashMap 容量计算 ====================
 
     /**
-     * 按负载因子 0.75 计算 HashMap 初始容量，避免扩容。
+     * 按负载因子 0.75 计算请求容量，超过 int 上限时饱和；实际分配仍受内存预算限制。
+     * 非正输入保留历史默认值 16。
      */
     public static int calculateCapacity(int expectedSize) {
         if (expectedSize <= 0) return 16;
-        return (int) Math.ceil(expectedSize / 0.75) + 1;
+        return (int) Math.min(Integer.MAX_VALUE, (expectedSize * 4L + 2) / 3 + 1);
     }
 
     // ==================== List → Array ====================

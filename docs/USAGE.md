@@ -189,12 +189,37 @@ public <T> CompletableFuture<Result<T, Throwable>> intercept(AsyncContext ctx, A
 
 - **统一响应**:`BaseResponse<T>` / `PageBaseResponse<T>`;`BaseResponse.fromResult(result)` 把 `Result` 桥到响应体。
 - **全局异常**:默认注册 `DefaultGlobalExceptionHandler`，失败使用真实 HTTP 状态与 RFC 9457 ProblemDetail，成功 DTO 不包装（ADR-0027 替代 ADR-0003 的默认协议）。宿主较高优先级 `@RestControllerAdvice` 可以处理自己的异常；`AbstractGlobalExceptionHandler` 子类会使默认 advice 退让。
-- **过滤链**:`TraceIdFilter`(MDC traceId)、显式启用的 `RepeatableRequestFilter`(有界同步重复读，超限 413)。
+- **过滤链**:`FacilityRequestContextFilter`(来源快照、兼容身份和 trace 作用域，内部调用 `TraceIdFilter`)、显式启用的 `RepeatableRequestFilter`(有界同步重复读，超限 413)。
 - **访问日志**:`AccessLogInterceptor`(慢请求阈值告警)。
 - **安全上传下载**:`SafeUpload`(路径穿越防御 + 危险扩展名拦截 + 类型/大小校验)、`HttpFileResponses`
   (中文文件名 RFC 5987 编码、Content-Type 推断)。
-- **会话**:`SessionUtil` / `SessionUserHolder`(ThreadLocal 当前用户,请求结束由 `SessionUserClearInterceptor` 清理)。
+- **会话**:`SessionUtil` / `SessionUserHolder`(仅兼容 ThreadLocal 数据；请求边界负责 SYNC/ASYNC/ERROR 清理，`SessionUserClearInterceptor` 适配宿主 Principal)。
 - **工具**:`RequestUtil`(客户端 IP 等)、`ResponseUtil`(写 JSON / 下载头)、`CookieUtil`、`XssUtil`(jsoup allowlist)。
+
+### 请求来源、身份与观测（ADR-0029）
+
+`RequestUtil.getClientIp(request)` / 无参入口默认只采用 Servlet 提供的数值 `remoteAddr`，未装配 Web 边界时也遵守该安全默认。X-Real-IP、Proxy-Client-IP 等旧厂商头不参与解析。要由 facility 负责代理链，显式配置可信 CIDR：
+
+```yaml
+facility:
+  web:
+    proxy:
+      trusted-proxies: ["10.20.0.0/16", "2001:db8:abcd::/48"]
+    trace:
+      accept-inbound: false # 不接受客户端相关性标识；仍优先使用有效宿主 MDC，否则按 generate-if-absent 生成
+```
+
+只有直接 peer 在列表中时才读取单个 X-Forwarded-For。从右向左跨过可信代理，返回首个不可信地址；不把最左项天然视为可信。重复头、空白/非法字面量、控制字符、Unicode、超过2048字符或32跳整条退回 peer；可信 CIDR 最多128项。IPv4只接受完整十进制四段且无前导零，IPv6不接受端口、方括号或zone；IPv4-mapped IPv6规范为IPv4，并使用IPv4 CIDR。`InetAddress.ofLiteral` 不查 DNS；hostname/非法 peer 为 `unknown`。所有请求派发共享一次来源快照。声明自己的 `ClientIpPolicy` bean可替代默认具体类；策略失败时不重试解析ERROR派发，使用unknown来源并交给安全500边界。
+
+代理解析只设一个所有者。若已使用可信配置的 Tomcat RemoteIpValve 或 Spring ForwardedHeaderFilter，让 facility 的可信列表保持空，采用其处理后的 remoteAddr；Tomcat已转发标记也会阻止再次解析剩余XFF。facility不替这些宿主组件建立信任，更不把网络IP用于证明登录。
+
+`FacilityRequestContextFilter` 以最高优先级单次注册，覆盖 REQUEST/ASYNC/ERROR（含嵌套ERROR）；错误策略+1、repeatable+2、捕获+3顺序保持。`TraceIdFilter` bean在此边界内使用，旧单独注册默认禁用，不能再手动重复注册；按类型声明替代 TraceIdFilter 可复用相同生命周期。关闭 `facility.web.trace.enabled` 仍保留来源和兼容身份清理；该开关控制默认trace bean，宿主显式声明的TraceIdFilter仍由请求边界采用，且会禁用其额外的容器自动注册。
+
+兼容 holder 仅取宿主 Servlet Principal（MVC前再次适配宿主认证Filter的Principal）或宿主显式设置的兼容值。`SessionUserHolder.isLoggedIn()` 已弃用，它仅判断有值，不能证明认证/授权。新应用直接注入/读取 Spring Security 原生身份；库不验证JWT、不从 X-User/XFF/trace 建立Principal。使用已认证Principal时，旧自定义用户对象的消费者应迁移到Principal或由自己的MVC适配器显式设置兼容值。
+
+顶层请求进入时丢弃遗留holder，实际执行线程在finally清理；嵌套派发恢复外层作用域。Callable只在Spring MVC管理的实际工作线程安装快照，结束后清理，取消/超时回调不跨线程删除仍在执行的上下文。DeferredResult外部生产者、AsyncContext.start和应用任意executor不隐式传播holder；它们使用宿主Security/观测传播政策，重派发才安装请求快照。上下文快照不深拷贝用户对象，宿主仍负责其不可变性与执行器资源。
+
+trace是correlation而非完整分布式追踪。有效宿主MDC优先，其次请求快照、可选单个入站值、UUID；白名单1–64位ASCII字母数字/下划线/短横线。`accept-inbound`默认true保留相关性兼容，可显式false；无效/歧义值按缺失处理。库只改配置的MDC键并在finally恢复原值，不替换宿主其他观测数据。Callable/DeferredResult交接捕获链路内建立的有效观测；worker已有有效观测优先且归原所有者清理。配置在构造时冻结，header-name与mdc-key名称上限128，非法配置启动即失败。MDC安装部分失败时立即清理身份并回滚已捕获的旧值；业务/安装异常是首因，清理异常作为suppressed保留。若宿主MDC本身拒绝恢复，库不能保证其内部数据已恢复，但仍保证兼容身份清理，不把原异常替换成清理错误。
 
 ### HTTP 错误迁移与扩展
 
@@ -219,7 +244,7 @@ return errors.response(failure, new ServletWebRequest(request, response));
 
 策略使用应用 ObjectMapper 和 MessageSource。宿主可以覆盖 `facility.web.error.system`、`facility.web.error.invalid_value` 等安全文案；不把输入值放入文案模板。新 advice 子类注入 `FacilityHttpErrors` 并 `super(errors)`；旧 `(properties, environment)` 构造器仅作为弃用的源代码兼容入口，无法采用宿主 mapper/MessageSource。
 
-过滤顺序为 TraceIdFilter（最高优先级）、FacilityHttpErrorFilter（+1）、RepeatableRequestFilter（+2）、IdempotencyFilter（+3）。ERROR dispatch 也走统一边界；Boot 和宿主错误页映射仍可选目的路径，部分状态注册不会撤掉其他错误的兜底。已提交响应保持原样；未提交的响应清除旧正文和实体头，保留安全/CORS/追踪头并设置 `Cache-Control: no-store`。错误 serializer 失败时回退为固定英文安全 500 ProblemDetail。
+过滤顺序为 FacilityRequestContextFilter（最高优先级，内含 TraceIdFilter）、FacilityHttpErrorFilter（+1）、RepeatableRequestFilter（+2）、IdempotencyFilter（+3）。ERROR dispatch 也走统一边界；Boot 和宿主错误页映射仍可选目的路径，部分状态注册不会撤掉其他错误的兜底。已提交响应保持原样；未提交的响应清除旧正文和实体头，保留安全/CORS/追踪头并设置 `Cache-Control: no-store`。错误 serializer 失败时回退为固定英文安全 500 ProblemDetail。
 
 重复读默认关闭。需要 webhook 验签等同步原始字节重读时，显式配置 `facility.web.repeatable-request.enabled=true`，用 `include-paths` 和媒体类型限定目标，`max-body-bytes` 必须为正数（默认 10 MiB）。0/负数不再表示无上限，启用时会构造失败；无参数 `RepeatableRequestWrapper` 构造也使用 10 MiB。预算按实际字节计算，Content-Length 不用于接受或预分配，chunked 同样受限；本地溢出经公共错误边界返回 413。默认媒体类型含合法 `application/*+json`，不会把 `application/json-unknown` 当作 JSON。
 
@@ -253,7 +278,7 @@ public BaseResponse<Void> export() { ... }
 - **算法**:令牌桶(容量 + 每秒填充速率,允许突发);默认单机 `ConcurrentHashMap` 桶存储,`max-buckets` 防无界。
 - **SPI 替换**:声明自己的 `RateLimiter` bean(如 Redis 实现)即整体替换(`@ConditionalOnMissingBean`)。默认实现适合有界 key 集(IP/用户/接口);海量唯一 key 应经 SPI 注入 Caffeine/Redis 实现。
 - **降级**:无 `RateLimiter` bean 时 `RateLimiterUtil` 放行(限流不可用不阻断业务)。
-- **⚠ 安全(默认 IP 维度)**:空 `key()` 时按 `clientIp` 限流,IP 取自 `X-Forwarded-For` 头,**该头可被客户端伪造**。若服务可被公网直连(前面无覆写 XFF 的受信反代),攻击者可轮换伪造 IP **绕过**按 IP 限流,或伪造海量唯一 IP 顶到 `max-buckets` 触发桶集合清空、**抹掉合法用户限流状态**(放大攻击)。**公网直连服务请设显式 `key()`(如已认证用户 ID),或仅在前置受信反代覆写 XFF 的部署下依赖默认 IP 维度。**
+- **默认 IP 维度**：空 `key()` 使用上述 `RequestUtil` 来源快照，默认不再信任原始XFF。IP表示网络来源，多个用户可能共享NAT；业务身份限流使用明确已认证主体。限流容量与存储政策另见对应模块。
 
 ## 缓存:CacheUtil / @Cacheable
 
@@ -507,6 +532,7 @@ facility:
       enabled: true
       header-name: X-Trace-Id     # 入站值须匹配 [0-9A-Za-z_-]{1,64},否则按缺失处理(F7)
       mdc-key: traceId
+      accept-inbound: true # 仅相关性，不是认证；公网边界可显式false
       generate-if-absent: true
     repeatable-request:
       enabled: false            # 显式选择同步重复读取场景
@@ -565,12 +591,7 @@ facility:
   - ① **`@ConditionalOnMissingBean` 真回退**:`messageSource`、`facilityAsyncExecutor`(按 `Executor`
     类型)、全局异常处理器(按 `AbstractGlobalExceptionHandler` 类型)、三个 `WebMvcConfigurer`(按 bean 名)
     —— 你声明同类/同名 bean 即让位,facility 只填空缺。
-  - ② **部分 Web 过滤器/拦截器靠开关,不靠竞争 bean**:`TraceIdFilter`、
-    `AccessLogInterceptor` **不走** `@ConditionalOnMissingBean`,仅
-    `@ConditionalOnProperty(...enabled, matchIfMissing=true)` —— 声明同类型的 filter/interceptor **不会**顶替
-    facility 的(两者并存,双重入链),要停用请 `facility.web.{trace|access-log}.enabled=false`,
-    再注册自己的。`SessionUserClearInterceptor` 无 `enabled` 开关、恒装,要抑制其入链需声明同名的
-    `facilitySessionWebMvcConfigurer` bean(归 ① 的按名回退)。
+  - ② **AccessLogInterceptor 靠开关**：它仍不按类型让位，关闭 `facility.web.access-log.enabled` 后再注册自己的。`TraceIdFilter` 与 `ClientIpPolicy` 已按类型让位，并由唯一请求边界使用。`SessionUserClearInterceptor` 保留MVC Principal适配；声明同名 `facilitySessionWebMvcConfigurer` 可替换MVC接线，但非MVC/异步清理由请求边界负责。
   - `RepeatableRequestFilter` 与 `IdempotencyFilter` 按类型让位；各自默认注册使用该实例，注册 bean 也按名称让位。不要另给同一 filter 添加第二项容器注册。重复读默认关闭，启用时才注册。
 - **配置属性无校验 provider 依赖**:properties 类不用 `@Validated`(ADR-0013),即便消费方 classpath
   没有 Bean Validation provider 也能正常启动;取值约束(如 worker-id 范围)在组件构造器兜底。
