@@ -153,7 +153,7 @@ class Verify {
         Path reports = probe.resolve("target/surefire-reports");
         copyDirectory(reports, report.resolve("platform-" + scenario + "/surefire-reports"));
         var expected = Set.of("targetPlatformAndJupiterAreActuallyLoaded", "processorsAndClassfileWorkOnJava25WithoutPreview",
-                "java25_record_is_imported", "engine_negative_control");
+                "java25_record_is_imported", "engine_negative_control", "actualTechnologyTypesResolveFromTheirTargetModules");
         var discovered = new HashSet<String>();
         var failed = new HashSet<String>();
         int count = 0;

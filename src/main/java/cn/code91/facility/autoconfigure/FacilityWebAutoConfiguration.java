@@ -144,15 +144,15 @@ public class FacilityWebAutoConfiguration {
     }
 
     @Bean
-    public org.springframework.boot.web.server.ErrorPageRegistrar facilityErrorPageFallback(Environment environment) {
+    public org.springframework.boot.web.error.ErrorPageRegistrar facilityErrorPageFallback(Environment environment) {
         return new ErrorPageFallback(environment.getProperty("server.error.path", "/error"));
     }
 
     // Install the fallback first. Boot and host registrars can still choose their own error destinations.
-    private record ErrorPageFallback(String path) implements org.springframework.boot.web.server.ErrorPageRegistrar, Ordered {
+    private record ErrorPageFallback(String path) implements org.springframework.boot.web.error.ErrorPageRegistrar, Ordered {
         @Override public int getOrder() { return Ordered.HIGHEST_PRECEDENCE; }
-        @Override public void registerErrorPages(org.springframework.boot.web.server.ErrorPageRegistry registry) {
-            registry.addErrorPages(new org.springframework.boot.web.server.ErrorPage(path));
+        @Override public void registerErrorPages(org.springframework.boot.web.error.ErrorPageRegistry registry) {
+            registry.addErrorPages(new org.springframework.boot.web.error.ErrorPage(path));
         }
     }
 

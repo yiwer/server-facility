@@ -27,7 +27,7 @@ java verification/Verify.java platform --fresh
 | resources | clean install + 三种消费场景，再重复五次配置应用启动/使用/关闭 | 每个独立 JVM 上限 256 MiB、45 秒；超时终止本次子进程树且失败 |
 | all | 合并上述入口；库质量门仅执行一次 | 任一子步骤失败 |
 | prerequisites | 校验损坏下载、缺失 JAVA_HOME、真实错误 JDK 拒绝 | 负向用例意外成功、诊断不匹配或所需 JDK 缺失 |
-| platform | 独立工具链/双引擎/处理器/classfile/JaCoCo/依赖分析探针，解析根目标依赖 | 4 项发现不完整、正向失败、负向未精确失败、处理器/字节码/依赖解析异常；**仅子集，不代替 all** |
+| platform | 独立工具链/双引擎/处理器/classfile/JaCoCo/依赖分析探针，解析根目标依赖 | 5 项发现不完整、正向失败、负向未精确失败、处理器/字节码/依赖解析异常；**仅子集，不代替 all** |
 
 integration / all / prerequisites 需要设置 `VERIFY_WRONG_JAVA_HOME` 为**真实的非 Java 25 JDK**（CI 使用 Temurin 21）。
 这不是可选跳过项；缺少变量时入口会失败，日志解释需要安装测试用 JDK。日常仅跑 fast 不需要第二个 JDK。

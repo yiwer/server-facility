@@ -32,7 +32,7 @@
 | 类型 | Boot 4 包 | 所属模块 |
 |---|---|---|
 | FilterRegistrationBean | `org.springframework.boot.web.servlet`（保持） | spring-boot |
-| ErrorPage / ErrorPageRegistrar | `org.springframework.boot.web.error` | spring-boot |
+| ErrorPage / ErrorPageRegistrar / ErrorPageRegistry | `org.springframework.boot.web.error` | spring-boot |
 | TaskExecutionAutoConfiguration | `org.springframework.boot.autoconfigure.task`（保持） | spring-boot-autoconfigure |
 | MessageSourceAutoConfiguration | `org.springframework.boot.autoconfigure.context`（保持） | spring-boot-autoconfigure |
 | JacksonAutoConfiguration / JsonMapperBuilderCustomizer | `org.springframework.boot.jackson.autoconfigure` | spring-boot-jackson |
@@ -45,6 +45,8 @@
 
 独立 Web consumer 改用 `spring-boot-starter-webmvc`，旧 `Jackson2ObjectMapperBuilderCustomizer` 的签名/策略随 mapper 交 23，不通过 Jackson 2 兼容 starter 掩盖。需要 MockMvc 技术自动装配时应使用 `spring-boot-starter-webmvc-test`，本项目现有 context runner 并不因此自动迁包或必须引入该 starter。
 
+04 的共享实际 Servlet fixture 直接使用 `spring-boot-web-server`、`spring-boot-tomcat`、`spring-boot-webmvc`，所以根 POM 显式声明这三个 test-scope 模块；保留 04 的 BOM 管理 `tomcat-embed-core` test 依赖。探针实际编译、加载并核对上表14种类型的来源 JAR，不假设导入 BOM 会自动提供拆分后的类。
+
 ## 执行和证据
 
 ```text
@@ -54,7 +56,7 @@ java verification/Verify.java all --fresh
 
 `platform` 为独立工具链子集，真实跑 Jupiter / ArchUnit 正向与各自故意失败控制、Lombok/配置处理器、69.0 classfile、JaCoCo 指令探针和 dependency analyzer，并解析根依赖。日志与输入在 `.verification-results/<时间>-platform`；CI 分别保留完整 `all` 与 `platform` 的状态。
 
-`all` 继续执行库全量质量门。22 的 Jackson 编译错误必须真实报红并在 [精确交接清单](../verification/ticket-22-jackson-diagnostics.md) 记录；不修改 test includes、skip、旧测试断言或质量阈值来得到绿色。主库测试暂未执行与测试被跳过是不同状态，不把探针的 4 项算入主库测试总数。Windows/Linux 的主库同产物保证、独立普通 jar/JSON consumer、缺类和用户覆盖组合由 24 闭合。
+`all` 继续执行库全量质量门。22 的 Jackson 编译错误必须真实报红并在 [精确交接清单](../verification/ticket-22-jackson-diagnostics.md) 记录；不修改 test includes、skip、旧测试断言或质量阈值来得到绿色。主库测试暂未执行与测试被跳过是不同状态，不把探针的 5 项算入主库测试总数。Windows/Linux 的主库同产物保证、独立普通 jar/JSON consumer、缺类和用户覆盖组合由 24 闭合。
 
 ## 官方依据
 
