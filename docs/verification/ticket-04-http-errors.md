@@ -1,6 +1,6 @@
 # 票 04：安全 HTTP 错误的 Windows 与独立消费者证据
 
-日期：2026-10-04。实现检查点 `d1dee03`、边界修复 `6eea3a7`、最终解包/诊断补丁 `37ee5f5`。最终源验证 HEAD `37ee5f5` 已包含integration `5428982`（票03/21与CI文档）；后续只更新证据。平台CI尚待合入后的同一候选提交验证。
+日期：2026-10-04。实现检查点 `d1dee03`、边界修复 `6eea3a7`、最终解包/诊断补丁 `37ee5f5`。最终源验证 HEAD `37ee5f5` 已包含integration `5428982`（票03/21与CI文档）；后续只更新证据。后续集成 `66bf4d0` 已取得 Windows/Ubuntu CI 全绿与归档，[CI记录](ticket-04-ci.md) 闭合本票；下文保留本机证据来源。
 
 ## 执行与产物
 
@@ -54,8 +54,8 @@ $env:VERIFY_WRONG_JAVA_HOME = 'C:\Users\yiwer\AppData\Local\Temp\server-facility
 | Q05 | 输出字段≤32、字段标识≤120，cause解包/诊断检查≤64层，multipart测试上限64字节；策略不创建池/后台任务；真实服务器与HttpClient逐个关闭、临时目录由JUnit管理，HTTP有界并发16；宿主序列化策略与服务器整体字节/线程预算由05/容器配置负责 |
 | Q06 | 旧BaseResponse和新ProblemDetail使用手写字面期望，不由被测生产serializer生成expected；独立JSON consumer沿用21已冻结样本；旧构造/handler方法保留但弃用不安全展示入口 |
 | Q07 | 状态矩阵、24异常族双模式、有限数值/长度/Unicode样本可确定重放；无随机调度/seed依赖。此策略不实现通用解析器或分布式状态机，不新增性质测试框架 |
-| Q08 | 环境、提交、依赖、哈希和命令见上；本机Windows证据真实，Linux/CI最终同一提交尚待root；所有诊断输入为人工哨兵 |
+| Q08 | 环境、提交、依赖、哈希和命令见上；本机Windows证据真实，同一集成66bf4d0的Windows/Ubuntu CI已通过，见CI记录；所有诊断输入为人工哨兵 |
 | Q09 | 全量1276/0/0/0，原门及5架构规则通过。相对integration1265净增11：旧GlobalExceptionHandlerTest的65项迁为59项（48公开双模式+11边界），新增17真实HTTP；旧不安全message/stack/default200与私有helper断言由批准的新协议/消费者测试替代，不隐藏失败 |
-| Q10 | 产品、17真实HTTP场景、公开边界、ADR、USAGE迁移与本报告齐备；票保持verification-pending，待集成后CI证据闭合 |
+| Q10 | 产品、17真实HTTP场景、公开边界、ADR、USAGE迁移与本报告齐备；集成后CI证据已闭合，票04为closed |
 
 票05/06/12合入时需复验filter顺序 trace / error(+1) / repeatable(+2)、一次注册和流/重放边界；票27完成真实Security认证/拒绝接合；Boot4/Jackson3目标平台由22–24负责。本票不把这些后续票的未完成范围标为已通过。

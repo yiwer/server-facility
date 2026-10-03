@@ -20,7 +20,7 @@
 | [0014](0014-ratelimit-token-bucket-seam.md) | Accepted | 限流令牌桶 + RateLimiter SPI(Seam 可替换),web 集成分离 web.ratelimit 避环 |
 | [0015](0015-cache-facade-cachemanager.md) | Accepted | 缓存 CacheUtil 门面复用 Spring CacheManager,Caffeine+spring-context-support 成对 optional |
 | [0016](0016-distributed-lock-seam.md) | Accepted | 分布式锁 DistributedLock SPI + 默认单机 InMemory,real seam 升级 Redisson 示范 |
-| [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted | 完整幂等(同 key 返首次响应),Filter 捕获响应 + 拦截器状态机,通用/web 分离 |
+| [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted; 部分由 [0028](0028-bounded-web-streams.md) 替代 | 保留幂等历史状态机；全站/无界响应捕获由 0028 替代 |
 | [0018](0018-http-client-restclient-result.md) | Accepted | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
 | [0019](0019-crypto-facade-safe-defaults.md) | Accepted | crypto 加解密门面——安全默认 AES-GCM、内管 IV、不透明失败通道、纯 JDK |
 | [0020](0020-masking-log-pre-write-checksum-suppression.md) | Accepted | 日志脱敏——LogUtil 写前集成(LogPostHandler 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
@@ -31,4 +31,5 @@
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
 | [0027](0027-safe-http-error-policy.md) | Accepted | Filter/MVC/ERROR 共用安全 RFC 9457 错误策略、真实状态和必要头；宿主 mapper/locale、已提交边界与显式 legacy 迁移 |
+| [0028](0028-bounded-web-streams.md) | Accepted | 普通响应直通、显式有界捕获、repeatable 正预算与流所有权；Servlet6.1 迁移门 |
 | [0044](0044-json-application-scope-expand.md) | Accepted | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
