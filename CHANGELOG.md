@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 请求边界迁移（2026-10-04，ADR-0029）
+
+- 客户端IP默认只采用数值remoteAddr；显式 `facility.web.proxy.trusted-proxies` 才按有界可信链解析XFF，旧厂商头不再生效。
+- 请求边界统一清理兼容SessionUser，适配宿主Principal，覆盖短路、Callable与ASYNC/ERROR；`isLoggedIn()`弃用为非认证检查。
+- trace尊重并恢复宿主MDC，提供accept-inbound政策；TraceIdFilter通过唯一边界调用，旧独立注册禁用。迁移与资源边界见ADR0029和USAGE。
+
+
 ### 有界 Web 流迁移（2026-10-03，ADR-0028）
 
 - 普通下载、SSE 与非目标响应直接发送，不再全量缓冲。旧幂等 claim 成功后才开启 1 MiB 默认响应副本；`facility.idempotency.max-response-bytes` 必须正数。超限继续发送原响应但不保存副本；失败/部分提交不会变成完整重放，原 claim 的过期语义仍需业务协议处理。

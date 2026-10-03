@@ -21,7 +21,7 @@ class TraceIdFilterTest {
 
     private String runAndCaptureMdc(MockHttpServletRequest req, MockHttpServletResponse resp) throws Exception {
         AtomicReference<String> mdcSeen = new AtomicReference<>();
-        filter.doFilterInternal(req, resp, (rq, rs) -> mdcSeen.set(MDC.get(props.getMdcKey())));
+        filter.doFilter(req, resp, (rq, rs) -> mdcSeen.set(MDC.get(props.getMdcKey())));
         return mdcSeen.get();
     }
 
@@ -79,5 +79,51 @@ class TraceIdFilterTest {
 
         assertThat(mdc).matches(REGENERATED);
         assertThat(resp.getHeader(props.getHeaderName())).isEqualTo(mdc);
+    }
+
+    @org.junit.jupiter.api.AfterEach void clearMdc() { MDC.clear(); }
+
+    @Test void hostObservationWinsAndNestedScopeRestoresEveryOwnedValueOnFailure() throws Exception {
+        MDC.put("traceId", "host-trace"); MDC.put("tenant", "host-tenant");
+        var request = new MockHttpServletRequest(); request.addHeader("X-Trace-Id", "forged-correlation");
+        var response = new MockHttpServletResponse();
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> filter.doFilter(request, response, (rq, rs) -> {
+            assertThat(MDC.get("traceId")).isEqualTo("host-trace");
+            var nested = new MockHttpServletRequest(); nested.addHeader("X-Trace-Id", "nested-inbound");
+            new TraceIdFilter(props).doFilter(nested, new MockHttpServletResponse(), (a, b) -> {
+                assertThat(MDC.get("traceId")).isEqualTo("host-trace"); MDC.put("traceId", "inner-change");
+            });
+            assertThat(MDC.get("traceId")).isEqualTo("host-trace");
+            throw new jakarta.servlet.ServletException("sentinel");
+        })).isInstanceOf(jakarta.servlet.ServletException.class);
+        assertThat(MDC.get("traceId")).isEqualTo("host-trace");
+        assertThat(MDC.get("tenant")).isEqualTo("host-tenant");
+        assertThat(response.getHeader("X-Trace-Id")).isEqualTo("host-trace");
+    }
+
+    @Test void repeatedHeadersAreRejectedAndRedispatchKeepsTheSameCorrelation() throws Exception {
+        var request = new MockHttpServletRequest(); request.addHeader("X-Trace-Id", "first"); request.addHeader("X-Trace-Id", "second");
+        var response = new MockHttpServletResponse();
+        String chosen = runAndCaptureMdc(request, response);
+        assertThat(chosen).matches(REGENERATED);
+        request.setDispatcherType(jakarta.servlet.DispatcherType.ASYNC);
+        assertThat(runAndCaptureMdc(request, new MockHttpServletResponse())).isEqualTo(chosen);
+        request.setDispatcherType(jakarta.servlet.DispatcherType.ERROR);
+        assertThat(runAndCaptureMdc(request, new MockHttpServletResponse())).isEqualTo(chosen);
+        assertThat(MDC.get("traceId")).isNull();
+    }
+
+    @Test void inboundTrustCanBeDisabledWithoutSuppressingHostObservationOrRestoration() throws Exception {
+        props.setAcceptInbound(false); props.setGenerateIfAbsent(false);
+        var controlled = new TraceIdFilter(props);
+        var request = new MockHttpServletRequest(); request.addHeader("X-Trace-Id", "untrusted");
+        MDC.put("traceId", "invalid host value");
+        controlled.doFilter(request, new MockHttpServletResponse(), (a, b) -> assertThat(MDC.get("traceId")).isNull());
+        assertThat(MDC.get("traceId")).isEqualTo("invalid host value");
+        MDC.put("traceId", "valid-host");
+        controlled.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), (a, b) -> assertThat(MDC.get("traceId")).isEqualTo("valid-host"));
+        assertThat(MDC.get("traceId")).isEqualTo("valid-host");
+        props.setHeaderName("X-Bad\r\nInjected");
+        org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new TraceIdFilter(props));
     }
 }

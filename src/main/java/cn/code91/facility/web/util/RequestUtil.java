@@ -1,6 +1,7 @@
 package cn.code91.facility.web.util;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -26,13 +27,8 @@ import java.util.Optional;
 @UtilityClass
 public class RequestUtil {
 
+    private static final ClientIpPolicy DIRECT_PEER = new ClientIpPolicy(java.util.List.of());
     private static final String UNKNOWN = "unknown";
-    private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
-    private static final String HEADER_X_REAL_IP = "X-Real-IP";
-    private static final String HEADER_PROXY_CLIENT_IP = "Proxy-Client-IP";
-    private static final String HEADER_WL_PROXY_CLIENT_IP = "WL-Proxy-Client-IP";
-    private static final String HEADER_HTTP_CLIENT_IP = "HTTP_CLIENT_IP";
-    private static final String HEADER_HTTP_X_FORWARDED_FOR = "HTTP_X_FORWARDED_FOR";
     private static final String HEADER_X_REQUESTED_WITH = "X-Requested-With";
     private static final String XML_HTTP_REQUEST = "XMLHttpRequest";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -56,53 +52,11 @@ public class RequestUtil {
 
     // ==================== 客户端IP ====================
 
-    /**
-     * 获取客户端 IP（按代理链头解析）。
-     *
-     * <p><b>⚠️ 安全：</b>本方法无条件信任 {@code X-Forwarded-For} / {@code X-Real-IP} 等代理头，
-     * 而这些头<b>可被客户端伪造</b>。<b>仅在受信反向代理（由你自己覆写这些头）之后使用</b>；
-     * 若服务可被公网直连，返回值不可用于鉴权 / 限流 / 风控等安全判定。</p>
-     *
-     * @param request HTTP 请求
-     * @return 客户端 IP（代理头首段或 remoteAddr）
-     */
-    public String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader(HEADER_X_FORWARDED_FOR);
-        if (isValidIp(ip)) {
-            // X-Forwarded-For 可能包含多个IP，取第一个非unknown的
-            int index = ip.indexOf(',');
-            if (index > 0) {
-                ip = ip.substring(0, index).trim();
-            }
-            return ip;
-        }
-
-        ip = request.getHeader(HEADER_X_REAL_IP);
-        if (isValidIp(ip)) {
-            return ip;
-        }
-
-        ip = request.getHeader(HEADER_PROXY_CLIENT_IP);
-        if (isValidIp(ip)) {
-            return ip;
-        }
-
-        ip = request.getHeader(HEADER_WL_PROXY_CLIENT_IP);
-        if (isValidIp(ip)) {
-            return ip;
-        }
-
-        ip = request.getHeader(HEADER_HTTP_CLIENT_IP);
-        if (isValidIp(ip)) {
-            return ip;
-        }
-
-        ip = request.getHeader(HEADER_HTTP_X_FORWARDED_FOR);
-        if (isValidIp(ip)) {
-            return ip;
-        }
-
-        return request.getRemoteAddr();
+    /** Returns the request policy snapshot, or the numeric Servlet peer outside an owned request; null yields unknown. */
+    public String getClientIp(@Nullable HttpServletRequest request) {
+        if (request == null) return UNKNOWN;
+        if (request.getAttribute(ClientIpPolicy.class.getName()) instanceof String resolved) return resolved;
+        return DIRECT_PEER.resolve(request);
     }
 
     /**
@@ -196,12 +150,4 @@ public class RequestUtil {
         return Optional.ofNullable(request.getHeader(HEADER_USER_AGENT));
     }
 
-    // ==================== 内部方法 ====================
-
-    /**
-     * 检查IP是否有效（非空、非unknown）
-     */
-    private boolean isValidIp(String ip) {
-        return ip != null && !ip.isEmpty() && !UNKNOWN.equalsIgnoreCase(ip);
-    }
 }

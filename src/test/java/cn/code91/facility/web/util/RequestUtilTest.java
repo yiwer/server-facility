@@ -12,9 +12,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * RequestUtil 请求上下文获取 / 客户端 IP 代理头优先级链 / Header 解析盲区补测(债4)。
- * RequestUtilClientIpTest 已钉住 XFF 多段取首段 + 无代理头回落 remoteAddr 两个行为;
- * 本文件补齐:getRequest() 有/无 Web 上下文、getClientIp 剩余代理头优先级分支、
+ * RequestUtil 请求上下文获取 / 客户端 IP 原始头不受信任 / Header 解析盲区补测(债4)。
+ * RequestUtilClientIpTest 已钉住默认忽略 XFF + 无代理头回落 remoteAddr 两个行为;
+ * 本文件补齐:getRequest() 有/无 Web 上下文、getClientIp 旧厂商代理头忽略分支、
  * getClientIp() 无参重载、isAjax、getBearer 两个重载、getHeader/getRequestUrl/getMethod/getUserAgent。
  */
 @DisplayName("RequestUtil - 请求上下文/Header 解析盲区补测(债4)")
@@ -49,64 +49,64 @@ class RequestUtilTest {
     }
 
     @Nested
-    @DisplayName("getClientIp(request) - 代理头优先级链")
-    class GetClientIpPriorityTests {
+    @DisplayName("默认不信任原始转发头")
+    class GetClientIpUntrustedHeaderTests {
 
         @Test
-        @DisplayName("X-Forwarded-For 单段(无逗号):整段原样返回")
-        void xffSingleSegment_returnsAsIs() {
+        @DisplayName("默认不信任原始转发头")
+        void xffSingleSegment_ignored() {
             MockHttpServletRequest req = new MockHttpServletRequest();
             req.addHeader("X-Forwarded-For", "1.1.1.1");
-            assertThat(RequestUtil.getClientIp(req)).isEqualTo("1.1.1.1");
+            assertThat(RequestUtil.getClientIp(req)).isEqualTo("127.0.0.1");
         }
 
         @Test
-        @DisplayName("X-Forwarded-For 为 unknown:视为无效,回落下一优先级")
-        void xffUnknown_fallsThrough() {
+        @DisplayName("默认不信任原始转发头")
+        void xffUnknown_doesNotTrustAlternateHeader() {
             MockHttpServletRequest req = new MockHttpServletRequest();
             req.addHeader("X-Forwarded-For", "unknown");
             req.addHeader("X-Real-IP", "2.2.2.2");
-            assertThat(RequestUtil.getClientIp(req)).isEqualTo("2.2.2.2");
+            assertThat(RequestUtil.getClientIp(req)).isEqualTo("127.0.0.1");
         }
 
         @Test
-        @DisplayName("X-Real-IP 生效(无 XFF 时)")
-        void xRealIp_used() {
+        @DisplayName("默认不信任原始转发头")
+        void xRealIp_ignored() {
             MockHttpServletRequest req = new MockHttpServletRequest();
             req.addHeader("X-Real-IP", "3.3.3.3");
-            assertThat(RequestUtil.getClientIp(req)).isEqualTo("3.3.3.3");
+            assertThat(RequestUtil.getClientIp(req)).isEqualTo("127.0.0.1");
         }
 
         @Test
-        @DisplayName("Proxy-Client-IP 生效(无更高优先级头时)")
-        void proxyClientIp_used() {
+        @DisplayName("默认不信任原始转发头")
+        void proxyClientIp_ignored() {
             MockHttpServletRequest req = new MockHttpServletRequest();
             req.addHeader("Proxy-Client-IP", "4.4.4.4");
-            assertThat(RequestUtil.getClientIp(req)).isEqualTo("4.4.4.4");
+            assertThat(RequestUtil.getClientIp(req)).isEqualTo("127.0.0.1");
         }
 
         @Test
-        @DisplayName("WL-Proxy-Client-IP 生效(无更高优先级头时)")
-        void wlProxyClientIp_used() {
+        @DisplayName("默认不信任原始转发头")
+        void wlProxyClientIp_ignored() {
             MockHttpServletRequest req = new MockHttpServletRequest();
             req.addHeader("WL-Proxy-Client-IP", "5.5.5.5");
-            assertThat(RequestUtil.getClientIp(req)).isEqualTo("5.5.5.5");
+            assertThat(RequestUtil.getClientIp(req)).isEqualTo("127.0.0.1");
         }
 
         @Test
-        @DisplayName("HTTP_CLIENT_IP 生效(无更高优先级头时)")
-        void httpClientIp_used() {
+        @DisplayName("默认不信任原始转发头")
+        void httpClientIp_ignored() {
             MockHttpServletRequest req = new MockHttpServletRequest();
             req.addHeader("HTTP_CLIENT_IP", "6.6.6.6");
-            assertThat(RequestUtil.getClientIp(req)).isEqualTo("6.6.6.6");
+            assertThat(RequestUtil.getClientIp(req)).isEqualTo("127.0.0.1");
         }
 
         @Test
-        @DisplayName("HTTP_X_FORWARDED_FOR 生效(无更高优先级头时)")
-        void httpXForwardedFor_used() {
+        @DisplayName("默认不信任原始转发头")
+        void httpXForwardedFor_ignored() {
             MockHttpServletRequest req = new MockHttpServletRequest();
             req.addHeader("HTTP_X_FORWARDED_FOR", "7.7.7.7");
-            assertThat(RequestUtil.getClientIp(req)).isEqualTo("7.7.7.7");
+            assertThat(RequestUtil.getClientIp(req)).isEqualTo("127.0.0.1");
         }
     }
 

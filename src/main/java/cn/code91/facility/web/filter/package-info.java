@@ -5,6 +5,8 @@
  * with a standard 413 exception for the shared HTTP error boundary. Charset and independent cursor
  * rules are documented on RepeatableRequestWrapper; nonblocking listener registration is rejected.
  *
+ * <p>FacilityRequestContextFilter owns trace, IP snapshots and compatibility identity across REQUEST/ASYNC/ERROR.
+ * Standalone TraceIdFilter registration is disabled by default; error +1, repeatable +2, capture +3 follow this boundary.
  * <p>Configuration lives here: facility.web.trace.* and facility.web.repeatable-request.*.
  * Repeatable buffering defaults to disabled; enabled invalid budgets fail construction (ADR-0028).
  * Container input streams are borrowed, never closed by the wrapper.</p>

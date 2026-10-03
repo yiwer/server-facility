@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-03、FR-05、FR-09；AC-04、AC-07、AC-08、AC-12
 
