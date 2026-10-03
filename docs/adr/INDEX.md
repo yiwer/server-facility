@@ -33,6 +33,7 @@
 | [0027](0027-safe-http-error-policy.md) | Accepted | Filter/MVC/ERROR 共用安全 RFC 9457 错误策略、真实状态和必要头；宿主 mapper/locale、已提交边界与显式 legacy 迁移 |
 | [0028](0028-bounded-web-streams.md) | Accepted | 普通响应直通、显式有界捕获、repeatable 正预算与流所有权；Servlet6.1 迁移门 |
 | [0029](0029-request-boundaries.md) | Accepted | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
+| [0036](0036-upload-integrity.md) | Accepted | 实际字节预算、内容探测流所有权、服务端存储键与同卷硬链接发布；保留0001的optional理由 |
 | [0041](0041-core-value-contracts.md) | Accepted | 保留核心 Result/领域错误语义，明确浅引用所有权、必需回调与集合算术边界；无框架普通 jar 消费 |
 | [0044](0044-json-application-scope-expand.md) | Accepted; 旧兼容阶段由 [0046](0046-jackson3-application-ownership.md) 替代 | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |

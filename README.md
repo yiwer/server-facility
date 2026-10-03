@@ -20,7 +20,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（33 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（34 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -34,7 +34,7 @@
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **当前验证边界（2026-10-04，Boot 4.1.1 / Jackson 3.1.5）**：票18的 `5c29047` Windows `integration` 全部通过，1339测试、0失败/错误/跳过，原5架构/覆盖率/依赖门、无框架核心值普通jar消费者及JSON真实HTTP/两应用关闭重建通过，见 [票18证据](docs/verification/ticket-18-core-values.md)。Linux、Servlet6.1新重载及完整缺类矩阵仍由24关闭；票23的完整资源证据另见 [票23报告](docs/verification/ticket-23-jackson3.md)。
+- **当前验证边界（2026-10-04，Boot 4.1.1 / Jackson 3.1.5）**：票13合入18/06后的 `e698642` Windows `clean verify` 通过，1433测试、0失败/错误/跳过，原5架构/覆盖率/依赖门通过，见 [票13证据](docs/verification/ticket-13-upload-integrity.md)。最近独立普通jar/core/JSON真实HTTP两应用消费者通过来自票06的 `ee95d074` integration；新上传/Tika普通jar矩阵和Servlet6.1新重载归24，06/13新增Linux场景待集成CI。票23资源证据另见 [票23报告](docs/verification/ticket-23-jackson3.md)。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图
@@ -49,7 +49,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 33 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 34 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
@@ -105,7 +105,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 - **失败走 `Result`**：可预期失败（IO / 解析 / 序列化 / 外部交互）一律返回 `Result<T,E>`，不抛受检异常、不以 null 表示失败；`Result.empty()` 表达「成功但无值」（ADR-0007）。
 - **命名双家族（C4）**：`XxxUtil` = 静态门面（可能有状态、参与 Spring 装配交互）；复数名词类（`Numbers` / `Patterns` / `Filenames` / `Collects` / `Hashing` …）= 纯函数无状态工具。历史例外：`HttpClients` 复数名但按门面对待。
 - **null 契约（C1）**：数据参数 null → null-safe 语义回退；函数型与必需依赖参数 null → `requireNonNull` fail-fast；公共 API 可空性以 `jakarta.annotation.Nullable` 标注（error 包例外，javadoc 散文表达，C5）。
-- **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028/0046 明确例外：启用 repeatable body、响应捕获及显式 JSON InputStream 字段预算必须为正数，0/负数拒绝；JSON 无参注解入口固定 1 MiB。
+- **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028/0036/0046 明确例外：启用 repeatable body、响应捕获、上传及显式 JSON InputStream 字段预算必须为正数，0/负数拒绝；上传便利入口固定10 MiB，JSON无参注解入口固定1 MiB。
 
 ## 特性矩阵
 
