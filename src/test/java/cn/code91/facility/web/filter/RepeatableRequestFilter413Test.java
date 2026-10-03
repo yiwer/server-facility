@@ -13,11 +13,11 @@ import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("RepeatableRequestFilter - 413 body 是合法 JSON (RV2-11)")
+@DisplayName("RepeatableRequestFilter - 413 由外层公共 HTTP 错误策略渲染")
 class RepeatableRequestFilter413Test {
 
-    @Test @DisplayName("超限 → 413 + 可被解析的 JSON envelope")
-    void payloadTooLargeReturnsValidJson() throws Exception {
+    @Test @DisplayName("本地超限 → 标准 413 异常，不自行写入私有 JSON")
+    void payloadTooLargeUsesSharedHttpErrorBoundary() throws Exception {
         FacilityWebRepeatableRequestProperties props = new FacilityWebRepeatableRequestProperties();
         props.setMaxBodyBytes(5);
         RepeatableRequestFilter filter = new RepeatableRequestFilter(props);
@@ -27,12 +27,10 @@ class RepeatableRequestFilter413Test {
         req.setContent("{\"k\":\"123456\"}".getBytes(StandardCharsets.UTF_8)); // > 5 bytes
 
         MockHttpServletResponse resp = new MockHttpServletResponse();
-        filter.doFilterInternal(req, resp, (rq, rs) -> { });
-
-        assertThat(resp.getStatus()).isEqualTo(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
-        JsonNode node = new ObjectMapper().readTree(resp.getContentAsString());
-        assertThat(node.get("code").asInt()).isEqualTo(413);
-        assertThat(node.get("message").asText()).contains("exceeds limit");
+        assertThatThrownBy(() -> filter.doFilterInternal(req, resp, (rq, rs) -> { }))
+            .isInstanceOfSatisfying(org.springframework.web.ErrorResponseException.class,
+                ex -> assertThat(ex.getStatusCode().value()).isEqualTo(413));
+        assertThat(resp.getContentAsByteArray()).isEmpty();
     }
 
     @Test @DisplayName("下游抛 PayloadTooLargeException:原样穿透,不被误转 413(F17)")

@@ -38,4 +38,7 @@ public class FacilityIdempotencyProperties {
      * (声明性约束:&gt;0;绑定不校验——ADR-0013)
      */
     private int maxEntries = 100_000;
+
+    /** Positive byte budget per selected response; overflow streams normally but is not stored. */
+    private int maxResponseBytes = 1024 * 1024;
 }

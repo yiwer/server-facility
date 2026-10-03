@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("RepeatableRequestWrapper - maxBodyBytes ≤0 = 无限制 (RV2-01)")
+@DisplayName("RepeatableRequestWrapper - 正数预算（ADR-0028 明确替代旧无界模式）")
 class RepeatableRequestWrapperLimitTest {
 
     private static MockHttpServletRequest req(int bodyLen) {
@@ -19,16 +19,14 @@ class RepeatableRequestWrapperLimitTest {
         return r;
     }
 
-    @Test @DisplayName("max=0 视为无限制，放过超大 body")
-    void zeroMeansNoLimit() throws IOException {
-        RepeatableRequestWrapper w = new RepeatableRequestWrapper(req(100), 0L);
-        assertThat(w.getBodyBytes()).hasSize(100);
+    @Test @DisplayName("max=0 拒绝构造，关闭能力用 enabled=false")
+    void zeroRejected() throws IOException {
+        assertThatThrownBy(() -> new RepeatableRequestWrapper(req(100), 0L)).isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test @DisplayName("max<0 视为无限制")
-    void negativeMeansNoLimit() throws IOException {
-        RepeatableRequestWrapper w = new RepeatableRequestWrapper(req(100), -1L);
-        assertThat(w.getBodyBytes()).hasSize(100);
+    @Test @DisplayName("负预算拒绝构造")
+    void negativeRejected() throws IOException {
+        assertThatThrownBy(() -> new RepeatableRequestWrapper(req(100), -1L)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test @DisplayName("max>0 仍拒绝超限")

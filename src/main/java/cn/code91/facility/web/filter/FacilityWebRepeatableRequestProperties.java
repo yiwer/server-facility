@@ -10,18 +10,21 @@ import java.util.List;
 @Setter
 @ConfigurationProperties(prefix = "facility.web.repeatable-request")
 public class FacilityWebRepeatableRequestProperties {
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     /**
-     * Reject requests whose body exceeds this size (bytes).{@code ≤0 = 不限制}(NOT recommended).
-     * (声明性约束:≥0;绑定不校验——ADR-0013)
+     * Reject requests whose actual body exceeds this positive byte budget.
+     * Invalid values fail when the enabled filter is constructed (ADR-0028).
      */
     private long maxBodyBytes = 10L * 1024 * 1024;
 
-    /** Only wrap requests with one of these Content-Type prefixes (lowercased match). */
+    /** Media-type patterns, including structured suffixes; historical text/ is accepted as text/*. */
     private List<String> includeContentTypes = List.of(
-        "application/json", "application/xml", "text/"
+        "application/json", "application/*+json", "application/xml", "application/*+xml", "text/*"
     );
+
+    /** Explicit enabled filter may be narrowed to selected Ant-style paths. Empty means no targets. */
+    private List<String> includePaths = List.of("/**");
 
     /** Skip wrapping for requests matching these Ant-style paths. */
     private List<String> excludePaths = List.of("/actuator/**");

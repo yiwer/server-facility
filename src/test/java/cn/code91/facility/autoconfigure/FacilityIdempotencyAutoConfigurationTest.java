@@ -55,7 +55,7 @@ class FacilityIdempotencyAutoConfigurationTest {
 
             FilterRegistrationBean<?> registration = ctx.getBean(FilterRegistrationBean.class);
             assertThat(registration.getFilter()).isInstanceOf(IdempotencyFilter.class);
-            assertThat(registration.getOrder()).isEqualTo(Ordered.HIGHEST_PRECEDENCE);
+            assertThat(registration.getOrder()).isEqualTo(Ordered.HIGHEST_PRECEDENCE + 3);
             assertThat(registration.getUrlPatterns()).containsExactly("/*");
         });
     }
@@ -117,3 +117,4 @@ class FacilityIdempotencyAutoConfigurationTest {
         }
     }
 }
+

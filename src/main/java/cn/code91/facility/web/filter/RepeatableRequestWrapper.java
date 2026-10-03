@@ -8,152 +8,75 @@ import jakarta.servlet.http.HttpServletRequestWrapper;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
- * <b>可重复读取请求体的RequestWrapper</b>
- * <p>
- * 缓存请求体字节数组，使 {@link #getInputStream()} 和 {@link #getReader()} 可重复调用。
- * 适用于需要多次读取请求体的场景（如日志记录、签名验证）。
- * Body size is capped at {@code maxBodyBytes}（{@code ≤0 = 不限制}） — a
- * {@link PayloadTooLargeException} is thrown if the limit is exceeded.
- * </p>
- *
- * @author yvvb
- * @since 2.0.0
- * @see RepeatableRequestFilter
+ * Synchronous repeatable body with a positive byte budget (default 10 MiB).
+ * Each reader/stream has an independent cursor; mixing and repeating is supported.
+ * Readers use the declared charset, or UTF-8 when absent, with JDK replacement decoding
+ * for malformed bytes. Charset is frozen when the wrapper is created.
+ * The container owns the original input; this wrapper never closes it.
+ * Nonblocking reads are unsupported and listener registration always fails explicitly.
  */
 public class RepeatableRequestWrapper extends HttpServletRequestWrapper {
-
-    /**
-     * 缓存的请求体字节
-     */
+    public static final long DEFAULT_MAX_BODY_BYTES = 10L * 1024 * 1024;
     private final byte[] body;
+    private final Charset charset;
 
-    // ==================== 构造函数 ====================
-
-    /**
-     * 构造函数，读取并缓存请求体（≤0 = 不限制）
-     *
-     * @param request 原始请求
-     * @throws IOException 读取失败时抛出
-     */
     public RepeatableRequestWrapper(HttpServletRequest request) throws IOException {
-        this(request, 0);
+        this(request, DEFAULT_MAX_BODY_BYTES);
     }
 
-    /**
-     * 构造函数，读取并缓存请求体，超出 {@code maxBodyBytes} 时抛出 {@link PayloadTooLargeException}
-     *
-     * @param request      原始请求
-     * @param maxBodyBytes 允许的最大请求体字节数（{@code ≤0 = 不限制}）
-     * @throws IOException              读取失败时抛出
-     * @throws PayloadTooLargeException 请求体超出限制时抛出
-     */
+    /** Read at most budget+1 actual bytes; Content-Length is not trusted for allocation or acceptance. */
     public RepeatableRequestWrapper(HttpServletRequest request, long maxBodyBytes) throws IOException {
         super(request);
-        try (var in = new LimitedSizeInputStream(request.getInputStream(), maxBodyBytes);
-             var out = new ByteArrayOutputStream()) {
-            in.transferTo(out);
-            this.body = out.toByteArray();
+        if (maxBodyBytes <= 0) throw new IllegalArgumentException("maxBodyBytes must be positive; disable repeatable-request instead");
+        String encoding = request.getCharacterEncoding();
+        charset = encoding == null ? StandardCharsets.UTF_8 : Charset.forName(encoding);
+        var input = request.getInputStream();
+        var output = new ByteArrayOutputStream((int)Math.min(maxBodyBytes, 8192));
+        byte[] chunk = new byte[8192];
+        long count = 0;
+        while (true) {
+            long remaining = maxBodyBytes - count;
+            int wanted = remaining >= chunk.length ? chunk.length : (int)remaining + 1;
+            int received = input.read(chunk, 0, wanted);
+            if (received == -1) break;
+            if (received == 0) { // tolerate a broken blocking adapter without spinning forever
+                int value = input.read();
+                if (value == -1) break;
+                chunk[0] = (byte)value;
+                received = 1;
+            }
+            count += received;
+            if (count > maxBodyBytes) throw new PayloadTooLargeException(count, maxBodyBytes);
+            output.write(chunk, 0, received);
         }
+        body = output.toByteArray();
     }
 
-    // ==================== 重写方法 ====================
-
-    @Override
-    public ServletInputStream getInputStream() {
-        ByteArrayInputStream bais = new ByteArrayInputStream(body);
+    @Override public ServletInputStream getInputStream() {
+        var input = new ByteArrayInputStream(body);
         return new ServletInputStream() {
-            @Override
-            public boolean isFinished() {
-                return bais.available() == 0;
+            @Override public boolean isFinished() { return input.available() == 0; }
+            @Override public boolean isReady() { return true; }
+            @Override public void setReadListener(ReadListener listener) {
+                Objects.requireNonNull(listener, "readListener");
+                throw new UnsupportedOperationException("Repeatable request supports synchronous reads only");
             }
-
-            @Override
-            public boolean isReady() {
-                return true;
-            }
-
-            @Override
-            public void setReadListener(ReadListener readListener) {
-                // 不支持异步读取
-            }
-
-            @Override
-            public int read() {
-                return bais.read();
-            }
-
-            @Override
-            public int available() {
-                return bais.available();
-            }
+            @Override public int read() { return input.read(); }
+            @Override public int read(byte[] bytes, int offset, int length) { return input.read(bytes, offset, length); }
+            @Override public int available() { return input.available(); }
         };
     }
 
-    @Override
-    public BufferedReader getReader() {
-        return new BufferedReader(new InputStreamReader(getInputStream(), StandardCharsets.UTF_8));
-    }
-
-    // ==================== 扩展方法 ====================
-
-    /**
-     * 获取缓存的请求体内容
-     *
-     * @return 请求体字符串
-     */
-    public String getBodyString() {
-        return new String(body, StandardCharsets.UTF_8);
-    }
-
-    /**
-     * 获取缓存的请求体字节
-     *
-     * @return 请求体字节数组副本
-     */
-    public byte[] getBodyBytes() {
-        return body.clone();
-    }
-
-    // ==================== 内部工具类 ====================
-
-    /**
-     * InputStream that counts bytes and throws {@link PayloadTooLargeException} when limit exceeded.
-     */
-    private static class LimitedSizeInputStream extends FilterInputStream {
-        private final long max;
-        private long count = 0;
-
-        LimitedSizeInputStream(InputStream in, long max) {
-            super(in);
-            this.max = max;
-        }
-
-        @Override
-        public int read() throws IOException {
-            int b = super.read();
-            if (max > 0 && b != -1 && ++count > max) {
-                throw new PayloadTooLargeException(count, max);
-            }
-            return b;
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            int n = super.read(b, off, len);
-            if (max > 0 && n > 0) {
-                count += n;
-                if (count > max) {
-                    throw new PayloadTooLargeException(count, max);
-                }
-            }
-            return n;
-        }
-    }
+    @Override public BufferedReader getReader() { return new BufferedReader(new InputStreamReader(getInputStream(), charset)); }
+    @Override public String getCharacterEncoding() { return charset.name(); }
+    public String getBodyString() { return new String(body, charset); }
+    /** Defensive copy; changing it never changes subsequent reads. */
+    public byte[] getBodyBytes() { return body.clone(); }
 }
