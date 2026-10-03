@@ -6,7 +6,7 @@
 |---|---|---|
 | [0001](0001-rp-02-jsoup-tika-optional.md) | inherited | jsoup / tika-core 声明为 Maven optional |
 | [0002](0002-rp-04-async-bean-type-matching.md) | inherited; 部分由 [0026](0026-async-execution-contract.md) 替代 | 保留按类型让位与 Boot 优先，TaskExecutor-only 条件和裸虚拟线程兜底由 0026 替代 |
-| [0003](0003-rp-06-rfc-7807-problem-details.md) | inherited | RFC 7807 ProblemDetail 双轨(use-problem-detail 开关) |
+| [0003](0003-rp-06-rfc-7807-problem-details.md) | inherited; 部分由 [0027](0027-safe-http-error-policy.md) 替代 | 保留标准 ProblemDetail 与显式 legacy 入口理由；默认协议、detail 安全边界和状态映射由 0027 替代 |
 | [0004](0004-rp-07-facility-exception-interface.md) | inherited | FacilityException 接口解耦异常层次 |
 | [0005](0005-rp-08-slf4j-throwable-position.md) | inherited | LogUtil Throwable 参数对齐 SLF4J 末位 |
 | [0006](0006-rp-13-cas-compare-and-exchange.md) | inherited; 部分由 [0025](0025-context-ownership.md) 替代 | LogUtil 内部状态 compareAndExchange 消除 ABA |
@@ -30,4 +30,5 @@
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted | Java 25 中间基线、校验固定 Maven Wrapper、独立普通 jar 消费与跨平台验证入口 |
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
+| [0027](0027-safe-http-error-policy.md) | Accepted | Filter/MVC/ERROR 共用安全 RFC 9457 错误策略、真实状态和必要头；宿主 mapper/locale、已提交边界与显式 legacy 迁移 |
 | [0044](0044-json-application-scope-expand.md) | Accepted | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |

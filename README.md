@@ -20,7 +20,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（27 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（28 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -34,7 +34,7 @@
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **快照（2026-10-03，Windows / Java 25 中间基线）**：测试 1265 项全绿（含 5 条 ArchUnit）；instruction 93.8787% / line 93.7636% / branch 87.2832%。被测提交 `a18b45f`，普通 jar 与 JSON/HTTP 消费者均通过；新增场景 Linux CI 待验证，见 [票 21 证据](docs/verification/ticket-21-json-expand.md)。Boot 4 仍由票 22–24 收敛。
+- **快照（2026-10-04，Windows / Java 25 中间基线）**：测试 1276 项全绿（含 5 条 ArchUnit）；instruction 93.1880% / line 93.3512% / branch 86.5100%。被测提交 `37ee5f5`，普通 jar 与 JSON/HTTP 消费者均通过；票 04 最终集成 CI 待验证，见 [票 04 证据](docs/verification/ticket-04-http-errors.md)。Boot 4 仍由票 22–24 收敛。
 
 ## 仓库地图
 

@@ -90,13 +90,13 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-27 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+28 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
 | 0001 | jsoup / tika-core 声明为 Maven optional |
 | 0002 | 异步线程池按类型匹配注入,`@AutoConfigureAfter` 让位 Boot |
-| 0003 | RFC 7807 ProblemDetail 双轨(`use-problem-detail` 开关) |
+| 0003 | RFC 7807 ProblemDetail 与显式 legacy 的历史理由保留；默认/安全边界部分由 0027 替代 |
 | 0004 | `FacilityException` 接口解耦异常层次 |
 | 0005 | `LogUtil` Throwable 参数对齐 SLF4J 末位 |
 | 0006 | `LogUtil` 内部状态 `compareAndExchange`（进程级 handler 缓存策略由 0025 替代，单次分发保证保留） |
@@ -120,13 +120,14 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0024 | Java 25 中间基线、固定校验 Wrapper、独立普通 jar 消费与跨平台验证入口 |
 | 0025 | Context 注册归实例所有、刷新/关闭隔离；构造器注入为默认，ID/日志兼容入口不跨 context 缓存 Spring bean |
 | 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
+| 0027 | 安全 RFC 9457 错误策略贯通 Filter/MVC/ERROR，真实状态和必要头；已提交边界、宿主政策与显式 legacy 迁移 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 
 ## 6. 质量门
 
-- **测试快照（2026-10-03，Windows / Java 25 / Boot 3.5.16）**:1265 项、0失败/错误/跳过，含 5 条 ArchUnit；`java verification/Verify.java all` 全绿，含普通 jar 与真实 JSON/HTTP 消费者。被测提交 `a18b45f`，合并保留相同源码/POM/验证入口；新增场景 Linux CI 仍待取得，详见 [票21证据](verification/ticket-21-json-expand.md)。
+- **测试快照（2026-10-04，Windows / Java 25 / Boot 3.5.16）**:1276 项、0失败/错误/跳过，含 5 条 ArchUnit；`clean verify` 与普通 jar/真实 JSON HTTP 消费者 integration runner 通过。被测提交 `37ee5f5`，合并保留相同源码/POM/验证入口；票 04 最终集成 CI 仍待取得，详见 [票04证据](verification/ticket-04-http-errors.md)。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
-  (上述快照 instruction93.8787% / line93.7636% / branch87.2832%),达标即门,退化即红。
+  (上述快照 instruction93.1880% / line93.3512% / branch86.5100%),达标即门,退化即红。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
 
