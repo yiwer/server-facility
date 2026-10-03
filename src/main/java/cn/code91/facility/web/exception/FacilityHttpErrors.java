@@ -100,12 +100,13 @@ public class FacilityHttpErrors {
             if (servlet.getResponse().isCommitted()) return null;
             resetForError(servlet.getResponse());
         }
-        if (status.is5xxServerError()) logFailure("HTTP request failed with status " + status.value(), failure);
+        String traceId = traceId(request);
+        if (status.is5xxServerError()) logFailure("HTTP request failed with status " + status.value()
+                + " (incidentId=" + traceId + ")", failure);
         String detail = status.value() == 500
                 ? message("facility.web.error.system", "Internal server error", locale(request))
                 : Objects.requireNonNullElse(HttpStatus.resolve(status.value()), HttpStatus.INTERNAL_SERVER_ERROR).getReasonPhrase();
         int code = failure instanceof FacilityException facility ? facility.getCode() : status.value();
-        String traceId = traceId(request);
         if (!properties.isUseProblemDetail()) {
             return ResponseEntity.status(status.value() == 429 ? status.value() : 200).headers(headers)
                     .body(BaseResponse.err(code, detail));

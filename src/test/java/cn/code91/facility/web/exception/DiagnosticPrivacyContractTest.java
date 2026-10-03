@@ -30,6 +30,9 @@ class DiagnosticPrivacyContractTest {
             assertThat(event.getFormattedMessage()).contains("500", "IllegalArgumentException").doesNotContain("sentinel", "秘密");
             assertThat(event.getThrowableProxy()).isNull();
             assertThat(event.getFormattedMessage().length()).isLessThan(512);
+            String incident = JsonMapper.builder().build().readTree(response.getContentAsByteArray()).path("traceId").asString();
+            assertThat(incident).isNotBlank();
+            assertThat(event.getFormattedMessage()).contains(incident);
             assertThat(cause.getSuppressed()).hasSize(1);
         } finally { logger.detachAppender(appender); logger.setAdditive(additive); appender.stop(); }
     }
