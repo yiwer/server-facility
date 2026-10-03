@@ -97,7 +97,7 @@ class DownloadHttpContractTest {
     }
     @Configuration(proxyBeanMethods=false) @EnableWebMvc
     @Import({FacilityIdempotencyAutoConfiguration.class, FacilityWebAutoConfiguration.class, Endpoints.class,
-            org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.class})
+            org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration.class})
     static class WebConfiguration { @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); } }
     @RestController static class Endpoints {
         volatile Path file;

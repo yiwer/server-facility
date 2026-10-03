@@ -13,7 +13,7 @@
 | `json/support/TypeRef` | 继承 Jackson TypeReference；集合/Map 工厂和 getType | 23 更换父类型，回归无直接 Jackson import 的 TypeRefTest |
 | `json/support/InputStreamSerializer` / `Deserializer` | Jackson 基类、generator/parser/context 签名；无参无上限兼容，新增 int 解码字节预算 | 23 迁移签名并复验预算/所有权/Result 失败；保留 21 金样 |
 | `autoconfigure/FacilityJsonAutoConfiguration` | after Boot JacksonAutoConfiguration，ObjectMapper class/bean 条件；新 Jsons 应用 bean，用户 bean 让位；旧 registry 仍全局发布 | 22 更新技术模块归属；23 用 JsonMapper/标准 builder 和本应用生命周期 |
-| `web/filter/RepeatableRequestFilter` | 私有 **全限定名** Jackson ObjectMapper，不在 import 搜索结果中；固定 413 结构有独立策略 | 23 必须迁移；04/05 协调安全错误协议，不机械换成应用 mapper |
+| `web/filter/RepeatableRequestFilter` | 21 时有私有 **全限定名** Jackson ObjectMapper；05 已删除，改用应用 FacilityHttpErrors | 原隐藏 Jackson 入口已退出；23 迁 FacilityHttpErrors，24 复验默认禁用和显式预算的 413 协议 |
 | `web/util/ResponseUtil` | 通过静态 JsonUtil 写响应，受全局默认影响 | 23/26 迁移依赖归属；04 负责 HTTP 错误状态 |
 | `web/exception/FacilityHttpErrors`（04 新增） | 构造器暴露 ObjectMapper，Servlet 错误写入使用注入 mapper；私有 FrameworkResolver 组合 Spring 标准异常解析 | 23 迁移公开 Jackson 类型，保留已验证的安全错误、提交后处理、traceId 与 HTTP 状态政策 |
 | `autoconfigure/FacilityWebAutoConfiguration.facilityHttpErrors`（04 新增） | ObjectProvider<ObjectMapper> 与 Jackson2ObjectMapperBuilder fallback；错误页 Bean 暴露 Boot 类型 | 22 已迁 ErrorPage/Registrar/Registry；23 迁 mapper 归属与 fallback，24 实测 ERROR 派发 |
@@ -71,4 +71,5 @@
 - 24 必须覆盖无 Servlet、无 Jackson 技术模块、无 validation provider、无 Tika/POI、Caffeine 或 context-support 仅缺一个、用户 Bean 覆盖与实际过滤器注册顺序。22 只解析声明依赖，不承诺这些运行组合已通过。
 - 04 的真实 HTTP 错误策略/Servlet ERROR 派发与共享 Tomcat fixture 在目标平台继续保留；测试容器不能变成库的生产依赖。其完整运行归 24；23 要避免 JSON 错误 catch 或消息转换迁移改变既有 HTTP 状态/安全错误输出。
 - 04 的 `GlobalExceptionHandlerTest` 与 `HttpErrorContractTest` 仍使用 Jackson2ObjectMapperBuilder、ObjectMapper、SimpleModule/serializer 和 MappingJackson2HttpMessageConverter；这些是 23 的额外 Jackson 测试迁移输入。22 只更新 Boot 技术进口，未执行这些受主编译阻塞的测试。
+- 已同步 05，保留其 BOM 管理的显式 `junit-jupiter-params` 测试依赖；下载、请求重读、流式幂等三个 HTTP 场景的容器自动装配归属已更新。05 移除私有 413 mapper，因此该类不再属于 23 编译缺口。05 在旧平台的1323项绿色不外推为目标平台已发现。
 - 05 `BoundedResponseCapture` 的 Servlet 6.0 旧覆盖不能直接外推到 6.1：`HttpServletResponseWrapper` 三个新 `sendRedirect` 重载和 `ServletResponseWrapper.setCharacterEncoding(Charset)` 直接委托 wrapped response，可绕过旧 String 重载。**24 必须在目标 Servlet 6.1 补齐覆盖并实际测试响应捕获、commit 与预算语义**。官方依据：[HTTP wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/http/httpservletresponsewrapper)、[Servlet wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/servletresponsewrapper)。本登记不算这些场景已绿。

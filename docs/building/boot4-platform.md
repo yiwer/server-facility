@@ -17,6 +17,7 @@
 | Lombok | 1.18.46 | 编译依赖和 processor 共同由 BOM 管理 |
 | Boot configuration processor | 4.1.1 | 显式 processor path，与 Boot 属性同步 |
 | Jupiter / JUnit Platform | 6.0.3 | starter-test 传递；真实发现由独立探针验证 |
+| junit-jupiter-params | 6.0.3 | 保留 05 新增的显式 test-scope 声明，由目标 BOM 管理 |
 | ArchUnit JUnit 6 adapter/api/engine | 1.5.1 | 显式 pin；注解仍在 `com.tngtech.archunit.junit` |
 | Mockito / AssertJ | 5.23.0 / 3.27.7 | BOM，test scope |
 | Logback / Hibernate Validator | 1.5.38 / 9.1.3.Final | BOM，test scope；provider 不进入库生产依赖 |
