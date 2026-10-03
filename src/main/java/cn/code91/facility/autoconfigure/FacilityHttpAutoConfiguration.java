@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
@@ -34,7 +35,7 @@ import org.springframework.web.client.RestClient;
  * @author yvvb
  * @since 1.0.0
  */
-@AutoConfiguration
+@AutoConfiguration(afterName = "org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration")
 @EnableConfigurationProperties(FacilityHttpProperties.class)
 @ConditionalOnClass(name = "org.springframework.web.client.RestClient")
 @ConditionalOnProperty(prefix = "facility.http", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -42,6 +43,14 @@ public class FacilityHttpAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(RestClient.class)
+    public RestClient facilityRestClient(FacilityHttpProperties props, ObjectProvider<RestClient.Builder> builders) {
+        RestClient.Builder host = builders.getIfAvailable();
+        if (host != null) return host.clone().build();
+        return facilityRestClient(props);
+    }
+
+    /** Legacy direct construction; application code should inject its Boot-managed builder. */
+    @Deprecated(since = "0.1.0", forRemoval = false)
     public RestClient facilityRestClient(FacilityHttpProperties props) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(props.getConnectTimeout());

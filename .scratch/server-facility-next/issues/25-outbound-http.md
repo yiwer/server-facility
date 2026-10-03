@@ -4,7 +4,7 @@
 
 **Blocked by:** 24 把目标平台集成为可发布的真实消费者组合
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-08；AC-11、AC-15
 
@@ -28,3 +28,7 @@
 不建设通用远程任务 DSL；第三方协议特有的恢复留在类型化 Adapter。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+## Implementation record
+
+2026-10-04：root从integration c32e72e建立codex/ticket-25独立worktree。24已由真实Windows/Linux CI闭合。公开seam为宿主管理的RestClient.Builder及两个类型化聚合Adapter，沿实际HTTP请求验证；标准RestClient承担传输/转换/观测，只为重复的响应预算添加小型设施能力。先复现宿主builder配置被默认装配绕过，再逐项TDD。替代ADR0018的私有builder默认推荐与静态默认路径，兼容API先弃用并提供真实消费替代。
