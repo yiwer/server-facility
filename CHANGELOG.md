@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 有界 CSV 迁移（2026-10-04，ADR-0038）
+
+- 解析转为 Commons CSV 1.14.1 required 依赖。新 `CsvDialect.STRICT/LEGACY` 区分闭合引号后尾随文本；旧 `read` 保留 LEGACY。STRICT 的库语法容差有明文说明，不等于完整 RFC 语法验证。
+- 旧 `read`/`write` 收紧到 1 MiB、10,000 行、128 列、每字段 1,024 个 UTF-16 单元；预算全部正数。较大任务迁移至显式 `CsvLimits` 的 `forEach`/`readAll`/导出入口；错误累计固定首次失败停止。坏 UTF-8 确定拒绝，不再替换为乱码。
+- `writeMachine` 无 BOM 并保持原值；`writeSpreadsheet` 带 BOM，拒绝文档列出的公式/控制字符前缀而不改写。旧 BOM 写法继续保留原值，不能当成安全电子表格导出。
+- 借用流不关闭，Path 打开的流总会关闭；取消发生在打开前时不截断已有目标。消费异常传播，先前副作用/已写前缀不回滚。安全外层行列诊断不暴露字段，外部 IO cause 不作为公开文本。详见 USAGE 与票15报告。
+
 ### 历史密文与错误诊断（2026-10-04，ADR-0040）
 
 - 保留原AES-GCM密文和PBKDF2-HMAC-SHA256/210000读取政策，不改变旧密文、key或salt存储格式。

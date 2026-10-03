@@ -12,6 +12,26 @@ class CsvApiBoundaryTest {
     @TempDir Path directory;
 
     @Test
+    void legacyWriteRejectsOversizedLazyListsBeforeEnumeratingOrOpeningTheTarget() throws Exception {
+        var tooMany = new AbstractList<List<String>>() {
+            public int size() { return Integer.MAX_VALUE; }
+            public List<String> get(int index) { throw new AssertionError("row budget must reject before enumeration"); }
+        };
+        Path file = directory.resolve("keep-budget.csv");
+        Files.writeString(file, "keep-existing");
+        var pathResult = CsvUtil.write(file, tooMany);
+        var output = new ByteArrayOutputStream();
+        var streamResult = CsvUtil.write(output, tooMany);
+        for (var result : List.of(pathResult, streamResult)) {
+            var error = (CsvException) result.getErr().getException();
+            assertThat(error.reason()).isEqualTo(CsvException.Reason.ROWS);
+            assertThat(error.row()).isEqualTo(CsvLimits.DEFAULT.maxRows() + 1);
+        }
+        assertThat(Files.readString(file)).isEqualTo("keep-existing");
+        assertThat(output.size()).isZero();
+    }
+
+    @Test
     void alreadyCancelledPathWriteDoesNotTruncateAnExistingFile() throws Exception {
         Path file = directory.resolve("keep.csv");
         Files.writeString(file, "keep-existing");

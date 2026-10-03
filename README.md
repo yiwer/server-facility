@@ -141,7 +141,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `web.idempotency` | `@Idempotent` | 完整幂等：同 key 返首次响应，拦截器 + Filter 捕获响应，PROCESSING→409 |
 | `crypto` | `CryptoUtil` | AES-256-GCM 对称加解密 + HMAC + 密钥派生/管理 + Base64/Hex（静态门面，纯 JDK，无需配置） |
 | `masking` | `MaskUtil` | 日志脱敏（默认开启）：秘密/JWT/身份证/银行卡/邮箱/手机号六规则，校验位（mod11-2/Luhn）抑误伤；`LogUtil` 写前集成，`setMaskingEnabled(false)` 可关（静态门面，纯 JDK，无需配置） |
-| `csv` | `CsvUtil` | RFC 4180 CSV 读写（纯 JDK，零依赖恒可用）：UTF-8+BOM 写出、CRLF、最小引号；读容忍 CR/LF/CRLF 并剥 BOM |
+| `csv` | `CsvUtil` | 有界 CSV 读写（Commons CSV required）：strict/legacy 方言、逐行消费、UTF-8 字节/行列/字段预算；机器与电子表格导出政策分离 |
 | `excel` | `ExcelUtil` | Excel（xls/xlsx）读写（POI optional）：写 SXSSF 恒定内存 xlsx，读 usermodel 全字符串化；POI 缺失时运行时探测降级返 err，不崩溃 |
 
 ## 装配开关

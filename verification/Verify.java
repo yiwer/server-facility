@@ -65,6 +65,7 @@ class Verify {
                     consumer("invalid");
                     coreConsumer();
                     cryptoConsumer();
+                    csvConsumer();
                     jsonConsumer();
                     platformConsumers();
                 }
@@ -249,6 +250,23 @@ class Verify {
             throw new AssertionError("Crypto consumer did not complete: " + log);
         }
         summary.add("crypto-consumer=ordinary jar only; persisted legacy receipt; explicit input budgets; 64x1MiB sequential and 4x16x256KiB concurrent; -Xmx64m/45s");
+    }
+
+    static void csvConsumer() throws Exception {
+        Path consumer = ROOT.resolve("verification/consumer");
+        Files.copy(consumer.resolve("src/main/java/example/CsvConsumer.java"), report.resolve("CsvConsumer.java"));
+        Files.copy(consumer.resolve("pom.xml"), report.resolve("csv-consumer-pom.xml"));
+        maven(consumer, "csv-consumer-dependencies", "dependency:tree",
+                "-DoutputFile=" + report.resolve("csv-consumer-dependency-tree.txt"));
+        String dependencies = Files.readString(consumer.resolve("target/classpath.txt")).trim();
+        Files.writeString(report.resolve("csv-consumer-classpath.txt"), dependencies);
+        Path log = run(ROOT, Map.of(), "csv-consumer", List.of(java(), "-Xmx64m", "-Dfile.encoding=UTF-8",
+                "-cp", consumer.resolve("target/classes") + File.pathSeparator + dependencies,
+                "example.CsvConsumer"), 45, null);
+        if (!Files.readString(log).contains("CSV_CONSUMER_PASS rows=200000 optional-tika=absent optional-poi=absent")) {
+            throw new AssertionError("CSV consumer did not complete: " + log);
+        }
+        summary.add("csv-consumer=ordinary jar with required transitive dependencies; Tika/POI absent; literal golden/dialects/budgets/formula policy; 200000 streamed rows; -Xmx64m/45s");
     }
 
     static void jsonConsumer() throws Exception {

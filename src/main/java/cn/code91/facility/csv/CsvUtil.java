@@ -61,9 +61,8 @@ public final class CsvUtil {
         if (file == null || rows == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
-        if (containsNullRow(rows)) {
-            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
-        }
+        WrappedError rowError = legacyRowsError(rows);
+        if (rowError != null) return Result.err(rowError);
         try (OutputStream out = openOutput(file)) {
             var result = write(out, rows);
             if (result.isErr() && result.getErr().getException() instanceof IOException failure) throw failure;
@@ -85,9 +84,8 @@ public final class CsvUtil {
         if (out == null || rows == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
-        if (containsNullRow(rows)) {
-            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
-        }
+        WrappedError rowError = legacyRowsError(rows);
+        if (rowError != null) return Result.err(rowError);
         return writeRows(out, rows, CsvLimits.DEFAULT, true, false);
     }
 
@@ -169,14 +167,16 @@ public final class CsvUtil {
         return '"' + s.replace("\"", "\"\"") + '"';
     }
 
-    /** rows 是否含 null 行(两个 write 重载共用;Path 重载在开流之前拒绝,避免残留空文件)。 */
-    private static boolean containsNullRow(List<List<String>> rows) {
-        for (List<String> row : rows) {
-            if (row == null) {
-                return true;
-            }
+    /** Bound the legacy List before validating null rows or opening an output file. */
+    private static @Nullable WrappedError legacyRowsError(List<List<String>> rows) {
+        if (rows.size() > CsvLimits.DEFAULT.maxRows()) {
+            return WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR,
+                    new CsvException(CsvException.Reason.ROWS, CsvLimits.DEFAULT.maxRows() + 1, 0));
         }
-        return false;
+        for (List<String> row : rows) {
+            if (row == null) return WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR);
+        }
+        return null;
     }
 
     // ==================== 读 ====================
