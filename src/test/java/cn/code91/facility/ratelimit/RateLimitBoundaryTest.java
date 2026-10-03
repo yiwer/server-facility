@@ -34,6 +34,32 @@ class RateLimitBoundaryTest {
         for (String key : accepted) assertThat(identities.tryAcquire(key)).isFalse();
     }
 
+    @Test void reclaimWorkIsBoundedAndRotatesPastExhaustedCandidates() {
+        var time = new AtomicLong(); var observations = new AtomicLong();
+        var limiter = new TokenBucketRateLimiter(1, Double.MIN_VALUE, 64, () -> { observations.incrementAndGet(); return time.get(); });
+        for (int i = 0; i < 64; i++) assertThat(limiter.acquire("actor-" + i, 1, 1, i == 40 ? 1 : Double.MIN_VALUE).allowed()).isTrue();
+        time.set(1_000_000_000L);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            observations.set(0);
+            assertThatThrownBy(() -> limiter.tryAcquire("new")).isInstanceOf(RateLimiterUnavailableException.class);
+            assertThat(observations.get()).isBetween(1L, 16L);
+        }
+        observations.set(0);
+        assertThat(limiter.tryAcquire("new")).isTrue();
+        assertThat(observations.get()).isBetween(1L, 18L);
+        for (int i = 0; i < 64; i++) if (i != 40) assertThat(limiter.tryAcquire("actor-" + i)).isFalse();
+        assertThatThrownBy(() -> limiter.tryAcquire("actor-40")).isInstanceOf(RateLimiterUnavailableException.class);
+    }
+
+    @Test void literalUnicodeKeysAndLengthBoundariesDoNotCollideOrConsumeSlotsOnFailure() {
+        var limiter = new TokenBucketRateLimiter(1, 1, 4, () -> 0L);
+        for (String key : List.of("x".repeat(511), "x".repeat(512), "用户", "e\u0301")) assertThat(limiter.tryAcquire(key)).isTrue();
+        assertThatThrownBy(() -> limiter.tryAcquire("x".repeat(513))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> limiter.tryAcquire("\u2003")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> limiter.tryAcquire("é")).isInstanceOf(RateLimiterUnavailableException.class);
+        assertThat(limiter.tryAcquire("e\u0301")).isFalse();
+    }
+
     private static void together(java.util.function.IntConsumer action) throws Exception {
         var start = new CyclicBarrier(16);
         try (var workers = Executors.newFixedThreadPool(16)) {

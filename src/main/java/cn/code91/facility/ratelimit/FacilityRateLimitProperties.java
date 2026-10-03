@@ -21,8 +21,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "facility.ratelimit")
 public class FacilityRateLimitProperties {
 
-    /** 是否启用限流自动装配。默认 {@code true}。 */
+    /** 是否启用默认本地provider；false仍保留Servlet注解守卫，宿主provider不受此开关影响。默认 {@code true}。 */
     private boolean enabled = true;
+
+    /** Explicit entrance-protection fallback only: allow when the adapter is missing or unavailable. Default false. */
+    private boolean failOpen = false;
 
     /**
      * 默认桶容量(令牌数上限)。声明式(@RateLimit)/编程式调用未显式指定容量时使用此值。

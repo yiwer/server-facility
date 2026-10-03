@@ -48,7 +48,7 @@ public class FacilityRateLimitAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean
         public RateLimitInterceptor rateLimitInterceptor(org.springframework.beans.factory.ObjectProvider<RateLimiter> rateLimiter, FacilityRateLimitProperties props) {
-            return new RateLimitInterceptor(rateLimiter.getIfAvailable(), props.getDefaultCapacity(), props.getDefaultPermitsPerSecond());
+            return new RateLimitInterceptor(rateLimiter.getIfAvailable(), props.getDefaultCapacity(), props.getDefaultPermitsPerSecond(), props.isFailOpen());
         }
 
         @Bean("facilityRateLimitWebMvcConfigurer")
@@ -58,7 +58,7 @@ public class FacilityRateLimitAutoConfiguration {
             return new WebMvcConfigurer() {
                 @Override
                 public void addInterceptors(InterceptorRegistry registry) {
-                    registry.addInterceptor(interceptor);
+                    registry.addInterceptor(interceptor).order(org.springframework.core.Ordered.HIGHEST_PRECEDENCE + 20);
                 }
             };
         }

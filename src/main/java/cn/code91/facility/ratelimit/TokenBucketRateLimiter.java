@@ -80,7 +80,7 @@ public final class TokenBucketRateLimiter implements RateLimiter {
     }
 
     /**
-     * 清空所有桶（供门面重置/测试使用）
+     * 宿主显式管理重置：清空所有桶并恢复额度；自动准入/回收绝不调用此方法。
      */
     public synchronized void clear() {
         buckets.clear();

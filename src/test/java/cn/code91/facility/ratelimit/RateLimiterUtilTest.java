@@ -80,6 +80,22 @@ class RateLimiterUtilTest {
         assertThat(second.retryAfterMillis()).isGreaterThan(0);
     }
 
+    @Test void optionalFallbackDoesNotSwallowPolicyBugsOrErrorsAndNullDecisionsAreUnavailable() {
+        var invalid = new IllegalArgumentException("conflicting host policy");
+        var fatal = new AssertionError("host fatal sentinel");
+        var adapter = new RateLimiter() {
+            public boolean tryAcquire(String key, int permits) { if (key.equals("invalid")) throw invalid; throw fatal; }
+            public RateLimitResult acquire(String key, int permits, long capacity, double rate) { return null; }
+        };
+        var context = new GenericApplicationContext(); context.getBeanFactory().registerSingleton("limiter", adapter); contexts.refresh(context);
+        assertThatThrownBy(() -> RateLimiterUtil.tryAcquireOptional("invalid")).isSameAs(invalid);
+        assertThatThrownBy(() -> RateLimiterUtil.tryAcquireOptional("fatal")).isSameAs(fatal);
+        assertThatThrownBy(() -> RateLimiterUtil.acquire("null", 1, 1, 1)).isInstanceOf(RateLimiterUnavailableException.class);
+        assertThat(RateLimiterUtil.acquireOptional("null", 1, 1, 1)).isEqualTo(new RateLimitResult(true, -1, 0));
+        assertThatThrownBy(() -> RateLimiterUtil.acquireOptional("invalid", 1, 1, Double.NaN)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> RateLimiterUtil.tryAcquireOptional("\t")).isInstanceOf(IllegalArgumentException.class);
+    }
+
     @Test
     @DisplayName("私有构造器不可实例化(工具类契约)")
     void privateConstructor_throws() throws Exception {
