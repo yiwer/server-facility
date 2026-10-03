@@ -1,10 +1,18 @@
 # Secured MVC API
 
-This independent application verifies Bearer JWTs and passes the verified issuer/subject pair to a small business operation. It uses Spring Boot 4.1.1, Spring Security 7.1.1 and the ordinary `server-facility` jar. It has no database or identity-provider implementation.
+This independent application verifies Bearer JWTs and passes the verified issuer/subject pair to application business operations. It uses Spring Boot 4.1.1, Spring Security 7.1.1 and the ordinary `server-facility` jar. The `notes` Module owns current workspace membership, CRUD invariants and transactions through PostgreSQL 18.6, Flyway 12.4.0 and Spring JdbcClient. It does not implement an identity provider.
 
 ## Create and build
 
-Prerequisites: JDK 25 on `JAVA_HOME` and `PATH`, network access to Maven Central for the first build, and the selected `cn.code91:server-facility` version in a reachable Maven repository. The checked-in Wrapper downloads Maven 3.10.0 and checks its SHA-256. JDK 21 and other Maven versions fail validation. Tests bind ephemeral loopback ports and generate disposable RSA keys; they need no external account, Docker or credentials.
+Prerequisites: JDK 25 on `JAVA_HOME` and `PATH`, PostgreSQL 18.6 native tools on `PG_BIN`, network access to Maven Central for the first build, and the selected `cn.code91:server-facility` version in a reachable Maven repository. The checked-in Wrapper downloads Maven 3.10.0 and checks its SHA-256. JDK 21 and other Maven versions fail validation. Tests bind ephemeral loopback ports, create a private PostgreSQL cluster and generate disposable RSA keys; they need no external account, Docker or credentials. Missing PostgreSQL fails the tests, rather than skipping them.
+
+After creating the independent application below, use its JDK-only helper on Windows/Linux x86_64 to download a pinned native distribution from Maven Central and verify its checked-in SHA-512 before extracting with the OS `tar`. Supply a new ASCII directory outside this application (for example `C:/Temp/my-api-pg` or `/tmp/my-api-pg`):
+
+```text
+java dev/PreparePostgres.java /absolute/new/tools-directory
+```
+
+Set `PG_BIN` to the printed `bin` path (`$env:PG_BIN='C:/Temp/my-api-pg/bin'` in PowerShell, `export PG_BIN=/tmp/my-api-pg/bin` in a POSIX shell). This step only prepares tools. Existing PostgreSQL 18.6 tools are also supported. Keep native tools and database state paths ASCII on Windows; the application itself is verified in a path containing spaces, Chinese and Hebrew characters. Linux tests must run as an ordinary user, as PostgreSQL refuses `initdb` as root.
 
 For this source snapshot, first run `./mvnw clean install` in the facility repository. On Windows use `mvnw.cmd` wherever these instructions show `./mvnw`. Then create a fresh directory:
 
@@ -18,7 +26,7 @@ The destination must not exist. The copy includes its own Wrapper, POM, tests an
 ./mvnw clean verify
 ```
 
-This runs actual HTTP and key-rotation tests, isolated context-failure subprocesses, compiled business-boundary checks and coverage gates (88% instructions/lines, 75% branches). The executable artifact is `target/secured-api-1.0.0-SNAPSHOT.jar`. There is no parent POM or reactor dependency on the source checkout. Rename coordinates/packages and own the generated application as normal application code; this is a copy operation, not a synchronizing generator.
+This runs actual HTTP, key rotation, PostgreSQL migrations, transaction rollback, lock/connection budgets, database outage/recovery, compiled business-boundary checks and coverage gates (88% instructions/lines, 75% branches). Test database shutdown failures fail the suite. The executable artifact is `target/secured-api-1.0.0-SNAPSHOT.jar`. There is no parent POM or reactor dependency on the source checkout. Rename coordinates/packages and own the generated application as normal application code; this is a copy operation, not a synchronizing generator.
 
 ## Run locally with real signatures
 
@@ -30,10 +38,18 @@ java dev/LocalIssuer.java .local
 
 `.local` must be a new directory. The fixture binds only loopback, generates a fresh in-memory RSA private key, writes two ten-minute test tokens and `local.properties`, and serves read-only metadata/JWK documents for ten minutes. It provides no login, token-issuance HTTP endpoint or refresh service. These files are ignored by Git; the helper is outside `src` and absent from the application jar. Restart with a new directory to generate new fixtures.
 
-In another terminal:
+Start the development database in a second terminal, using a new ASCII state directory with an existing parent:
 
 ```text
-java -jar target/secured-api-1.0.0-SNAPSHOT.jar --spring.config.additional-location=file:./.local/local.properties
+java dev/LocalDatabase.java /absolute/path/to/my-api-database
+```
+
+This foreground helper binds only `127.0.0.1`, uses development-only trust authentication and writes `database.properties`. Press Enter to stop it cleanly. Reusing its marked directory restarts the same database; its data is retained. It refuses unrelated existing directories and an active database. Never expose this trust-authenticated cluster or use this recipe for production. Use an application-owned database, authenticated role, secret management and backup/restore policy in production.
+
+In another terminal, use both generated property files (file URIs may be percent encoded for spaces):
+
+```text
+java -jar target/secured-api-1.0.0-SNAPSHOT.jar --spring.config.additional-location=file:./.local/local.properties,file:/absolute/path/to/my-api-database/database.properties
 ```
 
 `GET http://localhost:8080/health` returns `{"status":"UP"}`. Business `GET /api/greeting` requires the token. PowerShell:
@@ -49,7 +65,37 @@ POSIX shell:
 curl -H "Authorization: Bearer $(cat .local/token.txt)" http://localhost:8080/api/greeting
 ```
 
-The result contains `actor.issuer`, `actor.subject` (`local-demo`) and `message` (`Hello`). No token returns 401; `no-scope-token.txt` returns 403. A token in the query string or a spoofed identity header does not authenticate. Stop both processes with Ctrl+C. Local configuration is an explicit loopback trust policy, never an authentication bypass.
+The result contains `actor.issuer`, `actor.subject` (`local-demo`) and `message` (`Hello`). No token returns 401; `no-scope-token.txt` returns 403. A token in the query string or a spoofed identity header does not authenticate. Stop the API and issuer with Ctrl+C; stop the database with Enter. Local configuration is an explicit loopback trust policy, never an authentication bypass.
+
+## Persistent business operations
+
+The local token includes `notes:read notes:write`. Production issuers must grant these operation scopes deliberately. `POST /api/workspaces` with `{"name":"My workspace"}` creates a workspace and the caller's membership in one transaction. Its relative `Location` is the workspace's notes collection. Creating a workspace does not grant access to any other workspace. Membership is keyed by workspace plus verified issuer/subject and is checked anew on each Module operation; JWT scope alone is insufficient. No incoming header selects an authenticated actor.
+
+Use the returned collection URI:
+
+| Method | Path | JSON / result |
+| --- | --- | --- |
+| POST | collection | `{"slug":"first-note","title":"Hello 🌱","body":"Persist me"}` → 201, relative note Location |
+| GET | note Location | 200 with `id`, `workspaceId`, `slug`, `title`, `body` |
+| PUT | note Location | `{"title":"Updated","body":"Same note"}` → 200 |
+| DELETE | note Location | 204; subsequent GET → 404 |
+| GET | collection + `?page=0&size=20&sort=created&direction=asc` | `{items,page,size,total}` |
+
+Workspace names contain 1–100 Unicode code points; titles 1–200; bodies 0–4096. Names/titles cannot be blank. NUL and unpaired surrogates are rejected. Slugs use 1–64 lowercase ASCII letters/digits/hyphens and start with a letter/digit; they are unique within a workspace and immutable. Duplicate creation returns 409 without changing the prior note. Body JSON is bounded by the application's Jackson factory: 65,536 document bytes, 16 nesting levels, 16,384-character strings, 128-character field names, 64-character numbers and 4,096 tokens. These parser limits also apply to chunked input.
+
+Page is zero-based, size is 1–100, and `page * size` must not exceed 10,000 (overflow is rejected). Allowed sorts are `created`, `title`, `slug`; direction is `asc` or `desc`. Only this fixed mapping enters SQL. Every sort has an ID tie-breaker. Invalid values return 400, empty results keep the same structure, and count/rows share a read-only repeatable-read snapshot. The public Module has no Servlet, SecurityContext or static SessionUser dependency; it owns authorization and uses bound JdbcClient values.
+
+Restart the API with the same database and issuer policy to read committed notes again. The disposable issuer creates a new issuer URI/key when restarted; it intentionally does not promise a permanent development identity. Production identity continuity belongs to the configured issuer.
+
+## Database migrations and finite budgets
+
+Only Flyway manages schema (`spring.sql.init.mode=never`); there is no H2 fallback, ORM schema creation or second initializer. Startup migrates the same Hikari DataSource used by the Module, validates checksums and rejects a partial target, ignored future migration, missing/empty migration directory or missing required V1/V2 history. A separate `spring.flyway.url/user` DataSource is unsupported. V1 creates workspace, membership and note; V2 adds input constraints and the default list index. The test-only frozen V1 is the first application checkpoint, with an independently written literal SQL sample; it is not a claim about a prior production release. Migration scripts are immutable after deployment; add a new version to change schema. Back up real data before upgrading and own migration privileges/rollout policy in the application.
+
+Defaults: pool maximum 4/minimum idle 0, acquisition 1s, validation 500ms, initial connection 1s; driver connect 2s, socket read 4s and cancel signal 1s; PostgreSQL statement timeout 2s/lock timeout 500ms; JdbcTemplate query 2s; Module transaction 3s; Flyway lock retries 2/connect retries 0. Each is a stage budget, not a total HTTP deadline. Flyway's pinned retry implementation shares static policy, so applications in the same JVM must use the same finite migration policy. JDBC URL parameters are rejected because they can override driver properties; configure TLS and other driver settings explicitly through datasource properties.
+
+Configuration validates finite ranges before migrations: pool 1–16; acquisition 250–5000ms; validation 250–1000ms; initialization 1–5000ms; driver connect 1–5s/socket 1–10s/cancel 1–2s; statement 100–10000ms/lock 50–5000ms with lock shorter; query 1–3 whole seconds; Flyway lock retries 0–5 with no connection retries. Fractional query durations are rejected because Boot converts that duration to integer seconds, which would turn subsecond values into zero. Zero/infinite or silently normalized settings fail startup. The effective migration policy is checked again before use.
+
+Unavailable database/connection/lock/statement budget produces safe 503 `persistence_unavailable`; unexpected SQL/transaction faults produce safe 500 `persistence_failed`. Constraint competition for a known slug produces 409 `note_slug_conflict`. SQL, submitted payload, credentials and driver causes are neither returned nor passed into the facility error logger; the sanitized error retains the HTTP correlation identifier. A timeout does not prove that a write had no effect: callers must reconcile current state, and this CRUD slice does not yet promise retry/idempotency receipts.
 
 ## Production trust and HTTP policy
 
@@ -85,7 +131,7 @@ Callable uses Spring Security's MVC integration. DeferredResult producers have i
 
 Forwarded headers are disabled at the Servlet layer. With no proxy configuration, the network origin is the numeric direct peer. Set `facility.web.proxy.trusted-proxies` to deployment-owned CIDRs to interpret X-Forwarded-For through facility's bounded chain policy. This changes network-origin interpretation only; verified JWT identity remains authoritative. Standard W3C traceparent is used only for correlation, never identity; the legacy X-Trace-Id header is ignored. Do not enable broad framework/native forwarded-header rewriting in front of this policy without revalidating the deployment boundary.
 
-The repository verification runner instantiates into a new directory outside the checkout, builds with an isolated repository, checks the consumed library jar, archives the exact inputs and starts the executable jar with a JDK-only client in both thread modes. See the source repository's ticket27 verification report for exact source SHA, environment, counts and CI evidence. Ticket28 adds persistent authorization; this template makes no transaction or retry guarantee.
+The repository verification runner instantiates into a new directory outside the checkout, builds with an isolated repository, checks the consumed library jar, archives the exact inputs and starts the executable jar with a JDK-only client in both thread modes. That client creates data, restarts the API, verifies literal stored content, and updates/deletes through signed HTTP against native PostgreSQL. See the source repository's ticket27/ticket28 verification reports for exact source SHA, environment, counts and CI evidence.
 
 Coverage uses JaCoCo offline instrumentation to support Windows directories outside the native code page. Successful tests restore original bytecode before packaging; the coverage runtime is test scoped. After a failed or interrupted test run, use `clean verify` to discard instrumented leftovers. Architecture checks inspect the compiler's original bytecode, and isolated test subprocesses contribute to the same coverage file through the test-only runtime.
 

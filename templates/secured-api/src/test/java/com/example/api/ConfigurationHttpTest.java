@@ -23,6 +23,7 @@ class ConfigurationHttpTest {
         }
         assertThatThrownBy(() -> {
             try (var ignored = org.springframework.boot.SpringApplication.run(ApiApplication.class,
+                    "--spring.datasource.url=" + Postgres.sharedUrl(), "--spring.datasource.username=postgres", "--spring.datasource.password=",
                     "--server.port=0", "--spring.profiles.active=prod", "--logging.level.root=OFF")) { }
         }).hasStackTraceContaining("Invalid application JWT trust policy");
     }

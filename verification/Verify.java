@@ -234,6 +234,10 @@ class Verify {
                 copyDirectory(application.resolve("target/surefire-reports"), evidence.resolve("surefire-reports"));
             if (Files.isDirectory(application.resolve("target/site/jacoco")))
                 copyDirectory(application.resolve("target/site/jacoco"), evidence.resolve("jacoco"));
+            try (var files = Files.list(application.resolve("target"))) {
+                for (Path cluster : files.filter(p -> p.getFileName().toString().startsWith("secured-api-postgres-")).toList())
+                    copyDirectory(cluster, evidence.resolve(cluster.getFileName()));
+            }
             for (boolean rollback : List.of(false, true)) {
                 Path log = application.resolve("target/decorator-failure-" + rollback + ".log");
                 if (Files.isRegularFile(log)) Files.copy(log, evidence.resolve(log.getFileName()));
@@ -255,7 +259,9 @@ class Verify {
         }
         if (!discovered.containsAll(Set.of("com.example.api.AuthenticationHttpTest", "com.example.api.FailureLifecycleHttpTest",
                 "com.example.api.JwkLifecycleHttpTest", "com.example.api.ConfigurationHttpTest", "com.example.api.DecoratorFailureTest",
-                "com.example.api.ExecutorOwnershipTest", "com.example.api.BusinessBoundaryTest")))
+                "com.example.api.ExecutorOwnershipTest", "com.example.api.BusinessBoundaryTest",
+                "com.example.api.NotesHttpTest", "com.example.api.NotesModuleTest", "com.example.api.PersistenceFailureHttpTest",
+                "com.example.api.DatabaseConfigurationTest", "com.example.api.MigrationHttpTest")))
             throw new AssertionError("Missing template contract tests: " + discovered);
         maven(application, "template-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));
         maven(application, "template-dependencies", "dependency:tree", "-DoutputFile=" + evidence.resolve("dependency-tree.txt"),
@@ -269,7 +275,8 @@ class Verify {
                 if (!Arrays.equals(packaged.readAllBytes(), Files.readAllBytes(ROOT.resolve("target/server-facility-0.1.0-SNAPSHOT.jar"))))
                     throw new AssertionError("Packaged template consumed another build's library jar");
             }
-            if (archive.stream().anyMatch(entry -> entry.getName().contains("LocalIssuer") || entry.getName().contains("TestIssuer")))
+            if (archive.stream().anyMatch(entry -> entry.getName().contains("LocalIssuer") || entry.getName().contains("TestIssuer")
+                    || entry.getName().contains("LocalDatabase") || entry.getName().contains("PreparePostgres") || entry.getName().contains("schema-v1")))
                 throw new AssertionError("Development/test signing fixtures leaked into production jar");
             if (archive.stream().anyMatch(entry -> entry.getName().startsWith("BOOT-INF/lib/") && entry.getName().contains("jacoco")))
                 throw new AssertionError("Coverage runtime leaked into production jar");
