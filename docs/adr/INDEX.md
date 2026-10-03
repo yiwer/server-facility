@@ -30,3 +30,4 @@
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted | Java 25 中间基线、校验固定 Maven Wrapper、独立普通 jar 消费与跨平台验证入口 |
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
+| [0044](0044-json-application-scope-expand.md) | Accepted | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
