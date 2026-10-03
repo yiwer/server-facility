@@ -22,20 +22,24 @@
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-zipkin</artifactId></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+      <dependency><groupId>org.jacoco</groupId><artifactId>org.jacoco.agent</artifactId><version>${jacoco.version}</version><classifier>runtime</classifier><scope>test</scope></dependency>
     </dependencies>
     <build><plugins>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.4.1</version></plugin>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version></plugin>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.16.0</version></plugin>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.6.0</version>
-            <!-- Relative agent/options avoid Windows native-agent encoding of a Unicode project path. -->
-            <configuration><failIfNoTests>true</failIfNoTests><argLine>@{argLine} -javaagent:target/jacoco-agent.jar=destfile=target/jacoco.exec -Dfile.encoding=UTF-8 -Djdk.net.unixdomain.tmpdir=target</argLine></configuration>
+            <!-- Offline instrumentation avoids the Windows native javaagent path encoding boundary. -->
+            <configuration><failIfNoTests>true</failIfNoTests><argLine>@{argLine} -Djacoco-agent.destfile=target/jacoco.exec -Dfile.encoding=UTF-8 -Djdk.net.unixdomain.tmpdir=target</argLine></configuration>
         </plugin>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.5.1</version></plugin>
         <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><version>${spring-boot.version}</version>
             <executions><execution><goals><goal>repackage</goal></goals></execution></executions>
         </plugin>
         <plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>${jacoco.version}</version><executions>
+      <!-- Restore after successful tests so repeated test runs and packaged artifacts use original bytecode. -->
+      <execution><id>offline-instrument</id><goals><goal>instrument</goal></goals></execution>
+      <execution><id>restore-after-tests</id><phase>test</phase><goals><goal>restore-instrumented-classes</goal></goals></execution>
             <execution><id>report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><rules><rule>
                 <element>BUNDLE</element><limits>
                     <limit><counter>INSTRUCTION</counter><value>COVEREDRATIO</value><minimum>0.88</minimum></limit>
@@ -56,14 +60,7 @@
                 </requireFilesExist>
             </rules></configuration></execution></executions>
         </plugin>
-        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version>
-            <executions><execution><id>test-agent</id><phase>initialize</phase><goals><goal>copy</goal></goals><configuration>
-                <artifactItems><artifactItem><groupId>org.jacoco</groupId><artifactId>org.jacoco.agent</artifactId>
-                    <version>${jacoco.version}</version><classifier>runtime</classifier><type>jar</type>
-                    <outputDirectory>${project.build.directory}</outputDirectory><destFileName>jacoco-agent.jar</destFileName>
-                </artifactItem></artifactItems>
-            </configuration></execution></executions>
-        </plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version></plugin>
         <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-help-plugin</artifactId><version>3.5.1</version></plugin>
     </plugins></build>
 </project>

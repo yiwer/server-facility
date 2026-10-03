@@ -11,11 +11,11 @@ import java.util.regex.Pattern;
 class TemplateConsumer {
     static final String JAVA = Path.of(System.getProperty("java.home"), "bin", System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java").toString();
     public static void main(String[] args) throws Exception {
-        Path app = Path.of(args[0]).toAbsolutePath(), evidence = Files.createDirectories(Path.of(args[1]));
+        Path app = path(args[0]).toAbsolutePath(), evidence = Files.createDirectories(path(args[1]));
         Path state = app.resolve("target/local-trust-" + UUID.randomUUID());
         Path helperLog = evidence.resolve("local-fixture.log");
         Process helper = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
-                app.resolve("dev/LocalIssuer.java").toString(), state.toString())
+                "dev/LocalIssuer.java", app.relativize(state).toString())
                 .directory(app.toFile()).redirectErrorStream(true).redirectOutput(helperLog.toFile()).start();
         try {
             awaitFile(state.resolve("no-scope-token.txt"), helper, helperLog);
@@ -24,7 +24,7 @@ class TemplateConsumer {
             check(Files.isRegularFile(jar), "packaged application jar missing");
             for (boolean virtual : new boolean[]{false, true}) {
                 Path log = evidence.resolve("packaged-" + virtual + ".log");
-                Process running = launch(app, jar, log, "--spring.config.additional-location=" + state.resolve("local.properties").toUri(),
+                Process running = launch(app, jar, log, "--spring.config.additional-location=" + state.resolve("local.properties").toUri().toASCIIString(),
                         "--spring.threads.virtual.enabled=" + virtual);
                 try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()) {
                     String base = awaitServer(running, log);
@@ -56,8 +56,11 @@ class TemplateConsumer {
             System.out.println("PACKAGED_TEMPLATE_PASS platform/virtual restart; no repository source or test classpath");
         } finally { stop(helper); }
     }
+    private static Path path(String value) {
+        return value.startsWith("file:") ? Path.of(URI.create(value)) : Path.of(value);
+    }
     private static Process launch(Path app, Path jar, Path log, String... options) throws Exception {
-        var command = new ArrayList<>(List.of(JAVA, "-Xmx256m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "-jar", jar.toString(),
+        var command = new ArrayList<>(List.of(JAVA, "-Xmx256m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "-jar", app.relativize(jar).toString(),
                 "--server.port=0", "--server.address=127.0.0.1", "--spring.main.banner-mode=off", "--server.shutdown=immediate"));
         command.addAll(List.of(options));
         return new ProcessBuilder(command).directory(app.toFile()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
