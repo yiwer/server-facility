@@ -70,6 +70,7 @@ class Verify {
                     rateLimitConsumer();
                     jsonConsumer();
                     platformConsumers();
+                    partnerConsumer();
                     securedTemplate();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
@@ -383,6 +384,51 @@ class Verify {
             throw new AssertionError("Rate-limit consumer did not complete: " + log);
         }
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
+    }
+
+    static void partnerConsumer() throws Exception {
+        Path owned = Files.createTempDirectory("facility-partner-").toRealPath();
+        Path application = owned.resolve("partner app-示例");
+        Path source = ROOT.resolve("examples/partner-aggregation");
+        Path evidence = Files.createDirectories(report.resolve("partner"));
+        Path inputs = Files.createDirectories(report.resolve("partner-inputs"));
+        copyDirectory(source.resolve("src"), application.resolve("src"));
+        Files.copy(source.resolve("pom.xml"), application.resolve("pom.xml"));
+        copyDirectory(ROOT.resolve(".mvn"), application.resolve(".mvn"));
+        for (String name : List.of("mvnw", "mvnw.cmd")) Files.copy(ROOT.resolve(name), application.resolve(name));
+        copyDirectory(application, inputs);
+        summary.add("partner-independent-copy=" + application);
+        maven(application, "partner-build", "clean", "verify", "dependency:build-classpath", "-DincludeScope=runtime",
+                "-Dmdep.outputFile=" + evidence.resolve("runtime-classpath.txt"));
+        maven(application, "partner-model", "help:effective-pom", "dependency:tree", "-DincludeScope=runtime",
+                "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt"));
+        copyDirectory(application.resolve("target/surefire-reports"), evidence.resolve("surefire-reports"));
+        copyDirectory(application.resolve("target/site/jacoco"), evidence.resolve("jacoco"));
+        if (!Files.isRegularFile(evidence.resolve("jacoco/jacoco.xml"))) throw new AssertionError("Partner coverage missing");
+        Path jar = evidence.resolve("partner-aggregation.jar");
+        Files.copy(application.resolve("target/partner-aggregation-1.0-SNAPSHOT.jar"), jar);
+        summary.add("sha256 partner-aggregation.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
+        installedClasspath(application, evidence.resolve("runtime-classpath.txt")); // Validates exact installed library identity.
+        String dependencies = Files.readString(evidence.resolve("runtime-classpath.txt")).trim();
+        Path probe = ROOT.resolve("verification/partner-consumer/PartnerConsumer.java");
+        Files.copy(probe, evidence.resolve("PartnerConsumer.java"));
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        String classpath = jar + File.pathSeparator + dependencies;
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "partner-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8", "-cp", classpath,
+                "-d", classes.toString(), probe.toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "partner-consumer", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-Djdk.net.unixdomain.tmpdir=" + classes, "-cp", classes + File.pathSeparator + classpath, "PartnerConsumer"), 90, null);
+        if (!Files.readString(log).contains("PARTNER_CONSUMER_PASS cycles=5 rejected=200 wire=205")) throw new AssertionError("Partner resource consumer did not finish");
+        // A new clean copy must not mistake skipped/missing instrumentation for successful coverage.
+        Path negative = owned.resolve("negative");
+        copyDirectory(inputs, negative);
+        maven(negative, "partner-missing-coverage-negative", "Executed coverage data and report are required", List.of("clean", "verify", "-DskipTests"));
+        summary.add("partner=independent Unicode/space copy; clean quality gate and absent-coverage negative; ordinary application+library jars; runtime-only graph; real HTTP/tracing/errors/deadlines; 5 lifecycle/200 bounded-tail failures; -Xmx128m/90s");
+        // Only remove the exact directory created above, after evidence and artifacts have been archived.
+        if (!owned.getParent().equals(Path.of(System.getProperty("java.io.tmpdir")).toRealPath())
+                || !owned.getFileName().toString().startsWith("facility-partner-")) throw new AssertionError("Unexpected temporary application root");
+        try (var paths = Files.walk(owned)) { for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(path); }
     }
 
     static void jsonConsumer() throws Exception {

@@ -373,17 +373,20 @@ if (LockUtil.tryLock("resource", Duration.ofSeconds(5))) {
 
 ## HTTP client:HttpClients
 
-通用 HTTP 调用门面(`http` 包),委托 Spring `RestClient`,返回 `Result`(不抛异常)。
+新代码从宿主注入 `RestClient.Builder`，按外部服务克隆后装配类型化 Adapter。完整、可运行的双服务聚合见[partner-aggregation](../examples/partner-aggregation/README.md)：继承宿主JSON/customizer/观测，独立凭据和时限，安全失败分类，副作用默认一次，显式GET重试共用deadline。
 
 ```java
-Result<User, WrappedError> r = HttpClients.get("https://api.example.com/users/1", User.class);
-Result<Order, WrappedError> o = HttpClients.post("https://api.example.com/orders", newOrder, Order.class);
-Result<Void, WrappedError> d = HttpClients.delete("https://api.example.com/users/1");
-Result<User, WrappedError> h = HttpClients.get(url, Map.of("Authorization", "Bearer " + token), User.class);
+this.client = hostBuilder.clone()
+    .baseUrl(trustedServiceBaseUrl)
+    .requestInterceptor(new ResponseBodyLimit(1024 * 1024))
+    .build();
 ```
 
-- **错误映射**:4xx/5xx 响应 → `Result.err`(`FacilityErrorType.HTTP_STATUS_ERROR`,args[0]=HTTP 状态码);网络/超时异常 → `err`(`HTTP_SEND_AND_PARSE_ERROR`,args[0]=url)。
-- **超时**:经 `facility.http.connect-timeout` / `read-timeout` 配置(装配的 `RestClient` bean);消费方可声明自己的 `RestClient` bean 替换(换 Apache HttpComponents/OkHttp requestFactory)。
+`ResponseBodyLimit` 限制消息转换前实际body字节；transport启用解压时按解压后计量。必须在拥有response的exchange作用域内读完并关闭，禁止返回借用流。关闭先中止body，避免transport在关闭时继续drain被拒绝的尾部；时间、连接和并发政策由宿主负责。
+
+`HttpClients` 静态API保留签名但已弃用，仍使用历史SpringContextHolder查找、缺Bean时RestClient.create回退及粗粒度Result映射。它不提供新Adapter的有限响应、隔离、未知结果与重试契约；历史错误可能携带URL/cause，不直接输出到公共响应或日志。迁移应把整个外部服务调用移入类型化Adapter。
+
+默认兼容RestClient bean现在在Boot装配之后克隆宿主builder，保留其factory；用户RestClient bean仍让默认装配退让。`facility.http.connect-timeout/read-timeout`仅作用于**没有宿主builder**的兼容Simple factory，使用前要求1ms..2147483647ms；不能用这两个历史属性覆盖宿主Boot的transport政策。详见ADR0048和示例配置表。
 
 ## 幂等:@Idempotent
 
