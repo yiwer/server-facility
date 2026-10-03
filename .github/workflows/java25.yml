@@ -56,6 +56,9 @@ jobs:
             .verification-results/**/json-consumer-pom.xml
             .verification-results/**/json-consumer-dependency-tree.txt
             .verification-results/**/JsonConsumer.java
+            .verification-results/**/PlatformWebConsumer.java
+            .verification-results/**/matrix-inputs/**
+            .verification-results/**/matrix/**
             .verification-results/**/json-golden/**
             .verification-results/**/surefire-reports/**
             .verification-results/**/jacoco/**

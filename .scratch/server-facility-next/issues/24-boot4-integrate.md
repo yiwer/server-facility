@@ -4,7 +4,7 @@
 
 **Blocked by:** 23 迁移 Jackson 3 并让 HTTP 与应用 mapper 政策一致
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-01、FR-02、FR-09、FR-10；AC-01、AC-02、AC-09、AC-12、AC-13
 
