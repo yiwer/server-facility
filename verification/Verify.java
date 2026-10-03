@@ -273,6 +273,13 @@ class Verify {
         Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
                 application.toString(), evidence.toString()), 180, null);
         if (!Files.readString(log).contains("PACKAGED_TEMPLATE_PASS")) throw new AssertionError("Missing packaged template result");
+        Path withoutCoverage = application.getParent().resolve("without-coverage");
+        run(ROOT, Map.of(), "template-coverage-probe-instantiate", List.of(java(), copier.toString(),
+                ROOT.resolve("templates/secured-api").toString(), withoutCoverage.toString()), 45, null);
+        maven(withoutCoverage, "template-missing-coverage-rejected",
+                "Executed coverage data and report are required; missing coverage is not success",
+                List.of("clean", "verify", "-DskipTests"));
+        summary.add("template-coverage-negative=clean independent copy without test execution rejected by required coverage gate");
         summary.add("template=tests " + tests + " failures=0 errors=0 skipped=0; fresh directory outside checkout; independent Wrapper; actual packaged HTTP platform/virtual");
         summary.add("sha256 secured-api.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
     }
