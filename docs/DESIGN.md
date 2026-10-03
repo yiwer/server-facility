@@ -90,7 +90,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-24 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
+25 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。
 
 | ADR | 决策 |
 |---|---|
@@ -99,7 +99,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0003 | RFC 7807 ProblemDetail 双轨(`use-problem-detail` 开关) |
 | 0004 | `FacilityException` 接口解耦异常层次 |
 | 0005 | `LogUtil` Throwable 参数对齐 SLF4J 末位 |
-| 0006 | `LogUtil` 内部状态 `compareAndExchange` 消除 ABA |
+| 0006 | `LogUtil` 内部状态 `compareAndExchange`（进程级 handler 缓存策略由 0025 替代，单次分发保证保留） |
 | 0007 | `Result.empty()` 表达"成功但无值" |
 | 0008 | SnowId `parseTimestamp`/`parseInfo` 改 instance 方法 |
 | 0009 | Result/Tuple/Triple 纯别名精简 |
@@ -118,6 +118,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0022 | `LogUtil` 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
 | 0024 | Java 25 中间基线、固定校验 Wrapper、独立普通 jar 消费与跨平台验证入口 |
+| 0025 | Context 注册归实例所有、刷新/关闭隔离；构造器注入为默认，ID/日志兼容入口不跨 context 缓存 Spring bean |
 | 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
 
 ## 6. 质量门

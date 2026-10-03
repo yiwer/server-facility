@@ -4,7 +4,9 @@
 
 ## Status
 
-Accepted
+Partially superseded by [ADR-0025](0025-context-ownership.md)（2026-10-03）。
+
+进程级 LogPostHandlerComposite 缓存策略由 ADR-0025 替代；每次日志最多分发一次的公开保证继续生效。下文保留原决策与理由，作为历史记录。
 
 日期：2026-05-21
 

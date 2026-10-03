@@ -9,7 +9,7 @@
 | [0003](0003-rp-06-rfc-7807-problem-details.md) | inherited | RFC 7807 ProblemDetail 双轨(use-problem-detail 开关) |
 | [0004](0004-rp-07-facility-exception-interface.md) | inherited | FacilityException 接口解耦异常层次 |
 | [0005](0005-rp-08-slf4j-throwable-position.md) | inherited | LogUtil Throwable 参数对齐 SLF4J 末位 |
-| [0006](0006-rp-13-cas-compare-and-exchange.md) | inherited | LogUtil 内部状态 compareAndExchange 消除 ABA |
+| [0006](0006-rp-13-cas-compare-and-exchange.md) | inherited; 部分由 [0025](0025-context-ownership.md) 替代 | LogUtil 内部状态 compareAndExchange 消除 ABA |
 | [0007](0007-rp-10-result-empty-factory.md) | inherited | Result.empty() 表达"成功但无值" |
 | [0008](0008-rp-15-snowid-parsetimestamp-instance.md) | inherited | SnowId parseTimestamp/parseInfo 改 instance |
 | [0009](0009-alias-trimming.md) | Accepted | Result/Tuple/Triple 纯别名精简(13 个方法) |
@@ -28,3 +28,4 @@
 | [0022](0022-logutil-caller-gating-stackwalker.md) | Accepted | LogUtil 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Accepted | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted | Java 25 中间基线、校验固定 Maven Wrapper、独立普通 jar 消费与跨平台验证入口 |
+| [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
