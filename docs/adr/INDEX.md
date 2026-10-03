@@ -30,9 +30,9 @@
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted; 平台版本部分由 [0045](0045-boot4-platform-toolchain.md) 替代 | 保留 Java 25、固定 Wrapper、普通 jar 与原质量门；Boot 3 中间平台由 0045 目标依赖替代 |
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
-| [0027](0027-safe-http-error-policy.md) | Accepted | Filter/MVC/ERROR 共用安全 RFC 9457 错误策略、真实状态和必要头；宿主 mapper/locale、已提交边界与显式 legacy 迁移 |
+| [0027](0027-safe-http-error-policy.md) | Accepted; Security接合由 [0050](0050-secured-application-template.md) 补充 | Filter/MVC/ERROR 共用安全 RFC 9457 错误策略、真实状态和必要头；宿主 mapper/locale、已提交边界与显式 legacy 迁移 |
 | [0028](0028-bounded-web-streams.md) | Accepted; [0047](0047-boot4-consumer-integration.md) 补充目标重载 | 普通响应直通、显式有界捕获、repeatable正预算与流所有权；6.1新入口接合由0047登记 |
-| [0029](0029-request-boundaries.md) | Accepted | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
+| [0029](0029-request-boundaries.md) | Accepted; 应用身份与异步接合由 [0050](0050-secured-application-template.md) 补充 | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
 | [0032](0032-local-rate-limit-contract.md) | Accepted | 正成本与精确余额、真实缺额等待、有界主体准入和满桶回收；required/Optional设施政策、可信主体及入口计费 |
 | [0036](0036-upload-integrity.md) | Accepted | 实际字节预算、内容探测流所有权、服务端存储键与同卷硬链接发布；保留0001的optional理由 |
 | [0037](0037-complete-zip-and-directory-results.md) | Accepted | ZIP完整关闭后不覆盖发布、有限读写/条目/深度预算；目录完整统计与有界逐项删除，失败及残留真实可见 |
@@ -43,5 +43,9 @@
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |
 | [0046](0046-jackson3-application-ownership.md) | Accepted | Jackson3不可变配置、应用mapper/registry所有权、安全错误与正数字段流预算；保留旧金样和明确静态迁移 |
 | [0047](0047-boot4-consumer-integration.md) | Accepted | 补全0045/0046平台门、0028的Servlet6.1入口与0015缺类装配；真实五图/普通jar/Web/上传消费，OS状态按报告 |
+<<<<<<< HEAD
 
 | [0048](0048-application-owned-outbound-http.md) | Accepted | 部分替代0018；宿主拥有HTTP配置、有限响应与应用级重试，双服务实际消费者 |
+=======
+| [0050](0050-secured-application-template.md) | Accepted | 独立MVC模板的应用自有JWT信任、Actor与标准Security授权；安全401/403/503、JWK有限I/O、真实Servlet/执行器上下文及独立打包门 |
+>>>>>>> codex/server-facility-next
