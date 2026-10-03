@@ -161,6 +161,38 @@ class ExcelReadAdversarialTest {
             assertThat(ExcelUtil.read(new ByteArrayInputStream(bytes)).isErr()).isTrue();
     }
 
+    @Test
+    void namespacesCharacterReferencesAndCdataRetainTheirText() throws Exception {
+        byte[] source = ExcelBudgetContractTest.fixture(ignored -> { });
+        byte[] bytes = replace(source, "xl/worksheets/sheet1.xml", "<s:worksheet xmlns:s=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
+                + "<s:sheetData><s:row r=\"1\"><s:c r=\"A1\" t=\"inlineStr\"><s:is><s:t>a&lt;<![CDATA[&]]>b</s:t></s:is></s:c></s:row>"
+                + "</s:sheetData></s:worksheet>");
+        assertThat(ExcelUtil.read(new ByteArrayInputStream(bytes)).get()).containsExactly(List.of("a<&b"));
+    }
+
+    @Test
+    void externalDtdAndParameterEntitiesNeverReachTheNetwork() throws Exception {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var server = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/entity", exchange -> {
+            calls.incrementAndGet(); byte[] body = "<!ENTITY external 'secret'>".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (var output = exchange.getResponseBody()) { output.write(body); }
+        });
+        server.start();
+        try {
+            String uri = "http://127.0.0.1:" + server.getAddress().getPort() + "/entity";
+            for (String dtd : List.of("<!DOCTYPE worksheet SYSTEM '" + uri + "'>",
+                    "<!DOCTYPE worksheet [<!ENTITY % remote SYSTEM '" + uri + "'>%remote;]>",
+                    "<!DOCTYPE worksheet [<!ENTITY a 'expanded'><!ENTITY b '&a;&a;&a;'>]>")) {
+                byte[] bytes = replace(ExcelBudgetContractTest.fixture(ignored -> { }), "xl/worksheets/sheet1.xml",
+                        dtd + "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData/></worksheet>");
+                assertReason(bytes, ExcelReadOptions.DEFAULT, ExcelException.Reason.FORMAT);
+            }
+            assertThat(calls.get()).isZero();
+        } finally { server.stop(0); }
+    }
+
     private static ExcelReadOptions options(ExcelLimits limits) {
         return new ExcelReadOptions(limits, Locale.ROOT, ExcelReadOptions.FormulaPolicy.CACHED_VALUE);
     }

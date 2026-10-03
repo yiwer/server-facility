@@ -10,7 +10,7 @@ import java.util.*;
 public final class ExcelConsumer {
     public static void main(String[] args) throws Exception {
         String mode = args[0];
-        for (String forbidden : List.of("org.junit.jupiter.api.Test", "org.mockito.Mockito", "org.springframework.context.ApplicationContext")) {
+        for (String forbidden : List.of("org.junit.jupiter.api.Test", "org.mockito.Mockito")) {
             try { Class.forName(forbidden); throw new AssertionError("Unexpected test/framework class: " + forbidden); }
             catch (ClassNotFoundException expected) { }
         }

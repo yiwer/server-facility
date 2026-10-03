@@ -43,6 +43,46 @@ Primary references: [POI how-to](https://poi.apache.org/components/spreadsheet/h
 
 ## Pending evidence (not claimed passed)
 
-- Real ordinary-jar engine dependency graphs and external export reader.
 - Final dependency ledger, migration docs, Q01–Q10 mapping, latest integration merge and full verification gates.
 - Linux CI for the final combined source. Future 31/33 consumer/release rechecks remain independently owned and are not circular prerequisites for this ticket.
+
+
+## Review-discovered XML allocation and corrected consumer oracle
+
+First full candidate `2ee720e16947a213867908cd3b8d8f39a205d816` ran `all --fresh` under `.verification-results/20261004-045130-321-all`. The clean library gate passed **1598/0/0/0**, architecture5 and dependency gate; instruction24284/26134, line4752/5037, branch2550/2998. The run then failed at `excel-consumer-absent`: the new consumer incorrectly required Spring to be absent, although Spring is an existing required facility dependency. Corrected only that oracle, retaining the no-JUnit/no-Mockito checks; original FAIL remains. This run does not validate later XML fixes.
+
+Root's read-only review suggested parser-before-callback allocation. `hostile-probe/attribute.xlsx` is 1,956,039 compressed bytes with a 12 MiB pseudorandom binary style attribute; default limits +64 MiB produced real Xerces `XMLScanner.scanAttributeValue` OOM (`attribute.log`). A separate central-directory duplication probe (513 and59,000 extra entries) returned FORMAT in64 MiB; no central-directory OOM claimed.
+
+The minimal correction limits newly read sheet bytes between SAX events to64 KiB, with no XML lexer or new dependency. `green-17-sax-progress-budget.log` passed13 tests, including all four12 MiB attribute/comment/name/CDATA inputs under64 MiB and400,000 rows/200 failures. Attributes/comments fail METADATA; names/CDATA also fail deterministically. Final retained13,490,640 bytes vs13,902,256 baseline; threads8→8. Subsequent explicit DTD/external-entity feature checks, skip/zero-progress/rewind policy and a real loopback zero-access DTD regression are recorded separately below.
+
+Exploratory Woodstox7.3.0 artifact/API inspection and probe logs are retained under hostile-probe/woodstox-*.log and woodstox-artifact.log. It provides a native SAXFactory, but accepts the12 MiB XML name in an isolated probe; it was not adopted. Sources inspected: [Woodstox7.3 SAX factory](https://github.com/FasterXML/woodstox/blob/woodstox-core-7.3.0/src/main/java/com/ctc/wstx/sax/WstxSAXParserFactory.java) and [Commons Compress1.28 stream](https://github.com/apache/commons-compress/blob/rel/commons-compress-1.28.0/src/main/java/org/apache/commons/compress/archivers/zip/ZipArchiveInputStream.java). The checked-in product continues to use POI's JDK SAX parser with mandatory security features and bounded progress.
+
+
+## Real dependency graphs and independent export reader
+
+`excel-graphs/summary.txt` is PASS for absent/core/ooxml-without-core/full graphs, using the actual installed ordinary jar from the first clean all build (2ee720e). The helper directly invokes the checked-in Verify.excelConsumer method with that build's isolated repository; no reactor, root target/classes or test classpath enters the consumer. POM/inputs/effective POM/tree/classpath/output are archived in that folder. Missing modes do not touch caller streams; full mode reads independent XLS and both XLSX epochs, then exports text. Existing required Spring dependencies remain present; JUnit and Mockito are explicitly absent. Final all will rerun against the XML-fixed jar.
+
+Full format graph: POI/poi-ooxml/poi-ooxml-lite5.5.1, XMLBeans5.3.0, Compress1.28.0, Commons IO2.21.0, Curves1.08, Log4j API2.24.3, Collections4 4.5.0; CSV's Codec1.19.0 also remains. This differs from the root test graph and is taken from the actual independent tree.
+
+`openpyxl-export.log`: pinned openpyxl3.1.5 independently reads the consumer output, verifies two rows/six string cells including `=1+2`, leading-zero text, Unicode/emoji and empty text. PASS. It emits a non-fatal warning that the minimal POI workbook has no named default style and applies its own; this facade provides text cells, not a style/reporting contract. The external tool is an evidence-only fixture environment, not a production or Java build dependency.
+
+`green-18-xml-security.log` was a test compile failure from AtomicIntegerAssert.isZero; `green-18-xml-security-fixed.log` passes21 tests after correcting the assertion to inspect the public count. Explicit external-DTD/parameter-entity/internal-entity inputs all reject; the real loopback endpoint observes zero calls. Namespace prefixes, character references and CDATA retain exact text. Event input skip is accounted; positive zero-progress read is rejected and rewind is unavailable.
+
+Exploratory shared-string amplification input (100,000 references to one32,767-character value) completed in64 MiB; its generic hostile-probe harness then asserted because it expected every exploratory file to reject. That assumption is not a promised contract; no product change was made and the original log remains. This complements, but does not replace, the formal increasing-input process.
+
+## Q01–Q10 and bounded ownership map
+
+| Standard | Executable evidence / scope |
+|---|---|
+| Q01 | Formal16 / FR01,02,06,09 / AC02,10,12; ADR0039 and USAGE migration; public ExcelUtil/options/limits only, no new storage or report framework |
+| Q02 | Every positive budget zero/format ceiling guard; actual input/temp/expanded bytes and logical rows/columns/cells/chars N−1/N/N+1; output content stays within budget, sparse extreme checked before padding, formula source8191/8192/8193; empty/null/malformed/Long.MAX_VALUE |
+| Q03 | Actual POI5.5.1, real XLS/XLSX Path and borrowed streams, ordinary installed jar in four real production graphs; independent xlwt/XlsxWriter samples and openpyxl output oracle |
+| Q04 | Standard InputStream/OutputStream and Files fault seams retain primary/suppressed failures; callback/iterator/source/target RuntimeException/Error cleanup; actual Windows file occupancy; cancellation before truncation and during sparse callbacks; POSIX counterpart awaits Linux |
+| Q05 | Default and explicit finite byte/expanded/logical/temp limits, fixed metadata and no-event XML ceilings, no new executor/queue;64 MiB child with increasing400,000 rows,200 failures,40 malformed/count probes and four12 MiB XML lexemes; every operation verifies no temporary files |
+| Q06 | Frozen independent formats with SHA manifest, both date epochs and numeric locales, unknown formula cached17, no formula evaluation, external reader confirms literal formula text; historical signatures retained with explicit semantic migration |
+| Q07 | Deterministic seed160039 high-entropy hostile attributes and BIFF mutation, seeded resource row oracle, finite boundary matrices; no new CSV/XML/ZIP grammar implementation |
+| Q08 | Source SHA/environment/full runner identities recorded; position-only public messages, causes for trusted diagnostics; initial failures and mistaken fixture/oracle assumptions retained separately |
+| Q09 | Root original coverage/architecture/dependency thresholds preserved; first1598 clean gate passed but consumer failed; final corrected source full gate pending below, no substituted mixed-source PASS |
+| Q10 | Code, migration, ADR and raw evidence delivered; Linux and final Windows outcome remain explicitly pending until executed. Future31/33 own their business/release combinations independently |
+
+J13/J16: the four format dependency graphs and scalar/format/ownership/resource tests are this ticket's evidence. No database/network backend is introduced; network is used only as a controlled external-entity zero-access oracle. Large XLS remains unsupported beyond1 MiB; large XLSX is explicit row streaming. Owned temporary budgets count written content, not filesystem allocation blocks. Path writes are direct and may leave a prefix. User callback effects cannot roll back, and blocking user I/O must have host-managed timeouts/concurrency.

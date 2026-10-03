@@ -186,9 +186,9 @@ final class ExcelReadSupport {
                     }, formatter, false);
             var sheets = reader.getSheetsData();
             if (!sheets.hasNext()) return;
-            try (var sheet = sheets.next()) {
-                var parser = XMLHelper.newXMLReader();
-                parser.setContentHandler(new Guard(handler, sink, options));
+            try (var sheet = new EventBoundedInput(sheets.next())) {
+                var parser = newParser();
+                parser.setContentHandler(new Guard(handler, sink, options, sheet));
                 parser.parse(new InputSource(sheet));
             }
         } catch (ReadFailure failure) {
@@ -205,12 +205,22 @@ final class ExcelReadSupport {
         }
     }
 
+    private static org.xml.sax.XMLReader newParser() throws SAXException, javax.xml.parsers.ParserConfigurationException {
+        var parser = XMLHelper.newXMLReader();
+        // Fail closed if an application-selected parser cannot honor the required XML boundary.
+        parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        parser.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        parser.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        return parser;
+    }
+
     private static boolean uses1904Dates(XSSFReader reader)
             throws IOException, SAXException, javax.xml.parsers.ParserConfigurationException,
             org.apache.poi.openxml4j.exceptions.InvalidFormatException {
         checkMetadata(reader.getWorkbookData(), PART_BYTES);
         boolean[] date1904 = {false};
-        var parser = XMLHelper.newXMLReader();
+        var parser = newParser();
         parser.setContentHandler(new DefaultHandler() {
             @Override public void startElement(String uri, String name, String qName, Attributes attributes) {
                 if ("workbookPr".equals(name)) {
@@ -244,7 +254,7 @@ final class ExcelReadSupport {
                 if (read > maximum) throw new ExcelException(ExcelException.Reason.METADATA, 0, 0);
             }
         }) {
-            var parser = XMLHelper.newXMLReader();
+            var parser = newParser();
             parser.setContentHandler(new DefaultHandler() {
                 int depth, stringCharacters;
                 boolean string;
@@ -271,20 +281,65 @@ final class ExcelReadSupport {
         }
     }
 
+    /**
+     * A parser may materialize an entire attribute/comment before emitting a SAX event.
+     * Bound new decoded bytes between events, without attempting to parse XML ourselves.
+     * A large sheet can keep producing events; a single non-progressing construct cannot grow unbounded.
+     */
+    private static final class EventBoundedInput extends java.io.FilterInputStream {
+        private static final int MAX_WITHOUT_EVENT = 64 * 1024;
+        private int count;
+        EventBoundedInput(InputStream input) { super(input); }
+        void progress() { count = 0; }
+        @Override public int read() throws IOException {
+            ExcelWorkspace.checkCancelled();
+            int value = in.read();
+            if (value >= 0) account(1);
+            return value;
+        }
+        @Override public int read(byte[] bytes, int offset, int length) throws IOException {
+            ExcelWorkspace.checkCancelled();
+            int read = in.read(bytes, offset, Math.min(length, MAX_WITHOUT_EVENT - count + 1));
+            if (read == 0 && length > 0) throw new IOException("Excel XML input made no progress");
+            if (read > 0) account(read);
+            return read;
+        }
+        @Override public long skip(long requested) throws IOException {
+            if (requested <= 0) return 0;
+            byte[] buffer = new byte[(int) Math.min(8192, requested)];
+            long skipped = 0;
+            while (skipped < requested) {
+                int read = read(buffer, 0, (int) Math.min(buffer.length, requested - skipped));
+                if (read < 0) break;
+                skipped += read;
+            }
+            return skipped;
+        }
+        @Override public boolean markSupported() { return false; }
+        @Override public void mark(int readLimit) { }
+        @Override public void reset() throws IOException { throw new IOException("Excel XML input cannot rewind"); }
+        private void account(int read) throws ExcelException {
+            count += read;
+            if (count > MAX_WITHOUT_EVENT) throw new ExcelException(ExcelException.Reason.METADATA, 0, 0);
+        }
+    }
+
     private static final class Guard extends DefaultHandler {
         private final XSSFSheetXMLHandler delegate;
         private final Rows rows;
         private final ExcelReadOptions options;
+        private final EventBoundedInput input;
         private boolean cell, formula, cached, readingValue, stringCache, readingFormula;
         private long characters;
         private int valueCharacters, formulaCharacters, column;
         private int depth;
 
-        Guard(XSSFSheetXMLHandler delegate, Rows rows, ExcelReadOptions options) {
-            this.delegate = delegate; this.rows = rows; this.options = options;
+        Guard(XSSFSheetXMLHandler delegate, Rows rows, ExcelReadOptions options, EventBoundedInput input) {
+            this.delegate = delegate; this.rows = rows; this.options = options; this.input = input;
         }
 
         @Override public void startElement(String uri, String name, String qName, Attributes attributes) throws SAXException {
+            input.progress();
             if (++depth > 64) fail(ExcelException.Reason.FORMAT);
             if ("c".equals(name)) {
                 cell = true; formula = false; cached = false; characters = 0; valueCharacters = 0;
@@ -308,6 +363,7 @@ final class ExcelReadSupport {
         }
 
         @Override public void characters(char[] chars, int start, int length) throws SAXException {
+            input.progress();
             if (readingFormula) {
                 formulaCharacters += length;
                 if (formulaCharacters > 8192) fail(ExcelException.Reason.FORMULA);
@@ -323,6 +379,7 @@ final class ExcelReadSupport {
         }
 
         @Override public void endElement(String uri, String name, String qName) throws SAXException {
+            input.progress();
             if ("c".equals(name)) {
                 if (formula && (!cached || (!stringCache && valueCharacters == 0))) fail(ExcelException.Reason.FORMULA);
                 if (rows.values.size() <= column) rows.cell(column, "");

@@ -21,6 +21,7 @@ public final class ExcelResourceProcess {
     public static void main(String[] args) throws Exception {
         temporary = Path.of(System.getProperty("java.io.tmpdir"));
         Path file = Path.of(args[0]);
+        xmlLexemes(file);
         hostileInputs(file);
         roundTrip(file, 2_000);
         long baseline = retained();
@@ -54,6 +55,51 @@ public final class ExcelResourceProcess {
         require(finalThreads <= threads + 2, "threads grew");
         System.out.println("EXCEL_RESOURCE_OK rows=400000 failures=200 heapMax=" + Runtime.getRuntime().maxMemory()
                 + " baseline=" + baseline + " finalRetained=" + end + " threads=" + threads + "->" + finalThreads);
+    }
+
+    private static void xmlLexemes(Path file) throws Exception {
+        for (String mode : List.of("attribute", "comment", "name", "cdata")) {
+            try (var original = ExcelResourceProcess.class.getResourceAsStream("/excel/xlsxwriter-1900.xlsx");
+                 var input = new java.util.zip.ZipInputStream(original);
+                 var output = new java.util.zip.ZipOutputStream(Files.newOutputStream(file))) {
+                for (var entry = input.getNextEntry(); entry != null; entry = input.getNextEntry()) {
+                    output.putNextEntry(new java.util.zip.ZipEntry(entry.getName()));
+                    if (!entry.getName().equals("xl/worksheets/sheet1.xml")) input.transferTo(output);
+                    else {
+                        output.write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        String before = switch (mode) {
+                            case "attribute" -> "<row r=\"1\"><c r=\"A1\" s=\"";
+                            case "comment" -> "<!--";
+                            case "name" -> "<n";
+                            default -> "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t><![CDATA[";
+                        };
+                        String after = switch (mode) {
+                            case "attribute" -> "\"><v>1</v></c></row>";
+                            case "comment" -> "-->";
+                            case "name" -> "/>";
+                            default -> "]]></t></is></c></row>";
+                        };
+                        output.write(before.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        var random = new java.util.Random(160039);
+                        byte[] bits = new byte[8192];
+                        for (int i = 0; i < 1536; i++) {
+                            for (int j = 0; j < bits.length; j++) bits[j] = (byte) ('0' + random.nextInt(2));
+                            output.write(bits);
+                        }
+                        output.write((after + "</sheetData></worksheet>").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    }
+                    output.closeEntry();
+                }
+            }
+            require(Files.size(file) < ExcelLimits.DEFAULT.maxBytes(), "hostile compressed input fits defaults");
+            var result = ExcelUtil.read(file);
+            require(result.isErr(), "hostile XML rejected: " + mode);
+            if (mode.equals("attribute") || mode.equals("comment")) require(
+                    ((ExcelException) result.getErr().getException()).reason() == ExcelException.Reason.METADATA,
+                    "event budget rejects before large allocation: " + mode);
+            clean(); Files.delete(file);
+            System.out.println("EXCEL_LEXEME_PASS mode=" + mode + " decodedLexeme=12582912 defaults=true");
+        }
     }
 
     private static void hostileInputs(Path file) throws Exception {
