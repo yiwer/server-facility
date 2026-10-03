@@ -20,21 +20,21 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（30 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（31 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
 ## 硬事实
 
 - **坐标**：`cn.code91:server-facility:0.1.0-SNAPSHOT`，单模块 jar。
-- **环境**：JDK 25；Spring Boot 4.1.1 目标依赖已由票 22 切换，Jackson 公开类型及完整平台门仍由票 23/24 闭合。当前是非发布迁移中间态，见 [平台账本](docs/building/boot4-platform.md)。Maven Wrapper 固定 3.10.0 并校验下载。
+- **环境**：JDK 25；Spring Boot 4.1.1 目标依赖已由票 22 切换，Jackson 3 公共类型与应用作用域已由票23迁移，Windows目标全门已通过；完整跨平台和Servlet矩阵仍由票24闭合。当前是非发布迁移中间态，见 [平台账本](docs/building/boot4-platform.md)。Maven Wrapper 固定 3.10.0 并校验下载。
 - **命名**：包根 `cn.code91.facility.*`；类前缀 `Facility*`；配置前缀 `facility.*`；i18n bundle `i18n/facility-messages_*`。
 - **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。完整命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
 - **质量门**（不达即构建失败，禁止以调低门槛的方式通过）：
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **当前验证边界（2026-10-04，Boot 4.1.1 / Jackson 3.1.5）**：目标依赖与独立工具链5项探针通过；根编译仍有68条已登记的Jackson旧类型错误，由23关闭，主库测试尚未执行。票22已按批准的中间批次验收，24才恢复完整平台门，见 [票22证据](docs/verification/ticket-22-platform.md)。
+- **当前验证边界（2026-10-04，Boot 4.1.1 / Jackson 3.1.5）**：票23的 `07682f4` Windows `all` 全部通过，1335测试、0失败/错误/跳过，原5架构/覆盖率/依赖门及普通jar真实HTTP金样/两应用关闭重建通过。68条旧Jackson编译诊断已清零；Linux、Servlet6.1新重载及完整缺类矩阵由24关闭，见 [票23证据](docs/verification/ticket-23-jackson3.md)。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图
@@ -49,7 +49,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 30 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 31 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
@@ -105,7 +105,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 - **失败走 `Result`**：可预期失败（IO / 解析 / 序列化 / 外部交互）一律返回 `Result<T,E>`，不抛受检异常、不以 null 表示失败；`Result.empty()` 表达「成功但无值」（ADR-0007）。
 - **命名双家族（C4）**：`XxxUtil` = 静态门面（可能有状态、参与 Spring 装配交互）；复数名词类（`Numbers` / `Patterns` / `Filenames` / `Collects` / `Hashing` …）= 纯函数无状态工具。历史例外：`HttpClients` 复数名但按门面对待。
 - **null 契约（C1）**：数据参数 null → null-safe 语义回退；函数型与必需依赖参数 null → `requireNonNull` fail-fast；公共 API 可空性以 `jakarta.annotation.Nullable` 标注（error 包例外，javadoc 散文表达，C5）。
-- **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028 明确例外：启用 repeatable body 与响应捕获必须配置正预算，0/负数拒绝。
+- **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028/0046 明确例外：启用 repeatable body、响应捕获及显式 JSON InputStream 字段预算必须为正数，0/负数拒绝；JSON 无参注解入口固定 1 MiB。
 
 ## 特性矩阵
 
@@ -119,7 +119,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `common` | `NullSafe` / `Collects` | 空安全与集合便捷 |
 | `context` | 构造器注入；兼容 `SpringContextHolder` | 默认注入应用自己的服务；旧门面按实例归属发布/撤销 context |
 | `id` | `IdUtil` | 雪花 ID（可配 worker/dataCenter）+ UUID 多形态 |
-| `json` | `JsonUtil` | 多命名空间（DEFAULT/GENERIC/CANONICAL/PRETTY）Jackson；序列化返回 Result |
+| `json` | `Jsons` / `JsonConfig` | 应用 mapper 注入、不可变 builder、安全 Result 错误通道；JsonUtil 保留 standalone 静态预设 |
 | `log` | `LogUtil` | SLF4J 风格门面；带异常签名固定 `(msg, t, args...)`，Throwable 显式居中（ADR-0005），主源零 logback 依赖（ADR-0011） |
 | `date` | `DateUtil` | 日期格式化/解析（返回 Result）、区间规范化 |
 | `number` | `Numbers` / `NumberFormat` / `NumberUnits` | 数值解析、大小格式化、单位换算 |

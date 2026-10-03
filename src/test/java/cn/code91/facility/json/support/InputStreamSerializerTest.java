@@ -1,7 +1,7 @@
 package cn.code91.facility.json.support;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.JsonGenerator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ class InputStreamSerializerTest {
             @Override public void close() throws IOException { closed.set(true); super.close(); }
         };
         StringWriter sw = new StringWriter();
-        JsonGenerator gen = new JsonFactory().createGenerator(sw);
+        JsonGenerator gen = tools.jackson.databind.json.JsonMapper.builder().build().createGenerator(sw);
         new InputStreamSerializer().serialize(in, gen, null);
         gen.flush();
         assertThat(closed).isTrue();
@@ -32,7 +32,7 @@ class InputStreamSerializerTest {
     @Test @DisplayName("null 输入写 JSON null，不 NPE")
     void nullWritesNull() throws IOException {
         StringWriter sw = new StringWriter();
-        JsonGenerator gen = new JsonFactory().createGenerator(sw);
+        JsonGenerator gen = tools.jackson.databind.json.JsonMapper.builder().build().createGenerator(sw);
         new InputStreamSerializer().serialize(null, gen, null);
         gen.flush();
         assertThat(sw.toString()).isEqualTo("null");

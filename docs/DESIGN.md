@@ -1,6 +1,6 @@
 # server-facility 设计
 
-当前处于票22完成后的 Boot4.1.1/Jackson3.1.5 非发布迁移中间态：工具链与目标依赖已验收，68条旧Jackson类型编译错误交23，主库完整运行与跨平台产物保证交24。下述长期契约不代表这些目标平台场景已全部复验，详见 [平台账本](building/boot4-platform.md)。
+当前处于 Boot4.1.1/Jackson3.1.5 非发布集成阶段：票22目标依赖/工具链与票23 Jackson迁移已完成，Windows目标全门在 `07682f4` 通过。Linux、Servlet6.1新重载和完整缺类矩阵仍由24提供实际证据；不能据本机绿色提前关闭03/05的目标平台待验证项。详见 [票23报告](verification/ticket-23-jackson3.md)。
 
 ## 1. Deep module 哲学
 
@@ -92,7 +92,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-30 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+31 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -126,10 +126,11 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
+| 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
 
 ## 6. 质量门
 
-- **当前目标平台（2026-10-04）**：独立工具链5项及两引擎负向控制通过，目标依赖解析成功；`7e4215b` 的根compile报68条已登记Jackson错误，未进入主库testCompile/Surefire。票22的窄迁移验收已完成，23/24继续关闭目标平台欠项，见 [票22证据](verification/ticket-22-platform.md)。
+- **当前目标平台（2026-10-04）**：`07682f4` Windows `all` 为1335/0/0/0；instruction92.786%、line93.325%、branch85.979%，原5架构及依赖门通过。普通jar非Web/真实HTTP两应用消费者、重复JVM资源周期和工具链负控全部通过；Linux与Servlet6.1/缺类矩阵仍归24，见 [票23证据](verification/ticket-23-jackson3.md)。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载责任仍由24关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (旧平台快照 instruction92.9939% / line93.3940% / branch86.1614%)，当前目标覆盖率尚未执行，门槛保持。
@@ -149,6 +150,7 @@ FALLBACK(吞 IOException 的是 detect(InputStream,String))、`Patterns` 全员 
 `compile` 底层原语刻意 fail-fast)。
 
 **C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
+ADR-0046 的 JSON InputStream 字段是正预算例外：显式 ≤0 拒绝，无参注解入口固定1MiB。
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求

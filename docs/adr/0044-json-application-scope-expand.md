@@ -4,7 +4,7 @@
 
 Accepted，2026-10-03。票 21；补充 ADR-0024 的 Java 25 中间基线和 ADR-0025 的构造器注入方向。旧 ADR 中没有单独定义 JSON registry；本决策替代 USAGE 中“多上下文共享 JSON 注册表是推荐设计”的表述，保留其旧 API 行为。
 
-实施进展（2026-10-04）：决策5中的票22依赖、技术模块和工具链阶段已按 [ADR-0045](0045-boot4-platform-toolchain.md) 完成。旧 Jackson Java 类型和应用 mapper 行为仍由23迁移，本决策的23/24责任与非发布边界保持。
+实施进展（2026-10-04）：决策5中的票22依赖、技术模块和工具链阶段已按 [ADR-0045](0045-boot4-platform-toolchain.md) 完成。票23已按 [ADR-0046](0046-jackson3-application-ownership.md) 迁移类型与应用所有权，替代决策1–3的旧全局registry、build后回调和无界字段流兼容阶段。旧平台金样来源与24完整目标平台责任保持。
 
 ## Context
 
