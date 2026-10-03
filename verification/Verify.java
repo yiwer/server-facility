@@ -67,6 +67,7 @@ class Verify {
                     cryptoConsumer();
                     ioConsumer();
                     csvConsumer();
+                    excelConsumer();
                     rateLimitConsumer();
                     claimConsumer();
                     jsonConsumer();
@@ -206,7 +207,7 @@ class Verify {
     }
 
     static void securedTemplate() throws Exception {
-        Path application = Files.createTempDirectory("facility-template-").resolve("secured api-示例-שלום");
+        Path application = Files.createTempDirectory("facility-template-").toRealPath().resolve("secured api-示例-שלום");
         Path inputs = report.resolve("template-inputs");
         Path evidence = Files.createDirectories(report.resolve("template"));
         Path copier = ROOT.resolve("templates/Instantiate.java");
@@ -378,6 +379,31 @@ class Verify {
             throw new AssertionError("CSV consumer did not complete: " + log);
         }
         summary.add("csv-consumer=ordinary jar with required transitive dependencies; Tika/POI absent; literal golden/dialects/budgets/formula policy; 200000 streamed rows; -Xmx64m/45s");
+    }
+
+    static void excelConsumer() throws Exception {
+        Path consumer = ROOT.resolve("verification/excel-consumer");
+        copyDirectory(consumer.resolve("src"), report.resolve("excel-inputs/src"));
+        Files.copy(consumer.resolve("pom.xml"), report.resolve("excel-inputs/pom.xml"));
+        Files.copy(consumer.resolve("check_export.py"), report.resolve("excel-inputs/check_export.py"));
+        for (String mode : List.of("absent", "core", "ooxml-without-core", "full")) {
+            Path evidence = Files.createDirectories(report.resolve("excel/" + mode));
+            var args = new ArrayList<>(List.of("clean", "compile", "dependency:build-classpath",
+                    "-Dmdep.outputFile=" + evidence.resolve("classpath.txt")));
+            if (!mode.equals("absent")) args.add("-P" + mode);
+            maven(consumer, "excel-build-" + mode, args.toArray(String[]::new));
+            var model = new ArrayList<>(List.of("help:effective-pom", "dependency:tree",
+                    "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt")));
+            if (!mode.equals("absent")) model.add("-P" + mode);
+            maven(consumer, "excel-model-" + mode, model.toArray(String[]::new));
+            String classpath = consumer.resolve("target/classes") + File.pathSeparator + Files.readString(evidence.resolve("classpath.txt")).trim();
+            Path log = run(ROOT, Map.of(), "excel-consumer-" + mode, List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                    "-Dfile.encoding=UTF-8", "-cp", classpath, "example.ExcelConsumer", mode,
+                    evidence.resolve("export.xlsx").toString()), 45, null);
+            if (!Files.readString(log).contains("EXCEL_CONSUMER_PASS mode=" + mode + " ordinaryJar=true testFramework=absent"))
+                throw new AssertionError("Excel dependency graph failed " + mode + ": " + log);
+        }
+        summary.add("excel-consumer=4 real production graphs; POI absent/core/ooxml-without-core/full; paired engine contract; independent xlwt/XlsxWriter XLS+XLSX fixtures; text export; -Xmx64m/45s each");
     }
 
     static void rateLimitConsumer() throws Exception {
@@ -706,7 +732,7 @@ class Verify {
             System.err.println(output);
             if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
                 // Public check annotations keep a bounded failure tail available alongside the archived full log.
-                String tail = output.substring(Math.max(0, output.length() - 10000));
+                String tail = output.substring(Math.max(0, output.length() - 3000));
                 System.err.println("::error title=Verification failure detail::" + tail.replace("%", "%25")
                         .replace("\r", "%0D").replace("\n", "%0A"));
             }

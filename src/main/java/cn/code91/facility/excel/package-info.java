@@ -1,31 +1,20 @@
 /**
- * <h2>cn.code91.facility.excel</h2>
+ * Optional Excel access with positive resource budgets and explicit ownership (ADR0039).
+ * {@link cn.code91.facility.excel.ExcelUtil} reads only the first sheet: bounded XLS via
+ * HSSF, XLSX via SAX after bounded ZIP snapshot/preflight. Cached formula values and
+ * caller-selected locale are used; formulas are never evaluated. SXSSF exports text cells
+ * through a one-row window and an operation-owned temporary workspace.
  *
- * <p><b>Purpose:</b> Excel (xls/xlsx) read/write facade over Apache POI
- * (optional). Read goes through the POI usermodel API — {@code
- * WorkbookFactory} auto-detects xls vs. xlsx, and every cell is
- * stringified via {@code DataFormatter} (formula cells take their computed
- * value first). Write produces xlsx only, via {@code SXSSFWorkbook} for
- * constant-memory streaming output.</p>
+ * <p>The facade and budget/value types contain no POI references. POI/OOXML and their
+ * production dependencies must be installed as a complete graph; absent format engines
+ * return EXCEL_LIB_MISSING. Real graph consumers cover this contract. POI types are
+ * confined to package-private read/write support. No Spring bean or global POI policy is
+ * installed. Depends on error/result and optional POI/Commons Compress.</p>
  *
- * <p><b>Entry classes:</b> {@code ExcelUtil}.</p>
- *
- * <p><b>Design (ADR-0021):</b> runtime class-probe degradation — the
- * facade has no Spring bean and no properties to gate on {@code
- * @ConditionalOnClass}, so POI availability is instead checked at each
- * call via a cached double class-probe; when POI is absent every method
- * returns {@code err(EXCEL_LIB_MISSING)} instead of letting a {@code
- * NoClassDefFoundError} escape. All POI types are isolated inside the
- * package-private {@code ExcelSupport}, which the facade only delegates
- * to once the probe passes — so {@code ExcelUtil} itself never references
- * a POI class and stays loadable on a POI-less classpath. No Spring bean
- * / no autoconfiguration / no properties.</p>
- *
- * <p><b>Depends on:</b> {@code error} / {@code result}; Apache POI
- * ({@code poi} + {@code poi-ooxml}, both Maven optional) at runtime only
- * inside {@code ExcelSupport}.</p>
- *
- * <p><b>Depended on by:</b> none (leaf component; downstream application
- * code consumes {@code ExcelUtil} directly).</p>
+ * <p>Borrowed streams stay open. Path streams and temporary files are closed/deleted;
+ * cleanup failures remain visible. Callback/iterator errors propagate after cleanup,
+ * prior effects and partial outputs remain. Default collection is finite; use forEach
+ * for larger XLSX with explicit budgets. XML metadata retains separately bounded state,
+ * so streaming does not imply constant heap for every possible workbook.</p>
  */
 package cn.code91.facility.excel;

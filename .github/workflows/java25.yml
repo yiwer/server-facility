@@ -68,6 +68,8 @@ jobs:
             .verification-results/**/json-consumer-dependency-tree.txt
             .verification-results/**/csv-consumer-*.xml
             .verification-results/**/csv-consumer-*.txt
+            .verification-results/**/excel-inputs/**
+            .verification-results/**/excel/**
             .verification-results/**/CsvConsumer.java
             .verification-results/**/JsonConsumer.java
             .verification-results/**/PlatformWebConsumer.java

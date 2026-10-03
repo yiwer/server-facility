@@ -64,7 +64,7 @@ class ConfigurationHttpTest {
             var json = JsonMapper.builder().build().readTree(response.body());
             assertThat(json.path("subject").asString()).isEqualTo("alice");
             assertThat(json.path("ip").asString()).isEqualTo(trustProxy ? "198.51.100.19" : "127.0.0.1");
-            assertThat(response.headers().firstValue("X-Trace-Id").orElseThrow()).isNotEqualTo("untrusted-trace");
+            assertThat(response.headers().firstValue("X-Trace-Id")).isEmpty();
             assertThat(app.get("/api/greeting/origin", null, "X-User-Id", "admin").statusCode()).isEqualTo(401);
             try (var socket = new Socket("127.0.0.1", app.context.getWebServer().getPort())) {
                 socket.setSoTimeout(5000);

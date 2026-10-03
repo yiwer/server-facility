@@ -22,7 +22,9 @@ class FailureLifecycleHttpTest {
                 var response = app.get("/api/greeting/" + scenario.getKey(), issuer.token());
                 assertThat(response.statusCode()).as(scenario.getKey()).isEqualTo(scenario.getValue());
                 assertThat(response.body()).doesNotContain("SECRET", "Exception", issuer.token());
-                assertThat(response.headers().firstValue("X-Trace-Id")).isPresent();
+                assertThat(response.headers().firstValue("X-Trace-Id")).isEmpty();
+                assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body())
+                        .path("traceId").asString()).matches("(?:[0-9a-f]{16}|[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})");
                 if (scenario.getKey().equals("servlet-error")) assertThat(response.headers().firstValue("X-Actual-Dispatch")).contains("ERROR");
                 var next = app.get("/api/greeting/probe", issuer.token("a", Map.of("sub", "bob"), Set.of()));
                 assertThat(next.statusCode()).isEqualTo(200);

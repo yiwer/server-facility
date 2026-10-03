@@ -224,6 +224,22 @@ class PartnerContractTest {
             assertThat(catalog.requests).hasSize(5);
         }
     }
+    @Test void nullInventoryItemsAreAProtocolFailureAtThePartnerBoundary() throws Exception {
+        try (var catalog = new PartnerServer(); var inventory = new PartnerServer(); var app = start(catalog, inventory)) {
+            for (String body : List.of("[null]", "[{\"warehouse_name\":\"north\",\"available\":7},null]")) {
+                inventory.bodyOverride = body;
+                var failure = catchThrowableOfType(PartnerFailure.class, () -> app.getBean(PartnerModule.class).offer("book"));
+                assertThat(failure.kind()).isEqualTo(PartnerFailure.Kind.BAD_RESPONSE);
+                assertThat(failure.outcome()).isEqualTo(PartnerFailure.Outcome.NO_EFFECT);
+                assertThat(failure.status()).isEqualTo(200);
+                assertThat(failure.headers()).containsEntry("x-request-id", "remote-42");
+                assertThat(failure).hasNoCause();
+            }
+            assertThat(inventory.requests).hasSize(2);
+            inventory.bodyOverride = "[]";
+            assertThat(app.getBean(PartnerModule.class).offer("book").stock()).isEmpty();
+        }
+    }
     @Test void statusFailuresRetainSafeProtocolHeadersWithoutRemoteSecretsAndNeverRetry() throws Exception {
         try (var catalog = new PartnerServer(); var inventory = new PartnerServer(); var app = start(catalog, inventory)) {
             for (int status : new int[]{403, 429, 503, 302}) {

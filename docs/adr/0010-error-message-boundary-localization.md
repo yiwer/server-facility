@@ -1,5 +1,7 @@
 # ADR-0010: 错误消息边界本地化(C1 断环)
 
+> 2026-10-04：部分由 [ADR0049](0049-application-owned-observability.md) 替代。静态本地化推荐改为宿主MessageSource构造注入；error纯JDK及展示边界本地化理由保留。
+
 - **状态**:Accepted(2026-07-02)
 - **源起**:spec §4.4 C1——包级循环 `error → locale → context → error`
 

@@ -22,7 +22,7 @@ public final class MdcFailureProcess {
         @GetMapping("/callable-failure") Callable<String> fail() { return () -> { throw FaultingMdcProvider.PRIMARY; }; }
     }
     public static void main(String[] args) throws Exception {
-        try (var app = EmbeddedServletApplication.start(Path.of(args[0]), new Class<?>[]{HostAdvice.class, FailingCallable.class, RequestBoundaryHttpTest.Config.class});
+        try (var app = EmbeddedServletApplication.start(Path.of(args[0]), new Class<?>[]{HostAdvice.class, FailingCallable.class, RequestBoundaryHttpTest.Config.class}, "facility.web.trace.enabled=true");
              var client = HttpClient.newHttpClient()) {
             var probe = app.context().getBean(RequestBoundaryHttpTest.Probe.class);
             probe.workerObservation = true; probe.releaseWorker.countDown();

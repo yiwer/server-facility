@@ -4,6 +4,9 @@ import cn.code91.facility.web.filter.FacilityWebTraceProperties;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshotFactory;
 import io.micrometer.context.integration.Slf4jThreadLocalAccessor;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskDecorator;
@@ -14,10 +17,13 @@ import org.slf4j.MDC;
 /** Context propagation belongs to this application's managed executor, never a global registry. */
 @Configuration(proxyBeanMethods = false)
 public class RequestExecutionConfiguration {
-    @Bean TaskDecorator requestTaskDecorator(FacilityWebTraceProperties trace) {
+    @Bean TaskDecorator requestTaskDecorator(FacilityWebTraceProperties trace, ObjectProvider<ObservationRegistry> observations) {
         String key = trace.getMdcKey();
         var registry = new ContextRegistry()
                 .registerThreadLocalAccessor(new Slf4jThreadLocalAccessor(key));
+        ObservationRegistry observationRegistry = observations.getIfAvailable();
+        if (observationRegistry != null)
+            registry.registerThreadLocalAccessor(new ObservationThreadLocalAccessor(observationRegistry));
         TaskDecorator tracing = new ContextPropagatingTaskDecorator(ContextSnapshotFactory.builder()
                 .contextRegistry(registry).clearMissing(true).build());
         return task -> {

@@ -10,9 +10,9 @@ import java.util.Locale;
 
 /**
  * A {@link MessageSource} that delegates to a list of others, returning the first one
- * that resolves a code. Module bundles (storage/database/document/facility) are
- * composed through this aggregator and exposed as the application's primary
- * {@code messageSource} bean.
+ * that resolves a code. This is an explicit compatibility composition; automatic configuration
+ * no longer collects other MessageSource beans. The caller owns an acyclic delegate graph.
+ * New applications declare ordered Boot basenames or their own named MessageSource.
  *
  * <p>Returns {@code null} from {@link #getMessageInternal} when no delegate resolves,
  * which makes {@link AbstractMessageSource} surface a {@link NoSuchMessageException}

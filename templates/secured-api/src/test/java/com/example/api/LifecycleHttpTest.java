@@ -12,11 +12,11 @@ class LifecycleHttpTest {
                 "--spring.threads.virtual.enabled=" + virtual,
                 "--spring.task.execution.pool.core-size=1", "--spring.task.execution.pool.max-size=1")) {
             for (String path : java.util.List.of("probe", "callable", "deferred")) {
-                var response = app.get("/api/greeting/" + path, issuer.token());
+                var response = app.get("/api/greeting/" + path, issuer.token(), "traceparent", "00-0123456789abcdef0123456789abcdef-1234567890abcdef-01");
                 assertThat(response.statusCode()).as(path).isEqualTo(200);
                 var json = tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body());
                 assertThat(json.path("subject").asString()).as(path).isEqualTo("alice");
-                assertThat(json.path("trace").asString()).as(path).isEqualTo(response.headers().firstValue("X-Trace-Id").orElseThrow());
+                assertThat(json.path("trace").asString()).as(path).isEqualTo("0123456789abcdef0123456789abcdef");
                 assertThat(json.path("virtual").asBoolean()).as(path).isEqualTo(virtual);
             }
             assertThat(app.get("/api/greeting/deferred", null).statusCode()).isEqualTo(401);

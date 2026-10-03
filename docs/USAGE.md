@@ -111,7 +111,9 @@ JsonFactoryBuilderCustomizer jsonInputBudget() {
 
 ## 日志:LogUtil
 
-SLF4J 风格静态门面。占位符 `{}`;**Throwable 显式置于参数区**,避免被当作占位符实参吞掉(ADR-0005)。
+新代码使用应用类自己的 `LoggerFactory.getLogger(Owner.class)`，直接调用 SLF4J，并采用字段白名单。以下 `LogUtil` 为已弃用兼容入口，post handler 不用于新路径，且通用日志不是审计。完整迁移见 [应用观测](building/application-observability.md)。
+
+旧门面占位符 `{}`;**Throwable 显式置于参数区**,避免被当作占位符实参吞掉(ADR-0005)。
 
 ```java
 LogUtil.info("user {} logged in from {}", userId, ip);
@@ -137,6 +139,8 @@ LocalDateTime t = DateUtil.longToLocalDateTime(epochMillis);
 解析支持多种常见格式(`SUPPORT_DATE_FORMAT`);非法输入返回 `Result.err(...)` 而非抛异常。
 
 ## i18n:LocaleUtil
+
+新代码构造注入应用 `MessageSource` 并传显式 `Locale`；`spring.messages.basename=i18n/application,i18n/facility-messages` 明确应用优先。以下静态入口保留兼容但已弃用，替代示例见 [应用观测](building/application-observability.md)。
 
 ```java
 String msg = LocaleUtil.translateMessage("facility.json.serialize_error");           // 当前线程 Locale
@@ -207,6 +211,7 @@ facility:
     proxy:
       trusted-proxies: ["10.20.0.0/16", "2001:db8:abcd::/48"]
     trace:
+      enabled: false # 默认退出旧协议；新应用用 Boot/Micrometer
       accept-inbound: false # 不接受客户端相关性标识；仍优先使用有效宿主 MDC，否则按 generate-if-absent 生成
 ```
 
@@ -214,13 +219,15 @@ facility:
 
 代理解析只设一个所有者。若已使用可信配置的 Tomcat RemoteIpValve 或 Spring ForwardedHeaderFilter，让 facility 的可信列表保持空，采用其处理后的 remoteAddr；Tomcat已转发标记也会阻止再次解析剩余XFF。facility不替这些宿主组件建立信任，更不把网络IP用于证明登录。
 
-`FacilityRequestContextFilter` 以最高优先级单次注册，覆盖 REQUEST/ASYNC/ERROR（含嵌套ERROR）；错误策略+1、repeatable+2、捕获+3顺序保持。`TraceIdFilter` bean在此边界内使用，旧单独注册默认禁用，不能再手动重复注册；按类型声明替代 TraceIdFilter 可复用相同生命周期。关闭 `facility.web.trace.enabled` 仍保留来源和兼容身份清理；该开关控制默认trace bean，宿主显式声明的TraceIdFilter仍由请求边界采用，且会禁用其额外的容器自动注册。
+`FacilityRequestContextFilter` 以最高优先级单次注册，覆盖 REQUEST/ASYNC/ERROR（含嵌套ERROR）；错误策略+1、repeatable+2、捕获+3顺序保持。`TraceIdFilter` 默认不注册；显式启用后的 bean 在此边界内使用，旧单独注册默认禁用，不能再手动重复注册；按类型声明替代 TraceIdFilter 可复用相同生命周期。关闭 `facility.web.trace.enabled` 仍保留来源和兼容身份清理；该开关控制默认trace bean，宿主显式声明的TraceIdFilter仍由请求边界采用，且会禁用其额外的容器自动注册。
 
 兼容 holder 仅取宿主 Servlet Principal（MVC前再次适配宿主认证Filter的Principal）或宿主显式设置的兼容值。`SessionUserHolder.isLoggedIn()` 已弃用，它仅判断有值，不能证明认证/授权。新应用直接注入/读取 Spring Security 原生身份；库不验证JWT、不从 X-User/XFF/trace 建立Principal。使用已认证Principal时，旧自定义用户对象的消费者应迁移到Principal或由自己的MVC适配器显式设置兼容值。
 
 顶层请求进入时丢弃遗留holder，实际执行线程在finally清理；嵌套派发恢复外层作用域。Callable只在Spring MVC管理的实际工作线程安装快照，结束后清理，取消/超时回调不跨线程删除仍在执行的上下文。DeferredResult外部生产者、AsyncContext.start和应用任意executor不隐式传播holder；它们使用宿主Security/观测传播政策，重派发才安装请求快照。上下文快照不深拷贝用户对象，宿主仍负责其不可变性与执行器资源。
 
-trace是correlation而非完整分布式追踪。有效宿主MDC优先，其次请求快照、可选单个入站值、UUID；白名单1–64位ASCII字母数字/下划线/短横线。`accept-inbound`默认true保留相关性兼容，可显式false；无效/歧义值按缺失处理。库只改配置的MDC键并在finally恢复原值，不替换宿主其他观测数据。Callable/DeferredResult交接捕获链路内建立的有效观测；worker已有有效观测优先且归原所有者清理。配置在构造时冻结，header-name与mdc-key名称上限128，非法配置启动即失败。MDC安装部分失败时立即清理身份并回滚已捕获的旧值；业务/安装异常是首因，清理异常作为suppressed保留。若宿主MDC本身拒绝恢复，库不能保证其内部数据已恢复，但仍保证兼容身份清理，不把原异常替换成清理错误。
+旧 TraceIdFilter 仅为 correlation，默认关闭。新模板使用 Boot/Micrometer 标准追踪，不额外生成 X-Trace-Id 头；错误在无活动 trace 时提供与安全日志一致的 UUID incident reference，详见 [应用观测](building/application-observability.md)。
+
+以下仅描述显式旧协议：trace是correlation而非完整分布式追踪。有效宿主MDC优先，其次请求快照、可选单个入站值、UUID；白名单1–64位ASCII字母数字/下划线/短横线。`accept-inbound`默认true保留相关性兼容，可显式false；无效/歧义值按缺失处理。库只改配置的MDC键并在finally恢复原值，不替换宿主其他观测数据。Callable/DeferredResult交接捕获链路内建立的有效观测；worker已有有效观测优先且归原所有者清理。配置在构造时冻结，header-name与mdc-key名称上限128，非法配置启动即失败。MDC安装部分失败时立即清理身份并回滚已捕获的旧值；业务/安装异常是首因，清理异常作为suppressed保留。若宿主MDC本身拒绝恢复，库不能保证其内部数据已恢复，但仍保证兼容身份清理，不把原异常替换成清理错误。
 
 ### HTTP 错误迁移与扩展
 
@@ -551,20 +558,23 @@ Result<List<List<String>>, WrappedError> r4 = ExcelUtil.read(inputStream);
 - **CSV 导出**：旧 `write` 为 UTF-8+BOM；`writeMachine` 无 BOM，两者保留机器原值。`writeSpreadsheet` 带 BOM，拒绝前导 Unicode 空白/控制/格式字符之后的 `= + - @` 及全角对应字符，也拒绝前导区域的 Tab/CR/LF；不偷偷加引号前缀或改数据。该保守政策也拒绝负数字符串，不承诺所有电子表格导入方式的通用安全。普通 CSV 引号不是公式防护。
 - **CSV 生命周期**：借用输入/输出永不关闭，成功输出会完成 UTF-8 编码并 flush；Path 方法关闭自己打开的流，写文件直接覆盖，不保证原子发布。首次异常后不 drain、不重试坏输出；输出可能已有前缀，已执行 consumer 副作用不会回滚。线程中断在 I/O/记录边界检查，不能取代宿主对不响应中断的 I/O 设置超时或并发准入。
 - **CSV 诊断**：`CsvException.reason()/row()/column()` 提供原因与逻辑记录位置，列 0 表示未知；外层消息不包含字段内容，保留的外部 I/O cause 只供受信任诊断，不能直接作为 HTTP 错误。null 单元格写为空串，null 行为 Err。
-- **Excel 写**:`SXSSFWorkbook` 恒定内存,仅产出 xlsx,单 sheet(`Sheet1`),写完 `close()`
-  即清理临时文件;行内 `null` 单元格写为空串;`rows` 含 `null` 行 → `err(EXCEL_WRITE_ERROR)`。
-- **Excel 读**:`WorkbookFactory` 自动识别 xls/xlsx;仅读**第一个** sheet;单元格经
-  `DataFormatter` 全字符串化(公式取计算值);空单元格 → 空串;整行缺失 → 空 `List`;
-  畸形文件/IO 失败 → `err(EXCEL_READ_ERROR)`。
-- **缺库降级(`EXCEL_LIB_MISSING`)**:`ExcelUtil` 无需任何装配开关——引入 `poi` +
-  `poi-ooxml`(成对,见 [optional 依赖矩阵](#optional-依赖矩阵))即自动启用;缺失(或只引
-  其中一个,违反成对约定)时,四个 API 全部返回 `err(EXCEL_LIB_MISSING)`,不会抛
-  `NoClassDefFoundError`,也不影响 facility 其余能力。`CsvUtil` 无 optional 依赖,恒可用。
+- **Excel 预算**：`ExcelLimits(maxBytes,maxExpandedBytes,maxRows,maxColumns,maxCells,maxCellChars,maxTempBytes)` 全部为正。DEFAULT 为 **4 MiB 输入/输出、16 MiB 展开、10,000 行、128 列、100,000 含补齐空格的单元格、32,767 UTF-16 单元/显示值、32 MiB 临时内容**。首次错误停止，不累计错误列表。格式最大行/列/字符为1,048,576/16,384/32,767；legacy XLS另有固定1 MiB实际输入上限。需要大XLSX时选择 `forEach(input, options, rowConsumer)`，不要使用累积所有行的 `readAll`。
+- **Excel 格式**：仅读第一个sheet，空行交付不可变空List，缺失单元格为`""`且计入补齐预算；每行是独立不可变List。XLSX为SAX，XLS为受1 MiB上限约束的HSSF。`ExcelReadOptions(limits, locale, CACHED_VALUE/REJECT)` 显式决定Locale/公式政策，默认Locale.ROOT并读取已有缓存，绝不自动计算；XLSX缺缓存失败，未知函数有缓存可读。缓存可能陈旧，库不能验证其业务正确性；BIFF原生缓存字段不能可靠区分未计算的零与真实零。
+- **Excel 内部上限**：ZIP最多512项，名称512单元；非worksheet部分总计4 MiB，每部分2 MiB、样式256 KiB。实际关联的SST/样式/主题/workbook另在物化前检查，避免改名绕过；元数据XML深64、属性64、每共享字符串32,767单元、formatCode256单元；公式源8,192单元。原始显示值XML允许至少128单元数值语法，最终显示值仍受maxCellChars。sheet解析器任意相邻start/end/characters事件之间最多新读取64 KiB（含预取），拒绝单个巨大属性/注释等无事件构造；这不是所有XML词法单元长度的精确度量。大元数据、超深XML和DOCTYPE被拒绝；这不是完整OOXML/BIFF规范验证器，POI对部分advisory元数据的容差保留。
+- **Excel 导出**：SXSSF一行窗口，单Sheet1的XLSX；所有字符串均为文本，包括`=1+2`，null单元格为空串，null行Err。临时预算累计计算自有sheet XML与模板写入内容字节，读取时为输入快照；不代表文件系统块分配量。maxExpandedBytes只用于读取。POI5.5.1扩展点负责sheet/template归属，不修改全局TempFile或ZipSecureFile策略。
+- **Excel 生命周期/错误**：借用流不关闭，输出成功flush；Path打开的流自有。实际输入探测最多预算N+1，输出每次写前检查且不超过预算。工作目录逐项清理，失败不会假报成功，首因保留且清理失败suppressed；外层ExcelException提供reason/一基row,column（0未知），不含单元格，原始cause仅用于可信诊断。必需options/limits/consumer为null快速抛出；consumer/iterator及流的程序异常传播。取消在读写/行/回调边界协作检查，不能抢占不响应中断的用户I/O；宿主负责并发准入和外部超时。写Path直接覆盖，失败可能留下前缀，先前回调副作用不回滚。
+- **缺格式引擎**：仍采用成对契约，消费方引入`poi-ooxml:5.5.1`及其完整传递图（包含`poi:5.5.1`、lite schema、XMLBeans、Commons Compress等）。实际无POI、仅poi、poi-ooxml排除poi的普通jar图应得到EXCEL_LIB_MISSING且不碰流；完整图支持XLS/XLSX。任意人为排除其他必需传递类不在缺引擎回退保证内。CSV保持独立可用。
+
+```java
+var excelLimits = new ExcelLimits(96L << 20, 192L << 20, 600_000, 4, 2_000_000, 128, 192L << 20);
+var excelOptions = new ExcelReadOptions(excelLimits, Locale.US, ExcelReadOptions.FormulaPolicy.CACHED_VALUE);
+var consumedExcel = ExcelUtil.forEach(inputStream, excelOptions, row -> storeRow(row));
+var writtenExcel = ExcelUtil.write(outputStream, rowIterable, excelLimits);
+```
 
 **局限须知**:
 
-- **Excel 读为整簿内存模型**:`WorkbookFactory` 整簿载入,行数上限受堆约束(万行级常规堆
-  可用;十万行级建议等待 SAX 流式读,ADR-0021 roadmap)。
+- **Excel 支持范围**：有界SAX仍保留有限元数据，不能把64 MiB样本结果推广到所有显式预算；大XLS、任意样式写入和自动公式计算均不提供。迁移与证据见[ADR0039](adr/0039-bounded-excel-formats.md)。
 - **仅第一个 sheet / 单 sheet**:Excel 读只处理第一个 sheet,写只产出一个 sheet
   (`Sheet1`);不支持样式、合并单元格、多 sheet(留 roadmap)。
 - **全字符串化语义**:Excel 单元格经 `DataFormatter` 忠实还原 Excel 显示效果——
@@ -592,7 +602,7 @@ facility:
     start-timestamp: 1735660800000  # 纪元起点(2025-01-01 00:00:00 UTC+8);投产后勿改,否则既有 ID 时间解析/排序错乱
   web:
     trace:
-      enabled: true
+      enabled: false            # 默认关闭；仅旧协议迁移显式启用
       header-name: X-Trace-Id     # 入站值须匹配 [0-9A-Za-z_-]{1,64},否则按缺失处理(F7)
       mdc-key: traceId
       accept-inbound: true # 仅相关性，不是认证；公网边界可显式false
@@ -642,11 +652,7 @@ facility:
 
 ## 消费方须知
 
-- **i18n 抢注模型(`spring.messages.*` 失效)**:facility 以 `@AutoConfigureBefore(MessageSourceAutoConfiguration)`
-  抢注 `@Primary` 的 `messageSource`(`AggregatedMessageSource`)。因此 Spring Boot 的
-  `spring.messages.basename` 等配置**不影响** facility 自带文案(facility 的 basename 固定为
-  `i18n/facility-messages`)。你自己的 `MessageSource` bean 会被聚合进来一起解析;若要完全接管,
-  声明名为 `messageSource` 的 bean 即可(`@ConditionalOnMissingBean(name="messageSource")` 让位)。
+- **i18n 应用所有权**：Boot 的 `spring.messages.*` 或宿主命名 `messageSource` 优先；库在 Boot 之后仅填设施 bundle 缺省，不聚合未知来源。用显式 basename 顺序贡献设施翻译，见 [ADR0049](adr/0049-application-owned-observability.md)。
 - **JsonUtil standalone 静态入口**：Spring 启停不再覆盖它；多应用必须注入各自 Jsons 才能复用其 HTTP 政策。应用 registry 和静态 registry 相互独立，GENERIC/CANONICAL/PRETTY 仍是显式独立预设。
 - **Context 生命周期与注入**：新代码将 `CacheManager`、`MessageSource`、业务 Module 等必需依赖写在构造器中，由各应用自己的 Spring 容器装配。不要通过静态 holder 再查一次依赖。例如 `OrderQueries(CacheManager cacheManager)` 的实例始终使用本应用传入的缓存管理器；父子容器按 Spring 的常规依赖解析规则工作。
 - **SpringContextHolder 兼容入口（已弃用，ADR-0025）**：首个成功发出本容器 `ContextRefreshedEvent` 的 holder 取得唯一进程级注册，刷新中不可查。只有取得注册的实例可以撤销；被拒绝的 B 关闭/启动失败不清理 A，A 关闭后不会自动将曾被拒绝的 B 提升为 owner。新的应用或显式重新成功刷新可以竞争空位。关闭事件先撤销，destroy 兜底且幂等；lookup 与关闭竞争返回既有 Result 错误，已经返回的 bean/正在执行的业务由应用生命周期负责。
