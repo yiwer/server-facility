@@ -9,6 +9,12 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### Cookie与HTML政策（2026-10-04，ADR0055）
+
+- Cookie使用标准ResponseCookie，完整写入/删除保留scope；旧默认增加SameSite=Lax，删除发送空协议值及同默认flags。写入需Spring Web；最大4096ASCII头、整秒-1..400天、明确路径/安全组合，重复请求名字不再首值/末值任选。
+- jsoup1.18.3→1.23.2，仍optional。16个历史比较样本明确无host HTTP href移除和iframe后备文本不保留；旧公开清洗签名保留，所有入口增加262144 UTF-16输入上限和必需策略校验。
+- [迁移与适用边界](docs/building/cookie-html-policy.md)：不自动重写业务输入，不宣称HTML清洗覆盖其他输出上下文。
+
 ### 应用消息、日志与观测（2026-10-04，ADR0049）
 
 - MessageSource 改为 Boot/宿主优先，设施 bundle 通过明确 basename 顺序贡献；退出默认聚合委托。BusinessException 的公开本地化只查宿主 bundle，不插入异常 args/defaultMessage。

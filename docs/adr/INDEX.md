@@ -34,6 +34,7 @@
 | [0028](0028-bounded-web-streams.md) | Accepted; [0047](0047-boot4-consumer-integration.md) 补充目标重载 | 普通响应直通、显式有界捕获、repeatable正预算与流所有权；6.1新入口接合由0047登记 |
 | [0029](0029-request-boundaries.md) | Accepted; 应用身份与异步接合由 [0050](0050-secured-application-template.md) 补充; 默认trace生成政策部分由 [0049](0049-application-owned-observability.md) 替代 | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
 | [0030](0030-local-keyed-mutex.md) | Accepted | 实例内线程owner互斥、原子活动键预算和等待者安全回收；关闭不强制释放，旧入口明确迁移 |
+| [0055](0055-explicit-cookie-html-policy.md) | Proposed | 标准ResponseCookie完整作用域、有界头与明确删除；jsoup1.23.2显式HTML片段、历史差异和解析前预算 |
 | [0032](0032-local-rate-limit-contract.md) | Accepted | 正成本与精确余额、真实缺额等待、有界主体准入和满桶回收；required/Optional设施政策、可信主体及入口计费 |
 | [0034](0034-qualified-legacy-claims.md) | Accepted | 独立claim执行资格、owner/generation条件更新、结果保留与永久命令绑定；有界内存、旧SPI隔离与失败首因 |
 | [0036](0036-upload-integrity.md) | Accepted | 实际字节预算、内容探测流所有权、服务端存储键与同卷硬链接发布；保留0001的optional理由 |
@@ -50,4 +51,3 @@
 | [0049](0049-application-owned-observability.md) | Accepted | 应用 MessageSource/SLF4J/Micrometer 所有权；退出默认静态日志与旧 trace，保留迁移入口 |
 | [0050](0050-secured-application-template.md) | Accepted; 业务持久接合由 [0051](0051-postgresql-business-module.md) 扩展 | 独立MVC模板的应用自有JWT信任、Actor与标准Security授权；安全401/403/503、JWK有限I/O、真实Servlet/执行器上下文及独立打包门 |
 | [0051](0051-postgresql-business-module.md) | Accepted | 扩展0050：应用自有PostgreSQL/JdbcClient/Flyway，当前成员授权、事务/分页/独立迁移与有限数据库预算 |
-
