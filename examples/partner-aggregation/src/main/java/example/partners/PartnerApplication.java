@@ -46,43 +46,70 @@ public class PartnerApplication {
     public static final class Catalog {
         private final RestClient client;
         private final Duration timeout;
+        private final HttpClient transport;
         Catalog(RestClient.Builder builder, HttpClient transport, Environment environment) {
+            this.transport = transport;
             timeout = timeout(environment, "catalog");
             client = client(builder, transport, environment, "catalog");
         }
         public Product find(String sku) {
-            return execute(timeout, false, () -> client.get().uri("/products/{sku}", sku).exchange((request, response) -> {
+            return findBefore(sku, System.nanoTime() + timeout.toNanos());
+        }
+        private Product findBefore(String sku, long deadline) {
+            return execute(deadline, false, () -> before(client, transport, deadline).get().uri("/products/{sku}", sku).exchange((request, response) -> {
                 requireStatus(response, 200, false);
                 return body(response, ParameterizedTypeReference.forType(Product.class));
             }));
+        }
+        /** Catalog GET is side-effect free; only its explicit 503 / Retry-After: 0 permits one retry. */
+        public Product findWithRetry(String sku) {
+            long deadline = System.nanoTime() + timeout.toNanos();
+            try { return findBefore(sku, deadline); }
+            catch (PartnerFailure failure) {
+                if (failure.status() != 503 || !"0".equals(failure.headers().get("retry-after"))) throw failure;
+                return findBefore(sku, deadline);
+            }
         }
     }
     public static final class Inventory {
         private final RestClient client;
         private final Duration timeout;
+        private final HttpClient transport;
         Inventory(RestClient.Builder builder, HttpClient transport, Environment environment) {
+            this.transport = transport;
             timeout = timeout(environment, "inventory");
             client = client(builder, transport, environment, "inventory");
         }
         public List<Stock> stock(String sku) {
-            return execute(timeout, false, () -> client.get().uri("/stock/{sku}", sku).exchange((request, response) -> {
+            long deadline = System.nanoTime() + timeout.toNanos();
+            return execute(deadline, false, () -> before(client, transport, deadline).get().uri("/stock/{sku}", sku).exchange((request, response) -> {
                 requireStatus(response, 200, false);
                 return body(response, new ParameterizedTypeReference<List<Stock>>() {});
             }));
         }
         public void reserve(Reservation reservation) {
-            execute(timeout, true, () -> client.post().uri("/reservations").body(reservation).exchange((request, response) -> {
+            long deadline = System.nanoTime() + timeout.toNanos();
+            execute(deadline, true, () -> before(client, transport, deadline).post().uri("/reservations").body(reservation).exchange((request, response) -> {
                 requireStatus(response, 204, true); return null;
             }));
         }
     }
-    private static <T> T execute(Duration budget, boolean sideEffect, Supplier<T> action) {
-        long started = System.nanoTime();
+    private static RestClient before(RestClient client, HttpClient transport, long deadline) {
+        // A lightweight request factory per attempt; the expensive network client remains application-owned.
+        return client.mutate().requestFactory((uri, method) -> {
+            long millis = (deadline - System.nanoTime()) / 1_000_000;
+            if (millis <= 0) throw new PartnerFailure(PartnerFailure.Kind.RESPONSE_TIMEOUT, PartnerFailure.Outcome.NO_EFFECT, 0, Map.of());
+            var factory = new JdkClientHttpRequestFactory(transport);
+            factory.setReadTimeout(Duration.ofMillis(millis));
+            return factory.createRequest(uri, method);
+        }).build();
+    }
+    private static <T> T execute(long deadline, boolean sideEffect, Supplier<T> action) {
         if (Thread.currentThread().isInterrupted())
             throw new PartnerFailure(PartnerFailure.Kind.CANCELLED, PartnerFailure.Outcome.NO_EFFECT, 0, Map.of());
         try { return action.get(); }
         catch (PartnerFailure failure) {
-            if (failure.kind() == PartnerFailure.Kind.BAD_RESPONSE && System.nanoTime() - started >= budget.toNanos())
+            if (failure.kind() == PartnerFailure.Kind.BAD_RESPONSE && deadline - System.nanoTime() < 1_000_000)
                 throw new PartnerFailure(PartnerFailure.Kind.RESPONSE_TIMEOUT, failure.outcome(), failure.status(), failure.headers());
             throw failure;
         } catch (ResourceAccessException failure) {
@@ -133,13 +160,18 @@ public class PartnerApplication {
     private static RestClient client(RestClient.Builder builder, HttpClient transport, Environment environment, String service) {
         var factory = new JdkClientHttpRequestFactory(transport);
         factory.setReadTimeout(timeout(environment, service));
+        long maxBytes = environment.getProperty("partners." + service + ".max-response-bytes", Long.class, 1_048_576L);
+        if (maxBytes < 1 || maxBytes > 16_777_216) throw new IllegalArgumentException("Partner response budget must be 1..16777216 bytes");
         return builder.clone().requestFactory(factory)
                 .baseUrl(environment.getRequiredProperty("partners." + service + ".base-url"))
                 .defaultHeaders(headers -> headers.setBearerAuth(environment.getRequiredProperty("partners." + service + ".token")))
-                .requestInterceptor(new ResponseBodyLimit(environment.getProperty("partners." + service + ".max-response-bytes", Long.class, 1_048_576L))).build();
+                .requestInterceptor(new ResponseBodyLimit(maxBytes)).build();
     }
     private static Duration timeout(Environment environment, String service) {
-        return Duration.parse(environment.getProperty("partners." + service + ".request-timeout", "PT2S"));
+        Duration timeout = Duration.parse(environment.getProperty("partners." + service + ".request-timeout", "PT2S"));
+        if (timeout.compareTo(Duration.ofMillis(1)) < 0 || timeout.compareTo(Duration.ofSeconds(60)) > 0)
+            throw new IllegalArgumentException("Partner request timeout must be 1ms..60s");
+        return timeout;
     }
     public static final class PartnerModule {
         private final Catalog catalog;
