@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 在真实 HTTP 链路统一安全错误与显式兼容协议；06 固定请求身份、代理信任与上下文清理
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-03、FR-05；AC-04、AC-08、AC-09
 
@@ -28,3 +28,7 @@
 不引入分布式限流平台；不把可选降级复制为所有业务的默认策略。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+## 领取记录（2026-10-04）
+
+独立工作树 `E:/GenCode/server-facility-worktrees/ticket-09`、分支 `codex/ticket-09`，起点为06中央集成 `5faff896d04a1b15ed10310be81bed91a14121b7`。已批准公共seam为RateLimiter操作及真实Servlet HTTP；可控单调时间作为外部边界注入。ADR0032预留，中央INDEX由merger维护。逐步证据放 `.verification-results/ticket-09`。

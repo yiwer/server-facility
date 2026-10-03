@@ -37,8 +37,8 @@ public class FacilityRateLimitProperties {
     private double defaultPermitsPerSecond = 10;
 
     /**
-     * {@link TokenBucketRateLimiter} 桶集合的无界防护上限——桶数达到该值且待建 key
-     * 不在集合中时整体清空(详见 ADR-0014)。
+     * {@link TokenBucketRateLimiter} 的严格主体槽位上限。新 key 最多检查16个轮转候选，
+     * 只回收已补满桶；无法安全准入时拒绝，绝不清空其他主体额度。
      * (声明性约束:&gt;0;绑定不校验——ADR-0013)
      */
     private int maxBuckets = 100_000;

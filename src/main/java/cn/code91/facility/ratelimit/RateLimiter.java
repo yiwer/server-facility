@@ -45,14 +45,14 @@ public interface RateLimiter {
     /**
      * 尝试获取令牌，并返回详细结果（含剩余令牌数、建议的重试等待毫秒数）
      * <p>
-     * 桶按 {@code key} 首次调用时传入的 {@code capacity}/{@code permitsPerSecond} 创建，
-     * 同一 {@code key} 之后调用即使传入不同的 capacity/rate 也不会重建桶。
+     * 默认本地实现按 key 建桶，驻留期间拒绝冲突的 capacity/rate。正整数成本必须不大于容量，
+     * 速率必须有限且为正。非法政策不改变额度；主体准入容量不足与额度耗尽分别报告。
      * </p>
      *
      * @param key              限流维度标识
      * @param permits          申请的令牌数
-     * @param capacity         桶容量（该 key 首次建桶时生效）
-     * @param permitsPerSecond 令牌填充速率（每秒，该 key 首次建桶时生效）
+     * @param capacity         正桶容量，同一驻留 key 保持固定
+     * @param permitsPerSecond 有限正速率，每秒令牌数，同一驻留 key 保持固定
      * @return 限流结果
      */
     RateLimitResult acquire(String key, int permits, long capacity, double permitsPerSecond);
