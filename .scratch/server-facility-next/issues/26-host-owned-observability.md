@@ -4,7 +4,7 @@
 
 **Blocked by:** 24 把目标平台集成为可发布的真实消费者组合
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-02、FR-03、FR-08、FR-09；AC-04、AC-07、AC-11、AC-12
 
@@ -14,7 +14,7 @@
 - [x] 新路径使用 SLF4J/Micrometer，退出静态二次日志分发和自造 trace 默认协议；审计不与通用日志混同。
 - [x] masking 保留纯辅助函数，敏感输出优先字段白名单；明确脱敏不能覆盖任意秘密。
 - [x] 每个继续支持的旧入口有替代说明和消费者示例，不直接删除未知外部调用。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -32,3 +32,5 @@
 2026-10-04：从已关闭24的集成5bdfcb0创建独立ticket-26；沿已批准MessageSource/SLF4J/Micrometer与真实HTTP seam逐项TDD。
 
 2026-10-04：本地冻结72a37b6的空仓库完整92命令PASS，库1614/0/0/0、模板52/0/0/0，架构/依赖/原88/88/75门通过。ADR0049 Accepted；实现与兼容迁移齐备，完整Q01–Q10与TDD证据见 `docs/verification/ticket-26-host-observability.md`。Linux与合入后Windows CI待执行，暂不关闭。
+
+2026-10-04：集成90098104ec8bb0edcc3eb93db848d4f2f0f51207已通过CI13 run37157891623的Windows/Ubuntu完整门、独立平台门与归档，闭合Q08/Q10，票closed。精确OS/job/artifact与证据边界见 `docs/verification/ticket-25-26-ci.md`。此前pending文字为实施历史，不代表当前状态。
