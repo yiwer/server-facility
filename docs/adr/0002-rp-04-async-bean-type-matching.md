@@ -4,6 +4,8 @@
 
 ## Status
 
+2026-10-03：TaskExecutor-only 回退条件及虚拟线程兜底部分由 [ADR-0026](0026-async-execution-contract.md) 替代；Boot 优先及让位原则保留。以下保留原决策背景。
+
 Accepted
 
 日期：2026-05-21

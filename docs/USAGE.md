@@ -140,27 +140,37 @@ String safe = LocaleUtil.translateMessageWithFallback(key, args, "default {0}", 
 
 ## 异步:Async
 
-`Async<T>` 是惰性异步计算描述,`await()`/`submit()` 才触发,结果落到 `Result`。默认虚拟线程执行器。
+`Async<T>` 是惰性计算描述，`submit/await` 才触发；不新增 DSL。静态默认使用进程共享、有界平台线程池（4 个工作线程、256 个等待项、daemon、空闲 30 秒回收）。应用应注入 Boot 或自己的 `Executor`，显式传入；静态工厂不查 SpringContext。Async 不关闭用户执行器。虚拟线程通过 Boot 的 `spring.threads.virtual.enabled=true` 或显式虚拟线程 Executor 选择。
 
 ```java
-Result<String, Throwable> out = Async.supply(() -> httpGet(url))   // 可抛受检异常的 supplier
+// applicationTaskExecutor 是应用注入的 Executor
+Result<String, Throwable> out = Async.supply(() -> httpGet(url), applicationTaskExecutor)
         .map(Response::body)
-        .recover(e -> "fallback")
-        .await();                                     // 阻塞取 Result
-
-String v = Async.supply(() -> compute())
-        .executor(myPool)                             // 覆盖默认执行器(submit 时生效)
         .timeout(Duration.ofSeconds(2))
-        .awaitValue();                                // 失败抛出
+        .recover(e -> "fallback")
+        .await();
 
-// 组合
-Async<List<String>> all = Async.all(taskA, taskB);    // 全部成功才成功
-CompletableFuture<Result<String, Throwable>> f = task.submit();   // 非阻塞
+// 子任务未指定 executor 时继承；子任务明确指定的 executor 优先。
+Async<List<String>> all = Async.all(taskA, taskB).executor(applicationTaskExecutor);
+CompletableFuture<Result<String, Throwable>> future = task.submit();
+future.cancel(true); // 请求中断实际工作；get/join 遵循 JDK CancellationException 语义
 ```
 
-- **`timeout` 超时仅影响观察侧**:返回的 future 按时超时,但底层计算不被中断,会继续跑完
-  (虚拟线程静默占用)——资源密集/长任务慎用;真取消需可取消句柄,记 roadmap。
+- **预算**：timeout 的位置不改变范围，它从本次 submit 起覆盖整棵任务树；重复设置及子任务只能缩短，不能延长。到达 deadline 即失败；零/负 Duration 立即到期，极大正值饱和处理。父 deadline 到期是终态，不再执行 recover；任务本身的失败、较短子任务的超时可在剩余父预算内恢复。`await(Duration)` 同样取消超时的工作；等待被中断时请求取消并恢复等待线程中断标志。
+- **失败与取消**：Result 保留原始异常对象，包括 AssertionError、RejectedExecutionException；只有真实 deadline 到期才产生 TimeoutException。`cancel(true)` 使用实际 FutureTask 中断工作，false 不中断已运行代码。`any` 首成功后取消其他分支，`all` 等待并聚合失败。取消已完成结果返回 false。
+- **上下文**：提交时捕获 MDC，每个 supplier/mapper/recovery/effect 在实际工作线程安装并 finally 恢复原值；元数据和拦截器向子任务继承。拦截器现在每个执行段各执行一次，proceed 返回已完成 Future，拦截器不能再返回自行异步派发的未完成 Future。自定义 ThreadLocal 使用下例作用域；已有事务、安全身份不自动跨线程复制。
 
+```java
+public <T> CompletableFuture<Result<T, Throwable>> intercept(AsyncContext ctx, AsyncInvocation<T> next) {
+    String prior = holder.get();
+    holder.set(ctx.<String>attribute("scope").orElse("default"));
+    try { return next.proceed(); }
+    finally { if (prior == null) holder.remove(); else holder.set(prior); }
+}
+```
+
+- **生命周期**：Boot/User Executor 保留自身的容量与关闭策略。没有任何 Executor 时，facility 容器回退为 ThreadPoolTaskExecutor（4 线程/256 队列），销毁阶段拒绝新提交、中断运行项、取消排队项，最多等 1000ms。它跳过更早的 SmartLifecycle 排空阶段，因此 context-close 事件到 bean 销毁之间仍可能接受提交。忽略中断任务会使 `getThreadPoolExecutor().isTerminated()` 继续为 false；关闭返回不会伪报任务已结束。
+- **队列和副作用**：JDK 线程池及无 TaskDecorator 的 Spring 线程池会移除已取消任务；其他外部 Executor 的包装/队列行为由所有者负责，标准 shutdownNow 返回的未开始 Future 应由所有者取消。任务可能忽略中断并继续产生副作用；锁、连接及自定义线程上下文在工作本身 finally 中释放，不因观察超时提前释放。不要在同一受限线程池的回调中阻塞 await 新提交的工作。详见 [ADR-0026](adr/0026-async-execution-contract.md)。
 ## Web 簇
 
 需要 servlet 栈 optional 依赖(见矩阵)。整体在 servlet Web 应用下装配,各组件由 `facility.web.*` 开关控制。
@@ -509,7 +519,7 @@ facility:
 - **SpringContextHolder 兼容入口（已弃用，ADR-0025）**：首个成功发出本容器 `ContextRefreshedEvent` 的 holder 取得唯一进程级注册，刷新中不可查。只有取得注册的实例可以撤销；被拒绝的 B 关闭/启动失败不清理 A，A 关闭后不会自动将曾被拒绝的 B 提升为 owner。新的应用或显式重新成功刷新可以竞争空位。关闭事件先撤销，destroy 兜底且幂等；lookup 与关闭竞争返回既有 Result 错误，已经返回的 bean/正在执行的业务由应用生命周期负责。
 - **兼容测试迁移**：用真实 context 注册 holder、refresh、close；不要全局 reset 或用反射清空 holder。`setApplicationContextManually` 只在 `refresh()` 返回后接受活跃且未开始关闭、使用 Spring 标准 singleton registry 的 `AbstractApplicationContext`，不替换已有 owner，并随自己的 context 关闭/原地刷新撤销；原地刷新后须重新手工登记，不支持与 refresh 并发调用。null 保持忽略；未刷新/关闭中/已关闭/不支持该生命周期的对象抛 `IllegalArgumentException`。查询的必需 Class 参数 null 立即报错，null bean 名按缺席返回错误/false。`IdUtil` 和 `LogUtil` 不缓存 Spring bean，因此应用重新创建后使用新服务；`IdUtil.setGenerator` 的显式进程级 override 仍由调用方管理。`LogUtil.clearHandlerCache()` 仅保留为已弃用空操作。
 - **两类让位机制(勿混淆)**:
-  - ① **`@ConditionalOnMissingBean` 真回退**:`messageSource`、`facilityAsyncExecutor`(按 `TaskExecutor`
+  - ① **`@ConditionalOnMissingBean` 真回退**:`messageSource`、`facilityAsyncExecutor`(按 `Executor`
     类型)、全局异常处理器(按 `AbstractGlobalExceptionHandler` 类型)、三个 `WebMvcConfigurer`(按 bean 名)
     —— 你声明同类/同名 bean 即让位,facility 只填空缺。
   - ② **Web 过滤器/拦截器靠开关,不靠竞争 bean**:`TraceIdFilter`、`RepeatableRequestFilter`、

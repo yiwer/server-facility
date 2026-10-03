@@ -1,6 +1,7 @@
 package cn.code91.facility.async;
 
 import java.util.*;
+import jakarta.annotation.Nullable;
 
 /**
  * <b>异步任务上下文</b>
@@ -89,11 +90,17 @@ public final class AsyncContext {
     /**
      * 返回追加了一个属性的新上下文实例
      */
-    public AsyncContext with(String key, Object value) {
+    public AsyncContext with(String key, @Nullable Object value) {
         Objects.requireNonNull(key, "key cannot be null");
         Map<String, Object> newAttrs = new HashMap<>(this.attributes);
         newAttrs.put(key, value);
         return new AsyncContext(this.name, Collections.unmodifiableMap(newAttrs));
+    }
+
+    AsyncContext inherit(AsyncContext parent) {
+        var merged = new HashMap<>(parent.attributes);
+        merged.putAll(attributes);
+        return new AsyncContext(name.isEmpty() ? parent.name : name, Collections.unmodifiableMap(merged));
     }
 
     @Override
