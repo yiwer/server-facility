@@ -248,7 +248,10 @@ class RequestBoundaryHttpTest {
         @Bean TraceIdFilter explicitTrace() { return new TraceIdFilter(new FacilityWebTraceProperties()); }
     }
 
-    private EmbeddedServletApplication app(String... properties) { return EmbeddedServletApplication.start(directory, new Class<?>[]{Config.class}, properties); }
+    private EmbeddedServletApplication app(String... properties) {
+        String[] legacy = java.util.stream.Stream.concat(java.util.stream.Stream.of("facility.web.trace.enabled=true"), java.util.Arrays.stream(properties)).toArray(String[]::new);
+        return EmbeddedServletApplication.start(directory, new Class<?>[]{Config.class}, legacy);
+    }
     private static Exit exit(EmbeddedServletApplication app) throws Exception {
         Exit value = app.context().getBean(Probe.class).exits.poll(5, TimeUnit.SECONDS);
         assertThat(value).isNotNull(); return value;

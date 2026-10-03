@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-04、FR-09；AC-06、AC-12
 
@@ -14,7 +14,7 @@
 - [x] 完成与释放只接受相应执行资格；lease 和结果保存期分开，失败不能伪装成功。
 - [x] 新增安全入口供票 12 迁移；旧入口未迁移前不宣布整体 HTTP 幂等安全，也不提前删除。
 - [x] 声明 CAS 只保护记录更新，不能取消旧业务副作用；内存实现不承诺重启或分布式恢复。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -39,4 +39,4 @@
 
 本票Windows完整 `java verification/Verify.java all` PASS：`.verification-results/20261004-042235-271-all/summary.txt`；根1555测试、0失败/错误/跳过，模板47独立测试与可执行jar HTTP也PASS；覆盖率指令93.449%、行94.130%、分支86.004%，架构5项与依赖/工具链负控全部通过。普通jar新旧SPI二进制fixture、A/B屏障、seed110034、64MiB churn/close、32MiB复制OOM/Clock Error/大表close均通过。jar SHA256=0fe1fa4fb2c0058f09a4ee022ff6ea54e51dd6cbe08869e74606e56e10edc6a2。
 
-审阅与修复前首轮all、失败RED及一次手动JVM参数引用失败均保留，详见docs/verification/ticket-11-qualified-claims.md。当前仅本票Linux集成CI证据待补，所以Q08/Q10共同标准尚不闭合，不标closed。12、29、33自身HTTP/事务/最终组合验收独立登记，不反向作为11前置。
+审阅与修复前首轮all、失败RED及一次手动JVM参数引用失败均保留，详见docs/verification/ticket-11-qualified-claims.md。CI12 的同源 Windows/Ubuntu 完整门、平台门及归档均已通过，Q08/Q10剩余平台证据闭合，本票closed；精确来源与API记录见 [CI验收报告](../../../docs/verification/ticket-11-16-27-ci.md)。12、29、33自身HTTP/事务/最终组合验收独立登记，不反向作为11前置。

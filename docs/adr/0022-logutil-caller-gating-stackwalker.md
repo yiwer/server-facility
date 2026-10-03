@@ -1,5 +1,7 @@
 # ADR-0022: LogUtil 级别门控基于调用方 logger + StackWalker 惰性解析
 
+> 2026-10-04：部分由 [ADR0049](0049-application-owned-observability.md) 替代。新路径直接使用标准SLF4J，不经过LogUtil二次分发；历史兼容LogUtil的门控决定保留。
+
 - **状态**:Accepted(2026-07-05)
 - **源起**:全库评审 F1(P0);P2 轮以来的「DEFAULT_LOGGER 门控 caveat」升格为修复
 

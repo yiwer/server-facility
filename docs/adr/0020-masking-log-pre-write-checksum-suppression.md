@@ -1,5 +1,7 @@
 # ADR-0020: 日志脱敏——LogUtil 写前集成与校验位误伤抑制
 
+> 2026-10-04：部分由 [ADR0049](0049-application-owned-observability.md) 替代。新路径直接使用SLF4J有限元数据；LogUtil脱敏仅保留兼容调用，MaskUtil纯函数语义保留。
+
 - **状态**:Accepted(2026-07-05)
 - **源起**:日志脱敏 masking 设计(docs/superpowers/specs/2026-07-05-masking-design.md)
 

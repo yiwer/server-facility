@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted，2026-10-04。Windows同源完整门通过（1600项及独立消费者/资源/格式证据）；最终Linux证据待CI，票16保持verification-pending。详见[验证报告](../verification/ticket-16-bounded-excel.md)。
+Accepted，2026-10-04。Windows同源完整门通过（1600项及独立消费者/资源/格式证据）；CI12同源Windows/Ubuntu完整门与归档均通过，票16closed，见[跨平台报告](../verification/ticket-11-16-27-ci.md)。详见[验证报告](../verification/ticket-16-bounded-excel.md)。
 
 ## Context
 

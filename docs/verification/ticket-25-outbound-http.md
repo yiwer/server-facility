@@ -1,6 +1,6 @@
 # Ticket 25 — 应用拥有双服务 HTTP 与失败政策
 
-2026-10-04，Windows 完整验证通过；本票暂为 **verification-pending**，等待集成候选同源 Windows/Linux CI。本文数字只属于下述本地来源，不作为 Linux 执行数量。
+2026-10-04，本票 **closed**。Windows完整本地验证及集成候选9009810的Windows/Linux完整CI均通过，见[联合闭合](ticket-25-26-ci.md)。本文历史阶段数字只属于各自标注的本地来源，不作为Linux执行数量。
 
 ## 来源与可重放入口
 
@@ -34,7 +34,7 @@
 | Q07 | 有限确定性遍历所有流入口 read/readNBytes/readAllBytes/transferTo/skip 与N边界，重试次数/状态表、配置边界表可直接重放；无自造格式/数值算法，不为此引入随机fuzz框架。 |
 | Q08 | SHA、JDK/OS/locale/时区、有效POM/依赖树、普通jar哈希、原始命令/日志均留档；安全错误哨兵保证URL/token/远端内容不进入失败对象。仅一次连接超时注入的限制如上。 |
 | Q09 | 库与独立示例原质量门均通过；覆盖率缺失负控真正失败。没有跳过测试，旧静态API测试保留；新增真实HTTP断言而非实现镜像。 |
-| Q10 | 本地代码/迁移/ADR/证据已交付；同源Linux及Windows CI待执行，故本票未关闭。 |
+| Q10 | 本地代码/迁移/ADR/证据齐备；CI13在9009810同源候选通过Windows/Linux完整门，已闭合。 |
 
 ## TDD 与失败归档
 
@@ -61,3 +61,9 @@ CI8 `37152209100`（6a66672）和 CI9 `37152949481`（b7b7ea4）均为 Linux 全
 补充：冻结修复 adab8e5 的实际 Verify.partnerConsumer/securedTemplate 共13个命令在本机通过（含两个质量门、独立普通jar、可执行jar、两个缺覆盖率负控），保存 `.verification-results/ticket-25/offline-runner/`；本轮仅复验构建入口，库依赖为原已验证 a9c6400 对应产物，不冒称对当前库全部源码复验。CI10 `37155353238` 的Linux完整门通过；Windows已越过partner，失败转到template-build。公共annotation将10,000字符摘要截断，未取得最终断言，因此仅收窄诊断摘要为最后3,000字符后重跑，未猜改产品或放宽断言。
 
 CI11 `37155905485`（49b3148）已取得完整诊断：Linux全门通过；Windows模板测试和JaCoCo比例检查也通过，失败是 RequireFilesExist 在真实存在的文件上拒绝 `C:\Users\RUNNER~1` 短路径别名。官方 Enforcer 3.6.3 源码不仅判 exists，还严格比较原URI与canonical URI。本机用真实 `C:\PROGRA~1\Java\jdk-25.0.4.1\release` 跑同版本 Enforcer：文件确实存在，但原别名RED、toRealPath展开后GREEN（0.781s/0.704s），见 `.verification-results/ticket-25/short-path-probe/`。模板临时根与partner一致改为toRealPath，保留全部文件存在门与负控；不改测试、产品或coverage值。源码依据：[RequireFilesExist](https://github.com/apache/maven-enforcer/blob/enforcer-3.6.3/enforcer-rules/src/main/java/org/apache/maven/enforcer/rules/files/RequireFilesExist.java)。
+
+补充协议回归：真实库存服务返回 `[null]` 或有效项夹带 null 时，旧聚合在 Offer 构造处抛 NPE（26-null-inventory-red.log）。Inventory adapter现于自己的响应边界识别为BAD_RESPONSE/NO_EFFECT，保留200与安全request-id，无cause；空列表仍正常。完整示例15测试与原coverage门通过（26-null-inventory-green.log）。这项新增产品修复需要后续同源CI覆盖，不能用之前14测试来源替代。
+
+## 当前闭合状态
+
+CI13已将25最终null库存边界、26标准观测与此前所有消费者在同一9009810候选上完整复验，两OS及平台负控/归档全通过；Q08/Q10不再pending。先前失败和局部验证的来源边界保留，详见[25/26同源CI](ticket-25-26-ci.md)。
