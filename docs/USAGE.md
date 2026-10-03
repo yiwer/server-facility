@@ -558,20 +558,23 @@ Result<List<List<String>>, WrappedError> r4 = ExcelUtil.read(inputStream);
 - **CSV 导出**：旧 `write` 为 UTF-8+BOM；`writeMachine` 无 BOM，两者保留机器原值。`writeSpreadsheet` 带 BOM，拒绝前导 Unicode 空白/控制/格式字符之后的 `= + - @` 及全角对应字符，也拒绝前导区域的 Tab/CR/LF；不偷偷加引号前缀或改数据。该保守政策也拒绝负数字符串，不承诺所有电子表格导入方式的通用安全。普通 CSV 引号不是公式防护。
 - **CSV 生命周期**：借用输入/输出永不关闭，成功输出会完成 UTF-8 编码并 flush；Path 方法关闭自己打开的流，写文件直接覆盖，不保证原子发布。首次异常后不 drain、不重试坏输出；输出可能已有前缀，已执行 consumer 副作用不会回滚。线程中断在 I/O/记录边界检查，不能取代宿主对不响应中断的 I/O 设置超时或并发准入。
 - **CSV 诊断**：`CsvException.reason()/row()/column()` 提供原因与逻辑记录位置，列 0 表示未知；外层消息不包含字段内容，保留的外部 I/O cause 只供受信任诊断，不能直接作为 HTTP 错误。null 单元格写为空串，null 行为 Err。
-- **Excel 写**:`SXSSFWorkbook` 恒定内存,仅产出 xlsx,单 sheet(`Sheet1`),写完 `close()`
-  即清理临时文件;行内 `null` 单元格写为空串;`rows` 含 `null` 行 → `err(EXCEL_WRITE_ERROR)`。
-- **Excel 读**:`WorkbookFactory` 自动识别 xls/xlsx;仅读**第一个** sheet;单元格经
-  `DataFormatter` 全字符串化(公式取计算值);空单元格 → 空串;整行缺失 → 空 `List`;
-  畸形文件/IO 失败 → `err(EXCEL_READ_ERROR)`。
-- **缺库降级(`EXCEL_LIB_MISSING`)**:`ExcelUtil` 无需任何装配开关——引入 `poi` +
-  `poi-ooxml`(成对,见 [optional 依赖矩阵](#optional-依赖矩阵))即自动启用;缺失(或只引
-  其中一个,违反成对约定)时,四个 API 全部返回 `err(EXCEL_LIB_MISSING)`,不会抛
-  `NoClassDefFoundError`,也不影响 facility 其余能力。`CsvUtil` 无 optional 依赖,恒可用。
+- **Excel 预算**：`ExcelLimits(maxBytes,maxExpandedBytes,maxRows,maxColumns,maxCells,maxCellChars,maxTempBytes)` 全部为正。DEFAULT 为 **4 MiB 输入/输出、16 MiB 展开、10,000 行、128 列、100,000 含补齐空格的单元格、32,767 UTF-16 单元/显示值、32 MiB 临时内容**。首次错误停止，不累计错误列表。格式最大行/列/字符为1,048,576/16,384/32,767；legacy XLS另有固定1 MiB实际输入上限。需要大XLSX时选择 `forEach(input, options, rowConsumer)`，不要使用累积所有行的 `readAll`。
+- **Excel 格式**：仅读第一个sheet，空行交付不可变空List，缺失单元格为`""`且计入补齐预算；每行是独立不可变List。XLSX为SAX，XLS为受1 MiB上限约束的HSSF。`ExcelReadOptions(limits, locale, CACHED_VALUE/REJECT)` 显式决定Locale/公式政策，默认Locale.ROOT并读取已有缓存，绝不自动计算；XLSX缺缓存失败，未知函数有缓存可读。缓存可能陈旧，库不能验证其业务正确性；BIFF原生缓存字段不能可靠区分未计算的零与真实零。
+- **Excel 内部上限**：ZIP最多512项，名称512单元；非worksheet部分总计4 MiB，每部分2 MiB、样式256 KiB。实际关联的SST/样式/主题/workbook另在物化前检查，避免改名绕过；元数据XML深64、属性64、每共享字符串32,767单元、formatCode256单元；公式源8,192单元。原始显示值XML允许至少128单元数值语法，最终显示值仍受maxCellChars。sheet解析器任意相邻start/end/characters事件之间最多新读取64 KiB（含预取），拒绝单个巨大属性/注释等无事件构造；这不是所有XML词法单元长度的精确度量。大元数据、超深XML和DOCTYPE被拒绝；这不是完整OOXML/BIFF规范验证器，POI对部分advisory元数据的容差保留。
+- **Excel 导出**：SXSSF一行窗口，单Sheet1的XLSX；所有字符串均为文本，包括`=1+2`，null单元格为空串，null行Err。临时预算累计计算自有sheet XML与模板写入内容字节，读取时为输入快照；不代表文件系统块分配量。maxExpandedBytes只用于读取。POI5.5.1扩展点负责sheet/template归属，不修改全局TempFile或ZipSecureFile策略。
+- **Excel 生命周期/错误**：借用流不关闭，输出成功flush；Path打开的流自有。实际输入探测最多预算N+1，输出每次写前检查且不超过预算。工作目录逐项清理，失败不会假报成功，首因保留且清理失败suppressed；外层ExcelException提供reason/一基row,column（0未知），不含单元格，原始cause仅用于可信诊断。必需options/limits/consumer为null快速抛出；consumer/iterator及流的程序异常传播。取消在读写/行/回调边界协作检查，不能抢占不响应中断的用户I/O；宿主负责并发准入和外部超时。写Path直接覆盖，失败可能留下前缀，先前回调副作用不回滚。
+- **缺格式引擎**：仍采用成对契约，消费方引入`poi-ooxml:5.5.1`及其完整传递图（包含`poi:5.5.1`、lite schema、XMLBeans、Commons Compress等）。实际无POI、仅poi、poi-ooxml排除poi的普通jar图应得到EXCEL_LIB_MISSING且不碰流；完整图支持XLS/XLSX。任意人为排除其他必需传递类不在缺引擎回退保证内。CSV保持独立可用。
+
+```java
+var excelLimits = new ExcelLimits(96L << 20, 192L << 20, 600_000, 4, 2_000_000, 128, 192L << 20);
+var excelOptions = new ExcelReadOptions(excelLimits, Locale.US, ExcelReadOptions.FormulaPolicy.CACHED_VALUE);
+var consumedExcel = ExcelUtil.forEach(inputStream, excelOptions, row -> storeRow(row));
+var writtenExcel = ExcelUtil.write(outputStream, rowIterable, excelLimits);
+```
 
 **局限须知**:
 
-- **Excel 读为整簿内存模型**:`WorkbookFactory` 整簿载入,行数上限受堆约束(万行级常规堆
-  可用;十万行级建议等待 SAX 流式读,ADR-0021 roadmap)。
+- **Excel 支持范围**：有界SAX仍保留有限元数据，不能把64 MiB样本结果推广到所有显式预算；大XLS、任意样式写入和自动公式计算均不提供。迁移与证据见[ADR0039](adr/0039-bounded-excel-formats.md)。
 - **仅第一个 sheet / 单 sheet**:Excel 读只处理第一个 sheet,写只产出一个 sheet
   (`Sheet1`);不支持样式、合并单元格、多 sheet(留 roadmap)。
 - **全字符串化语义**:Excel 单元格经 `DataFormatter` 忠实还原 Excel 显示效果——
