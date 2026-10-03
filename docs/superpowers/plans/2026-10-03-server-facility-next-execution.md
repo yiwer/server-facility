@@ -136,3 +136,15 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 2026-10-04：核读票26冻结 `72a37b6e1981e12a5dc292e22d55c28d5b93c5a8` 的 `.verification-results/20261004-054819-067-all/summary.txt`，92命令RESULT=PASS。Windows库1614/0/0/0、模板52/0/0/0、partner14/0/0/0，原88/88/75、5架构/依赖门、普通jar/真实Web/观测两应用/5资源周期/全部负控通过；库jar SHA `e97cedb5ab07ac9cabe638bf001ded6a5bb2f22ac521351fe09755d3ebc59595`。精确范围见[26报告](../../verification/ticket-26-host-observability.md)。
 - 交接 `f11ab410bb0264b336f622ffce3d80896044747d` 已包含main6ff81c3；merger先将CI12文档a271061同步为 `e941a38ec002dcd579114fc2f33918fca3adf119`，再从干净a271061以--no-ff合入，merge `1b65e35643d897fa6f3ae8dc8a3800d10c8f5e4b`。合入后的src/POM/templates/examples/verification/workflow与交接分支完全相同，无冲突或额外产品改动。
 - 中央登记0049、44条实际ADR及0010/0020/0022/0027/0029明确部分替代范围，历史理由保留。26冻结门不含后续Windows短路径修复及25第15项库存null场景，25/26均保持verification-pending，由本次授权push启动的CI13联合验证；不把多个来源的本地结果拼成新候选通过。未重复已通过的同源全门。
+
+## 2026-10-04 外部HTTP与观测跨平台闭合
+
+集成90098104ec8bb0edcc3eb93db848d4f2f0f51207通过现有CI13 run37157891623的Windows job111305028022与Ubuntu job111305028159；完整all、独立platform和artifact归档全部success。25/26 closed，当前21张票closed。公开元数据与精确范围见[25/26 CI报告](../../verification/ticket-25-26-ci.md)；不把本地1541/1614或14/15/52计数充作Linux精确值。07/08/10/12/19/20/28–33及最终双轴审查继续执行，最终33仍须单一候选全组合。
+
+
+## 票28持久业务模块集成
+
+- 2026-10-04：merger核读28 `.verification-results/20261004-061826-432-all/summary.txt`（冻结4a5ad5d，92步骤PASS）及 `.verification-results/ticket-28/final-template/summary.txt`（最终e0fd5b3，模板76/0/0/0、质量门、PostgreSQL真实打包HTTP/重启、普通jar一致与coverage负控PASS）。只对整秒预算守卫及两个回归进行root批准的最终模板完整子集复验，报告明确不冒称最终来源又执行全库all。
+- 从干净 `ca6816ccb2e781854bd628bcf91801835e6f0a66` 以--no-ff合入 `0a6b18578bd566f6ca07a094caffe3d5820cf203`，merge `917505f7c20dc76b9de3c681443b62150a479d93`；最终分支比被测 `e0fd5b38844122e1a97b8bc816a93c079ccb8d9b` 仅2个票/报告文件，合入后src/POM/templates/verification/workflow与被测完全相同。最终模板jar SHA `b62ead82dd2b6283ccd24720fcc0606027091b955968ba2afc432e618373b574`。
+- 中央登记ADR0051对0050的扩展及45条实际ADR；README/构建入口明确integration/resources/all需要PG_BIN与PostgreSQL18.6固定原生工具，fast/库verify不需数据库。库未增加持久依赖；迁移为同受控DataSource、必须成功应用V1/V2。此前只读审阅的不同Flyway数据库/空目录问题已有真正RED和修复后GREEN。
+- 28仍verification-pending，root将用最终同源Windows/Linux CI闭合；29/30自身命令事务及进程故障协议独立承担。25/26的CI13闭合状态已同步中央入口，正式closed仍21项。未重复同源库全门，未push。

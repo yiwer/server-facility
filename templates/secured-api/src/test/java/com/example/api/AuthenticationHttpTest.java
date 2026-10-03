@@ -81,6 +81,7 @@ class AuthenticationHttpTest {
 
     @Test void anonymousBusinessRequestGetsSafe401WhileHealthIsPublic() throws Exception {
         try (var issuer = new TestIssuer(); var app = SpringApplication.run(ApiApplication.class, "--server.port=0", "--spring.main.banner-mode=off",
+                "--spring.datasource.url=" + Postgres.sharedUrl(), "--spring.datasource.username=postgres", "--spring.datasource.password=",
                 "--spring.security.oauth2.resourceserver.jwt.issuer-uri=" + issuer.issuer(),
                 "--spring.security.oauth2.resourceserver.jwt.audiences=secured-api", "--spring.profiles.active=local",
                 "--app.security.resource-uri=https://api.example.test")) {

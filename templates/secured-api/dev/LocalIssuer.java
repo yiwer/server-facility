@@ -40,7 +40,7 @@ class LocalIssuer {
                         + "spring.security.oauth2.resourceserver.jwt.issuer-uri=" + issuer + "\n"
                         + "spring.security.oauth2.resourceserver.jwt.audiences=secured-api\n"
                         + "app.security.resource-uri=http://127.0.0.1:8080\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-                Files.writeString(output.resolve("token.txt"), token(key, issuer, "greeting:read"), StandardOpenOption.CREATE_NEW);
+                Files.writeString(output.resolve("token.txt"), token(key, issuer, "greeting:read notes:read notes:write"), StandardOpenOption.CREATE_NEW);
                 Files.writeString(output.resolve("no-scope-token.txt"), token(key, issuer, "unrelated:read"), StandardOpenOption.CREATE_NEW);
                 System.out.println("LOCAL_FIXTURE_READY " + output);
                 // Fixed ten-minute lifetime; restarting creates a fresh ephemeral key and tokens.
