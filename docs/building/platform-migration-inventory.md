@@ -1,8 +1,8 @@
 # Boot / Jackson 迁移影响登记（票 21–24）
 
-旧协议基线为 Java 25 / Boot 3.5.16 / Framework 6.2.19 / Jackson 2.21.4（annotations 2.21），票 21 已由真实消费者和两 OS CI 冻结。票 22 于 2026-10-04 切换 [Boot 4.1.1 目标依赖](boot4-platform.md)，下面旧 API 清单仍是 23 的迁移输入；不能据此宣称目标主库已经编译或通过。决策见 [ADR-0044](../adr/0044-json-application-scope-expand.md) 与 [ADR-0045](../adr/0045-boot4-platform-toolchain.md)。
+旧协议基线为 Java 25 / Boot 3.5.16 / Framework 6.2.19 / Jackson 2.21.4（annotations 2.21），票 21 已由真实消费者和两 OS CI 冻结。票 22 切换 [Boot 4.1.1 目标依赖](boot4-platform.md)，票 23 按 [ADR-0046](../adr/0046-jackson3-application-ownership.md) 迁移公共类型、应用作用域、不可变 builder、错误和字段流预算；目标现状及命令见 [23 报告](../verification/ticket-23-jackson3.md)。下表和“22 新增接合交接”保留为历史迁移输入，不能当作当前实现说明。
 
-## 公共类型与真实调用链
+## 票 21/22 的公共类型和调用链快照
 
 | 位置 | 当前边界 / 配置归属 | 后续责任 |
 |---|---|---|
@@ -73,3 +73,13 @@
 - 04 的 `GlobalExceptionHandlerTest` 与 `HttpErrorContractTest` 仍使用 Jackson2ObjectMapperBuilder、ObjectMapper、SimpleModule/serializer 和 MappingJackson2HttpMessageConverter；这些是 23 的额外 Jackson 测试迁移输入。22 只更新 Boot 技术进口，未执行这些受主编译阻塞的测试。
 - 已同步 05，保留其 BOM 管理的显式 `junit-jupiter-params` 测试依赖；下载、请求重读、流式幂等三个 HTTP 场景的容器自动装配归属已更新。05 移除私有 413 mapper，因此该类不再属于 23 编译缺口。05 在旧平台的1323项绿色不外推为目标平台已发现。
 - 05 `BoundedResponseCapture` 的 Servlet 6.0 旧覆盖不能直接外推到 6.1：`HttpServletResponseWrapper` 三个新 `sendRedirect` 重载和 `ServletResponseWrapper.setCharacterEncoding(Charset)` 直接委托 wrapped response，可绕过旧 String 重载。**24 必须在目标 Servlet 6.1 补齐覆盖并实际测试响应捕获、commit 与预算语义**。官方依据：[HTTP wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/http/httpservletresponsewrapper)、[Servlet wrapper](https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/servletresponsewrapper)。本登记不算这些场景已绿。
+
+## 23 已实施与 24 交接
+
+- 68 个旧 Jackson 主编译诊断已逐项迁移；主/测试源码恢复编译。额外发现的 Spring 7 HttpHeaders.containsHeader、ParameterValidationResult/NoResourceFoundException 构造器变化分别作等价源迁移，不混记为 Jackson 错误。
+- Jsons 和宿主 MVC 使用应用不可变 mapper；registry bean 独立，默认复用 Jsons bean，静态 JsonUtil 保留 standalone。旧 mutable customize 已删除，旧三种 Java8 模块不再加载；annotations 原坐标保留。
+- Result 预期失败不带 payload、原异常、cause 或日志；真实用户 codec 的程序故障在 WRAP_EXCEPTIONS 开/关均传播，宿主政策不被改写。字段流正预算、默认有限 1MiB、Base64 N+2 分配界及 factory parser 文档/字符串限制均有公共入口测试。
+- Spring7 的 ProblemDetail 需标准 mixin；兼容 fallback 使用标准 converter mapper，宿主 mapper 保持同一实例。错误 type 显式设置 about:blank 保留旧金样。Boot4 error path/include-* 改为 spring.web.error.*；真实 HTTP 状态和安全字段断言保留。
+- 独立 Web consumer 改用标准 JsonMapperBuilderCustomizer，保留原金样文件。旧默认尾随值接受仅在该比较应用显式配置；等价 Unicode escaping/字段顺序按 JSON 值比较，不放宽数值和字符串类型。
+- ResponseUtil 等静态门面只享受类型迁移和安全错误通道，仍不取得应用政策；26 主责注入式替代。25 主责 RestClient 宿主 builder。
+- **24 仍负责**：Servlet6.1 新重载捕获/commit 预算，所有缺类/覆盖/注册顺序矩阵、同一普通 jar 的完整平台 consumer/两 OS 质量门。23 的本机报告不代替这些场景，不发布中间制品。

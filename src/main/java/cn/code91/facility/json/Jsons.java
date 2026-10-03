@@ -2,15 +2,13 @@ package cn.code91.facility.json;
 
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
-import cn.code91.facility.log.LogUtil;
 import cn.code91.facility.result.Result;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -47,8 +45,8 @@ public final class Jsons {
     public Result<String, WrappedError> serialize(Object value) {
         try {
             return Result.ok(objectMapper.writeValueAsString(value));
-        } catch (JsonProcessingException e) {
-            return handleSerializeError(e, value);
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_SERIALIZE_ERROR, e);
         }
     }
 
@@ -60,8 +58,8 @@ public final class Jsons {
     public Result<byte[], WrappedError> serializeToBytes(Object value) {
         try {
             return Result.ok(objectMapper.writeValueAsBytes(value));
-        } catch (JsonProcessingException e) {
-            return handleSerializeError(e, value);
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_SERIALIZE_ERROR, e);
         }
     }
 
@@ -70,8 +68,8 @@ public final class Jsons {
         try {
             objectMapper.writeValue(output, value);
             return Result.ok();
-        } catch (IOException e) {
-            return handleSerializeError(e, value);
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_SERIALIZE_ERROR, e);
         }
     }
 
@@ -80,90 +78,72 @@ public final class Jsons {
     public <T> Result<T, WrappedError> deserialize(String json, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         if (json == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("json cannot be null"),
-                    target.getName()));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readValue(json, target));
-        } catch (JsonProcessingException e) {
-            return handleDeserializeError(e, json, target.getName());
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
     public <T> Result<T, WrappedError> deserialize(String json, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         if (json == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("json cannot be null"),
-                    typeReference.getType().getTypeName()));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readValue(json, typeReference));
-        } catch (JsonProcessingException e) {
-            return handleDeserializeError(e, json, typeReference.getType().getTypeName());
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
     public <T> Result<T, WrappedError> deserialize(byte[] bytes, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         if (bytes == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("bytes cannot be null"),
-                    target.getName()));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readValue(bytes, target));
-        } catch (IOException e) {
-            return handleDeserializeError(e, "[bytes]", target.getName());
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
     public <T> Result<T, WrappedError> deserialize(byte[] bytes, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         if (bytes == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("bytes cannot be null"),
-                    typeReference.getType().getTypeName()));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readValue(bytes, typeReference));
-        } catch (IOException e) {
-            return handleDeserializeError(e, "[bytes]", typeReference.getType().getTypeName());
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
     public <T> Result<T, WrappedError> deserialize(InputStream input, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         if (input == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("input cannot be null"),
-                    target.getName()));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readValue(input, target));
-        } catch (IOException e) {
-            return handleDeserializeError(e, "[stream]", target.getName());
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
     public <T> Result<T, WrappedError> deserialize(InputStream input, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         if (input == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("input cannot be null"),
-                    typeReference.getType().getTypeName()));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readValue(input, typeReference));
-        } catch (IOException e) {
-            return handleDeserializeError(e, "[stream]", typeReference.getType().getTypeName());
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
@@ -191,15 +171,12 @@ public final class Jsons {
 
     private <T> Result<T, WrappedError> deserializeWithJavaType(String json, JavaType javaType) {
         if (json == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("json cannot be null"),
-                    javaType.getTypeName()));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readValue(json, javaType));
-        } catch (JsonProcessingException e) {
-            return handleDeserializeError(e, json, javaType.getTypeName());
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
@@ -207,26 +184,20 @@ public final class Jsons {
 
     public Result<JsonNode, WrappedError> parseTree(String json) {
         if (json == null) {
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_DESERIALIZE_ERROR,
-                    new IllegalArgumentException("json cannot be null"),
-                    "JsonNode"));
+            return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
         try {
             return Result.ok(objectMapper.readTree(json));
-        } catch (JsonProcessingException e) {
-            return handleDeserializeError(e, json, "JsonNode");
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_DESERIALIZE_ERROR, e);
         }
     }
 
     public Result<JsonNode, WrappedError> valueToTree(Object value) {
         try {
             return Result.ok(objectMapper.valueToTree(value));
-        } catch (IllegalArgumentException e) {
-            LogUtil.warn("Convert to JsonNode failed, value: {}", e, safeToString(value));
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_NODE_TRANSFER_ERROR,
-                    new RuntimeException(e)));
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_NODE_TRANSFER_ERROR, e);
         }
     }
 
@@ -235,40 +206,20 @@ public final class Jsons {
         Objects.requireNonNull(target, "target cannot be null");
         try {
             return Result.ok(objectMapper.treeToValue(node, target));
-        } catch (JsonProcessingException e) {
-            LogUtil.warn("Convert JsonNode to value failed, target: {}", e, target.getName());
-            return Result.err(WrappedError.of(
-                    FacilityErrorType.JSON_NODE_TRANSFER_ERROR, e));
+        } catch (JacksonException e) {
+            return failure(FacilityErrorType.JSON_NODE_TRANSFER_ERROR, e);
         }
     }
 
-    // ==================== 错误处理 ====================
-
-    private <T> Result<T, WrappedError> handleSerializeError(Exception e, Object value) {
-        String valueStr = safeToString(value);
-        LogUtil.warn("JSON serialize failed, value: {}", e, valueStr);
-        return Result.err(WrappedError.of(FacilityErrorType.JSON_SERIALIZE_ERROR, e, valueStr));
-    }
-
-    private <T> Result<T, WrappedError> handleDeserializeError(Exception e, String source, String targetType) {
-        String truncatedSource = truncate(source, 500);
-        LogUtil.warn("JSON deserialize failed, target: {}, source: {}", e, targetType, truncatedSource);
-        return Result.err(WrappedError.of(
-                FacilityErrorType.JSON_DESERIALIZE_ERROR, e, targetType, truncatedSource));
-    }
-
-    private String safeToString(Object obj) {
-        if (obj == null) return "null";
-        try {
-            return truncate(obj.toString(), 200);
-        } catch (Exception e) {
-            return obj.getClass().getName() + "@" + System.identityHashCode(obj);
+    /** Expected failures deliberately retain no payload, original exception, cause or diagnostic log. */
+    private static <T> Result<T, WrappedError> failure(FacilityErrorType type, JacksonException failure) {
+        if (failure instanceof tools.jackson.databind.exc.InvalidDefinitionException) throw failure;
+        // Jackson wraps user getter/creator/codec bugs when the host enables WRAP_EXCEPTIONS.
+        // MismatchedInputException is Jackson's explicit input-error channel (including bad dates/numbers).
+        if (!(failure instanceof tools.jackson.databind.exc.MismatchedInputException)) {
+            if (failure.getCause() instanceof Error bug) throw bug;
+            if (failure.getCause() instanceof RuntimeException bug && !(bug instanceof JacksonException)) throw bug;
         }
-    }
-
-    private String truncate(String str, int maxLen) {
-        if (str == null) return "null";
-        if (str.length() <= maxLen) return str;
-        return str.substring(0, maxLen) + "...(truncated, total: " + str.length() + ")";
+        return Result.err(WrappedError.of(type));
     }
 }

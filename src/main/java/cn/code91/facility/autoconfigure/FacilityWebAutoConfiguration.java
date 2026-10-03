@@ -127,9 +127,9 @@ public class FacilityWebAutoConfiguration {
     @ConditionalOnMissingBean(FacilityHttpErrors.class)
     public FacilityHttpErrors facilityHttpErrors(FacilityWebExceptionProperties props, FacilityWebTraceProperties trace,
             org.springframework.context.ApplicationContext context,
-            org.springframework.beans.factory.ObjectProvider<com.fasterxml.jackson.databind.ObjectMapper> mappers) {
+            org.springframework.beans.factory.ObjectProvider<tools.jackson.databind.json.JsonMapper> mappers) {
         return new FacilityHttpErrors(props, context, mappers.getIfAvailable(
-                () -> org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build()), trace);
+                () -> new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper()), trace);
     }
 
     @Bean
@@ -147,7 +147,7 @@ public class FacilityWebAutoConfiguration {
 
     @Bean
     public org.springframework.boot.web.error.ErrorPageRegistrar facilityErrorPageFallback(Environment environment) {
-        return new ErrorPageFallback(environment.getProperty("server.error.path", "/error"));
+        return new ErrorPageFallback(environment.getProperty("spring.web.error.path", "/error"));
     }
 
     // Install the fallback first. Boot and host registrars can still choose their own error destinations.

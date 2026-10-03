@@ -1,42 +1,54 @@
 package cn.code91.facility.json.support;
 
 import cn.code91.facility.json.Jsons;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.module.SimpleModule;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Random;
-import com.fasterxml.jackson.core.StreamReadFeature;
-import com.fasterxml.jackson.core.StreamWriteFeature;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.StreamWriteFeature;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class JsonStreamBudgetTest {
     public record Attachment(InputStream content) {}
 
     @Test
-    void nonPositiveLimitsKeepLegacyUnboundedSemanticsAndEmptyNullFields() throws Exception {
-        for (int limit : new int[] {0, -1}) {
-            var module = new SimpleModule().addSerializer(InputStream.class, new InputStreamSerializer(limit))
-                    .addDeserializer(InputStream.class, new InputStreamDeserializer(limit));
-            var jsons = new Jsons(JsonConfig.standard().addModule(module).build());
-            var input = new TrackedInput(new byte[5]);
-            assertThat(jsons.serialize(new Attachment(input)).get()).isEqualTo("{\"content\":\"AAAAAAA=\"}");
-            assertThat(input.closed).isTrue();
-            try (var decoded = jsons.deserialize("{\"content\":\"AAAAAAA=\"}", Attachment.class).get().content()) {
-                assertThat(decoded.readAllBytes()).hasSize(5);
-            }
-            assertThat(jsons.serialize(new Attachment(null)).get()).isEqualTo("{\"content\":null}");
-            assertThat(jsons.deserialize("{\"content\":null}", Attachment.class).get().content()).isNull();
+    void nonPositiveFieldBudgetsAreRejectedAtConstruction() {
+        for (int limit : new int[]{0, -1, Integer.MIN_VALUE}) {
+            assertThatIllegalArgumentException().isThrownBy(() -> new InputStreamSerializer(limit))
+                    .withMessage("maxBytes must be positive");
+            assertThatIllegalArgumentException().isThrownBy(() -> new InputStreamDeserializer(limit))
+                    .withMessage("maxBytes must be positive");
         }
+    }
+
+    @Test
+    void emptyAndNullFieldsRetainTheirWireSemantics() throws Exception {
         var bounded = bounded(1);
+        assertThat(bounded.serialize(new Attachment(null)).get()).isEqualTo("{\"content\":null}");
+        assertThat(bounded.deserialize("{\"content\":null}", Attachment.class).get().content()).isNull();
         assertThat(bounded.serialize(new Attachment(new TrackedInput(new byte[0]))).get()).isEqualTo("{\"content\":\"\"}");
         try (var empty = bounded.deserialize("{\"content\":\"\"}", Attachment.class).get().content()) {
             assertThat(empty.read()).isEqualTo(-1);
         }
+    }
+
+    @Test
+    void annotationConstructorsUseAFiniteOneMebibyteBudget() {
+        var jsons = new Jsons(JsonConfig.standard().addModule(new SimpleModule()
+                .addSerializer(InputStream.class, new InputStreamSerializer())
+                .addDeserializer(InputStream.class, new InputStreamDeserializer())).build());
+        var source = new FaultInput(-1);
+        assertThat(jsons.serialize(new Attachment(source)).isErr()).isTrue();
+        assertThat(source.reads).isEqualTo(1_048_577);
+        assertThat(source.closed).isTrue();
+        assertThat(jsons.deserialize("{\"content\":\"" + "A".repeat(1_398_104) + "\"}", Attachment.class).isErr()).isTrue();
     }
 
     @Test
@@ -138,6 +150,14 @@ class JsonStreamBudgetTest {
         }
         for (String input : new String[] {"AAAAAAA=", "AAAAAAA", "AAAAAAAAAAAA", "!invalid!"}) {
             assertThat(jsons.deserialize("{\"content\":\"" + input + "\"}", Attachment.class).isErr()).as(input).isTrue();
+        }
+    }
+
+    @Test
+    void base64FieldsRejectNonStringJsonValues() {
+        var jsons = bounded(4);
+        for (String value : new String[]{"1234", "{}", "[]", "true"}) {
+            assertThat(jsons.deserialize("{\"content\":" + value + "}", Attachment.class).isErr()).as(value).isTrue();
         }
     }
 
