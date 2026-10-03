@@ -30,9 +30,12 @@ import java.util.Locale;
  * String msg = LocaleUtil.translateMessage("user.not_exist", Locale.ENGLISH);
  * }</pre>
  *
+ * @deprecated Constructor-inject the application MessageSource and pass an explicit Locale.
+ * Static lookup retains historical single-context behavior only.
  * @author yvvb
  * @since 2025/5/4
  */
+@Deprecated(since = "0.1", forRemoval = false)
 @UtilityClass
 public class LocaleUtil {
 

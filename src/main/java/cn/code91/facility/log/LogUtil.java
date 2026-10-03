@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *         {@code logging.level.*} 配置对 LogUtil 通道生效;调用方经 {@link StackWalker}
  *         惰性解析(ADR-0022)</li>
  *     <li><b>线程安全</b>：改进的缓存策略</li>
- *     <li><b>实例缓存</b>：ConcurrentHashMap 缓存 Logger(键为 logger 名称,集合有界,不随用户输入增长);如需手动清理见 {@link #clearLoggerCache()}</li>
+ *     <li><b>实例缓存</b>：ConcurrentHashMap 缓存 Logger(键为调用类名称,动态类加载可持续增加该集合);如需手动清理见 {@link #clearLoggerCache()}</li>
  *     <li><b>写前脱敏</b>:消息经 {@link cn.code91.facility.masking.MaskUtil} 默认脱敏,
  *         见 {@link #setMaskingEnabled(boolean)} 与 ADR-0020</li>
  * </ul>
@@ -33,10 +33,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * LogUtil.error(exception, "处理订单{}失败", orderId);
  * }</pre>
  *
+ * @deprecated Inject/use the standard SLF4J Logger for the owning class. Legacy post handlers
+ * and masking remain compatibility behavior; they are neither an audit store nor secret detection.
  * @author yvvb
  * @since 2.0.0
  * @apiNote 级别门控基于调用方 logger(per-package 配置生效);调用方经 StackWalker 惰性解析(ADR-0022)
  */
+@Deprecated(since = "0.1", forRemoval = false)
 public final class LogUtil {
 
     private LogUtil() {
@@ -44,7 +47,7 @@ public final class LogUtil {
     }
 
     /**
-     * Logger 实例缓存（ConcurrentHashMap 强引用;logger 名称集有界,不构成泄漏）
+     * Legacy logger cache holds strong references; dynamic class loading requires explicit lifecycle cleanup.
      */
     private static final Map<String, Logger> LOGGER_CACHE = new ConcurrentHashMap<>();
 

@@ -29,6 +29,41 @@ class HttpErrorContractTest {
     @TempDir Path directory;
 
     @Test
+    void coreErrorIsLocalizedOnlyAtHttpBoundaryWithoutFormattingSecretArguments() throws Exception {
+        try (var app = application(new Class<?>[]{LocalizedBusiness.class}); var client = HttpClient.newHttpClient()) {
+            for (var language : Map.of("fr", "Fichier introuvable", "ja", "Safe file unavailable").entrySet()) {
+                var response = client.send(HttpRequest.newBuilder(app.uri("/core-error"))
+                        .header("Accept-Language", language.getKey()).timeout(Duration.ofSeconds(5)).GET().build(),
+                        HttpResponse.BodyHandlers.ofString());
+                var body = JsonMapper.builder().build().readTree(response.body());
+                assertThat(response.statusCode()).isEqualTo(400);
+                assertThat(body.path("detail").asString()).isEqualTo(language.getValue());
+                assertThat(body.path("code").asInt()).isEqualTo(cn.code91.facility.error.FacilityErrorType.FILE_NOT_FOUND.getCode());
+                assertThat(response.body()).doesNotContain("PASSWORD_SECRET", "SQL_SECRET", "UPLOAD_SECRET");
+            }
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @Import(CoreErrorEndpoint.class)
+    static class LocalizedBusiness {
+        @Bean(name = "messageSource") org.springframework.context.MessageSource messages() {
+            var messages = new org.springframework.context.support.StaticMessageSource();
+            messages.addMessage("facility.file.not_found", java.util.Locale.FRENCH, "Fichier introuvable");
+            messages.addMessage("facility.file.not_found", java.util.Locale.JAPANESE, "Safe file unavailable");
+            return messages;
+        }
+    }
+    @RestController static class CoreErrorEndpoint {
+        @GetMapping("/core-error") void failure() {
+            var core = cn.code91.facility.error.WrappedError.of(
+                    cn.code91.facility.error.FacilityErrorType.FILE_NOT_FOUND,
+                    new IllegalStateException("SQL_SECRET"), "PASSWORD_SECRET", "UPLOAD_SECRET");
+            throw BusinessException.fromWrappedError(core);
+        }
+    }
+
+    @Test
     void defaultHttpFailureHasProblemStatusAndNeverExposesItsCause() throws Exception {
         try (var app = application(); var client = HttpClient.newHttpClient()) {
             var response = client.send(HttpRequest.newBuilder(app.uri("/failure"))

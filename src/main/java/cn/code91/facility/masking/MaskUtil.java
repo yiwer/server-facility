@@ -5,6 +5,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Pure, limited pattern transformation. Prefer an allowlist of fields before logging or responding;
+ * this helper cannot discover arbitrary passwords, bearer tokens, SQL or uploaded content.
+ * It is not automatically installed in standard SLF4J or HTTP serialization.
+ *
  * <b>脱敏静态门面</b>
  * <p>
  * 纯 JDK 正则单遍扫描,内置固定规则集;为 {@link cn.code91.facility.log.LogUtil} 写前脱敏

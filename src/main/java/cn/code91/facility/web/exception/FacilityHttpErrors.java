@@ -106,6 +106,12 @@ public class FacilityHttpErrors {
         String detail = status.value() == 500
                 ? message("facility.web.error.system", "Internal server error", locale(request))
                 : Objects.requireNonNullElse(HttpStatus.resolve(status.value()), HttpStatus.INTERNAL_SERVER_ERROR).getReasonPhrase();
+        if (status.is4xxClientError() && failure instanceof BusinessException business) {
+            String key = business.getErrorType().getMessageKey();
+            // A reviewed host bundle supplies public text. Exception defaults and arguments are diagnostics.
+            if (key != null && key.length() <= 200 && key.matches("[A-Za-z0-9_.-]+"))
+                detail = message(key, detail, locale(request));
+        }
         int code = failure instanceof FacilityException facility ? facility.getCode() : status.value();
         if (!properties.isUseProblemDetail()) {
             return ResponseEntity.status(status.value() == 429 ? status.value() : 200).headers(headers)
