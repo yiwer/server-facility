@@ -44,10 +44,8 @@ class SafeUploadTest {
     }
 
     @Test
-    @DisplayName("危险扩展名(.exe)→ FILE_TYPE_NOT_SUPPORTED(注:.jsp 不在拦截名单)")
+    @DisplayName("危险扩展名(.exe)→ FILE_TYPE_NOT_SUPPORTED")
     void saveFile_dangerousExtension_typeNotSupported() {
-        // Filenames.DANGEROUS_EXTENSIONS 实际名单:exe/bat/cmd/sh/ps1/vbs/js/jar/msi/dll/com/scr/pif。
-        // 计划示例 a.jsp 不在名单内(不会被拦),故此处用 .exe(与 FilenamesTest 的 virus.EXE 先例一致)。
         Result<Path, WrappedError> result = SafeUpload.saveFile(textFile("malware.exe", "x"), tempDir.toString());
         assertThat(result.getErr().getErrorType()).isEqualTo(FacilityErrorType.FILE_TYPE_NOT_SUPPORTED);
     }
@@ -69,18 +67,18 @@ class SafeUploadTest {
 
         assertThat(result.isOk()).isTrue();
         Path saved = result.get();
-        assertThat(saved.getFileName().toString()).isEqualTo("hello.txt");
+        assertThat(saved.getFileName().toString()).matches("[0-9a-f-]{36}\\.upload");
         assertThat(saved.startsWith(dest.toAbsolutePath())).isTrue();
         assertThat(Files.readString(saved, StandardCharsets.UTF_8)).isEqualTo("hello upload");
     }
 
     @Test
-    @DisplayName("customFileName 覆盖原始文件名")
+    @DisplayName("customFileName 是展示名，存储键由服务器生成")
     void saveFile_customFileName_used() {
         Result<Path, WrappedError> result =
                 SafeUpload.saveFile(textFile("orig.txt", "x"), tempDir.toString(), "renamed.txt");
         assertThat(result.isOk()).isTrue();
-        assertThat(result.get().getFileName().toString()).isEqualTo("renamed.txt");
+        assertThat(result.get().getFileName().toString()).matches("[0-9a-f-]{36}\\.upload");
     }
 
     // ==================== saveFileWithSizeCheck ====================
@@ -125,13 +123,13 @@ class SafeUploadTest {
     // ==================== toTempFile / isImage ====================
 
     @Test
-    @DisplayName("toTempFile 往返:前缀取原名、后缀保扩展名、内容一致")
+    @DisplayName("toTempFile 往返:固定安全前后缀、内容一致、调用方显式删除")
     void toTempFile_roundTrip() throws Exception {
         Result<File, WrappedError> result = SafeUpload.toTempFile(textFile("notes.txt", "temp content"));
         assertThat(result.isOk()).isTrue();
         File tmp = result.get();
         try {
-            assertThat(tmp.getName()).startsWith("notes").endsWith(".txt");
+            assertThat(tmp.getName()).startsWith("facility-upload-").endsWith(".tmp");
             assertThat(Files.readString(tmp.toPath(), StandardCharsets.UTF_8)).isEqualTo("temp content");
         } finally {
             assertThat(tmp.delete()).isTrue();
