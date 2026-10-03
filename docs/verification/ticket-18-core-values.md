@@ -1,6 +1,6 @@
 # 票18：核心值契约验证
 
-日期2026-10-04。状态：局部核心契约与旧制品兼容已验证，集成线票23完成前，完整目标平台与普通新 jar 验证待执行。本报告不会把选定源码编译写成主库完整构建通过。
+日期2026-10-04。状态：本票已关闭。局部 TDD、历史制品兼容及同步票23后的完整目标平台 integration 均已通过；各阶段证据分别记录，不把选定源码编译代替普通新 jar 验证。
 
 ## 环境与入口
 
@@ -31,15 +31,27 @@
 |---|---|
 | Q01 | ADR0041、core-value-contracts公共处置台账、CoreConsumer实际领域流程与四项回归 |
 | Q02 | null/empty/default/重复/不可变集合、容量边界与int最大值、源数组与可变元素观察 |
-| Q03 | 旧普通jar实际无框架消费者已过；新普通jar待目标构建恢复后用统一runner执行 |
+| Q03 | 旧普通jar与新目标普通jar的独立无框架消费者均已通过；新jar由统一 integration runner 构建、安装并隔离运行 |
 | Q04 | 公共回调的IllegalStateException/Error、适配器InterruptedException；没有I/O/时钟/异步资源，因此不构造数据库或调度测试 |
 | Q05 | 集合O(n)预算归消费者，溢出在物化前拒绝；无全局缓存/线程/连接/临时资源；消费者64MiB，固定有限512输入 |
 | Q06 | 历史jar独立编译/执行同一保留契约样本；公开入口无删除、版本号不变；新规则迁移明确 |
 | Q07 | seed180041，512组identity/association/swap性质；失败输出迭代索引，可同命令重放 |
 | Q08 | 原始命令、编译/运行日志分轮保存；固定UTF8与seed；没有生产数据或秘密 |
-| Q09 | 保留原有215核心JUnit用例，新增4回归，局部219已过；全库覆盖率/架构/依赖门待恢复后执行，未降低或忽略 |
-| Q10 | 源码、ADR、迁移、消费者与原始结果齐备；完整目标平台门待验证，票仍in-progress |
+| Q09 | 保留原有215核心JUnit用例，新增4回归，局部219已过；全库1339/0/0/0与原覆盖率/架构/依赖门均通过，未降低或忽略 |
+| Q10 | 源码、ADR、迁移、消费者与原始结果齐备；本票完整目标平台门通过，closed；最终候选平台组合仍按24/33责任重验 |
 
 ## 完整目标平台结果
 
-待票23恢复构建后同步最新集成线，执行 `java verification/Verify.java integration`，记录精确源码提交、普通 jar SHA、全部发现测试、覆盖率和架构/依赖结果，再关闭本票。Windows/Linux统一CI及最后候选组合另按实际运行记录，不能用历史版本局部证据拼接。
+已同步正式集成 `7e168199a812fba6396540922241036d85767d8e`，被测源码 `5c29047b4b25cce27e67f752db64b29380cad984`。执行 `java verification/Verify.java integration`，证据目录 `.verification-results/20261004-012930-659-integration`，summary 为 `RESULT=PASS`。Windows11/amd64、Oracle JDK25.0.4.1、Asia/Shanghai/zh_CN、Boot4.1.1/Jackson3.1.5/JUnit6.0.3；本工作树隔离 Maven repository 复用缓存（fresh=false），没有使用其他树的 SNAPSHOT。
+
+完整库 **1339 tests / 0 failures / 0 errors / 0 skipped**，其中原 5 条 ArchUnit；dependency analyze 和原覆盖率门全部通过。相对票23的1335净增4个公共边界回归，没有删测或 skip。
+
+| JaCoCo bundle | Covered / Total | 实测 | 门槛 |
+|---|---:|---:|---:|
+| INSTRUCTION | 17418 / 18770 | 92.7970% | 88% |
+| LINE | 3571 / 3826 | 93.3351% | 88% |
+| BRANCH | 1760 / 2047 | 85.9795% | 75% |
+
+普通 jar SHA256 `a15ffb0a91db6ac83f8c96ef7d8796621ac00621e9e9d32cb647eaa5ad604caa`。新的 CoreConsumer 由该隔离仓库 jar 通过 javac 编译，运行 classpath 仅自身 classes + 同一个普通 jar，64MiB/45秒进程完成，`seed=180041 iterations=512 framework=absent`；编译和执行均 exit=0。普通消费者 configured/override/invalid、JSON 真 HTTP 金样和双应用/关闭重建、损坏下载/缺失 JAVA_HOME/真实错误 JDK 三项负控也全部通过。
+
+本票纯核心值没有文件系统/网络/数据库平台政策；Windows完整证据满足本票关闭条件，未声称 Linux 已执行。Windows/Linux 统一平台矩阵与最后候选组合由24/33按实际结果登记，不以这些后续组合反向阻塞本票。
