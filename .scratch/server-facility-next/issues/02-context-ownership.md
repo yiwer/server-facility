@@ -57,3 +57,10 @@
 反序消费者验证首次发现旧 IdUtilTest 在每个测试无条件 setGenerator，却仅少数 nested 测试撤销，遗留显式全局 override。移除通用 setup，UUID/默认SnowId测试直接走默认路径，只有验证自定义epoch的用例显式设置并成对撤销。没有在新生命周期测试中增加reset来掩盖污染。
 
 反序复验命令：`mvn -B -ntp -Djacoco.version=0.8.15 -Dsurefire.runOrder=reversealphabetical -Dtest=SpringContext*Test,LogUtil*Test,IdUtil*Test,CacheUtilTest,LockUtilTest,HttpClientsTest,RateLimiterUtilTest,LocaleUtilTest,GlobalExceptionHandlerTest,FacilityCoreAutoConfigurationTest test`。196 tests，0 failure/error/skipped（2026-10-03 22:54 +08:00，reverse-order-green.log）。
+
+
+## 集成基线复验与提交
+
+- 实现提交：`49d18d3`；同步集成 `fbdcd45`（含ticket01）后的本分支merge提交：`0e4f3ca`。仅在ticket-02 worktree合入上游，未修改主checkout/未发布。
+- 2026-10-03 22:56 +08:00：`./mvnw.cmd -B -ntp verify` 成功，Maven Wrapper3.10.0、release25、Boot3.5.16、JaCoCo0.8.15；1215 tests，0 failure/error/skipped；ArchUnit、覆盖率门与dependency analyze均成功。
+- 最终日志：`target/evidence/ticket-02/integrated-verify.log`。该结果覆盖本票与新的Java25集成基线；Boot4/Jackson3、Linux原生产物及最终跨票J05/J15组合仍按票24/23/26/33各自范围闭合，不在本票宣称完成。
