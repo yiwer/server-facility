@@ -4,6 +4,8 @@ import cn.code91.facility.web.FacilityWebCorsProperties;
 import cn.code91.facility.web.exception.AbstractGlobalExceptionHandler;
 import cn.code91.facility.web.exception.DefaultGlobalExceptionHandler;
 import cn.code91.facility.web.exception.FacilityWebExceptionProperties;
+import cn.code91.facility.web.exception.FacilityHttpErrors;
+import cn.code91.facility.web.exception.FacilityHttpErrorFilter;
 import cn.code91.facility.web.filter.FacilityWebRepeatableRequestProperties;
 import cn.code91.facility.web.filter.FacilityWebTraceProperties;
 import cn.code91.facility.web.filter.RepeatableRequestFilter;
@@ -115,8 +117,43 @@ public class FacilityWebAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(AbstractGlobalExceptionHandler.class)
     public AbstractGlobalExceptionHandler defaultGlobalExceptionHandler(
-            FacilityWebExceptionProperties props, Environment env) {
-        return new DefaultGlobalExceptionHandler(props, env);
+            FacilityHttpErrors errors) {
+        return new DefaultGlobalExceptionHandler(errors);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(FacilityHttpErrors.class)
+    public FacilityHttpErrors facilityHttpErrors(FacilityWebExceptionProperties props, FacilityWebTraceProperties trace,
+            org.springframework.context.ApplicationContext context,
+            org.springframework.beans.factory.ObjectProvider<com.fasterxml.jackson.databind.ObjectMapper> mappers) {
+        return new FacilityHttpErrors(props, context, mappers.getIfAvailable(
+                () -> org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build()), trace);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "facilityHttpErrorFilterRegistration")
+    public FilterRegistrationBean<FacilityHttpErrorFilter> facilityHttpErrorFilterRegistration(FacilityHttpErrors errors) {
+        var registration = new FilterRegistrationBean<>(new FacilityHttpErrorFilter(errors));
+        registration.setName("facilityHttpErrorFilter");
+        registration.setDispatcherTypes(jakarta.servlet.DispatcherType.REQUEST, jakarta.servlet.DispatcherType.ASYNC,
+                jakarta.servlet.DispatcherType.ERROR);
+        registration.setAsyncSupported(true);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
+        registration.addUrlPatterns("/*");
+        return registration;
+    }
+
+    @Bean
+    public org.springframework.boot.web.server.ErrorPageRegistrar facilityErrorPageFallback(Environment environment) {
+        return new ErrorPageFallback(environment.getProperty("server.error.path", "/error"));
+    }
+
+    // Install the fallback first. Boot and host registrars can still choose their own error destinations.
+    private record ErrorPageFallback(String path) implements org.springframework.boot.web.server.ErrorPageRegistrar, Ordered {
+        @Override public int getOrder() { return Ordered.HIGHEST_PRECEDENCE; }
+        @Override public void registerErrorPages(org.springframework.boot.web.server.ErrorPageRegistry registry) {
+            registry.addErrorPages(new org.springframework.boot.web.server.ErrorPage(path));
+        }
     }
 
     @Bean

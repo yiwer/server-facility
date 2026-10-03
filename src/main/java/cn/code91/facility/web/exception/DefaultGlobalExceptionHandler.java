@@ -19,6 +19,10 @@ import org.springframework.core.env.Environment;
  */
 public class DefaultGlobalExceptionHandler extends AbstractGlobalExceptionHandler {
 
+    public DefaultGlobalExceptionHandler(FacilityHttpErrors errors) {
+        super(errors);
+    }
+
     public DefaultGlobalExceptionHandler(FacilityWebExceptionProperties props, Environment environment) {
         super(props, environment);
     }
