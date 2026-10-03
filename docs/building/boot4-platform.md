@@ -22,7 +22,7 @@
 | Mockito / AssertJ | 5.23.0 / 3.27.7 | BOM，test scope |
 | Logback / Hibernate Validator | 1.5.38 / 9.1.3.Final | BOM，test scope；provider 不进入库生产依赖 |
 | Tomcat | 11.0.24 | BOM；仅测试 fixture 和独立 Web 应用选择容器 |
-| Tika / jsoup / POI | 3.2.3 / 1.18.3 / 5.3.0 | 原显式版本保持，业务升级归对应票 |
+| Tika / jsoup / POI | 4.1.0 / 1.18.3 / 5.3.0 | Tika 由票 13 升级并验证有界探测/所有权；jsoup / POI 业务升级归对应票 |
 
 构建工具保持 Wrapper 3.3.4 / Maven 3.10.0、compiler 3.16.0、Surefire 3.6.0、JaCoCo 0.8.15、dependency 3.11.0、jar 3.5.1；其余固定版本见 [Java 25 入口](java25-baseline.md)。未降低根 JaCoCo 88/88/75、五条 ArchUnit 或 failOnWarning。
 

@@ -1,6 +1,6 @@
 # Ticket 13：上传完整性、MIME 与公共 Hashing 验证
 
-本报告区分已执行的 Windows / Boot 3 中间平台证据与尚未完成的 Linux / 目标平台证据。票 13 尚不 closed；不把未来 31/33 的组合验收反向列为本票实现依赖。
+本报告分别记录 Windows / Boot 3 中间基线与 Windows / Boot 4 目标平台证据；Linux 尚未完成。票 13 保持 verification-pending，不把未来 31/33 的组合验收反向列为本票实现依赖。
 
 ## 固定源码与完整质量门
 
@@ -83,15 +83,27 @@ Hashing 的 MD5 查询覆盖 `src/main/java`：仅两个公共 MD5 便利方法�
 | Q06 | 独立 PNG 魔数、JDK ZIP、CPython 大文件摘要、标准空/abc 摘要及旧 29 测试保留；新 storage key 与旧 MIME IO 失败通道显式迁移 |
 | Q07 | 固定 seed 48 样本、有限路径/预算矩阵及 barrier；无新测试框架 |
 | Q08 | 固定 SHA、依赖树、JDK/FS/时区、完整成功/失败日志归档；Windows 原生证据不冒充 Linux |
-| Q09 | 1386/0/0/0，5 原架构规则、原覆盖率和依赖门通过，无删除或 skip |
-| Q10 | 产品、测试、ADR、USAGE/CHANGELOG 与报告同票；必需 Linux/目标平台证据尚缺，因此不 closed |
+| Q09 | 中间基线 1386/0/0/0，目标平台 1400/0/0/0；5 原架构规则、原覆盖率和依赖门通过，无删除或 skip |
+| Q10 | 产品、测试、ADR、USAGE/CHANGELOG 与报告同票；本票 Windows 目标门已过，Linux 证据尚缺，因此不 closed |
 
 实际解析 Tika `4.1.0` optional，传递 `commons-io 2.22.0`、`commonmark` 与两个扩展 `0.30.0`；源码只经 MimeTyping core detector，不新增解析器。Central POM 已实际获取，版本账本已更新。该包缺席的本票行为由独立 JVM 证明；普通 jar 消费和目标平台 optional 图由 24 接合，不能用本测试 classpath 代替。
 
-尚未执行：Linux 的 hardlink/符号链接/权限拒绝分支以及目标 Boot 4/Servlet 6.1 下的完整门。由集成后 CI 与票 24 闭合；Linux runner 必须具备实际目录权限测试条件，root 权限绕过拒绝不能记为通过。J12 上传到 CSV 的所有权交接归 31，J15/J16 最终候选长稳/跨能力组合归 33，均与本票自身已执行证据分列。
+尚未执行：Linux 的 hardlink/符号链接/权限拒绝分支，由集成后 CI 闭合；Linux runner 必须具备实际目录权限测试条件，root 权限绕过拒绝不能记为通过。票 24 负责普通 jar / optional 完整矩阵，不能用本票测试 classpath 代替。J12 上传到 CSV 的所有权交接归 31，J15/J16 最终候选长稳/跨能力组合归 33，均与本票自身已执行证据分列。
 
 ## 目标平台同步
 
 基线完成后，冷进程检查 `cold-mime-probe.log` 复现新取消缺陷：首次线程中断导致 Tika SAX parser pool 获取失败，MimeTyping 静态初始化抛 ExceptionInInitializerError，后续正常调用永久 NoClassDefFoundError。`red-20-cold-cancellation.log` 保留独立 JVM 反例；把目录加载移出类静态初始化，按需缓存且失败可重试。`green-20-cold-cancellation.log` 的 19 项初轮通过；随后扩充 byte[] 与 multipart 两条冷进程入口，最终结果另记。此修复发生在上述 1386 全门之后，不用旧全门冒充最终源码结果。
 
-等待票 23 恢复可用集成 tip 后在 `codex/ticket-13` 合入并重新验证；不合入已明确处于编译红色的票 22 中间态后伪记通过。
+已合入正式集成 tip `7e168199a812fba6396540922241036d85767d8e`；产品合并源码为 `101b3b3bbf4ff17414e7ae845d4791020992159b`，含冷取消修复 `395b1f0`。唯一新测试平台接合改动是 DispatcherServletRegistrationBean 使用 Boot 4 包名。CHANGELOG 冲突保留两票迁移说明，其余自动合并；POM 的 Tika 4.1.0 保留。
+
+最终命令 `mvnw.cmd -B -ntp clean verify`，2026-10-04 01:31:29 +08:00 完成，85 秒；**1400 tests / 0 failures / 0 errors / 0 skipped**。目标平台 Boot `4.1.1`、Spring `7.0.9`、Jackson `3.1.5`、Tomcat `11.0.24`、Servlet `6.1.0`、JUnit `6.0.3`。相对集成 1335 项增加本票 65 项（新增冷取消两个独立 JVM 用例）；相关 upload/mime/hash 94 项。5 条 ArchUnit、依赖分析及未调整的覆盖率门全部通过。
+
+| 最终 JaCoCo bundle | Covered / Total | 实测 |
+|---|---:|---:|
+| INSTRUCTION | 17950 / 19359 | 92.7217% |
+| LINE | 3699 / 3964 | 93.3148% |
+| BRANCH | 1830 / 2137 | 85.6341% |
+
+最终普通 jar SHA-256 `cf4bb756819ec90a6ad39230bdfdaa8e9bc1b703fcca0fb04c446f381a768a61`；日志 `target-clean-verify.log`，原始 XML、coverage、子进程日志已归档 `target-artifacts/`；另保存 `target-dependency-tree.txt` / `target-effective-pom.xml`。最终 Tika 4.1.0 的 optional 传递版本同上述基线。
+
+最终资源进程：预热 retained 10763816 字节，64 MiB 后 10787880，256 MiB 后 10795112，100 次故障后 10797232；最终增长 33416 字节，仍小于 16 MiB 阈值。线程 7→7、temporaryFiles=0。两个冷进程分别先中断 multipart/byte[] MIME 调用，再清除测试中断、正常检测成功，均输出 `COLD_INTERRUPT_OK nextCallWorks=true`。这些是目标平台本票资源证据，Linux 尚不据此勾选。
