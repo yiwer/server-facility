@@ -136,3 +136,7 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 2026-10-04：核读票26冻结 `72a37b6e1981e12a5dc292e22d55c28d5b93c5a8` 的 `.verification-results/20261004-054819-067-all/summary.txt`，92命令RESULT=PASS。Windows库1614/0/0/0、模板52/0/0/0、partner14/0/0/0，原88/88/75、5架构/依赖门、普通jar/真实Web/观测两应用/5资源周期/全部负控通过；库jar SHA `e97cedb5ab07ac9cabe638bf001ded6a5bb2f22ac521351fe09755d3ebc59595`。精确范围见[26报告](../../verification/ticket-26-host-observability.md)。
 - 交接 `f11ab410bb0264b336f622ffce3d80896044747d` 已包含main6ff81c3；merger先将CI12文档a271061同步为 `e941a38ec002dcd579114fc2f33918fca3adf119`，再从干净a271061以--no-ff合入，merge `1b65e35643d897fa6f3ae8dc8a3800d10c8f5e4b`。合入后的src/POM/templates/examples/verification/workflow与交接分支完全相同，无冲突或额外产品改动。
 - 中央登记0049、44条实际ADR及0010/0020/0022/0027/0029明确部分替代范围，历史理由保留。26冻结门不含后续Windows短路径修复及25第15项库存null场景，25/26均保持verification-pending，由本次授权push启动的CI13联合验证；不把多个来源的本地结果拼成新候选通过。未重复已通过的同源全门。
+
+## 2026-10-04 外部HTTP与观测跨平台闭合
+
+集成90098104ec8bb0edcc3eb93db848d4f2f0f51207通过现有CI13 run37157891623的Windows job111305028022与Ubuntu job111305028159；完整all、独立platform和artifact归档全部success。25/26 closed，当前21张票closed。公开元数据与精确范围见[25/26 CI报告](../../verification/ticket-25-26-ci.md)；不把本地1541/1614或14/15/52计数充作Linux精确值。07/08/10/12/19/20/28–33及最终双轴审查继续执行，最终33仍须单一候选全组合。

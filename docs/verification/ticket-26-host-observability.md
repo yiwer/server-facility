@@ -1,6 +1,6 @@
 # 26 — 应用消息、日志与标准观测验证
 
-2026-10-04。状态 verification-pending；Windows同源完整门已通过，Linux及合入后的Windows CI待执行。下列局部TDD证据与完整门分别登记，不拼接不同来源为最终候选。
+2026-10-04。状态 closed；Windows同源完整门及合入后9009810的Windows/Linux CI均已通过，见[联合闭合](ticket-25-26-ci.md)。下列局部TDD证据与完整门分别登记，不拼接不同来源为最终候选。
 
 ## 契约与已执行证据
 
@@ -14,8 +14,8 @@
 | Q06 | 标准Logback实际event捕获、Spring消息源、真实HTTP、Brave completed SERVER span作为独立oracle；不以自造trace文本的来回转换代替实际scope。 |
 | Q07 | Unicode/控制字符/格式输入确定性表、不同locale/trace样本与后端异常注入；不自造消息格式或W3C算法。 |
 | Q08 | `.verification-results/ticket-26/` 保存各轮RED/GREEN与fixture失败；密码/token/SQL/上传哨兵不进设施HTTP/访问/下载诊断。本地同源哈希、计数与OS记录见下。 |
-| Q09 | 原88/88/75门及0失败/0跳过要求保留；Windows完整门已通过，合入后CI待执行。模板继续使用25的官方offline instrumentation和原class架构检查，子进程贡献覆盖率。 |
-| Q10 | 迁移文档、可执行应用、本票兼容入口齐备；ADR已Accepted，票据等跨OS证据后关闭。 |
+| Q09 | 原88/88/75门及0失败/0跳过要求保留；Windows完整门及合入后的两OS CI均已通过。模板继续使用25的官方offline instrumentation和原class架构检查，子进程贡献覆盖率。 |
+| Q10 | 迁移文档、可执行应用、本票兼容入口齐备；ADR已Accepted，票据由CI13跨OS证据闭合。 |
 
 ## TDD记录及非产品失败
 
@@ -42,3 +42,7 @@
 - 无框架core/crypto、IO/CSV/Excel四依赖图、限流与claim进程、JSON两应用、Servlet、Tika有无、五依赖图十一JVM、5次启停/关闭与坏checksum/缺JDK/真实JDK21负控均通过。两独立应用缺覆盖率报告的负控均明确拒绝；offline测量不进入生产依赖图。
 
 随后合入集成线新增的Windows短目录规范化和25库存null协议修复；它们不在上述冻结来源内，合入候选的联合OS验收由下一轮CI另行登记。
+
+## 集成闭合
+
+合入候选9009810已通过CI13 run37157891623的Windows/Ubuntu完整门、独立平台控制及归档。该来源同时包含25第15项null库存协议拒绝；此前72a本地数字不混作CI精确数量，见[联合证据](ticket-25-26-ci.md)。
