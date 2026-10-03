@@ -207,7 +207,7 @@ class Verify {
     }
 
     static void securedTemplate() throws Exception {
-        Path application = Files.createTempDirectory("facility-template-").resolve("secured api-示例");
+        Path application = Files.createTempDirectory("facility-template-").resolve("secured api-示例-שלום");
         Path inputs = report.resolve("template-inputs");
         Path evidence = Files.createDirectories(report.resolve("template"));
         Path copier = ROOT.resolve("templates/Instantiate.java");
@@ -215,9 +215,9 @@ class Verify {
         Files.copy(copier, evidence.resolve("Instantiate.java"));
         Files.copy(client, evidence.resolve("TemplateConsumer.java"));
         run(ROOT, Map.of(), "template-instantiate", List.of(java(), copier.toString(),
-                ROOT.resolve("templates/secured-api").toString(), application.toString()), 45, null);
+                ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
         run(ROOT, Map.of(), "template-refuse-overwrite", List.of(java(), copier.toString(),
-                ROOT.resolve("templates/secured-api").toString(), application.toString()), 45,
+                ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45,
                 "Destination must be new and outside the template directory");
         copyDirectory(application, inputs);
         try (var files = Files.walk(inputs)) {
@@ -271,14 +271,16 @@ class Verify {
             }
             if (archive.stream().anyMatch(entry -> entry.getName().contains("LocalIssuer") || entry.getName().contains("TestIssuer")))
                 throw new AssertionError("Development/test signing fixtures leaked into production jar");
+            if (archive.stream().anyMatch(entry -> entry.getName().startsWith("BOOT-INF/lib/") && entry.getName().contains("jacoco")))
+                throw new AssertionError("Coverage runtime leaked into production jar");
         }
         Files.copy(jar, Files.createDirectories(evidence.resolve("artifacts")).resolve(jar.getFileName()));
         Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
-                application.toString(), evidence.toString()), 180, null);
+                application.toUri().toASCIIString(), evidence.toUri().toASCIIString()), 180, null);
         if (!Files.readString(log).contains("PACKAGED_TEMPLATE_PASS")) throw new AssertionError("Missing packaged template result");
         Path withoutCoverage = application.getParent().resolve("without-coverage");
         run(ROOT, Map.of(), "template-coverage-probe-instantiate", List.of(java(), copier.toString(),
-                ROOT.resolve("templates/secured-api").toString(), withoutCoverage.toString()), 45, null);
+                ROOT.resolve("templates/secured-api").toUri().toASCIIString(), withoutCoverage.toUri().toASCIIString()), 45, null);
         maven(withoutCoverage, "template-missing-coverage-rejected",
                 "Executed coverage data and report are required; missing coverage is not success",
                 List.of("clean", "verify", "-DskipTests"));
@@ -415,7 +417,7 @@ class Verify {
 
     static void partnerConsumer() throws Exception {
         Path owned = Files.createTempDirectory("facility-partner-").toRealPath();
-        Path application = owned.resolve("partner app-示例");
+        Path application = owned.resolve("partner app-示例-שלום");
         Path source = ROOT.resolve("examples/partner-aggregation");
         Path evidence = Files.createDirectories(report.resolve("partner"));
         Path inputs = Files.createDirectories(report.resolve("partner-inputs"));
@@ -425,8 +427,18 @@ class Verify {
         for (String name : List.of("mvnw", "mvnw.cmd")) Files.copy(ROOT.resolve(name), application.resolve(name));
         copyDirectory(application, inputs);
         summary.add("partner-independent-copy=" + application);
-        maven(application, "partner-build", "clean", "verify", "dependency:build-classpath", "-DincludeScope=runtime",
-                "-Dmdep.outputFile=" + evidence.resolve("runtime-classpath.txt"));
+        try {
+            maven(application, "partner-build", "clean", "verify", "dependency:build-classpath", "-DincludeScope=runtime",
+                    "-Dmdep.outputFile=" + evidence.resolve("runtime-classpath.txt"));
+        } catch (Exception | AssertionError failure) {
+            for (String part : List.of("surefire-reports", "site/jacoco")) {
+                try {
+                    Path found = application.resolve("target").resolve(part);
+                    if (Files.isDirectory(found)) copyDirectory(found, evidence.resolve(part.replace("site/", "")));
+                } catch (Exception archiveFailure) { failure.addSuppressed(archiveFailure); }
+            }
+            throw failure;
+        }
         maven(application, "partner-model", "help:effective-pom", "dependency:tree", "-DincludeScope=runtime",
                 "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt"));
         copyDirectory(application.resolve("target/surefire-reports"), evidence.resolve("surefire-reports"));
@@ -437,6 +449,7 @@ class Verify {
         summary.add("sha256 partner-aggregation.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
         installedClasspath(application, evidence.resolve("runtime-classpath.txt")); // Validates exact installed library identity.
         String dependencies = Files.readString(evidence.resolve("runtime-classpath.txt")).trim();
+        if (dependencies.contains("jacoco")) throw new AssertionError("Coverage runtime leaked into production dependencies");
         Path probe = ROOT.resolve("verification/partner-consumer/PartnerConsumer.java");
         Files.copy(probe, evidence.resolve("PartnerConsumer.java"));
         Path classes = Files.createDirectories(evidence.resolve("classes"));
