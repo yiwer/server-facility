@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-06、FR-09；AC-10、AC-12
 
@@ -27,3 +27,7 @@
 不做表头 ORM、导入平台或跨格式统一 DSL；不依赖 Excel。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+## Implementation record
+
+2026-10-04 领取；独立工作树 ticket-15，分支 codex/ticket-15，基线集成 `d4922df34a96f26cedea4acd9dd78b124fe7c028`。公共 seam 为 CsvUtil 的有界读取/逐行消费与导出入口、借用流的外部效果；沿用户已批准设施公共边界逐项 RED → GREEN。日志从开始保存在 `.verification-results/ticket-15`。ADR0038 将登记对0021中纯JDK手写CSV、无界读取假设的替代，保留其列表形态、无表头ORM与Excel optional理由。

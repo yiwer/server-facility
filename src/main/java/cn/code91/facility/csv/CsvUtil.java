@@ -3,37 +3,40 @@ package cn.code91.facility.csv;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
+import jakarta.annotation.Nullable;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.io.Writer;
+import java.io.UncheckedIOException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
- * <b>CSV 静态门面</b>
- * <p>
- * RFC 4180 纯 JDK 实现,零依赖恒可用。读 → {@code Result<List<List<String>>, WrappedError>},
- * 写 ← {@code List<List<String>>};所有可失败方法返回 {@link Result},从不抛异常,
- * null 入参 → err。设计取舍见 ADR-0021。
- * </p>
- * <p>
- * 写出编码 UTF-8 且<b>前置 BOM</b>(使 Excel 双击打开不乱码),行尾 CRLF,最小引号策略
- * (字段含逗号/引号/换行/首尾空格才加引号,内嵌引号翻倍);行内 null 单元格写为空串;
- * 空行(空 List)写出为空行,回读为单空字段行——该不对称已文档化。
- * </p>
- *
- * @author yvvb
- * @since 1.0.0
+ * Bounded UTF-8 CSV facade backed by Apache Commons CSV; see ADR-0038.
+ * <p>Old {@code read}/{@code write} entry points use {@link CsvLimits#DEFAULT};
+ * reads use {@link CsvDialect#LEGACY}, writes include a BOM and preserve raw values.
+ * Choose {@code writeMachine} for unchanged machine data without a BOM, or
+ * {@code writeSpreadsheet} for explicit rejection of formula-like prefixes.</p>
+ * <p>Format, budget, encoding and I/O failures return {@link Result}; data arguments
+ * may be null and return an error. Required policy and callback arguments reject null.
+ * Callback/programming exceptions propagate. Borrowed streams remain open; Path
+ * methods own their streams. Failed operations can leave a prefix in the output or
+ * prior callback effects. Path writes overwrite directly and are not atomic.</p>
+ * <p>Rows are ragged, null cells write as empty values, and a zero-cell row writes
+ * an empty record which reads back as one empty field. UTF-8 decoding/encoding is
+ * strict. Cancellation is cooperative at I/O/row boundaries; a caller must arrange
+ * timeouts for a source or sink that blocks without responding to interruption.</p>
  */
 public final class CsvUtil {
 
@@ -54,17 +57,19 @@ public final class CsvUtil {
      * @return 成功 {@code ok};file/rows 为 null、rows 含 null 行或 IO 失败 →
      *         {@link FacilityErrorType#CSV_WRITE_ERROR}
      */
-    public static Result<Void, WrappedError> write(Path file, List<List<String>> rows) {
+    public static Result<Void, WrappedError> write(@Nullable Path file, @Nullable List<List<String>> rows) {
         if (file == null || rows == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
         if (containsNullRow(rows)) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
-        try (OutputStream out = Files.newOutputStream(file)) {
-            return write(out, rows);
+        try (OutputStream out = openOutput(file)) {
+            var result = write(out, rows);
+            if (result.isErr() && result.getErr().getException() instanceof IOException failure) throw failure;
+            return result;
         } catch (IOException e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR, e));
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR, CsvException.located(e, 1)));
         }
     }
 
@@ -76,38 +81,88 @@ public final class CsvUtil {
      * @return 成功 {@code ok};out/rows 为 null、rows 含 null 行或 IO 失败 →
      *         {@link FacilityErrorType#CSV_WRITE_ERROR}
      */
-    public static Result<Void, WrappedError> write(OutputStream out, List<List<String>> rows) {
+    public static Result<Void, WrappedError> write(@Nullable OutputStream out, @Nullable List<List<String>> rows) {
         if (out == null || rows == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
         if (containsNullRow(rows)) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
         }
+        return writeRows(out, rows, CsvLimits.DEFAULT, true, false);
+    }
+
+    /** UTF-8 without BOM, unchanged machine values; borrowed output is flushed, never closed. */
+    public static Result<Void, WrappedError> writeMachine(@Nullable OutputStream out, @Nullable Iterable<List<String>> rows, CsvLimits limits) {
+        return writeRows(out, rows, limits, false, false);
+    }
+
+    /** UTF-8+BOM; rejects formula-like prefixes instead of rewriting values. */
+    public static Result<Void, WrappedError> writeSpreadsheet(@Nullable OutputStream out, @Nullable Iterable<List<String>> rows, CsvLimits limits) {
+        return writeRows(out, rows, limits, true, true);
+    }
+
+    private static Result<Void, WrappedError> writeRows(OutputStream out, Iterable<List<String>> rows,
+                                                       CsvLimits limits, boolean bom, boolean spreadsheet) {
+        Objects.requireNonNull(limits, "limits");
+        if (out == null || rows == null) return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
+        long rowNumber = 1;
         try {
-            Writer w = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-            w.write(BOM);
-            for (List<String> row : rows) {
-                for (int i = 0; i < row.size(); i++) {
-                    if (i > 0) {
-                        w.write(',');
-                    }
-                    w.write(encodeField(row.get(i)));
+            CsvInput.interrupted();
+            Writer writer = new OutputStreamWriter(new CsvOutput(out, limits.maxBytes()), StandardCharsets.UTF_8.newEncoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT));
+            if (bom) writer.write(BOM);
+            var iterator = rows.iterator();
+            while (true) {
+                CsvInput.interrupted();
+                if (!iterator.hasNext()) break;
+                if (rowNumber > limits.maxRows()) throw new CsvException(CsvException.Reason.ROWS, rowNumber, 0);
+                List<String> row = iterator.next();
+                if (row == null) return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR));
+                if (row.size() > limits.maxColumns()) throw new CsvException(CsvException.Reason.COLUMNS, rowNumber, limits.maxColumns() + 1);
+                for (int column = 0; column < row.size(); column++) {
+                    String field = row.get(column);
+                    if (field != null && field.length() > limits.maxFieldChars()) throw new CsvException(CsvException.Reason.FIELD, rowNumber, column + 1);
+                    if (spreadsheet && formulaPrefix(field)) throw new CsvException(CsvException.Reason.FORMULA, rowNumber, column + 1);
                 }
-                w.write("\r\n");
+                for (int column = 0; column < row.size(); column++) {
+                    CsvInput.interrupted();
+                    if (column > 0) writer.write(',');
+                    writer.write(encodeField(row.get(column)));
+                }
+                writer.write("\r\n");
+                rowNumber++;
             }
-            w.flush();
+            // Closing finishes the UTF-8 encoder and flushes the borrowed target without closing it.
+            // On failure discard the encoder buffer instead of retrying/flushing a broken output.
+            writer.close();
             return Result.ok();
-        } catch (IOException e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR, e));
+        } catch (IOException failure) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_WRITE_ERROR, CsvException.located(failure, rowNumber)));
         }
     }
 
-    /** 最小引号策略:含逗号/引号/换行/首尾空格才加引号,内嵌引号翻倍;null → 空串。 */
+    private static boolean formulaPrefix(String value) {
+        if (value == null) return false;
+        for (int index = 0; index < value.length();) {
+            int c = value.codePointAt(index);
+            if (c == '\t' || c == '\r' || c == '\n') return true;
+            if (Character.isWhitespace(c) || Character.isSpaceChar(c) || Character.isISOControl(c)
+                    || Character.getType(c) == Character.FORMAT) {
+                index += Character.charCount(c);
+                continue;
+            }
+            return c == '=' || c == '+' || c == '-' || c == '@' || c == '＝' || c == '＋' || c == '－' || c == '＠';
+        }
+        return false;
+    }
+
+    /** 最小引号策略;开头BOM必须被引用,避免机器数据被读取端当作编码标记。 */
     private static String encodeField(String field) {
         String s = (field == null) ? "" : field;
         boolean needQuote = s.indexOf(',') >= 0 || s.indexOf('"') >= 0
                 || s.indexOf('\n') >= 0 || s.indexOf('\r') >= 0
-                || (!s.isEmpty() && (s.charAt(0) == ' ' || s.charAt(s.length() - 1) == ' '));
+                || (!s.isEmpty() && (s.charAt(0) == BOM || s.charAt(0) == ' ' || s.charAt(s.length() - 1) == ' '));
         if (!needQuote) {
             return s;
         }
@@ -133,14 +188,39 @@ public final class CsvUtil {
      * @return 行集;file 为 null、IO 失败或引号未闭合 →
      *         {@link FacilityErrorType#CSV_READ_ERROR}
      */
-    public static Result<List<List<String>>, WrappedError> read(Path file) {
+    public static Result<List<List<String>>, WrappedError> read(@Nullable Path file) {
+        return readAll(file, CsvDialect.LEGACY, CsvLimits.DEFAULT);
+    }
+
+    /** Owns and closes the input opened for this path. */
+    public static Result<List<List<String>>, WrappedError> readAll(@Nullable Path file, CsvDialect dialect, CsvLimits limits) {
+        Objects.requireNonNull(dialect, "dialect");
+        Objects.requireNonNull(limits, "limits");
         if (file == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR));
         }
-        try (InputStream in = Files.newInputStream(file)) {
-            return read(in);
+        try (InputStream in = openInput(file)) {
+            var result = readAll(in, dialect, limits);
+            if (result.isErr() && result.getErr().getException() instanceof IOException failure) throw failure;
+            return result;
         } catch (IOException e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR, e));
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR, CsvException.located(e, 1)));
+        }
+    }
+
+    /** Owns and closes the input opened for this path, including on consumer failure. */
+    public static Result<Long, WrappedError> forEach(@Nullable Path file, CsvDialect dialect, CsvLimits limits,
+                                                    Consumer<List<String>> consumer) {
+        Objects.requireNonNull(dialect, "dialect");
+        Objects.requireNonNull(limits, "limits");
+        Objects.requireNonNull(consumer, "consumer");
+        if (file == null) return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR));
+        try (InputStream in = openInput(file)) {
+            var result = forEach(in, dialect, limits, consumer);
+            if (result.isErr() && result.getErr().getException() instanceof IOException failure) throw failure;
+            return result;
+        } catch (IOException failure) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR, CsvException.located(failure, 1)));
         }
     }
 
@@ -151,83 +231,70 @@ public final class CsvUtil {
      * @return 行集;in 为 null、IO 失败或引号未闭合 →
      *         {@link FacilityErrorType#CSV_READ_ERROR}
      */
-    public static Result<List<List<String>>, WrappedError> read(InputStream in) {
-        if (in == null) {
-            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR));
-        }
-        try {
-            Reader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            return Result.ok(parse(reader));
-        } catch (IOException e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR, e));
-        }
+    public static Result<List<List<String>>, WrappedError> read(@Nullable InputStream in) {
+        return readAll(in, CsvDialect.LEGACY, CsvLimits.DEFAULT);
+    }
+
+    /** Collects rows up to the supplied budgets. Memory includes every accepted row.
+     * Use {@link #forEach(InputStream, CsvDialect, CsvLimits, Consumer)} for incremental consumption. */
+    public static Result<List<List<String>>, WrappedError> readAll(@Nullable InputStream in, CsvDialect dialect, CsvLimits limits) {
+        List<List<String>> rows = new ArrayList<>();
+        var result = forEach(in, dialect, limits, rows::add);
+        return result.isErr() ? Result.err(result.getErr()) : Result.ok(rows);
     }
 
     /**
-     * RFC 4180 状态机:引号字段(内嵌逗号/换行/成对引号)、CR/LF/CRLF 行分隔、
-     * 换行无条件结行(连续换行产出单空字段行)、EOF 仅当行内有内容才结行
-     * (尾部换行不产生多余空行;引号定界的空字段也算内容)。引号未闭合到 EOF
-     * 抛 IOException 由调用方转 err。
+     * Delivers a fresh list for each validated record, synchronously, without retaining prior rows.
+     * Stops on the first failure; callback exceptions propagate unchanged and earlier effects remain.
+     * The borrowed source is not closed or drained. UTF-8 decoding may read ahead by 8192 bytes,
+     * so its position is not a resumable record cursor. Reported rows count logical records.
      */
-    private static List<List<String>> parse(Reader reader) throws IOException {
-        List<List<String>> rows = new ArrayList<>();
-        List<String> row = new ArrayList<>();
-        StringBuilder field = new StringBuilder();
-        boolean inQuotes = false;
-        boolean fieldWasQuoted = false;
-        int c = reader.read();
-        if (c == BOM) {
-            c = reader.read();
-        }
-        while (c != -1) {
-            char ch = (char) c;
-            if (inQuotes) {
-                if (ch == '"') {
-                    int next = reader.read();
-                    if (next == '"') {
-                        field.append('"');
-                        c = reader.read();
-                    } else {
-                        inQuotes = false;
-                        c = next;
-                    }
-                } else {
-                    field.append(ch);
-                    c = reader.read();
+    public static Result<Long, WrappedError> forEach(@Nullable InputStream in, CsvDialect dialect, CsvLimits limits,
+                                                    Consumer<List<String>> consumer) {
+        Objects.requireNonNull(dialect, "dialect");
+        Objects.requireNonNull(limits, "limits");
+        Objects.requireNonNull(consumer, "consumer");
+        if (in == null) return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR));
+        var reader = new CsvInput(in, limits);
+        var format = CSVFormat.RFC4180.builder()
+                .setTrailingData(dialect == CsvDialect.LEGACY).setLenientEof(false).get();
+        long rows = 0;
+        try (var parser = format.parse(reader)) {
+            var iterator = parser.iterator();
+            while (true) {
+                CsvInput.interrupted();
+                CSVRecord record;
+                try {
+                    if (!iterator.hasNext()) break;
+                    record = iterator.next();
+                } catch (UncheckedIOException failure) {
+                    throw failure.getCause();
                 }
-            } else if (ch == '"' && field.length() == 0) {
-                inQuotes = true;
-                fieldWasQuoted = true;
-                c = reader.read();
-            } else if (ch == ',') {
-                row.add(field.toString());
-                field.setLength(0);
-                fieldWasQuoted = false;
-                c = reader.read();
-            } else if (ch == '\r' || ch == '\n') {
-                if (ch == '\r') {
-                    int next = reader.read();
-                    c = (next == '\n') ? reader.read() : next;
-                } else {
-                    c = reader.read();
+                if (rows == limits.maxRows()) throw new CsvException(CsvException.Reason.ROWS, rows + 1, 0);
+                if (record.size() > limits.maxColumns())
+                    throw new CsvException(CsvException.Reason.COLUMNS, rows + 1, limits.maxColumns() + 1);
+                for (int column = 0; column < record.size(); column++) {
+                    if (record.get(column).length() > limits.maxFieldChars())
+                        throw new CsvException(CsvException.Reason.FIELD, rows + 1, column + 1);
                 }
-                row.add(field.toString());
-                field.setLength(0);
-                fieldWasQuoted = false;
-                rows.add(row);
-                row = new ArrayList<>();
-            } else {
-                field.append(ch);
-                c = reader.read();
+                CsvInput.interrupted();
+                consumer.accept(record.toList());
+                rows++;
+                reader.nextRecord();
             }
+            return Result.ok(rows);
+        } catch (IOException e) {
+            return Result.err(WrappedError.of(FacilityErrorType.CSV_READ_ERROR, CsvException.located(e, rows + 1)));
         }
-        if (inQuotes) {
-            throw new IOException("Unterminated quoted field at end of input");
-        }
-        if (field.length() > 0 || !row.isEmpty() || fieldWasQuoted) {
-            row.add(field.toString());
-            rows.add(row);
-        }
-        return rows;
+    }
+
+    private static InputStream openInput(Path file) throws IOException {
+        CsvInput.interrupted();
+        return Files.newInputStream(file);
+    }
+
+    private static OutputStream openOutput(Path file) throws IOException {
+        CsvInput.interrupted();
+        return Files.newOutputStream(file);
     }
 }
