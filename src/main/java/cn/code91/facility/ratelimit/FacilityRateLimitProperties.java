@@ -21,8 +21,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "facility.ratelimit")
 public class FacilityRateLimitProperties {
 
-    /** 是否启用限流自动装配。默认 {@code true}。 */
+    /** 是否启用默认本地provider；false仍保留Servlet注解守卫，宿主provider不受此开关影响。默认 {@code true}。 */
     private boolean enabled = true;
+
+    /** Explicit entrance-protection fallback only: allow when the adapter is missing or unavailable. Default false. */
+    private boolean failOpen = false;
 
     /**
      * 默认桶容量(令牌数上限)。声明式(@RateLimit)/编程式调用未显式指定容量时使用此值。
@@ -37,8 +40,8 @@ public class FacilityRateLimitProperties {
     private double defaultPermitsPerSecond = 10;
 
     /**
-     * {@link TokenBucketRateLimiter} 桶集合的无界防护上限——桶数达到该值且待建 key
-     * 不在集合中时整体清空(详见 ADR-0014)。
+     * {@link TokenBucketRateLimiter} 的严格主体槽位上限。新 key 最多检查16个轮转候选，
+     * 只回收已补满桶；无法安全准入时拒绝，绝不清空其他主体额度。
      * (声明性约束:&gt;0;绑定不校验——ADR-0013)
      */
     private int maxBuckets = 100_000;

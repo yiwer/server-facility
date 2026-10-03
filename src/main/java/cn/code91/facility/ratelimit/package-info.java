@@ -5,7 +5,7 @@
  * replaceable seam, ADR-0014), its default token-bucket implementation
  * ({@code TokenBucketRateLimiter} plus package-private {@code TokenBucket}), the static
  * facade {@code RateLimiterUtil} (delegates to a container-managed {@code RateLimiter}
- * bean via {@code SpringContextHolder}, degrades to allow when no bean is present), and
+ * bean via {@code SpringContextHolder}; required by default, Optional explicitly permits unavailable infrastructure), and
  * its configuration knobs {@code FacilityRateLimitProperties} (prefix
  * {@code facility.ratelimit}, homed here beside its consumers per C3).</p>
  *
@@ -22,9 +22,7 @@
  * {@code package-info} for the full rationale).</p>
  *
  * <p><b>Depends on:</b> {@code context} ({@code RateLimiterUtil} resolves the
- * Spring-managed {@code RateLimiter} via {@code SpringContextHolder}), {@code log}
- * ({@code TokenBucketRateLimiter} logs a WARN when its unbounded-key protection
- * clears the bucket set), Spring Boot configuration-properties annotations
+ * Spring-managed {@code RateLimiter} via {@code SpringContextHolder}), Spring Boot configuration-properties annotations
  * ({@code FacilityRateLimitProperties}).</p>
  *
  * <p><b>Depended on by:</b> {@code autoconfigure} ({@code FacilityRateLimitAutoConfiguration}

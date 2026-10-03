@@ -66,6 +66,7 @@ class Verify {
                     coreConsumer();
                     cryptoConsumer();
                     csvConsumer();
+                    rateLimitConsumer();
                     jsonConsumer();
                     platformConsumers();
                 }
@@ -267,6 +268,22 @@ class Verify {
             throw new AssertionError("CSV consumer did not complete: " + log);
         }
         summary.add("csv-consumer=ordinary jar with required transitive dependencies; Tika/POI absent; literal golden/dialects/budgets/formula policy; 200000 streamed rows; -Xmx64m/45s");
+    }
+
+    static void rateLimitConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path source = ROOT.resolve("verification/rate-limit-consumer/RateLimitConsumer.java");
+        Path classes = Files.createDirectories(report.resolve("rate-limit-consumer/classes"));
+        Files.copy(source, report.resolve("rate-limit-consumer/RateLimitConsumer.java"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "rate-limit-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", classes.toString(), source.toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "rate-limit-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "RateLimitConsumer"), 45, null);
+        if (!Files.readString(log).contains("RATE_LIMIT_CONSUMER_PASS slots=1024 churn=32768 workers=16 exact-long=true framework=absent")) {
+            throw new AssertionError("Rate-limit consumer did not complete: " + log);
+        }
+        summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
     }
 
     static void jsonConsumer() throws Exception {

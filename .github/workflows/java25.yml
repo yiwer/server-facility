@@ -63,6 +63,7 @@ jobs:
             .verification-results/**/PlatformUploadConsumer.java
             .verification-results/**/core-consumer/CoreConsumer.java
             .verification-results/**/crypto-consumer/CryptoConsumer.java
+            .verification-results/**/rate-limit-consumer/RateLimitConsumer.java
             .verification-results/**/artifacts/*.jar
             .verification-results/**/matrix-inputs/**
             .verification-results/**/matrix/**
