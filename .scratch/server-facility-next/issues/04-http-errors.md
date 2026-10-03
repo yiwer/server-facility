@@ -30,14 +30,14 @@
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
 
 
-## 实施与真实验证（2026-10-03，Windows；跨平台 CI 待合入）
+## 实施与真实验证（2026-10-04，Windows；跨平台 CI 待合入）
 
 - 公共策略 `FacilityHttpErrors.response/write` 在 MVC、Filter 和 REQUEST/ASYNC/ERROR 边界共享；默认安全 RFC 9457，显式 legacy 200 金样。标准 Spring 状态及必要头、字段预算、traceId、本地化与宿主 mapper/advice 均有实际请求证据。
 - 17 个真实 Tomcat HTTP 场景验证 400/404/405/406/409/413/415/422/429/500/503、401/403 adapter复用、Boot/宿主部分错误映射、坏 multipart与63/64/65字节上传、serializer自身失败、flush前后Writer及旧实体头、16并发请求locale/trace隔离。身份系统仍归27；流和重放接合归05/12。
 - 新决策 [ADR-0027](../../../docs/adr/0027-safe-http-error-policy.md) 明确替代旧 ADR-0003 的默认/泄露/状态映射范围；保留旧 handler/构造兼容入口并弃用自动trace展示。迁移见 `docs/USAGE.md` 的 HTTP 错误段落。过滤顺序与05/06/12/27复用约定已写入ADR。
-- 实现提交：`52daa5e` 测试底座、`d1dee03` 安全策略、`6eea3a7` 边界修复；`0fdafe2` 已合入integration `ee2e9cc`。后续仅补金样/119/120/121字段断言及证据，产品未变。
-- 完整 `clean verify` 和普通jar integration runner：**1274/0/0/0**，5个架构规则、原88/88/75门、依赖分析通过。指令93.1233%、行93.2992%、分支86.3893%。最后加强的相关断言 **74/0/0/0**。
-- 独立消费者 configured/override/invalid、constructed/injected JSON/HTTP、多应用mapper与关闭重建，以及工具链负向检查全通过；本票普通jar SHA-256 `f3d76c53b78148294490320da8713253ade6c516ddfa36a8c08f83856e939220`。
-- 原始RED/GREEN/完整日志在 `.verification-results/ticket-04/`；完整runner报告 `.verification-results/20261003-235534-445-integration/`，隔离repository第三方依赖预热、fresh=false，本票SNAPSHOT重新构建安装。全部命令、环境、Q01–Q10/J03/J14映射、测试数迁移说明见 [验证报告](../../../docs/verification/ticket-04-http-errors.md)。
+- 实现提交：`52daa5e` 测试底座、`d1dee03` 安全策略、`6eea3a7` 边界修复；`0fdafe2` 已合入integration `ee2e9cc`。`2272f08` 补金样/119/120/121字段断言；最终 `37ee5f5` 以RED→GREEN修复循环和过深ServletException解包/日志诊断，支持63/64层、拒绝65/10000层与环且不修改原cause。已包含integration `5428982`。
+- 完整 `clean verify` 和普通jar integration runner：**1276/0/0/0**，5个架构规则、原88/88/75门、依赖分析通过。指令93.1880%、行93.3512%、分支86.5100%。最后加强的相关断言 **76/0/0/0**。
+- 独立消费者 configured/override/invalid、constructed/injected JSON/HTTP、多应用mapper与关闭重建，以及工具链负向检查全通过；本票普通jar SHA-256 `d7269428cbba095a193c67d79ac5b813102cd9b750b487fb9b207e0a4e56a7c2`。
+- 原始RED/GREEN/完整日志在 `.verification-results/ticket-04/`；完整runner报告 `.verification-results/20261004-000725-683-integration/`，隔离repository第三方依赖预热、fresh=false，本票SNAPSHOT重新构建安装。全部命令、环境、Q01–Q10/J03/J14映射、测试数迁移说明见 [验证报告](../../../docs/verification/ticket-04-http-errors.md)。
 
 保持 **verification-pending**：本机功能、资源/故障与普通jar接合证据齐全，但本票最终集成提交的 Linux/Windows CI `all --fresh` 尚未取得；Q08/Q10待root合入后闭合，不能先标closed。Boot4/Jackson3目标平台验证归22–24，未把当前Boot3证据当作目标平台完成。
