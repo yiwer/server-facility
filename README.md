@@ -129,7 +129,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `pattern` | `Patterns` | 常用正则校验 |
 | `copy` | `CopyUtil` | Bean 属性拷贝 |
 | `locale` | `LocaleUtil` | i18n 消息翻译 + 聚合 MessageSource |
-| `async` | `Async<T>` | 惰性异步计算，结果落 `Result`；虚拟线程默认执行器 |
+| `async` | `Async<T>` | 惰性组合、整体 deadline 与协作取消；有界平台线程默认，应用显式注入 Executor |
 | `web.*` | filter / interceptor / exception / session / response / argument / util / download / upload | Servlet 栈：traceId、可重复读请求体、访问日志、全局异常、统一响应、安全上传下载、XSS（optional：jsoup） |
 | `ratelimit` | `RateLimiterUtil` / `RateLimiter`（SPI） | 令牌桶限流：纯 JDK 默认实现 + SPI 可替换（Redis）；编程门面 + 无 bean 降级放行 |
 | `web.ratelimit` | `@RateLimit` | 方法级声明式限流（拦截器）；超限 429 + `Retry-After` |

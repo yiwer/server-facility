@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### Async 行为迁移（2026-10-03，ADR-0026）
+
+- 默认由每次创建虚拟线程执行器改为共享有界平台线程池（4 工作线程/256 等待项）；容量满会通过 Result 返回提交拒绝。应用显式向 Async 传入注入的 Boot/User Executor；要用虚拟线程，通过标准 Boot 配置或显式 Executor 选择。
+- 整体 timeout 从 submit 开始，覆盖后续组合/恢复及子任务；子任务和重复 timeout 不能延长。await(Duration) 超时、cancel(true)、any 首成功都会请求中断相关工作；忽略中断的业务仍可运行，资源必须在任务自身 finally 释放。
+- 拦截器由整个 pipeline 一次改为实际工作线程的每个用户执行段一次。使用 try/finally 恢复 ThreadLocal 原值；删除跨线程 whenComplete 清理模式。proceed 与 interceptor 必须返回已完成 Future；不再接受拦截器自行派发异步工作。MDC 自动捕获与恢复，不传播事务/安全身份。
+- Result 保留原始失败对象，包括 AssertionError 和提交拒绝；不再误写成 TimeoutException。普通 Executor 也会让 facility fallback 让位；fallback 的容器销毁等待最多 1000ms，未终止可由 isTerminated 观察。迁移例子见 USAGE「异步」。
+
 ### Breaking(API 变更,2026-07-06 一致性宪法批)
 
 - **`ErrorTypeInterface.formatFallback(...)` 移出接口契约面(降为 private 实现细节)**。

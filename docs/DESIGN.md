@@ -64,8 +64,9 @@ POI 只能出现在包私有 `ExcelSupport`)。
 - **兜底不抢占**:每个 bean `@ConditionalOnMissingBean`(按类型或名称),消费方声明的同名/
   同类型 bean 永远优先。
 - **按类型让位 Boot**:`FacilityAsyncAutoConfiguration` 的 `facilityAsyncExecutor` 条件为
-  `@ConditionalOnMissingBean(TaskExecutor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
-  —— 让 Boot 的 `applicationTaskExecutor` 先注册,facility 仅在缺失时兜底(ADR-0002)。
+  `@ConditionalOnMissingBean(Executor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
+  —— 让 Boot 的 `applicationTaskExecutor` 先注册；facility 仅缺席时提供有界平台线程池。
+  消费方显式向 Async 传入 Executor；静态默认不查容器；执行段上下文、整体预算和取消见 ADR-0026（部分替代 ADR-0002）。
 - **i18n 聚合抢注 primary**:`FacilityLocaleAutoConfiguration` 以 `@AutoConfigureBefore(MessageSourceAutoConfiguration)`
   注册 `@Primary` 的 `AggregatedMessageSource`(名为 `messageSource`),把各模块贡献的具名
   `MessageSource` bean 聚合为一个;`facilityMessageSource` 提供 facility 自带的 i18n 文案
@@ -116,6 +117,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0021 | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
 | 0022 | `LogUtil` 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
 | 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
+| 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
 
 ## 6. 质量门
 
