@@ -1,6 +1,7 @@
 # ADR-0021: Excel/CSV——POI optional 运行时探测降级与纯 JDK CSV
 
 - **状态**:Accepted(2026-07-05)
+- **CSV部分替代（2026-10-04）**：[ADR-0038](0038-bounded-csv-dialects.md) 替代纯JDK手写解析器、无界便利读取和混合导出用途的旧假设，明确方言/预算/异常归属；保留裸列表、无表头ORM与Excel optional理由。历史正文保留，Excel后续迁移由票16负责。
 - **源起**:Excel/CSV 组件设计(docs/superpowers/specs/2026-07-05-excel-csv-design.md)
 
 ## 背景

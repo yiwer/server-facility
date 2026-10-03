@@ -57,13 +57,13 @@ class ZippingTest {
     }
 
     @Test
-    void zipFiles_skipsNonexistentEntries() throws Exception {
+    void zipFiles_missingEntryRejectsTheWholeArchive() throws Exception {
         Path a = file("a.txt", "x");
         Path ghost = tempDir.resolve("ghost.txt");
         Path out = tempDir.resolve("pack.zip");
 
-        assertThat(Zipping.zipFiles(List.of(a, ghost), out).isOk()).isTrue();
-        assertThat(entryNames(out)).containsExactly("a.txt");
+        assertThat(Zipping.zipFiles(List.of(a, ghost), out).isErr()).isTrue();
+        assertThat(out).doesNotExist();
     }
 
     @Test
@@ -82,7 +82,7 @@ class ZippingTest {
         Path out = tempDir.resolve("dir.zip");
 
         assertThat(Zipping.zipDirectory(tempDir.resolve("root"), out).isOk()).isTrue();
-        assertThat(entryNames(out)).containsExactlyInAnyOrder("top.txt", "sub/inner.txt");
+        assertThat(entryNames(out)).containsExactlyInAnyOrder("top.txt", "sub/", "sub/inner.txt");
     }
 
     @Test

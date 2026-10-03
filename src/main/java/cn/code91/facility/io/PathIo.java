@@ -5,12 +5,13 @@ import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <b>需要递归的 Path 操作</b>
@@ -20,25 +21,49 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class PathIo {
 
+    public static final Limits DEFAULT_LIMITS = new Limits(10_000, 256L * 1024 * 1024, 64);
+
+    /** Positive limits for visited descendants, logical file bytes and relative depth. */
+    public record Limits(int maxEntries, long maxBytes, int maxDepth) {
+        public Limits {
+            if (maxEntries <= 0 || maxBytes <= 0 || maxDepth <= 0) {
+                throw new IllegalArgumentException("All directory budgets must be positive");
+            }
+        }
+    }
+
     private PathIo() { throw new UnsupportedOperationException(); }
 
     /**
      * 递归删除目录及其所有内容。不存在时视为成功。
      */
     public static Result<Void, WrappedError> deleteDirectory(Path dir) {
-        if (dir == null || !Files.exists(dir)) {
+        return deleteDirectory(dir, DEFAULT_LIMITS);
+    }
+
+    public static Result<Void, WrappedError> deleteDirectory(Path dir, Limits limits) {
+        java.util.Objects.requireNonNull(limits, "limits");
+        if (dir == null || Files.notExists(dir, LinkOption.NOFOLLOW_LINKS)) {
             return Result.ok();
         }
+        if (dir.toAbsolutePath().normalize().getParent() == null) {
+            return Result.err(WrappedError.of(FacilityErrorType.FILE_NAME_INVALID));
+        }
         try {
-            Files.walkFileTree(dir, new SimpleFileVisitor<>() {
+            checkInterrupted();
+            OwnedPaths.directories(dir.toAbsolutePath().getParent(), false);
+            Files.walkFileTree(dir, new BudgetVisitor(dir, limits) {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    check(file, attrs);
                     Files.delete(file);
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult postVisitDirectory(Path d, IOException exc) throws IOException {
+                    if (exc != null) throw exc;
+                    checkInterrupted();
                     Files.delete(d);
                     return FileVisitResult.CONTINUE;
                 }
@@ -51,14 +76,22 @@ public final class PathIo {
     }
 
     /**
-     * 递归计算目录总大小（字节）。不可读的单个文件被跳过（尽力而为，RV2-09）。
+     * 递归计算完整目录总大小（字节）。遍历失败返回Err，不把部分值当成完整统计。
      */
     public static Result<Long, WrappedError> directorySize(Path dir) {
-        if (dir == null || !Files.exists(dir)) {
+        return directorySize(dir, DEFAULT_LIMITS);
+    }
+
+    public static Result<Long, WrappedError> directorySize(Path dir, Limits limits) {
+        java.util.Objects.requireNonNull(limits, "limits");
+        if (dir == null || Files.notExists(dir, LinkOption.NOFOLLOW_LINKS)) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));
         }
         try {
-            SizeVisitor visitor = new SizeVisitor();
+            checkInterrupted();
+            Path parent = dir.toAbsolutePath().getParent();
+            if (parent != null) OwnedPaths.directories(parent, false);
+            BudgetVisitor visitor = new BudgetVisitor(dir, limits);
             Files.walkFileTree(dir, visitor);
             return Result.ok(visitor.total());
         } catch (IOException e) {
@@ -68,26 +101,51 @@ public final class PathIo {
     }
 
     /**
-     * 累加文件大小的 visitor；{@code visitFileFailed} 跳过不可读文件而非 rethrow（RV2-09）。
-     * package-private 以便单测直接验证 visitFileFailed 语义。
+     * 累加文件大小；文件系统失败由默认visitor原样传播。
      */
-    static final class SizeVisitor extends SimpleFileVisitor<Path> {
-        private final AtomicLong size = new AtomicLong(0);
+    private static class BudgetVisitor extends SimpleFileVisitor<Path> {
+        private final Path root;
+        private final Limits limits;
+        private int entries;
+        private long size;
+
+        BudgetVisitor(Path root, Limits limits) { this.root = root; this.limits = limits; }
+
+        void check(Path node, BasicFileAttributes attrs) throws IOException {
+            checkInterrupted();
+            OwnedPaths.requireOrdinary(node, attrs);
+            if (!node.equals(root)) {
+                if (root.relativize(node).getNameCount() > limits.maxDepth()) {
+                    throw new IOException("Directory depth budget exceeded");
+                }
+                if (entries == limits.maxEntries()) throw new IOException("Directory entry budget exceeded");
+                entries++;
+            }
+            if (attrs.isRegularFile()) {
+                long bytes = attrs.size();
+                if (bytes < 0 || bytes > limits.maxBytes() - size) throw new IOException("Directory byte budget exceeded");
+                size += bytes;
+            }
+        }
 
         @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-            size.addAndGet(attrs.size());
+        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            check(dir, attrs);
             return FileVisitResult.CONTINUE;
         }
 
         @Override
-        public FileVisitResult visitFileFailed(Path file, IOException exc) {
-            // 跳过无法访问的文件，继续遍历（默认 SimpleFileVisitor 会 rethrow）
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            check(file, attrs);
             return FileVisitResult.CONTINUE;
         }
 
         long total() {
-            return size.get();
+            return size;
         }
+    }
+
+    private static void checkInterrupted() throws InterruptedIOException {
+        if (Thread.currentThread().isInterrupted()) throw new InterruptedIOException("Directory operation interrupted");
     }
 }

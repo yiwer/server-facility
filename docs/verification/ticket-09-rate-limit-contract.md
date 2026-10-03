@@ -1,5 +1,7 @@
 # 票09：本地配额与真实HTTP接合验证
 
+**2026-10-04 平台闭合**：`c2f0f6b`的Windows/Ubuntu完整门与独立平台门均成功，本票closed。见[同源CI证据](ticket-09-14-15-ci.md)。下文保留各次本地执行原值与历史状态。
+
 状态：verification-pending（仅本票Linux CI待集成后补齐）。Windows同一候选的产品/消费者/资源检查全部通过，三项先决条件负控独立补跑PASS；首轮all原始FAIL保留，详见末节。12/29/33的专属组合重验单独登记，不反向阻塞09本票闭合。公共契约与迁移见[ADR-0032](../adr/0032-local-rate-limit-contract.md)。
 
 ## 范围与实现
