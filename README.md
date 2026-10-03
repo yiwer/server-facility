@@ -155,7 +155,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | 前缀 | 作用 |
 |---|---|
 | `facility.id` | 雪花 ID：`worker-id` / `data-center-id` / `clock-backwards-threshold-millis` |
-| `facility.web.trace` | TraceId 过滤器：`header-name` / `mdc-key` / `generate-if-absent` |
+| `facility.web.trace` | 旧 TraceId 过滤器，默认禁用；仅显式兼容 opt-in，新应用使用标准 Micrometer tracing |
 | `facility.web.repeatable-request` | 可重复读请求体：`max-body-bytes` / `include-content-types` / `exclude-paths` |
 | `facility.web.access-log` | 访问日志拦截器：`slow-threshold-millis`（超阈升 WARN 标记 slow；0=禁用） |
 | `facility.web.cors` | CORS：`allowed-origins`（默认空 = 不开）/ `allowed-methods` / `allow-credentials` |
@@ -170,7 +170,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 一行版；细节与处置全在 USAGE「消费方须知」：
 
-- **i18n 抢注**：facility 抢注 `@Primary` 的 `messageSource`，`spring.messages.*` **不影响** facility 自带文案；要完全接管，声明名为 `messageSource` 的 bean 即可让位。
+- **应用拥有 i18n**：Boot `spring.messages.*` 或应用名为 `messageSource` 的 bean 优先；仅在两者缺席时提供设施 bundle。需要设施文案时，将 `i18n/facility-messages` 明确列在应用 basename 之后，见[迁移说明](docs/building/application-observability.md)。
 - **JsonUtil 进程级单例**：`JsonsRegistry` 是静态单例，同一 JVM 内多个 ApplicationContext 共享同一套 ObjectMapper 命名空间。
 - **SpringContextHolder 已弃用**：新路径构造器注入所需服务。兼容门面只发布首个成功刷新 context，只有发布者能撤销；被拒绝的 context 不自动接管，关闭不会影响 owner（ADR-0025）。
 - **两类让位机制勿混淆**：`@ConditionalOnMissingBean` 真回退（声明即让位） vs Web 过滤器/拦截器仅认 `enabled` 开关（声明同类 bean 会并存双重入链）。
