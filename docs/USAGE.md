@@ -9,6 +9,7 @@
 - [i18n:LocaleUtil](#i18nlocaleutil)
 - [异步:Async](#异步async)
 - [Web 簇](#web-簇)
+- [上传、MIME 与摘要](#上传mime-与摘要)
 - [限流:RateLimiterUtil / @RateLimit](#限流ratelimiterutil--ratelimit)
 - [缓存:CacheUtil / @Cacheable](#缓存cacheutil--cacheable)
 - [分布式锁:LockUtil](#分布式锁lockutil)
@@ -252,6 +253,54 @@ return errors.response(failure, new ServletWebRequest(request, response));
 
 旧客户端必须显式配置 `facility.web.exception.use-problem-detail=false`。这保留 `{code,message,data,description,success}` 字段形状、HTTP 200（429 仍为 429）与必要头；消息已安全化，`description` 为空，dev/test/local 也不恢复调试栈。依赖旧异常消息或原始 ErrorResponse body 的客户端应迁移到稳定 code 和 traceId。完整决策与真实 HTTP 证据见 [ADR-0027](adr/0027-safe-http-error-policy.md) 与票 04。
 
+## 上传、MIME 与摘要
+
+上传使用设施自己打开的 `MultipartFile` 流，保存过程关闭该流。声明的长度和 Content-Type 不能替代实际字节预算或内容检测。
+
+```java
+var saved = SafeUpload.saveFile(file, Path.of("/srv/app-private/uploads"),
+        10L * 1024 * 1024, Set.of("image/png", "image/jpeg"));
+if (saved.isErr()) {
+    // 依据 getErrorType() 映射业务错误；FILE_SIZE_EXCEEDED 可映射 413。
+    // 不把底层异常、路径或原始文件名返回给 HTTP 客户端。
+    return;
+}
+Path stored = saved.get(); // 保存这个返回值；不要按 file.getOriginalFilename() 推导路径。
+// 宿主记录展示名、权限和保留政策；不再需要文件时 Files.delete(stored)。
+```
+
+`maxSizeBytes` 必须正数，≤0 返回 Err；旧便利保存与 `toTempFile` 默认 10 MiB。空/null allowlist 表示不限制类型，但仍有限制大小和危险后缀校验。空上传拒绝；发现超限最多多读 1 字节，拒绝/取消后不 drain。阻塞读的停止取决于底层流协作中断，宿主仍应设置请求 I/O deadline、并发 admission 和磁盘配额。
+
+原名和 `customFileName` 只参与展示名校验；存储名由服务端生成固定长度 `UUID.upload`。因此旧代码不能再根据自定义名字查找文件。应用必须独占维护真实根目录及祖先，不允许其他主体修改，也不要将根目录挂为静态资源目录。保存先在同卷私有暂存完成，并关闭输入/输出，再通过 `Files.createLink` 发布；需要本地文件系统支持硬链接，目标存在或不支持时明确失败，不覆盖或退化复制。已验证 Windows NTFS，Linux 结果见票 13 验证报告；不保证任意 provider、断电持久性或对同权限恶意替换目录的防护。
+
+失败清理仅删除本次自有路径；删除权限/占用仍可能阻止清理，原始异常保留 suppressed 清理原因，宿主应对私有暂存目录做受控恢复。`toTempFile` 成功后必须显式删除，不再使用 `deleteOnExit`：
+
+```java
+var temporary = SafeUpload.toTempFile(file);
+if (temporary.isOk()) {
+    Path path = temporary.get().toPath();
+    try { /* consume path synchronously */ }
+    finally { Files.deleteIfExists(path); }
+}
+```
+
+Tika 4.1.0 为 optional；需要 MIME/type allowlist 的消费方显式添加 tika-core。缺包不把类型政策降级成成功保存。只使用 core detector 和至多 64 KiB 前缀，不解压容器；伪 `.xlsx` 的 ZIP 内容仍可能只是 `application/zip`，业务不得把“可识别”理解成“安全”。`SafeUpload.detectMime` 不证明整个文件的大小合规。上传默认不采用客户端文件名提示；仅低层 `MimeTyping.detect(stream, filename)` 显式接受提示。
+
+低层 `MimeTyping.detect(InputStream)` 借用而不关闭流，要求 mark/reset，成功或读失败后尝试恢复当前位置（替换旧 mark）。不可 mark 的流在读取前返回 Err；需要继续消费时保留同一个包装流：
+
+```java
+try (var replayable = new BufferedInputStream(openMyInput())) {
+    var mime = MimeTyping.detect(replayable);
+    if (mime.isOk()) { /* consume replayable, including the detected prefix */ }
+}
+```
+
+reset 失败时无法保证位置恢复；原读故障仍为首因，reset 故障为 suppressed。`detect(byte[])` 的 null/空以及空内容继续返回 octet-stream；I/O 故障走 Result Err，旧 String 重载改抛 UncheckedIOException。程序错误/Error 清理后传播。
+
+`Hashing.sha256(File)` / `hash(File, algorithm)` 打开并关闭文件、固定缓冲并协作响应中断；不代替文件大小政策。`hashBytes(byte[], algorithm)` 借用数组。输出小写十六进制；空 File 返回标准空内容摘要，空/null byte[] 保留旧 FILE_READ_ERROR，null/未知算法为 FILE_HASH_ERROR。MD5/SHA-1 只为旧非安全协议兼容保留，不用于密码存储或对抗恶意篡改；完整性安全需业务选择经过认证的机制。
+
+设计和平台边界见 [ADR-0036](adr/0036-upload-integrity.md)。
+
 ## 限流:RateLimiterUtil / @RateLimit
 
 通用限流(`ratelimit` 包,令牌桶,零 web 依赖)+ web 集成(`web.ratelimit` 包,注解 + 拦截器)。
@@ -358,14 +407,16 @@ public BaseResponse<Order> createOrder(...) { ... }
 
 ## 加解密:CryptoUtil
 
-纯 JDK 静态门面(`crypto` 包),无需任何配置(无 bean、无 properties),恒可用;算法固定
-AES-256-GCM,不暴露 mode/padding 参数(ADR-0019)。
+纯 JDK 静态门面(`crypto` 包)，无 bean、无 properties；算法固定AES-GCM，默认生成256位key，
+不暴露mode/padding参数。先落实输入与并发预算，详见[历史读取和消费示例](building/legacy-crypto.md)及ADR-0040。
 
 ```java
 // 对称加解密
 SecretKey key = CryptoUtil.generateAesKey();                          // 或 deriveKey / aesKeyFromBytes
-String cipher = CryptoUtil.encrypt("敏感数据", key).orElse("");         // Base64(IV‖密文+tag)
-String plain  = CryptoUtil.decrypt(cipher, key).orElse("");            // 失败(错误密钥/篡改/畸形)→ err
+String cipher = CryptoUtil.encrypt("敏感数据", key)
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage())); // Base64(IV‖密文+tag)
+String plain = CryptoUtil.decrypt(cipher, key)
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage())); // 不把读取失败默认为空明文
 
 // 口令派生密钥(PBKDF2)
 byte[] salt  = CryptoUtil.generateSalt();                             // 16 字节,须与密文一同持久化
@@ -378,7 +429,8 @@ SecretKey restored  = CryptoUtil.importKey(exported)
         .orElseThrow(e -> new IllegalStateException(e.getFullMessage()));
 
 // HMAC 消息认证 / 编解码
-String mac = CryptoUtil.hmacSha256("body", "secret").orElse("");     // hex 小写
+String mac = CryptoUtil.hmacSha256("body", "secret")
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage())); // hex 小写；示例key非生产凭据
 byte[] bytes = "payload".getBytes(StandardCharsets.UTF_8);           // 待编码字节(示例)
 String b64 = CryptoUtil.base64Encode(bytes);
 String hex = CryptoUtil.hexEncode(bytes);
@@ -386,15 +438,13 @@ String hex = CryptoUtil.hexEncode(bytes);
 
 - **密钥存储是调用方责任**:密钥/盐**不得硬编码**进源码或配置,应取自密钥管理服务(KMS/Vault)或
   受控环境变量;`CryptoUtil` 只做算法调用,不托管密钥。
-- **GCM nonce 由门面管理**:每次 `encrypt` 自动生成随机 IV 前置拼进密文,调用方无需也无从操心 nonce
-  ——不要试图复用密文或自行拼 IV。
+- **GCM nonce 由门面生成**:每次 `encrypt` 自动生成随机IV前置拼进密文；随机性不保证无限调用无碰撞，
+  消费应用仍负责密钥生命周期与使用量。不要自行改写IV。
 - **对称密钥强度取决于传入的 `SecretKey`**:`generateAesKey()` 产出 256-bit;`aesKeyFromBytes` 接受
   16/24/32 字节原始密钥(对应 AES-128/192/256),自行拼装密钥字节时留意长度选择。
-- **解密失败统一且不含原因**:错误密钥、密文篡改、畸形输入(Base64 畸形/IV 长度不足)全部返回
-  `equals` 相等的 `CRYPTO_DECRYPT_ERROR`,且**不附加底层异常**——这正是设计目的所在(细分失败原因
-  会给攻击者提供 padding-oracle 类判别信号),`WrappedError.getException()` 对解密失败恒为 `null`,
-  无失败模式可供区分;需要排障请用已知明文/密钥在别处**复现**,不要指望检视该异常(ADR-0019)。
-  这与其他方法不同——`encrypt` 失败仍保留底层异常(非 oracle 向量,cause 有助于诊断)。
+- **Result失败不携带秘密诊断**:全部加密/解密/派生/MAC/解码错误只带稳定错误类型，不附provider原始cause、
+  输入或日志。解密失败均为相等的`CRYPTO_DECRYPT_ERROR`，但这不是恒定时间保证。业务只记录稳定错误码与
+  自有请求关联；程序`Error`继续传播，非Result入口可抛参数/配置异常。旧版本加密等错误保留cause的政策已由ADR-0040替代。
 - **`deriveKey` 口令内存卫生**:内部用 PBKDF2WithHmacSHA256(210_000 迭代)拉伸口令,并在 `finally`
   清零 `PBEKeySpec` 内部口令副本;但入参 `String password` 本身**不可清零**(JVM 字符串不可变)——
   调用方应避免长期持有明文口令 `String`(用完即弃引用,不缓存、不打日志)。

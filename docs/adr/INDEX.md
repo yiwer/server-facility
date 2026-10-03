@@ -18,11 +18,11 @@
 | [0012](0012-logutil-slf4j-messageformatter.md) | Accepted | formatMessage 委托 SLF4J MessageFormatter(RV2-17 翻案) |
 | [0013](0013-properties-validation-constructor-guard.md) | Accepted | 配置属性不用 @Validated,构造器兜底(消费方无 provider 可启动) |
 | [0014](0014-ratelimit-token-bucket-seam.md) | Accepted; 来源假设部分由 [0029](0029-request-boundaries.md) 替代 | 保留令牌桶与RateLimiter SPI；无条件信任代理头的来源假设由0029替代 |
-| [0015](0015-cache-facade-cachemanager.md) | Accepted | 缓存 CacheUtil 门面复用 Spring CacheManager,Caffeine+spring-context-support 成对 optional |
+| [0015](0015-cache-facade-cachemanager.md) | Accepted; 装配条件由 [0047](0047-boot4-consumer-integration.md) 补全 | 保留CacheManager门面/成对optional理由；缺任一的真实回退由0047验证，TTL/容量政策归08 |
 | [0016](0016-distributed-lock-seam.md) | Accepted | 分布式锁 DistributedLock SPI + 默认单机 InMemory,real seam 升级 Redisson 示范 |
 | [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted; 部分由 [0028](0028-bounded-web-streams.md) 替代 | 保留幂等历史状态机；全站/无界响应捕获由 0028 替代 |
 | [0018](0018-http-client-restclient-result.md) | Accepted | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
-| [0019](0019-crypto-facade-safe-defaults.md) | Accepted | crypto 加解密门面——安全默认 AES-GCM、内管 IV、不透明失败通道、纯 JDK |
+| [0019](0019-crypto-facade-safe-defaults.md) | Accepted; 部分由 [0040](0040-legacy-crypto-reader-policy.md) 替代 | 保留纯JDK/固定历史协议；原始cause安全性、随机IV与never-throw过度保证由0040替代 |
 | [0020](0020-masking-log-pre-write-checksum-suppression.md) | Accepted | 日志脱敏——LogUtil 写前集成(LogPostHandler 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
 | [0021](0021-excel-csv-optional-poi-runtime-probe.md) | Accepted | Excel/CSV——POI optional 运行时探测降级(双类探针+类型隔离)与纯 JDK CSV(RFC 4180) |
 | [0022](0022-logutil-caller-gating-stackwalker.md) | Accepted | LogUtil 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
@@ -31,9 +31,12 @@
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
 | [0027](0027-safe-http-error-policy.md) | Accepted | Filter/MVC/ERROR 共用安全 RFC 9457 错误策略、真实状态和必要头；宿主 mapper/locale、已提交边界与显式 legacy 迁移 |
-| [0028](0028-bounded-web-streams.md) | Accepted | 普通响应直通、显式有界捕获、repeatable 正预算与流所有权；Servlet6.1 迁移门 |
+| [0028](0028-bounded-web-streams.md) | Accepted; [0047](0047-boot4-consumer-integration.md) 补充目标重载 | 普通响应直通、显式有界捕获、repeatable正预算与流所有权；6.1新入口接合由0047登记 |
 | [0029](0029-request-boundaries.md) | Accepted | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
+| [0036](0036-upload-integrity.md) | Accepted | 实际字节预算、内容探测流所有权、服务端存储键与同卷硬链接发布；保留0001的optional理由 |
+| [0040](0040-legacy-crypto-reader-policy.md) | Accepted | 保留历史AES-GCM/PBKDF2读取，全部Result失败不携原始cause；协议最小/最大长度前置拒绝，应用显式资源预算 |
 | [0041](0041-core-value-contracts.md) | Accepted | 保留核心 Result/领域错误语义，明确浅引用所有权、必需回调与集合算术边界；无框架普通 jar 消费 |
 | [0044](0044-json-application-scope-expand.md) | Accepted; 旧兼容阶段由 [0046](0046-jackson3-application-ownership.md) 替代 | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |
 | [0046](0046-jackson3-application-ownership.md) | Accepted | Jackson3不可变配置、应用mapper/registry所有权、安全错误与正数字段流预算；保留旧金样和明确静态迁移 |
+| [0047](0047-boot4-consumer-integration.md) | Accepted | 补全0045/0046平台门、0028的Servlet6.1入口与0015缺类装配；真实五图/普通jar/Web/上传消费，OS状态按报告 |

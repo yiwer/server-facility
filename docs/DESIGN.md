@@ -92,7 +92,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-33 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+36 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -125,14 +125,17 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0027 | 安全 RFC 9457 错误策略贯通 Filter/MVC/ERROR，真实状态和必要头；已提交边界、宿主政策与显式 legacy 迁移 |
 | 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
 | 0029 | 默认连接peer/显式可信代理；Servlet与Callable作用域清理身份、恢复宿主trace，部分替代0014来源假设 |
+| 0036 | 正数实际字节预算、借用MIME流不关闭、生成存储键与同卷hardlink不覆盖发布；保留0001 optional边界 |
+| 0040 | 保留旧AES-GCM/PBKDF2协议；安全Result失败、应用输入/并发预算与独立普通jar历史回执消费者 |
 | 0041 | 保留Result/领域错误语义；浅引用所有权、必需回调与集合算术边界，纯Java普通jar消费者 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
+| 0047 | 真实依赖图和普通jar/HTTP平台门；补全Servlet6.1重载与缺任一缓存依赖回退，OS证据分别登记 |
 
 ## 6. 质量门
 
-- **当前目标平台（2026-10-04）**：`5c29047` Windows `integration` 为1339/0/0/0；instruction92.7970%、line93.3351%、branch85.9795%，原5架构及依赖门通过。普通jar核心值无框架消费者、非Web/JSON真实HTTP两应用消费者和工具链负控通过；Linux与Servlet6.1/缺类矩阵仍归24，见 [票18证据](verification/ticket-18-core-values.md)。票23的重复JVM资源周期另见其报告。
+- **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；03/05/06/13/17/24仍等待同源Linux适用项，不提前closed。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载责任仍由24关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (旧平台快照 instruction92.9939% / line93.3940% / branch86.1614%)，当前目标实测见上，门槛保持。
@@ -148,11 +151,12 @@ POI 只能出现在包私有 `ExcelSupport`)。
 函数型与必需依赖参数 null → fail-fast(`requireNonNull`);IO/解析/外部世界交互 → `Result`
 通道。存量差异已被测试锁定、不改行为,各类级 javadoc 如实自述(`Numbers` setScale(null)→null、
 `NumberFormat` format(null)→""、`MimeTyping` detect(byte[]) 仅 null/空数组前置回退
-FALLBACK(吞 IOException 的是 detect(InputStream,String))、`Patterns` 全员 null-safe 且
+FALLBACK；其旧 detect(InputStream,String) 的IO失败现抛UncheckedIOException，不再静默回退（ADR0036）、`Patterns` 全员 null-safe 且
 `compile` 底层原语刻意 fail-fast)。
 
 **C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
 ADR-0046 的 JSON InputStream 字段是正预算例外：显式 ≤0 拒绝，无参注解入口固定1MiB。
+ADR-0036 的上传预算也必须为正数，≤0 经Result拒绝，便利入口固定10MiB；无无界上传路径。
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
