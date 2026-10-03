@@ -14,7 +14,8 @@ class TemplateConsumer {
         Path app = Path.of(args[0]).toAbsolutePath(), evidence = Files.createDirectories(Path.of(args[1]));
         Path state = app.resolve("target/local-trust-" + UUID.randomUUID());
         Path helperLog = evidence.resolve("local-fixture.log");
-        Process helper = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", app.resolve("dev/LocalIssuer.java").toString(), state.toString())
+        Process helper = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
+                app.resolve("dev/LocalIssuer.java").toString(), state.toString())
                 .directory(app.toFile()).redirectErrorStream(true).redirectOutput(helperLog.toFile()).start();
         try {
             awaitFile(state.resolve("no-scope-token.txt"), helper, helperLog);
@@ -56,7 +57,7 @@ class TemplateConsumer {
         } finally { stop(helper); }
     }
     private static Process launch(Path app, Path jar, Path log, String... options) throws Exception {
-        var command = new ArrayList<>(List.of(JAVA, "-Xmx256m", "-XX:ActiveProcessorCount=2", "-jar", jar.toString(),
+        var command = new ArrayList<>(List.of(JAVA, "-Xmx256m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "-jar", jar.toString(),
                 "--server.port=0", "--server.address=127.0.0.1", "--spring.main.banner-mode=off", "--server.shutdown=immediate"));
         command.addAll(List.of(options));
         return new ProcessBuilder(command).directory(app.toFile()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
