@@ -8,12 +8,14 @@ import cn.code91.facility.web.idempotency.IdempotencyInterceptor;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -45,32 +47,36 @@ public class FacilityIdempotencyAutoConfiguration {
         return new InMemoryIdempotencyStore(props.getMaxEntries());
     }
 
-    @Bean
-    @ConditionalOnMissingBean
+    // A method-level condition cannot protect optional types during configuration introspection.
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = {"jakarta.servlet.Filter", "org.springframework.web.servlet.config.annotation.WebMvcConfigurer"})
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public IdempotencyInterceptor idempotencyInterceptor(IdempotencyStore store, FacilityIdempotencyProperties props) {
-        return new IdempotencyInterceptor(store, props.getDefaultTtl().toMillis());
-    }
+    static class ServletConfiguration {
+        @Bean
+        @ConditionalOnMissingBean
+        public IdempotencyInterceptor idempotencyInterceptor(IdempotencyStore store, FacilityIdempotencyProperties props) {
+            return new IdempotencyInterceptor(store, props.getDefaultTtl().toMillis());
+        }
 
-    @Bean
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration() {
-        FilterRegistrationBean<IdempotencyFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new IdempotencyFilter());
-        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        registration.addUrlPatterns("/*");
-        return registration;
-    }
+        @Bean
+        public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration() {
+            FilterRegistrationBean<IdempotencyFilter> registration = new FilterRegistrationBean<>();
+            registration.setFilter(new IdempotencyFilter());
+            registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+            registration.addUrlPatterns("/*");
+            return registration;
+        }
 
-    @Bean("facilityIdempotencyWebMvcConfigurer")
-    @ConditionalOnMissingBean(name = "facilityIdempotencyWebMvcConfigurer")
-    @ConditionalOnBean(IdempotencyInterceptor.class)
-    public WebMvcConfigurer facilityIdempotencyWebMvcConfigurer(IdempotencyInterceptor interceptor) {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addInterceptors(InterceptorRegistry registry) {
-                registry.addInterceptor(interceptor);
-            }
-        };
+        @Bean("facilityIdempotencyWebMvcConfigurer")
+        @ConditionalOnMissingBean(name = "facilityIdempotencyWebMvcConfigurer")
+        @ConditionalOnBean(IdempotencyInterceptor.class)
+        public WebMvcConfigurer facilityIdempotencyWebMvcConfigurer(IdempotencyInterceptor interceptor) {
+            return new WebMvcConfigurer() {
+                @Override
+                public void addInterceptors(InterceptorRegistry registry) {
+                    registry.addInterceptor(interceptor);
+                }
+            };
+        }
     }
 }

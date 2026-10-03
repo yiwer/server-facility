@@ -1,0 +1,54 @@
+name: Java 25 library and consumer
+
+on:
+  push:
+    branches: [codex/server-facility-next]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install negative-test JDK
+        id: java21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21.0.12+101.0.LTS'
+          overwrite-settings: false
+      - name: Install supported JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.4+101.0.LTS'
+          overwrite-settings: false
+      - name: Clean build, independent consumer, resource and prerequisite checks
+        env:
+          VERIFY_WRONG_JAVA_HOME: ${{ steps.java21.outputs.path }}
+        run: java verification/Verify.java all --fresh
+      - name: Archive evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: java25-${{ matrix.os }}-${{ github.sha }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            .verification-results/**/summary.txt
+            .verification-results/**/*.log
+            .verification-results/**/effective-pom.xml
+            .verification-results/**/dependency-tree.txt
+            .verification-results/**/surefire-reports/**
+            .verification-results/**/jacoco/**
+            target/*.jar
