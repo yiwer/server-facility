@@ -16,6 +16,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Objects;
@@ -50,6 +51,7 @@ public final class Zipping {
 
     public static Result<Path, WrappedError> zipFiles(List<Path> files, Path outputPath, Limits limits) {
         Objects.requireNonNull(limits, "limits");
+        if (outputPath == null) return Result.err(WrappedError.of(FacilityErrorType.FILE_NAME_INVALID));
         if (files == null || files.isEmpty() || files.size() > limits.maxEntries()) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_READ_ERROR));
         }
@@ -66,7 +68,7 @@ public final class Zipping {
             try (ZipOutputStream zos = new ZipOutputStream(
                     new BufferedOutputStream(new WrittenBudget(Files.newOutputStream(stage.path), limits.maxWrittenBytes())))) {
                 for (Path file : files) {
-                    ZipEntry entry = new ZipEntry(file.getFileName().toString());
+                    ZipEntry entry = new ZipEntry(entryName(file.getFileName(), false));
                     zos.putNextEntry(entry);
                     budget.copy(file, zos);
                     zos.closeEntry();
@@ -74,7 +76,7 @@ public final class Zipping {
             }
             stage.publish();
             return Result.ok(outputPath);
-        } catch (IOException | UnsupportedOperationException e) {
+        } catch (IOException e) {
             return Result.err(WrappedError.of(
                     FacilityErrorType.FILE_WRITE_ERROR, e, new Object[]{outputPath.toString()}));
         }
@@ -130,17 +132,34 @@ public final class Zipping {
                         if (relative.getNameCount() > limits.maxDepth()) throw new IOException("ZIP depth budget exceeded");
                         if (entries == limits.maxEntries()) throw new IOException("ZIP entry budget exceeded");
                         entries++;
-                        String name = relative.toString().replace("\\", "/") + (directory ? "/" : "");
-                        zos.putNextEntry(new ZipEntry(name));
+                        zos.putNextEntry(new ZipEntry(entryName(relative, directory)));
                     }
                 });
             }
             stage.publish();
             return Result.ok(outputPath);
-        } catch (IOException | UnsupportedOperationException e) {
+        } catch (IOException e) {
             return Result.err(WrappedError.of(
                     FacilityErrorType.FILE_WRITE_ERROR, e, new Object[]{outputPath.toString()}));
         }
+    }
+
+    private static String entryName(Path relative, boolean directory) throws IOException {
+        var name = new StringBuilder();
+        for (Path component : relative) {
+            String part = component.toString();
+            if (part.isEmpty() || part.equals(".") || part.equals("..") || part.indexOf('\\') >= 0
+                    || part.indexOf(':') >= 0 || part.indexOf('/') >= 0 || part.length() > 1024 - name.length()) {
+                throw new IOException("Unsupported ZIP entry name");
+            }
+            if (!name.isEmpty()) name.append('/');
+            name.append(part);
+        }
+        if (directory) name.append('/');
+        if (name.isEmpty() || name.length() > 1024 || name.toString().getBytes(StandardCharsets.UTF_8).length > 1024) {
+            throw new IOException("ZIP entry name exceeds 1024 UTF-8 bytes");
+        }
+        return name.toString();
     }
 
     private static final class WrittenBudget extends FilterOutputStream {
@@ -170,7 +189,7 @@ public final class Zipping {
         ReadBudget(long limit) { remaining = limit; }
 
         void copy(Path file, OutputStream output) throws IOException {
-            try (InputStream input = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) {
+            try (InputStream input = openSource(file)) {
                 byte[] buffer = new byte[8192];
                 for (;;) {
                     checkInterrupted();
@@ -188,6 +207,13 @@ public final class Zipping {
                     remaining -= count;
                     output.write(buffer, 0, count);
                 }
+            }
+        }
+
+        private InputStream openSource(Path file) throws IOException {
+            try { return Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS); }
+            catch (UnsupportedOperationException unsupported) {
+                throw new IOException("Filesystem does not support a no-follow input stream", unsupported);
             }
         }
     }
@@ -208,7 +234,11 @@ public final class Zipping {
         }
 
         void publish() throws IOException {
-            Files.createLink(target, path);
+            checkInterrupted();
+            try { Files.createLink(target, path); }
+            catch (UnsupportedOperationException unsupported) {
+                throw new IOException("Filesystem does not support complete no-clobber ZIP publication", unsupported);
+            }
             try {
                 Files.delete(path);
             } catch (IOException | RuntimeException | Error failure) {

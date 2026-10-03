@@ -660,3 +660,20 @@ facility 把重依赖声明为 Maven `optional`,消费方按用到的能力自�
 
 未引入对应 optional 依赖时,相关自动装配因 `@ConditionalOnClass` 不生效,不影响其余簇;
 `ExcelUtil` 不走自动装配,缺失时走运行时探测降级(同一效果,不同机制,详见 ADR-0021)。
+
+## ZIP 与目录操作
+
+`Zipping.zipFiles` / `zipDirectory` 的 `Result.ok(Path)` 只代表完整 ZIP 已关闭并发布。缺失文件、重复 basename、遍历/读写/关闭失败均使整次打包失败，不再跳过条目。目录归档保留空目录，使用相对路径与正斜线；Unicode 名字按 UTF-8 写入。名字最多 1,024 UTF-8 bytes，拒绝冒号、反斜线及 dot 路径片段。此接口只创建 ZIP，不提供解包安全保证。
+
+```java
+var zipLimits = new Zipping.Limits(2_000, 64L << 20, 72L << 20, 16);
+var archive = Zipping.zipDirectory(inputDirectory, outputArchive, zipLimits);
+var directoryLimits = new PathIo.Limits(2_000, 64L << 20, 16);
+var size = PathIo.directorySize(inputDirectory, directoryLimits);
+```
+
+旧便利 ZIP 方法默认 10,000 条目、256 MiB 实际读取、256 MiB 完整输出（含最终目录记录）、64 层；目录方法默认 10,000 后代、256 MiB 逻辑文件 bytes、64 层。显式预算必须全为正；null Limits 为程序错误。根不计条目和深度，顶层文件/目录深度为 1，目录元数据不计 bytes，硬链接按路径分别统计。大小统计不是分配磁盘空间，也不是并发输入树的快照。`directorySize` 只有完整统计或 Err，不返回部分和；`deleteDirectory` 保留 null/确实不存在的幂等成功，拒绝文件系统根。
+
+输入/输出命名空间必须由应用可信拥有，拒绝符号链接、Windows junction、特殊节点和链接祖先；不提供抵抗恶意并发重命名的沙箱。ZIP 输出不得位于输入目录树，已有目标绝不覆盖。同目录私有 stage 在关闭成功后以 `Files.createLink` 发布，文件系统必须支持此能力；不支持时失败，不复制到可见目标作为回退。输入 provider 还须支持 NOFOLLOW_LINKS 打开；例如 JDK ZipFS 不能作为 ZIP 的直接输入流 provider。新建的父目录可保留；文件系统拒绝清理时 stage 或完整目标也可能残留，失败后不能以 Path 存在代替成功信号。检查 Result 及原始异常的 suppressed 诊断，由拥有该目录的应用按策略处理残留。
+
+所有打开的流和 stage 属于操作；成功返回的归档归调用方管理。中断在读写、遍历、删除及发布边界被观察并保留中断标志，阻塞 provider 是否及时响应取决于 provider；不创建后台任务。递归删除逐项生效，失败或预算耗尽可能已经删除部分条目，不会回滚。错误保留最初原因，关闭/清理异常不覆盖它。调用方应只记录受控诊断，不能把含路径的原始异常直接作为 HTTP detail。

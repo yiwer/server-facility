@@ -4,14 +4,39 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.FileSystem;
+import java.nio.file.LinkOption;
+import java.nio.file.OpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.spi.FileSystemProvider;
+import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+import static org.mockito.AdditionalAnswers.delegatesTo;
 
 class ZippingBudgetTest {
     @TempDir Path root;
+
+    @Test
+    void invalidBudgetsAreRejectedAndNeverMeanUnlimited() {
+        for (int value : new int[]{0, -1, Integer.MIN_VALUE}) {
+            org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new Zipping.Limits(value, 1, 1, 1));
+            org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new Zipping.Limits(1, value, 1, 1));
+            org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new Zipping.Limits(1, 1, value, 1));
+            org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new Zipping.Limits(1, 1, 1, value));
+            org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new PathIo.Limits(value, 1, 1));
+            org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new PathIo.Limits(1, value, 1));
+            org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new PathIo.Limits(1, 1, value));
+        }
+        org.assertj.core.api.Assertions.assertThatNullPointerException().isThrownBy(() -> Zipping.zipFiles(List.of(), root.resolve("x"), null));
+        org.assertj.core.api.Assertions.assertThatNullPointerException().isThrownBy(() -> PathIo.directorySize(root, null));
+    }
 
     @Test
     void actualSourceBytesAtAndBelowBudgetSucceedButTheNextByteRejectsTheWholeArchive() throws Exception {
@@ -94,5 +119,44 @@ class ZippingBudgetTest {
                 }
             }
         }
+    }
+
+    @Test
+    void entryNamesCannotBecomeDrivePathsAndTheirUtf8MetadataIsBounded() throws Exception {
+        Path fixture = root.resolve("source-filesystem.zip");
+        try (var filesystem = FileSystems.newFileSystem(fixture, Map.of("create", "true"))) {
+            String[] names = {"正常文档.txt", "C:drive-path", "a".repeat(1025), "文".repeat(342)};
+            for (int i = 0; i < names.length; i++) {
+                // ZipFS provides legal names that the host filesystem cannot represent. The owned
+                // external provider below supports NOFOLLOW_LINKS, unlike JDK ZipFS input streams.
+                Path source = namedSource(filesystem.getPath(names[i]));
+                Path output = root.resolve("entry" + i + ".zip");
+                var result = Zipping.zipFiles(List.of(source), output);
+                if (i == 0) {
+                    assertThat(result.isOk()).as(result.isErr() ? String.valueOf(result.getErr().getException()) : "ok").isTrue();
+                    try (var zip = new ZipFile(output.toFile())) { assertThat(zip.getEntry(names[i])).isNotNull(); }
+                } else {
+                    assertThat(result.isErr()).as("cross-platform name policy or 1024 UTF-8 byte budget").isTrue();
+                    assertThat(output).doesNotExist();
+                }
+            }
+        }
+    }
+
+    private Path namedSource(Path entryName) throws Exception {
+        Path real = Files.writeString(root.resolve("source.bin"), "x");
+        Path path = mock(Path.class, delegatesTo(real));
+        var filesystem = mock(FileSystem.class);
+        var provider = mock(FileSystemProvider.class, CALLS_REAL_METHODS);
+        doReturn(filesystem).when(path).getFileSystem();
+        doReturn(path).when(path).toAbsolutePath();
+        doReturn(path).when(path).normalize();
+        doReturn(path).when(path).toRealPath(any(LinkOption[].class));
+        doReturn(entryName).when(path).getFileName();
+        when(filesystem.provider()).thenReturn(provider);
+        when(provider.readAttributes(eq(path), eq(BasicFileAttributes.class), any(LinkOption[].class)))
+                .thenReturn(Files.readAttributes(real, BasicFileAttributes.class));
+        doReturn(new ByteArrayInputStream(new byte[]{'x'})).when(provider).newInputStream(eq(path), any(OpenOption[].class));
+        return path;
     }
 }

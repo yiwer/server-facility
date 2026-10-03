@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed，2026-10-04，票14实施中。公开接口为Zipping/PathIo，不引入通用压缩框架；验证通过后登记Accepted。替代旧io包“best effort/跳过仍成功”文档及RV2-09内部visitor测试约定。
+Accepted，2026-10-04。公开接口为Zipping/PathIo，不引入通用压缩框架。替代旧io包“best effort/跳过仍成功”文档及RV2-09内部visitor测试约定；验证进度独立记录于票14报告，Accepted不代表未执行的环境已通过。
 
 ## Context
 
@@ -16,6 +16,8 @@ Proposed，2026-10-04，票14实施中。公开接口为Zipping/PathIo，不引�
 4. 输入条目数、实际读取bytes、输出bytes（含ZIP元数据）、深度均采用有限正数预算；旧便利方法使用公开默认。每个条目名有有限UTF-8长度政策。实际读取使用固定buffer，并在边界检查中断，保留中断标志；阻塞provider是否立即响应中断由provider决定。
 5. 每层资源以try-with-resources关闭，保留最初失败并将关闭/清理异常列为suppressed。发布后移除stage失败时回滚自身目标；如果底层文件系统拒绝回滚/清理，返回失败并保留诊断，不能声称残留永远为零。调用方不得把失败时路径存在当作提交成功。
 6. deleteDirectory是有界逐项删除，不是原子事务；失败可已有部分删除，Err保存实际原因。目录遍历失败不能继续删除父目录并覆盖原异常。null或确实不存在保持旧幂等成功，但无权限与不存在须区分。
+7. ZIP默认10,000 entries、256 MiB实际输入、256 MiB完整输出、64层；entryName最多1,024 UTF-8 bytes，拒绝冒号、反斜线及dot路径片段，ZIP使用正斜线。PathIo默认10,000后代、256 MiB逻辑文件bytes、64层；根不计entry/depth，目录元数据不计bytes，硬链接每个路径分别统计。所有显式预算必须为正，不暗含unlimited；逻辑byte累计先减剩余额度，避免long溢出。
+8. PathIo拒绝链接节点及链接祖先，deleteDirectory拒绝文件系统根；保留处理单个普通文件的兼容行为。统计不提供同一时点快照，文件并发变化可能改变结果或返回失败；删除不预扫描承诺原子性。中断在遍历、删除与ZIP发布边界检查，底层provider不响应中断时不能强制结束；已发布后才到达的取消不能撤销成功。
 
 ## Primary API evidence
 
