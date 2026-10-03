@@ -22,7 +22,8 @@
         <archunit.version>1.5.1</archunit.version>
         <tika.version>4.1.0</tika.version>
         <jsoup.version>1.18.3</jsoup.version>
-        <poi.version>5.3.0</poi.version>
+        <poi.version>5.5.1</poi.version>
+        <commons-compress.version>1.28.0</commons-compress.version>
         <commons-csv.version>1.14.1</commons-csv.version>
 
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
@@ -178,6 +179,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Excel preflight reads Zip64 with the same optional mature ZIP engine as POI. -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>${commons-compress.version}</version>
+            <optional>true</optional>
+        </dependency>
         <!-- CSV grammar is a required dependency of the always-available CSV facade. -->
         <dependency>
             <groupId>org.apache.commons</groupId>

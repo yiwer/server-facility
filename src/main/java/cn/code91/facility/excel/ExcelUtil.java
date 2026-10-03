@@ -3,176 +3,157 @@ package cn.code91.facility.excel;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
+import jakarta.annotation.Nullable;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
- * <b>Excel 静态门面</b>
- * <p>
- * 依赖 Apache POI(optional):{@code poi} + {@code poi-ooxml} 成对引入时能力可用;
- * 缺失时所有方法返回 {@link FacilityErrorType#EXCEL_LIB_MISSING} 的 err——经缓存的
- * **双类** {@code Class.forName} 探针判定(poi 核心 + poi-ooxml 各一次,两者都在场
- * 才判定可用;半拉子 classpath——只引 poi 漏引 poi-ooxml——下单探针会让委托时的
- * {@code NoClassDefFoundError} 逃逸 never-throw 契约,故成对探测,对齐 cache 簇
- * Caffeine+spring-context-support 的双类探测范式),POI 类型全部隔离于包私有
- * {@code ExcelSupport},本类加载永不触发 {@code NoClassDefFoundError}(ADR-0021)。
- * </p>
- * <p>
- * 读:usermodel + WorkbookFactory,自动识别 xls/xlsx,仅第一个 sheet,单元格经
- * DataFormatter 全字符串化(忠实 Excel 显示语义),公式取计算值;整簿载入内存,
- * 行数上限受堆约束。写:SXSSF 恒定内存,仅产出 xlsx,单 sheet(Sheet1)。
- * 所有可失败方法返回 {@link Result},从不抛异常,null 入参 → err。
- * </p>
+ * Bounded first-sheet Excel access. Install the complete POI/poi-ooxml dependency graph
+ * to enable this optional facade; absent engines return EXCEL_LIB_MISSING. POI types
+ * remain behind package-private implementation classes.
  *
- * @author yvvb
- * @since 1.0.0
+ * <p>XLSX rows use SAX after bounded snapshot/ZIP validation. XLS uses HSSF with a fixed
+ * 1 MiB input ceiling, in addition to caller limits. Metadata has internal ceilings
+ * described in ADR0039. Convenience reads collect only within DEFAULT budgets;
+ * large XLSX callers should use forEach with explicit limits. Display locale is explicit,
+ * formula caches are read or formulas rejected, and formulas are never evaluated.</p>
+ *
+ * <p>Streams are borrowed; Path streams and temporary files are owned. Expected I/O,
+ * format, budget and cooperative interruption failures return Result. Required policies
+ * fail fast; callback/iterator program errors propagate after cleanup. Earlier callback
+ * effects and partially written outputs are not rolled back. No atomic Path publication
+ * or preemption of blocking user I/O is promised.</p>
  */
 public final class ExcelUtil {
-
-    /** POI 核心探针类(usermodel;缺它则 Excel 能力不可用) */
-    private static final String POI_CORE_PROBE_CLASS = "org.apache.poi.ss.usermodel.Workbook";
-
-    /** POI ooxml 探针类(streaming/xssf;与核心成对约定,单探针会让半拉子 classpath 下的 NCDFE 逃逸 never-throw) */
+    private static final String POI_CORE_PROBE_CLASS = "org.apache.poi.hssf.usermodel.HSSFWorkbook";
     private static final String POI_OOXML_PROBE_CLASS = "org.apache.poi.xssf.streaming.SXSSFWorkbook";
-
-    /** 探测缓存:null=未探测;测试可经 {@link #overridePoiPresent} 覆盖 */
     private static volatile Boolean poiPresent;
 
-    private ExcelUtil() {
-        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    private ExcelUtil() { throw new UnsupportedOperationException("Utility class cannot be instantiated"); }
+
+    /** Collects the first sheet within DEFAULT limits and Locale.ROOT. */
+    public static Result<List<List<String>>, WrappedError> read(@Nullable Path file) {
+        return readAll(file, ExcelReadOptions.DEFAULT);
     }
 
-    // ==================== 读 ====================
-
-    /**
-     * 读取 Excel 文件(xls/xlsx 自动识别;仅第一个 sheet;单元格经 DataFormatter
-     * 全字符串化,公式取计算值;空单元格 → 空串;整行缺失 → 空 List;行宽按行自身末列)。
-     * <p>整簿载入内存(usermodel):行数上限受堆约束,超大文件请等待流式读(ADR-0021 roadmap)。</p>
-     *
-     * @param file 源文件
-     * @return 行集;POI 缺失 → {@link FacilityErrorType#EXCEL_LIB_MISSING};
-     *         file 为 null、畸形文件或 IO 失败 → {@link FacilityErrorType#EXCEL_READ_ERROR}
-     */
-    public static Result<List<List<String>>, WrappedError> read(Path file) {
-        if (file == null) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_READ_ERROR));
-        }
-        if (!isPoiPresent()) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
-        }
-        return ExcelSupport.read(file);
+    /** Collects the first sheet; never closes the borrowed source. */
+    public static Result<List<List<String>>, WrappedError> read(@Nullable InputStream in) {
+        return readAll(in, ExcelReadOptions.DEFAULT);
     }
 
-    /**
-     * 从输入流读取 Excel(xls/xlsx 自动识别)。流由调用方关闭。
-     *
-     * @param in 源流
-     * @return 行集;POI 缺失 → {@link FacilityErrorType#EXCEL_LIB_MISSING};
-     *         in 为 null、畸形内容或 IO 失败 → {@link FacilityErrorType#EXCEL_READ_ERROR}
-     */
-    public static Result<List<List<String>>, WrappedError> read(InputStream in) {
-        if (in == null) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_READ_ERROR));
-        }
-        if (!isPoiPresent()) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
-        }
-        return ExcelSupport.read(in);
+    /** Bounded collection using an explicit display locale and formula-cache policy. */
+    public static Result<List<List<String>>, WrappedError> readAll(@Nullable InputStream in, ExcelReadOptions options) {
+        Objects.requireNonNull(options, "options");
+        var rows = new ArrayList<List<String>>();
+        var result = forEach(in, options, rows::add);
+        return result.isErr() ? Result.err(result.getErr()) : Result.ok(rows);
     }
 
-    // ==================== 写 ====================
-
-    /**
-     * 写出 xlsx 文件(SXSSF 恒定内存,单 sheet {@code Sheet1})。
-     *
-     * @param file 目标文件(覆盖写)
-     * @param rows 行集;行内 null 单元格写为空串
-     * @return 成功 {@code ok};POI 缺失 → {@link FacilityErrorType#EXCEL_LIB_MISSING};
-     *         file/rows 为 null、rows 含 null 行或 IO 失败 →
-     *         {@link FacilityErrorType#EXCEL_WRITE_ERROR}
-     */
-    public static Result<Void, WrappedError> write(Path file, List<List<String>> rows) {
-        if (file == null || rows == null) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
-        }
-        if (!isPoiPresent()) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
-        }
-        if (containsNullRow(rows)) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
-        }
-        return ExcelSupport.write(file, rows);
+    /** Bounded collection from an owned file input. */
+    public static Result<List<List<String>>, WrappedError> readAll(@Nullable Path file, ExcelReadOptions options) {
+        Objects.requireNonNull(options, "options");
+        var rows = new ArrayList<List<String>>();
+        var result = forEach(file, options, rows::add);
+        return result.isErr() ? Result.err(result.getErr()) : Result.ok(rows);
     }
 
     /**
-     * 写出 xlsx 到输出流(SXSSF)。流由调用方关闭。
-     *
-     * @param out  目标流
-     * @param rows 行集;行内 null 单元格写为空串
-     * @return 成功 {@code ok};POI 缺失 → {@link FacilityErrorType#EXCEL_LIB_MISSING};
-     *         out/rows 为 null、rows 含 null 行或 IO 失败 →
-     *         {@link FacilityErrorType#EXCEL_WRITE_ERROR}
+     * Delivers immutable, independent rows synchronously. Missing rows are empty lists;
+     * missing cells are empty strings and count toward padded-cell budgets. The first
+     * failure stops delivery; consumer exceptions propagate and prior effects remain.
+     * The borrowed source can be consumed through one byte beyond its budget.
      */
-    public static Result<Void, WrappedError> write(OutputStream out, List<List<String>> rows) {
-        if (out == null || rows == null) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
-        }
-        if (!isPoiPresent()) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
-        }
-        if (containsNullRow(rows)) {
-            return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
-        }
-        return ExcelSupport.write(out, rows);
+    public static Result<Void, WrappedError> forEach(@Nullable InputStream in, ExcelReadOptions options,
+                                                    Consumer<List<String>> consumer) {
+        Objects.requireNonNull(options, "options");
+        Objects.requireNonNull(consumer, "consumer");
+        if (in == null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_READ_ERROR));
+        if (!isPoiPresent()) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        return ExcelReadSupport.read(in, options, consumer);
     }
 
-    /** rows 是否含 null 行(两个 write 重载共用;Path 重载在委托 ExcelSupport 之前拒绝,避免残留空文件)。 */
-    private static boolean containsNullRow(List<List<String>> rows) {
+    /** Same row contract as the stream overload; this operation opens and closes the file. */
+    public static Result<Void, WrappedError> forEach(@Nullable Path file, ExcelReadOptions options,
+                                                    Consumer<List<String>> consumer) {
+        Objects.requireNonNull(options, "options");
+        Objects.requireNonNull(consumer, "consumer");
+        if (file == null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_READ_ERROR));
+        if (!isPoiPresent()) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        return ExcelReadSupport.read(file, options, consumer);
+    }
+
+    /** Small-list convenience writer; DEFAULT row count/null-row checks precede file truncation. */
+    public static Result<Void, WrappedError> write(@Nullable Path file, @Nullable List<List<String>> rows) {
+        if (file == null || rows == null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
+        if (!isPoiPresent()) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        ExcelException invalid = validateLegacyRows(rows);
+        if (invalid != null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR, invalid));
+        return ExcelWriteSupport.write(file, rows, ExcelLimits.DEFAULT);
+    }
+
+    /** Small-list writer that leaves the caller's output open and flushes on success. */
+    public static Result<Void, WrappedError> write(@Nullable OutputStream out, @Nullable List<List<String>> rows) {
+        if (out == null || rows == null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
+        if (!isPoiPresent()) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        ExcelException invalid = validateLegacyRows(rows);
+        if (invalid != null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR, invalid));
+        return ExcelWriteSupport.write(out, rows, ExcelLimits.DEFAULT);
+    }
+
+    /**
+     * Iterates once to write a single Sheet1 XLSX. Every value is a text cell, including
+     * formula-like strings; null cells become empty text and null rows fail. The SXSSF
+     * window holds one row, with bounded private sheet/template files. Output can contain
+     * a prefix on failure. A positive maxExpandedBytes belongs to read operations only.
+     */
+    public static Result<Void, WrappedError> write(@Nullable OutputStream out,
+            @Nullable Iterable<? extends List<String>> rows, ExcelLimits limits) {
+        Objects.requireNonNull(limits, "limits");
+        if (out == null || rows == null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
+        if (!isPoiPresent()) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        return ExcelWriteSupport.write(out, rows, limits);
+    }
+
+    /** Writes to an owned path; failures may leave a prefix, so this is not atomic publication. */
+    public static Result<Void, WrappedError> write(@Nullable Path file,
+            @Nullable Iterable<? extends List<String>> rows, ExcelLimits limits) {
+        Objects.requireNonNull(limits, "limits");
+        if (file == null || rows == null) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_WRITE_ERROR));
+        if (!isPoiPresent()) return Result.err(WrappedError.of(FacilityErrorType.EXCEL_LIB_MISSING));
+        return ExcelWriteSupport.write(file, rows, limits);
+    }
+
+    private static ExcelException validateLegacyRows(List<List<String>> rows) {
+        if (rows.size() > ExcelLimits.DEFAULT.maxRows())
+            return new ExcelException(ExcelException.Reason.ROWS, ExcelLimits.DEFAULT.maxRows() + 1L, 0);
+        int index = 0;
         for (List<String> row : rows) {
-            if (row == null) {
-                return true;
-            }
+            if (++index > ExcelLimits.DEFAULT.maxRows()) return new ExcelException(ExcelException.Reason.ROWS, index, 0);
+            if (row == null) return new ExcelException(ExcelException.Reason.FORMAT, index, 0);
         }
-        return false;
+        return null;
     }
 
-    // ==================== 探测 ====================
-
-    /** POI 是否在 classpath(缓存单次探测;不初始化探针类)。 */
     static boolean isPoiPresent() {
         Boolean present = poiPresent;
         if (present == null) {
-            present = probePoi();
+            present = classExists(POI_CORE_PROBE_CLASS) && classExists(POI_OOXML_PROBE_CLASS);
             poiPresent = present;
         }
         return present;
     }
 
-    /**
-     * 双类探测:poi 核心与 poi-ooxml 各探一次,两者都在才判定可用。
-     * 成对约定缺一(如只引 poi 漏引 poi-ooxml 的半拉子 classpath)即降级为不可用,
-     * 避免委托进 {@code ExcelSupport} 后触发未受检的 {@code NoClassDefFoundError}。
-     */
-    private static boolean probePoi() {
-        return classExists(POI_CORE_PROBE_CLASS) && classExists(POI_OOXML_PROBE_CLASS);
+    private static boolean classExists(String name) {
+        try { Class.forName(name, false, ExcelUtil.class.getClassLoader()); return true; }
+        catch (ClassNotFoundException absent) { return false; }
     }
 
-    private static boolean classExists(String className) {
-        try {
-            Class.forName(className, false, ExcelUtil.class.getClassLoader());
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-
-    /**
-     * 覆盖探测结果(仅测试:模拟 POI 缺失;{@code null} 复原真实探测)。
-     */
-    static void overridePoiPresent(Boolean value) {
-        poiPresent = value;
-    }
+    /** Test isolation for the historical optional-dependency regression. */
+    static void overridePoiPresent(Boolean value) { poiPresent = value; }
 }
