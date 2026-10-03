@@ -32,3 +32,10 @@
 
 - 包根 `cn.code91.facility.*`;类前缀 `Facility*`;配置前缀 `facility.*`;
   i18n bundle `i18n/facility-messages_*`。
+
+## 独立 claim 术语（ADR0034）
+
+- **命令绑定**：可信scope与client key首次绑定canonical fingerprint；新协议在store生命周期内保留，不随回执正文过期删除。
+- **执行资格（ClaimToken）**：当前scope/key、owner和generation的记录更新资格；只有当前活跃PROCESSING可完成/释放，不代表身份认证或外部副作用锁。
+- **lease / retention**：PROCESSING允许同内容新owner的租约，与从完成时刻起保留receipt正文的时长；正文到期不重新授权执行业务。
+- **终态墓碑**：RESULT_EXPIRED、RELEASED或UNKNOWN保留的命令绑定；默认内存满额拒新，不通过驱逐墓碑恢复执行许可。

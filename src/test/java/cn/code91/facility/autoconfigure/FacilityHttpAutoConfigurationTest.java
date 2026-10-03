@@ -55,4 +55,14 @@ class FacilityHttpAutoConfigurationTest {
         runner.withPropertyValues("facility.http.enabled=false")
                 .run(context -> assertThat(context).doesNotHaveBean(RestClient.class));
     }
+
+    @Test
+    void legacyTimeoutPropertiesCannotAccidentallyDisableOrOverflowTimeouts() {
+        for (String property : new String[]{"connect-timeout", "read-timeout"}) {
+            for (String value : new String[]{"0ms", "1ns", "-1ms", "2147483648ms"}) {
+                runner.withPropertyValues("facility.http." + property + "=" + value)
+                        .run(context -> assertThat(context).as(property + "=" + value).hasFailed());
+            }
+        }
+    }
 }

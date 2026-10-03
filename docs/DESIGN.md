@@ -1,6 +1,6 @@
 # server-facility 设计
 
-Boot4.1.1/Jackson3.1.5目标平台已在`80670fa`通过Windows/Ubuntu完整构建、普通jar消费者、Servlet6.1、真实依赖矩阵和独立引擎控制，见[同源CI闭合](verification/ticket-24-ci.md)。03/05/06/13/17/24适用平台项关闭；其余能力继续实施，最终候选组合由33验收。
+Boot4.1.1/Jackson3.1.5目标平台已在`80670fa`通过Windows/Ubuntu完整构建、普通jar消费者、Servlet6.1、真实依赖矩阵和独立引擎控制，见[同源CI闭合](verification/ticket-24-ci.md)。03/05/06/13/17/24适用平台项关闭；09/14/15随后在`c2f0f6b`通过[两端完整门](verification/ticket-09-14-15-ci.md)。其余能力继续实施，最终候选组合由33验收。
 
 ## 1. Deep module 哲学
 
@@ -92,7 +92,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 
 ## 5. ADR 索引
 
-39 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+42 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -126,6 +126,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
 | 0029 | 默认连接peer/显式可信代理；Servlet与Callable作用域清理身份、恢复宿主trace，部分替代0014来源假设 |
 | 0032 | 本地配额正成本/精确余额、有界主体回收、required/Optional政策和可信身份入口计费；部分替代0014 |
+| 0034 | 独立claim的可信scope/fingerprint、owner条件完成、结果到期不重授、共享硬预算与永久close；部分替代0017 |
 | 0036 | 正数实际字节预算、借用MIME流不关闭、生成存储键与同卷hardlink不覆盖发布；保留0001 optional边界 |
 | 0037 | ZIP完整关闭后hardlink不覆盖发布，有界目录/归档结果与真实失败清理；纯JDK普通jar消费 |
 | 0038 | Commons CSV明确strict/legacy，有界行消费/便利读取，机器原值与电子表格拒绝政策；部分替代0021 |
@@ -135,10 +136,13 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
 | 0047 | 真实依赖图和普通jar/HTTP平台门；补全Servlet6.1重载与缺任一缓存依赖回退，OS证据分别登记 |
+| 0048 | 宿主builder/应用Adapter拥有外部HTTP配置，实际字节预算、有限重试与未知副作用结果；部分替代0018 |
+| 0050 | 独立JWT保护MVC模板：应用信任/Actor、标准Security授权、安全401/403/503与上下文所有权；扩展0027/0029接合 |
 
 ## 6. 质量门
 
-- **最新本地接合（票14/15）**：共同09 tip上，IO `58a1e83` integration为1507/0/0/0，CSV `e1f078a` all --fresh为1506/0/0/0；各自原门/5架构/依赖及普通jar/矩阵/负控通过。IO覆盖93.3210/93.9019/85.6394%，CSV为92.9119/93.5963/85.6103%（指令/行/分支），见[14](verification/ticket-14-io-integrity.md)/[15](verification/ticket-15-bounded-csv.md)。合并后同源完整门与Linux仍待批次CI，不合并两分支计数冒充实测。
+- **09/14/15跨平台闭合**：集成 `c2f0f6b` 的Windows/Ubuntu完整门、平台门和归档全部通过，[CI37147633803](verification/ticket-09-14-15-ci.md)登记同源证据，三票closed。
+- **最新本地接合（11/25/27）**：11被测`956081d` Windows all为库1555/0/0/0、模板47/0/0/0，含64MiB普通jar和三个32MiB claim故障探针；25被测`a9c6400` all --fresh为库1541/0/0/0、聚合应用14/0/0/0，含200次尾流拒绝和5次关闭。各自原质量门与负控通过，见[11报告](verification/ticket-11-qualified-claims.md)、[25报告](verification/ticket-25-outbound-http.md)及[27报告](verification/ticket-27-secured-template.md)。合并后三条消费者入口保留且runner编译通过；联合Windows/Linux CI尚待，三票保持verification-pending，不把不同源计数拼成同源结果。
 - **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；同产品集成`80670fa`现已通过Windows/Ubuntu完整CI，详见[平台闭合](verification/ticket-24-ci.md)；各环境精确值以各自artifact为准。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载已由24在目标平台复验关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75

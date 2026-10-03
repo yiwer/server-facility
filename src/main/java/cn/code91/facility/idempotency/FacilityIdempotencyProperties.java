@@ -33,8 +33,8 @@ public class FacilityIdempotencyProperties {
     private Duration defaultTtl = Duration.ofMinutes(5);
 
     /**
-     * {@link InMemoryIdempotencyStore} 记录集合的无界防护上限——记录数达到该值且待建 key
-     * 不在集合中时先清过期条目,复查仍超限则拒绝占位——fail-closed(F8;详见 ADR-0017 修订段)。
+     * {@link InMemoryIdempotencyStore} 新旧命名空间共享的严格条目上限——记录数达到该值且待建 key
+     * 不在集合中时仅清理兼容旧TTL条目；新claim绑定保留至close，仍满额则拒绝（ADR0034）。
      * (声明性约束:&gt;0;绑定不校验——ADR-0013)
      */
     private int maxEntries = 100_000;

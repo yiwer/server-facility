@@ -16,6 +16,21 @@ package cn.code91.facility.idempotency;
  * @since 1.0.0
  */
 public record IdempotencyRecord(State state, int statusCode, String contentType, byte[] body, long expiresAtMillis) {
+    public IdempotencyRecord {
+        java.util.Objects.requireNonNull(state, "state");
+        if (state == State.PROCESSING) {
+            if (statusCode != 0 || contentType != null || body != null)
+                throw new IllegalArgumentException("PROCESSING has no response");
+        } else {
+            if (statusCode < 100 || statusCode > 599) throw new IllegalArgumentException("Invalid HTTP status");
+            if (contentType != null) ClaimInputs.text(contentType, "contentType", 256);
+            body = java.util.Objects.requireNonNull(body, "body").clone();
+        }
+    }
+
+    @Override public byte[] body() { return body == null ? null : body.clone(); }
+
+    int bodyLength() { return body == null ? 0 : body.length; }
 
     /**
      * 记录状态
@@ -28,7 +43,7 @@ public record IdempotencyRecord(State state, int statusCode, String contentType,
     }
 
     /**
-     * 构造一条"占位中"记录（{@link #tryBegin} 成功时写入）
+     * 构造一条"占位中"记录（{@link IdempotencyStore#tryBegin(String, long)} 成功时写入）
      *
      * @param expiresAtMillis 过期时间点
      * @return {@link State#PROCESSING} 记录，statusCode/contentType/body 均为空值

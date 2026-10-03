@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>cn.code91.examples</groupId><artifactId>partner-aggregation</artifactId><version>1.0-SNAPSHOT</version>
+  <properties><maven.compiler.release>25</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><argLine></argLine></properties>
+  <dependencyManagement><dependencies><dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-dependencies</artifactId><version>4.1.1</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement>
+  <dependencies>
+    <dependency><groupId>cn.code91</groupId><artifactId>server-facility</artifactId><version>0.1.0-SNAPSHOT</version></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-restclient</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-tracing-bridge-brave</artifactId><scope>test</scope></dependency>
+  </dependencies>
+  <build><plugins>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.4.1</version></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.16.0</version><configuration><parameters>true</parameters></configuration></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.6.0</version><configuration><failIfNoTests>true</failIfNoTests><argLine>@{argLine} -javaagent:target/jacoco-agent.jar=destfile=target/jacoco.exec -Xmx128m -Dfile.encoding=UTF-8 -Djdk.net.unixdomain.tmpdir=target</argLine><forkedProcessTimeoutInSeconds>120</forkedProcessTimeoutInSeconds></configuration></plugin>
+    <plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.15</version><executions>
+      <execution><id>report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><rules><rule><element>BUNDLE</element><limits>
+        <limit><counter>INSTRUCTION</counter><value>COVEREDRATIO</value><minimum>0.88</minimum></limit>
+        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.88</minimum></limit>
+        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.75</minimum></limit>
+      </limits></rule></rules></configuration></execution>
+    </executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.5.1</version></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version><executions>
+      <execution><id>test-agent</id><phase>initialize</phase><goals><goal>copy</goal></goals><configuration><artifactItems><artifactItem>
+        <groupId>org.jacoco</groupId><artifactId>org.jacoco.agent</artifactId><version>0.8.15</version><classifier>runtime</classifier><type>jar</type>
+        <outputDirectory>${project.build.directory}</outputDirectory><destFileName>jacoco-agent.jar</destFileName>
+      </artifactItem></artifactItems></configuration></execution>
+    </executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.6.3</version><executions>
+      <execution><id>toolchain</id><goals><goal>enforce</goal></goals><configuration><rules><requireJavaVersion><version>[25,26)</version></requireJavaVersion><requireMavenVersion><version>[3.10.0,3.10.1)</version></requireMavenVersion></rules></configuration></execution>
+      <execution><id>coverage-required</id><phase>verify</phase><goals><goal>enforce</goal></goals><configuration><rules><requireFilesExist><files><file>${project.build.directory}/jacoco.exec</file><file>${project.build.directory}/site/jacoco/jacoco.xml</file></files><message>Executed coverage data and report are required</message></requireFilesExist></rules></configuration></execution>
+    </executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-help-plugin</artifactId><version>3.5.1</version></plugin>
+  </plugins></build>
+</project>

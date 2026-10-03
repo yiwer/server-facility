@@ -115,6 +115,7 @@ class IdempotencyInterceptorTest {
     @DisplayName("key 已有 DONE 记录:preHandle 返回 false,直接写回首次响应")
     void doneKey_writesCachedResponse() throws Exception {
         InMemoryIdempotencyStore store = new InMemoryIdempotencyStore(1000);
+        store.tryBegin("key-5", 60_000);
         store.complete("key-5", IdempotencyRecord.done(200, "application/json",
                 "cached".getBytes(StandardCharsets.UTF_8), System.currentTimeMillis() + 60_000));
         IdempotencyInterceptor interceptor = new IdempotencyInterceptor(store, 60_000);
