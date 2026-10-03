@@ -22,8 +22,10 @@ import javax.crypto.spec.SecretKeySpec;
  * <b>加解密静态门面</b>
  * <p>
  * 纯 JDK（{@code javax.crypto}/{@code java.security}）实现，把易错的 JCE API 收进窄接口、安全默认、
- * 不可误用的深模块。对称加解密唯一走 AES-256-GCM（IV 由门面内管，杜绝 nonce 复用）；所有可失败方法
- * 返回 {@link Result}，从不抛异常。
+ * 深模块。对称加解密只走 AES-GCM，默认生成256位密钥；IV 使用 SecureRandom 生成。
+ * 随机IV不等于无限调用下的无碰撞保证，密钥生命周期由应用管理。
+ * 返回 Result 的入口仅携带安全错误码，不附原始异常或输入；程序 Error 不捕获，
+ * 非Result入口仍可能抛校验/配置异常。
  * </p>
  *
  * @author yvvb
@@ -72,7 +74,7 @@ public final class CryptoUtil {
         try {
             return Result.ok(Base64.getDecoder().decode(base64));
         } catch (IllegalArgumentException e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECODE_ERROR, e));
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECODE_ERROR));
         }
     }
 
@@ -153,7 +155,7 @@ public final class CryptoUtil {
             System.arraycopy(ct, 0, out, iv.length, ct.length);
             return Result.ok(Base64.getEncoder().encodeToString(out));
         } catch (Exception e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_ENCRYPT_ERROR, e));
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_ENCRYPT_ERROR));
         }
     }
 
@@ -162,7 +164,7 @@ public final class CryptoUtil {
      * {@link #generateAesKey()} 产 256 位。
      *
      * <p>安全:所有失败返回 equals 相等且<b>不含底层异常</b>的 {@code CRYPTO_DECRYPT_ERROR},调用方无从
-     * 区分失败模式(oracle 加固);与 {@link #encrypt} 刻意不对称——加密失败非 oracle 向量,保留 cause 便于诊断。</p>
+     * 从公开错误对象区分失败模式；这不是恒定时间执行保证。加密和其他Result错误同样不附原始cause。</p>
      *
      * @param base64Cipher {@link #encrypt} 的输出
      * @param key          AES 密钥
@@ -177,7 +179,7 @@ public final class CryptoUtil {
      * {@link #generateAesKey()} 产 256 位。
      *
      * <p>安全:所有失败返回 equals 相等且<b>不含底层异常</b>的 {@code CRYPTO_DECRYPT_ERROR},调用方无从
-     * 区分失败模式(oracle 加固);与 {@link #encrypt} 刻意不对称——加密失败非 oracle 向量,保留 cause 便于诊断。</p>
+     * 从公开错误对象区分失败模式；这不是恒定时间执行保证。加密和其他Result错误同样不附原始cause。</p>
      *
      * @param base64Cipher {@link #encrypt} 的输出
      * @param key          AES 密钥
@@ -189,7 +191,7 @@ public final class CryptoUtil {
         }
         try {
             byte[] all = Base64.getDecoder().decode(base64Cipher);
-            if (all.length <= GCM_IV_BYTES) {
+            if (all.length < GCM_IV_BYTES + GCM_TAG_BITS / Byte.SIZE) {
                 return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR));
             }
             byte[] iv = Arrays.copyOfRange(all, 0, GCM_IV_BYTES);
@@ -200,7 +202,7 @@ public final class CryptoUtil {
         } catch (Exception e) {
             // 刻意不附加底层异常:让全部解密失败(畸形 Base64 / IV 不足 / 错误密钥 / 篡改 / null)产生
             // equals 相等且不含 cause 的错误对象,杜绝调用方经 WrappedError.getException()/getFullMessage()
-            // 区分失败模式(oracle 加固,ADR-0019)。encrypt 刻意保留 cause——非 oracle 向量,便于诊断。
+            // 区分失败模式。ADR-0040将不保留原始cause扩展到全部Result失败，避免provider文本泄密。
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR));
         }
     }
@@ -253,7 +255,7 @@ public final class CryptoUtil {
             byte[] keyBytes = factory.generateSecret(spec).getEncoded();
             return Result.ok(new SecretKeySpec(keyBytes, AES));
         } catch (Exception e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR, e));
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
         } finally {
             // 及时清零 PBEKeySpec 内部口令副本,缩小口令在堆内可恢复的窗口(ADR-0019)。
             // 注:入参 String password 本身不可清零(JVM 字符串不可变),口令根本清零需调用方配合。
@@ -289,13 +291,14 @@ public final class CryptoUtil {
      * @return AES 密钥；null/畸形 Base64/非法长度 → {@link FacilityErrorType#CRYPTO_KEY_ERROR}
      */
     public static Result<SecretKey, WrappedError> importKey(String base64Key) {
-        if (base64Key == null) {
+        // Padded AES-256 is the longest supported encoding (44 chars); reject before decoding.
+        if (base64Key == null || base64Key.length() > 44) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
         }
         try {
             return aesKeyFromBytes(Base64.getDecoder().decode(base64Key));
         } catch (IllegalArgumentException e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR, e));
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
         }
     }
 
@@ -317,7 +320,7 @@ public final class CryptoUtil {
             mac.init(new SecretKeySpec(key, HMAC_SHA256));
             return Result.ok(hexEncode(mac.doFinal(data)));
         } catch (Exception e) {
-            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_MAC_ERROR, e));
+            return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_MAC_ERROR));
         }
     }
 
