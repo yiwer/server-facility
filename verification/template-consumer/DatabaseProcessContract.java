@@ -28,6 +28,33 @@ class DatabaseProcessContract {
         }
         Path root = Files.createTempDirectory("facility-database-contract-").toRealPath(), state = root.resolve("cluster");
         try {
+            if (args[2].equals("cleanup")) {
+                Path log = evidence.resolve("cleanup-file-failure.log");
+                var child = start(app, state, log);
+                try {
+                    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
+                    Path ready = state.resolve("database.properties");
+                    while (!Files.isRegularFile(ready) && child.isAlive() && System.nanoTime() < deadline) Thread.sleep(50);
+                    check(Files.isRegularFile(ready), "cleanup fixture startup failed: " + Files.readString(log));
+                    Files.delete(ready); Files.createDirectory(ready); Files.writeString(ready.resolve("owned-failure"), "blocks deletion");
+                    child.getOutputStream().close();
+                    check(child.waitFor(85, TimeUnit.SECONDS) && child.exitValue() != 0, "cleanup file failure was silently accepted or hung");
+                    check(Files.readString(log).contains("DirectoryNotEmptyException"), "original file failure lost");
+                    check(!Files.exists(state.resolve("data/postmaster.pid")), "failed readiness deletion skipped native database stop");
+                    System.out.println("DATABASE_CLEANUP_FAILURE_PASS original file failure retained; PostgreSQL stopped independently");
+                } finally {
+                    if (child.isAlive()) { child.destroy(); child.waitFor(85, TimeUnit.SECONDS); }
+                    // Test failure recovery uses only this test's marked, freshly created cluster.
+                    if (Files.exists(state.resolve("data/postmaster.pid"))) {
+                        check(Files.isRegularFile(state.resolve("owned-local-database")), "unowned recovery target");
+                        Path ctl = Path.of(System.getenv("PG_BIN"), System.getProperty("os.name").startsWith("Windows") ? "pg_ctl.exe" : "pg_ctl");
+                        var recovery = new ProcessBuilder(ctl.toString(), "-D", state.resolve("data").toString(), "-m", "fast", "-w", "-t", "60", "stop")
+                                .redirectErrorStream(true).redirectOutput(evidence.resolve("test-recovery-stop.log").toFile()).start();
+                        check(recovery.waitFor(70, TimeUnit.SECONDS) && recovery.exitValue() == 0, "test recovery could not stop owned database");
+                    }
+                }
+                return;
+            }
             for (int cycle = 0; cycle < 2; cycle++) {
                 Path log = evidence.resolve("lifecycle-" + cycle + ".log");
                 var child = start(app, state, log);

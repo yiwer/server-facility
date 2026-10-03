@@ -63,12 +63,20 @@ class LocalDatabase {
         }
         public synchronized void close() throws Exception {
             if (closed) return;
-            Files.deleteIfExists(properties);
-            if (Files.exists(data.resolve("postmaster.pid"))) {
-                // Match the native test fixture: Windows fsync of its many databases was measured at 31s.
-                run(tools, root, "stop.log", "pg_ctl", "-D", data.toString(), "-m", "fast", "-w", "-t", "60", "stop");
+            Throwable failure = null;
+            try { Files.deleteIfExists(properties); } catch (Exception | Error cleanup) { failure = cleanup; }
+            try {
+                if (Files.exists(data.resolve("postmaster.pid"))) {
+                    // Match the native test fixture: Windows fsync of its many databases was measured at 31s.
+                    run(tools, root, "stop.log", "pg_ctl", "-D", data.toString(), "-m", "fast", "-w", "-t", "60", "stop");
+                }
+                closed = true;
+            } catch (Exception | Error cleanup) {
+                if (failure == null) failure = cleanup;
+                else failure.addSuppressed(cleanup);
             }
-            closed = true;
+            if (failure instanceof Exception exception) throw exception;
+            if (failure instanceof Error error) throw error;
         }
     }
     static List<String> command(Path tools, String tool, String... args) {

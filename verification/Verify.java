@@ -286,11 +286,15 @@ class Verify {
         Files.copy(jar, Files.createDirectories(evidence.resolve("artifacts")).resolve(jar.getFileName()));
         Path databaseContract = ROOT.resolve("verification/template-consumer/DatabaseProcessContract.java");
         Files.copy(databaseContract, evidence.resolve("DatabaseProcessContract.java"));
-        for (String mode : List.of("diagnostics", "lifecycle")) {
+        for (String mode : List.of("diagnostics", "lifecycle", "cleanup")) {
             Path contractLog = run(application, Map.of(), "template-database-" + mode, List.of(java(), "-Xmx96m",
                     databaseContract.toString(), application.toUri().toASCIIString(), evidence.resolve("database-" + mode).toUri().toASCIIString(),
                     mode, client.toString()), 220, null);
-            String marker = mode.equals("diagnostics") ? "DATABASE_FAILURE_DIAGNOSTICS_PASS" : "DATABASE_LIFECYCLE_PASS";
+            String marker = switch (mode) {
+                case "diagnostics" -> "DATABASE_FAILURE_DIAGNOSTICS_PASS";
+                case "lifecycle" -> "DATABASE_LIFECYCLE_PASS";
+                default -> "DATABASE_CLEANUP_FAILURE_PASS";
+            };
             if (!Files.readString(contractLog).contains(marker)) throw new AssertionError("Missing database process contract: " + contractLog);
         }
         Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
