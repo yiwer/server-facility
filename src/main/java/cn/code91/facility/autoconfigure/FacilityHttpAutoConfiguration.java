@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+import java.time.Duration;
 
 /**
  * HTTP client 自动装配(ADR-0018)。
@@ -28,8 +29,8 @@ import org.springframework.web.client.RestClient;
  * {@code facility.http.enabled=false} 可整体关闭(F22,与其余四簇开关对称;缺省 true)。
  * </p>
  * <p>
- * 无跨簇装配顺序依赖,故不声明 {@code @AutoConfigureAfter}(对比 Json/Async 的
- * {@code @AutoConfigureAfter}、Locale 的 {@code @AutoConfigureBefore}——三者显式声明系确有依赖)。
+ * 在Boot RestClient装配之后，克隆宿主builder以保留JSON、customizer、观测与factory。
+ * facility.http的历史超时属性仅在宿主builder缺席时作用于兼容factory；新应用配置自己的服务Adapter。
  * </p>
  *
  * @author yvvb
@@ -53,8 +54,16 @@ public class FacilityHttpAutoConfiguration {
     @Deprecated(since = "0.1.0", forRemoval = false)
     public RestClient facilityRestClient(FacilityHttpProperties props) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(props.getConnectTimeout());
-        factory.setReadTimeout(props.getReadTimeout());
+        factory.setConnectTimeout(timeoutMillis(props.getConnectTimeout(), "connect-timeout"));
+        factory.setReadTimeout(timeoutMillis(props.getReadTimeout(), "read-timeout"));
         return RestClient.builder().requestFactory(factory).build();
+    }
+
+    private static int timeoutMillis(Duration timeout, String property) {
+        if (timeout == null || timeout.compareTo(Duration.ofMillis(1)) < 0
+                || timeout.compareTo(Duration.ofMillis(Integer.MAX_VALUE)) > 0) {
+            throw new IllegalArgumentException("facility.http." + property + " must be between 1ms and 2147483647ms");
+        }
+        return (int) timeout.toMillis();
     }
 }
