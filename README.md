@@ -22,7 +22,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（44 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（45 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -31,15 +31,16 @@
 - **坐标**：`cn.code91:server-facility:0.1.0-SNAPSHOT`，单模块 jar。
 - **环境**：JDK25、Spring Boot4.1.1、Jackson3.1.5；Maven Wrapper固定3.10.0并校验下载。目标平台普通jar和跨平台消费者已通过票24，见[平台账本](docs/building/boot4-platform.md)。其他票继续在集成分支实施，尚未发布制品。
 - **命名**：包根 `cn.code91.facility.*`；类前缀 `Facility*`；配置前缀 `facility.*`；i18n bundle `i18n/facility-messages_*`。
-- **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。完整命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
+- **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。integration/resources/all另需`PG_BIN`指向PostgreSQL18.6原生工具；库fast/verify不需数据库。完整准备命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
 - **质量门**（不达即构建失败，禁止以调低门槛的方式通过）：
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
 - **当前验证边界（2026-10-04，Boot4.1.1/Jackson3.1.5）**：`80670fa`的Windows/Ubuntu `all --fresh`和独立平台控制全部通过，[同源CI与artifact](docs/verification/ticket-24-ci.md)已登记。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、有/无Tika上传、资源周期及负控均已执行；03/05/06/13/17/24适用平台项关闭。本地完整门为1449/0/0/0，各CI精确数值见对应原报告；尚未实施的业务协议不在此通过范围。
 - **09/14/15跨平台闭合**：集成 `c2f0f6b` 已通过Windows/Ubuntu完整门、平台门与归档，见[同源CI37147633803](docs/verification/ticket-09-14-15-ci.md)。各环境精确数值以其artifact为准，三票已closed。
-- **前次本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过，含4种Excel实际依赖图、64MiB400,000行与恶意XML/200失败清理、独立格式样本及openpyxl导出oracle。原覆盖率/5架构/依赖、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](docs/verification/ticket-16-bounded-excel.md)。同源CI12已通过Windows/Ubuntu完整门、平台门和归档，11/16/27 closed，详见[CI37156503739](docs/verification/ticket-11-16-27-ci.md)。25后加Inventory `[null]` 修复尚待CI13，保持verification-pending；本段精确计数仅为原本地来源。
-- **最新本地完整门（26）**：冻结`72a37b6` Windows `all --fresh`为库1614/0/0/0、模板52/0/0/0、聚合应用14/0/0/0，92命令与原质量门/负控全部PASS，见[26报告](docs/verification/ticket-26-host-observability.md)。合入候选额外含25的库存null修复与第15项测试，25/26保持verification-pending，等待联合CI13。
+- **前次本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过，含4种Excel实际依赖图、64MiB400,000行与恶意XML/200失败清理、独立格式样本及openpyxl导出oracle。原覆盖率/5架构/依赖、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](docs/verification/ticket-16-bounded-excel.md)。同源CI12已通过Windows/Ubuntu完整门、平台门和归档，11/16/27 closed，详见[CI37156503739](docs/verification/ticket-11-16-27-ci.md)。25后加Inventory `[null]` 修复已随[CI13](docs/verification/ticket-25-26-ci.md)跨平台闭合；本段精确计数仅为原本地来源。
+- **前次本地完整门（26）**：冻结`72a37b6` Windows `all --fresh`为库1614/0/0/0、模板52/0/0/0、聚合应用14/0/0/0，92命令与原质量门/负控全部PASS，见[26报告](docs/verification/ticket-26-host-observability.md)。含25库存null修复的联合候选已通过[CI13](docs/verification/ticket-25-26-ci.md)，25/26 closed。
+- **最新本地业务门（28）**：冻结`4a5ad5d`完整92步为库1614/partner15/模板74均零失败；随后整秒JDBC预算修复在`e0fd5b3`完成模板76项、原质量门、真实PostgreSQL可执行包两线程模式CRUD/重启与coverage负控。两次来源和范围分别记录在[28报告](docs/verification/ticket-28-persistent-business.md)。最终联合Windows/Linux候选尚待CI，28保持verification-pending。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图
@@ -54,7 +55,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 44 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 45 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
