@@ -64,6 +64,7 @@ class Verify {
                     consumer("override");
                     consumer("invalid");
                     coreConsumer();
+                    cryptoConsumer();
                     jsonConsumer();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
@@ -231,6 +232,22 @@ class Verify {
             throw new AssertionError("Core consumer did not complete: " + log);
         }
         summary.add("core-consumer=ordinary jar only; no framework/annotation/third-party runtime; domain business and compatibility; seed180041/512; -Xmx64m/45s");
+    }
+
+    static void cryptoConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path source = ROOT.resolve("verification/crypto-consumer/CryptoConsumer.java");
+        Path classes = Files.createDirectories(report.resolve("crypto-consumer/classes"));
+        Files.copy(source, report.resolve("crypto-consumer/CryptoConsumer.java"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "crypto-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", classes.toString(), source.toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "crypto-consumer", List.of(java(), "-Xmx64m", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "CryptoConsumer"), 45, null);
+        if (!Files.readString(log).contains("CRYPTO_CONSUMER_PASS legacy=210000 max-bytes=1048576 rounds=64 workers=4 framework=absent")) {
+            throw new AssertionError("Crypto consumer did not complete: " + log);
+        }
+        summary.add("crypto-consumer=ordinary jar only; persisted legacy receipt; explicit input budgets; 64x1MiB sequential and 4x16x256KiB concurrent; -Xmx64m/45s");
     }
 
     static void jsonConsumer() throws Exception {
