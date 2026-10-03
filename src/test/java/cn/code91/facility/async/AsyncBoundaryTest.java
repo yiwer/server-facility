@@ -13,6 +13,33 @@ import static org.assertj.core.api.Assertions.*;
 /** Additional boundary and reproducible scheduling checks through the public API. */
 class AsyncBoundaryTest {
     @Test
+    void staticDefaultEnforcesFourWorkersAnd256QueuedTasksThenRecoversCapacity() throws Exception {
+        var entered = new CountDownLatch(4);
+        var release = new CountDownLatch(1);
+        var cleaned = new CountDownLatch(4);
+        var running = new ArrayList<CompletableFuture<Result<Void, Throwable>>>();
+        var queued = new ArrayList<CompletableFuture<Result<Integer, Throwable>>>();
+        try {
+            for (int i = 0; i < 4; i++) running.add(Async.run(() -> {
+                entered.countDown();
+                try { release.await(); } finally { cleaned.countDown(); }
+            }).submit());
+            assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
+            for (int i = 0; i < 256; i++) queued.add(Async.supply(() -> 1).submit());
+            assertThat(queued).allMatch(future -> !future.isDone());
+            assertThat(Async.supply(() -> "overflow").await().getErr()).isInstanceOf(RejectedExecutionException.class);
+            for (var future : queued) assertThat(future.cancel(true)).isTrue();
+        } finally {
+            for (var future : queued) future.cancel(true);
+            for (var future : running) future.cancel(true);
+            release.countDown();
+        }
+        assertThat(cleaned.await(2, TimeUnit.SECONDS)).isTrue();
+        assertThat(Async.supply(() -> "capacity restored").await(Duration.ofSeconds(2)).get()).isEqualTo("capacity restored");
+        assertThat(Thread.getAllStackTraces().keySet().stream().filter(t -> t.getName().startsWith("facility-async-default-")).count()).isLessThanOrEqualTo(4);
+        assertThat(Thread.getAllStackTraces().keySet().stream().filter(t -> t.getName().equals("facility-async-deadline")).count()).isLessThanOrEqualTo(1);
+    }
+    @Test
     void cancellationWhileExecutorIsAcceptingCannotLeaveCancelledQueueEntry() throws Exception {
         var accepting = new CompletableFuture<Future<?>>();
         var cancellationRemovalFinished = new CountDownLatch(1);
