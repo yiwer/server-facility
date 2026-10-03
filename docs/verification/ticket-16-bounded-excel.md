@@ -1,6 +1,6 @@
-# Ticket 16: bounded Excel verification (Windows complete; Linux pending)
+# Ticket 16: bounded Excel verification (Windows and Linux complete)
 
-Baseline: integration `c2f0f6b4118a3a059993ef53f2d62f547151c560`. Branch `codex/ticket-16`; ADR0039 is Accepted; the ticket remains verification-pending for the final Linux/filesystem run. TDD logs are under `.verification-results/ticket-16`; complete runner evidence uses the timestamped directory below, both outside Maven `target`.
+Baseline: integration `c2f0f6b4118a3a059993ef53f2d62f547151c560`. Branch `codex/ticket-16`; ADR0039 is Accepted; the ticket is closed after the combined Windows/Ubuntu CI12 run; see the [CI closure report](ticket-11-16-27-ci.md). TDD logs are under `.verification-results/ticket-16`; complete runner evidence uses the timestamped directory below, both outside Maven `target`.
 
 ## Public contract evidence collected so far
 
@@ -41,9 +41,9 @@ Primary references: [POI how-to](https://poi.apache.org/components/spreadsheet/h
 - The resource child uses 64 MiB heap / 8 MiB direct / 2 CPUs, 180-second process deadline. It rejects a 32 MiB expanded ZIP 20 times under DEFAULT, processes forged 2,147,483,647 BIFF SST counts 20 times with exact unchanged rows, and streams 100,000 then 400,000 XLSX rows with explicit finite limits. 400,000-row compressed output is 9,501,793 bytes; 200 output/callback failures leave no temporary files. Measured baseline 13,738,552, final retained 13,321,704 bytes, threads 8→8. These are one actual sample, not an all-input SLO.
 - `green-15-output-program-failures.log`: 6 ownership tests; borrowed output RuntimeException/Error preserves identity and cleans temporary files (existing behavior, no fabricated RED).
 
-## Pending evidence (not claimed passed)
+## Platform closure and future ownership
 
-- Final Linux CI for the combined Excel source, including the POSIX file-occupancy counterpart. Dependency ledger, migration, Q01–Q10 mapping and Windows full gates are complete below.
+- The final combined Excel source passed Windows/Ubuntu CI12, including platform file-cleanup branches. The [CI report](ticket-11-16-27-ci.md) records the source and exact metadata separately from the local numbers below.
 - Future 31/33 consumer/release rechecks remain independently owned and are not circular prerequisites for this ticket.
 
 
@@ -77,13 +77,13 @@ Exploratory shared-string amplification input (100,000 references to one32,767-c
 | Q01 | Formal16 / FR01,02,06,09 / AC02,10,12; ADR0039 and USAGE migration; public ExcelUtil/options/limits only, no new storage or report framework |
 | Q02 | Every positive budget zero/format ceiling guard; actual input/temp/expanded bytes and logical rows/columns/cells/chars N−1/N/N+1; output content stays within budget, sparse extreme checked before padding, formula source8191/8192/8193; empty/null/malformed/Long.MAX_VALUE |
 | Q03 | Actual POI5.5.1, real XLS/XLSX Path and borrowed streams, ordinary installed jar in four real production graphs; independent xlwt/XlsxWriter samples and openpyxl output oracle |
-| Q04 | Standard InputStream/OutputStream and Files fault seams retain primary/suppressed failures; callback/iterator/source/target RuntimeException/Error cleanup; actual Windows file occupancy; cancellation before truncation and during sparse callbacks; POSIX counterpart awaits Linux |
+| Q04 | Standard InputStream/OutputStream and Files fault seams retain primary/suppressed failures; callback/iterator/source/target RuntimeException/Error cleanup; actual Windows file occupancy; cancellation before truncation and during sparse callbacks; platform counterpart executed in CI12 Ubuntu |
 | Q05 | Default and explicit finite byte/expanded/logical/temp limits, fixed metadata and no-event XML ceilings, no new executor/queue;64 MiB child with increasing400,000 rows,200 failures,40 malformed/count probes and four12 MiB XML lexemes; every operation verifies no temporary files |
 | Q06 | Frozen independent formats with SHA manifest, both date epochs and numeric locales, unknown formula cached17, no formula evaluation, external reader confirms literal formula text; historical signatures retained with explicit semantic migration |
 | Q07 | Deterministic seed160039 high-entropy hostile attributes and BIFF mutation, seeded resource row oracle, finite boundary matrices; no new CSV/XML/ZIP grammar implementation |
 | Q08 | Source SHA/environment/full runner identities recorded; position-only public messages, causes for trusted diagnostics; initial failures and mistaken fixture/oracle assumptions retained separately |
 | Q09 | Root original coverage/architecture/dependency thresholds preserved; first1598 clean gate passed but consumer failed; final corrected source full gate passed below, no substituted mixed-source PASS |
-| Q10 | Code, migration, ADR and raw evidence delivered; Windows full outcome passed below; Linux remains pending until executed. Future31/33 own their business/release combinations independently |
+| Q10 | Code, migration, ADR and raw evidence delivered; Windows full outcome passed below; Windows/Ubuntu CI12 has completed successfully; see the separate CI report. Future31/33 own their business/release combinations independently |
 
 J13/J16: the four format dependency graphs and scalar/format/ownership/resource tests are this ticket's evidence. No database/network backend is introduced; network is used only as a controlled external-entity zero-access oracle. Large XLS remains unsupported beyond1 MiB; large XLSX is explicit row streaming. Owned temporary budgets count written content, not filesystem allocation blocks. Path writes are direct and may leave a prefix. User callback effects cannot roll back, and blocking user I/O must have host-managed timeouts/concurrency.
 
@@ -100,4 +100,4 @@ J13/J16: the four format dependency graphs and scalar/format/ownership/resource 
 
 Early resource-process experiments used a single `heap-child.log`; later executions could replace that subprocess detail file. Their retained parent test logs and explicitly observed samples are historical evidence, not distinct immutable child archives. The final process uses a unique filename and embeds its entire output in the retained parent log, so subsequent runs cannot overwrite this final sample.
 
-Status remains **verification-pending** solely for the final combined Linux/CI evidence. CI10/11 are the preceding integration candidate, not proof that ticket16's new Excel paths ran on Linux. Future31/33 retain their separately scoped consumer/release rechecks.
+Status is **closed** following [CI12](ticket-11-16-27-ci.md) on the combined Excel source. CI10/11 remain earlier candidates and are not used as evidence for the new Excel paths. Future31/33 retain their separately scoped consumer/release rechecks.
