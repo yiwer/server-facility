@@ -6,7 +6,7 @@
 
 - 工作树 `E:/GenCode/server-facility-worktrees/ticket-06`，分支 `codex/ticket-06`。
 - 旧平台最终实现 `9e3a5578779e44835a476ae0135f9db94a33d592`；Boot 3.5.16 / Spring 6.2.19 / Tomcat 10.1.55 / Servlet 6.0 / Jackson 2.21.4。
-- 目标被测提交 `bc3657e18be4ba5119f98406392793effe2adb69`，包含 integration `7e168199a812fba6396540922241036d85767d8e`。Boot 4.1.1 / Spring 7.0.9 / Tomcat 11.0.24 / Servlet 6.1 / Jackson 3.1.5 / JUnit 6.0.3。
+- 最终目标被测提交 **`d010234dd4afc9c092de3dd0109e7507a89cb8e3`**，运行开始时工作树干净，包含 integration `7e168199a812fba6396540922241036d85767d8e`。后续仅提交本报告和票据。Boot 4.1.1 / Spring 7.0.9 / Tomcat 11.0.24 / Servlet 6.1 / Jackson 3.1.5 / JUnit 6.0.3。
 - Windows 11 amd64、Oracle JDK 25.0.4.1、Wrapper Maven 3.10.0、JaCoCo 0.8.15；时区 Asia/Shanghai。旧命令使用 zh_CN；目标 runner 显式 en_US / UTF-8。
 - 本票不使用数据库，不新增生产线程池、网络客户端或外部资源。HTTP fixture 使用真实 localhost Tomcat 和 JDK HttpClient/Socket。
 
@@ -15,7 +15,12 @@
 | 初版旧平台普通 jar runner，精确 `36738c955cdb10192579ac198b511e884a51e7f3` | PASS，1346/0/0/0，原全部门；`.verification-results/20261004-011115-993-integration`。此结果早于 MDC 失败补充，不代替最终来源 |
 | 旧平台最终 `clean verify`，精确 `9e3a557` | PASS，1352 tests / 0 failures / 0 errors / 0 skipped；原 5 架构规则、88/88/75 覆盖率和 dependency analyze 门；`.verification-results/ticket-06/final-reviewed-old-platform-verify.log` |
 | 目标平台公共契约子集，`1e2b138` | PASS，33/0/0/0；真实 HTTP 14、MDC 隔离子进程 5、IP 4、trace 7、作用域 3；`target-platform-request-contracts.log` |
-| 目标最终普通 jar integration runner，精确 `bc3657e` | PASS，1364/0/0/0、原全部门、普通 jar 非 Web/JSON 真 HTTP 双应用消费者及三项工具链负控；归档 `.verification-results/20261004-013339-502-integration` |
+| 目标首次普通 jar integration runner，精确 `bc3657e` | PASS，1364/0/0/0、原全部门、普通 jar 非 Web/JSON 真 HTTP 双应用消费者及三项工具链负控；归档 `.verification-results/20261004-013339-502-integration` |
+| 最终目标普通 jar integration runner，精确 `d010234` | **RESULT=PASS**，1364/0/0/0，5架构规则、原覆盖率/依赖门；非 Web configured/override/invalid、JSON constructed/injected 真 HTTP 与双应用关闭重建、三项真实工具链负控全部通过；`.verification-results/20261004-013843-605-integration` |
+
+最终覆盖率：指令 `18241/19642 = 92.867%`，行 `3702/3964 = 93.391%`，分支 `1871/2187 = 85.551%`；原 88/88/75 门保留。相对目标集成1335项净增29项：新IP 4、作用域3、真HTTP 14、隔离MDC 5、trace新增3；原测试未删除或跳过，最终测试数1364。原无条件XFF期望按明确迁移改为默认peer。
+
+普通 jar SHA-256：`b69d5f799cb8f0c23de1796afadc6d3bf8b2e3584c74386ef8a7b1fb04a5fc32`；两次目标 runner 产物相同，最后一步仅补测试预算极值。最终完整日志 `final-target-integration-runner.log`；根测试、effective POM、依赖树、consumer构建与HTTP日志、字面金样和summary均在最后归档目录。
 
 目标完整命令（PowerShell 的 `-D` 参数必须加引号）：
 
@@ -52,6 +57,7 @@ $env:MAVEN_OPTS = '-Dfile.encoding=UTF-8 -Duser.language=en -Duser.country=US'
 - `red-20` 复现 preProcess 中 get/put/回滚阶段失败留下 A 的 SessionUser；Spring 不保证为失败的 preProcess 调用 postProcess。`red-20-post` 复现恢复异常覆盖原业务失败。`green-20` 四种故障均恢复身份、保留原异常。
 - `red-21` 复现 Servlet trace finally 覆盖原异常；`green-21` 五种 MDC 故障及相关公开场景通过。`red-22` / `green-22` 固定关闭默认 trace 时用户 bean 被自动重复注册。
 - 目标平台不删测、不降低断言；只迁移新增 fixture 的 Boot 类型包。目标 33 项第一轮全部通过。
+- `target-budget-edges.log` 追加配置名字1/127/128成功与null/空/129拒绝、trace1/63/64/65、CIDR数量127/128/129及IPv4/IPv6 /0/full-prefix字面边界，14项通过；无产品代码变化，随后固定 `d010234` 重新运行完整入口。
 
 MDC 故障测试通过公开 SLF4J ServiceProvider SPI，在隔离 JVM 启动真实 HTTP 应用；`get/put/rollback/post/servlet` 五种模式各有 deadline 和独立日志。故障在 SessionUser 已安装或原失败已抛出的确定阶段触发，不依赖反射或 mock 私有方法。host adapter 可以在变更后抛异常，验证部分安装与首因/suppressed；若宿主 adapter 在恢复前拒绝操作，库不能保证修复它的内部数据，但身份先清理，失败向宿主传播。
 
