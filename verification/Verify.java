@@ -725,7 +725,7 @@ class Verify {
             System.err.println(output);
             if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
                 // Public check annotations keep a bounded failure tail available alongside the archived full log.
-                String tail = output.substring(Math.max(0, output.length() - 10000));
+                String tail = output.substring(Math.max(0, output.length() - 3000));
                 System.err.println("::error title=Verification failure detail::" + tail.replace("%", "%25")
                         .replace("\r", "%0D").replace("\n", "%0A"));
             }

@@ -57,3 +57,5 @@ CI8 `37152209100`（6a66672）和 CI9 `37152949481`（b7b7ea4）均为 Linux 全
 聚合与模板各12个生产 class 均与恢复后的 classes 完全一致，无 JaCoCo 引用；模板发布 jar 不含 JaCoCo runtime。失败构建现在也归档聚合 Surefire/coverage 报告。证据：票25 `.verification-results/ticket-25/offline-probe/`，含 online RED、offline GREEN、重复执行、负控、Java argv RED、复制器及可执行 jar GREEN。中间 initialize 恢复在 clean 无备份目录时失败的尝试保留，最终配置取消该错误假设；失败/中断测试之后必须 `clean verify`。
 
 依据：[JaCoCo offline instrumentation](https://www.jacoco.org/jacoco/trunk/doc/offline.html)、[restore goal](https://www.jacoco.org/jacoco/trunk/doc/restore-instrumented-classes-mojo.html)。此段为精确局部回归；修复后的同源完整 CI 仍待执行，不将这些局部结果合并冒称全门。
+
+补充：冻结修复 adab8e5 的实际 Verify.partnerConsumer/securedTemplate 共13个命令在本机通过（含两个质量门、独立普通jar、可执行jar、两个缺覆盖率负控），保存 `.verification-results/ticket-25/offline-runner/`；本轮仅复验构建入口，库依赖为原已验证 a9c6400 对应产物，不冒称对当前库全部源码复验。CI10 `37155353238` 的Linux完整门通过；Windows已越过partner，失败转到template-build。公共annotation将10,000字符摘要截断，未取得最终断言，因此仅收窄诊断摘要为最后3,000字符后重跑，未猜改产品或放宽断言。
