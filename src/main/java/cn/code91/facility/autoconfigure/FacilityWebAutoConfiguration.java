@@ -34,6 +34,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties({
     FacilityWebTraceProperties.class,
+    cn.code91.facility.web.util.FacilityWebProxyProperties.class,
     FacilityWebRepeatableRequestProperties.class,
     FacilityWebAccessLogProperties.class,
     FacilityWebExceptionProperties.class,
@@ -43,18 +44,39 @@ public class FacilityWebAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "facility.web.trace", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMissingBean(TraceIdFilter.class)
     public TraceIdFilter traceIdFilter(FacilityWebTraceProperties props) {
         return new TraceIdFilter(props);
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "facility.web.trace", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnBean(TraceIdFilter.class)
     public FilterRegistrationBean<TraceIdFilter> traceIdFilterRegistration(TraceIdFilter traceIdFilter) {
         FilterRegistrationBean<TraceIdFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(traceIdFilter);
         registration.addUrlPatterns("/*");
         registration.setName("traceIdFilter");
+        registration.setEnabled(false); // Invoked inside the single owning request boundary.
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(cn.code91.facility.web.util.ClientIpPolicy.class)
+    public cn.code91.facility.web.util.ClientIpPolicy clientIpPolicy(cn.code91.facility.web.util.FacilityWebProxyProperties props) {
+        return new cn.code91.facility.web.util.ClientIpPolicy(props.getTrustedProxies());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "facilityRequestContextFilterRegistration")
+    public FilterRegistrationBean<cn.code91.facility.web.filter.FacilityRequestContextFilter> facilityRequestContextFilterRegistration(
+            org.springframework.beans.factory.ObjectProvider<TraceIdFilter> trace, cn.code91.facility.web.util.ClientIpPolicy ips) {
+        var registration = new FilterRegistrationBean<>(new cn.code91.facility.web.filter.FacilityRequestContextFilter(trace.getIfAvailable(), ips));
+        registration.setName("facilityRequestContextFilter");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        registration.setDispatcherTypes(jakarta.servlet.DispatcherType.REQUEST, jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.ERROR);
+        registration.setAsyncSupported(true);
+        registration.addUrlPatterns("/*");
         return registration;
     }
 

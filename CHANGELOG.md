@@ -13,6 +13,12 @@
 - Tika 升至 4.1.0，固定 core detector、64 KiB 内容探测；上传不再把客户端文件名当提示，ZIP 不自动等于 XLSX。借用 InputStream 必须可 mark/reset；原始不可 mark 流读取前返回 Err，调用方应保留 BufferedInputStream。旧 String MIME 重载在 I/O 失败时抛 UncheckedIOException，不再静默返回 octet-stream。探测不是安全审查。
 - Hashing 的 null 算法改走 FILE_HASH_ERROR；保留空 File 标准摘要、空/null byte[] 返回 FILE_READ_ERROR 的差异。MD5/SHA-1 仅作旧非安全校验兼容。详见 USAGE「上传、MIME 与摘要」。
 
+### 请求边界迁移（2026-10-04，ADR-0029）
+
+- 客户端IP默认只采用数值remoteAddr；显式 `facility.web.proxy.trusted-proxies` 才按有界可信链解析XFF，旧厂商头不再生效。
+- 请求边界统一清理兼容SessionUser，适配宿主Principal，覆盖短路、Callable与ASYNC/ERROR；`isLoggedIn()`弃用为非认证检查。
+- trace尊重并恢复宿主MDC，提供accept-inbound政策；TraceIdFilter通过唯一边界调用，旧独立注册禁用。迁移与资源边界见ADR0029和USAGE。
+
 ### Boot 4 平台迁移中间态（2026-10-04，ADR-0045）
 
 - 目标依赖切换 Boot 4.1.1 / Spring 7.0.9 / Jackson 3.1.5，测试引擎切换 JUnit 6.0.3 和 ArchUnit JUnit 6。Jackson annotations 保留原组；合并进 databind 的 Java 8 模块移除。

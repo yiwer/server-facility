@@ -61,3 +61,7 @@
 
 - 2026-10-04：merger 从干净 `7e168199a812fba6396540922241036d85767d8e` 合入票18。此前只读复核4项契约修复与独立消费者无阻断，浅不可变 package 文档收尾已含。完整被测源码 `5c29047b4b25cce27e67f752db64b29380cad984` 的 Windows `integration` 为1339/0/0/0、5架构/原覆盖率/依赖门通过；普通jar核心消费者64MiB/seed180041/512、普通与JSON真实HTTP/双应用消费者、三项负控均PASS。
 - 18票据与报告按真实summary闭合后合入，产品/POM/verification与被测源码一致；中央登记ADR0041及32条实际ADR，保留0007/0010理由。本票纯核心值没有文件系统或服务端平台政策，18 **closed**；后续24/33候选平台组合独立登记，未声称本次Linux已运行。未改产品、未重复同源全门、未push。
+
+- 18准确合并链：票分支最终 `0b174dfd1db9f399ba467612a6dfa0f845f35f92` → `--no-ff` 合并 `cc262357f3f8d444a2027bf17f1ca589bdc6559a` → 中央文档 `8ca516c345928a996737ac568b32f5b617526f1a`。
+- 2026-10-04：按协调顺序先合票06（分支 `030622b4aba3b760b8a0727d69423cf3f3337b06`，已包含8ca516c），再让13同步复验，避免两票循环追tip。06被测源码 `ee95d0743d817424a293a29dd8fa719d54e91470` 的 Windows integration 为1368/0/0/0，5架构、原覆盖率/依赖门、普通jar/core/JSON真实HTTP双应用及工具链负控全部PASS；summary位于ticket-06工作树`.verification-results/20261004-014223-240-integration`。合并后src/POM/verification与被测源码一致。
+- 中央登记ADR0029及0014仅来源假设部分替代，实际33条ADR。06保持verification-pending，仅本次Linux CI待闭合；目标Servlet6.1自身生命周期已验证，JWT归27，候选组合归33。未重复同源完整测试，未push。

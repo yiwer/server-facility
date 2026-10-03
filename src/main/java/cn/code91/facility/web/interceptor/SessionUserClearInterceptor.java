@@ -6,19 +6,22 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * <b>请求结束清理 {@link SessionUserHolder} ThreadLocal</b>（phase-13，RV2-08）
- *
- * <p>线程池复用下，若不清理 {@code ThreadLocal} 会导致用户身份在请求间串号 + 内存泄漏。
- * 本 interceptor 在 {@code afterCompletion}（无论是否异常）兜底清理。由
- * {@code FacilityWebAutoConfiguration} 注册。</p>
- *
- * @since phase-13
+ * Compatibility adapter for a Principal established by a host authentication filter before MVC.
+ * The request filter owns cleanup, including async handoff and non-MVC failures. When used standalone,
+ * this interceptor retains its old afterCompletion cleanup; standalone use does not cover async/filter paths.
+ * This class does not authenticate a Principal and does not install a Spring Security context.
  */
 public class SessionUserClearInterceptor implements HandlerInterceptor {
+
+    @Override public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if (request.getUserPrincipal() != null) SessionUserHolder.setUser(request.getUserPrincipal());
+        return true;
+    }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
                                 Object handler, Exception ex) {
-        SessionUserHolder.clear();
+        if (request.getAttribute(cn.code91.facility.web.filter.FacilityRequestContextFilter.class.getName()) == null)
+            SessionUserHolder.clear();
     }
 }

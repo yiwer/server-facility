@@ -5,8 +5,8 @@ import java.util.Optional;
 /**
  * <b>当前用户上下文持有器</b>
  * <p>
- * 基于 {@link ThreadLocal} 管理当前线程的登录用户信息。
- * 通常在拦截器或过滤器中设置，在请求结束时清理。
+ * 基于 {@link ThreadLocal} 管理兼容用户数据；存在值不证明认证。新代码使用宿主 Security 上下文。
+ * 自动装配的请求边界适配 Servlet Principal，并在实际 Servlet/Callable 执行线程退出时清理。外部生产者自行管理其作用域。
  * </p>
  *
  * <h3>使用示例：</h3>
@@ -41,7 +41,7 @@ public final class SessionUserHolder {
      * @param <T>  用户类型
      */
     public static <T> void setUser(T user) {
-        USER_HOLDER.set(user);
+        if (user == null) USER_HOLDER.remove(); else USER_HOLDER.set(user);
     }
 
     /**
@@ -71,10 +71,11 @@ public final class SessionUserHolder {
     }
 
     /**
-     * 判断当前线程是否已登录
+     * 兼容名称：仅判断当前线程是否已设置值，不证明登录或授权。
      *
      * @return true 如果已设置用户
      */
+    @Deprecated(since = "0.1.0", forRemoval = false)
     public static boolean isLoggedIn() {
         return USER_HOLDER.get() != null;
     }
