@@ -1,6 +1,7 @@
 package cn.code91.facility.async;
 
 import cn.code91.facility.result.Result;
+import jakarta.annotation.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -9,8 +10,10 @@ import java.util.function.Consumer;
 /**
  * <b>异步任务拦截器 SPI</b>
  * <p>
- * 基于 around 模式的拦截器接口，可在异步任务执行前后插入横切逻辑，
- * 适用于日志监控、事务包裹、动态数据源上下文切换等场景。
+ * 每个用户执行段（supplier、mapper、recovery、effect）在实际工作线程同步进入与退出。
+ * 同一逻辑 pipeline 可以多次执行此链。proceed 返回已经完成的 Future；
+ * 拦截器也必须返回已完成 Future，不能自行异步派发。用 try/finally 恢复 ThreadLocal 原值。
+ * 仅传播 MDC 与显式元数据；不会复制调用线程的事务或安全身份。
  * </p>
  *
  * <h3>执行顺序：</h3>
@@ -27,9 +30,14 @@ import java.util.function.Consumer;
  *     public <T> CompletableFuture<Result<T, Throwable>> intercept(
  *             AsyncContext ctx, AsyncInvocation<T> invocation) {
  *         String ds = ctx.<String>attribute("ds").orElse("primary");
+ *         String previous = DynamicDsHolder.get();
  *         DynamicDsHolder.set(ds);
- *         return invocation.proceed()
- *             .whenComplete((r, e) -> DynamicDsHolder.clear());
+ *         try {
+ *             return invocation.proceed();
+ *         } finally {
+ *             if (previous == null) DynamicDsHolder.clear();
+ *             else DynamicDsHolder.set(previous);
+ *         }
  *     }
  *     public int order() { return 10; }
  * }
@@ -41,11 +49,11 @@ import java.util.function.Consumer;
 public interface AsyncInterceptor {
 
     /**
-     * 拦截异步任务执行
+     * 同步拦截一个用户执行段。链顺序稳定，子任务继承父拦截器。
      *
      * @param context    任务上下文（名称 + 属性袋）
      * @param invocation 下游调用，调用 {@code invocation.proceed()} 继续链
-     * @return 异步结果 Future
+     * @return 已完成的结果 Future；未完成 Future 被拒绝为 IllegalStateException
      */
     <T> CompletableFuture<Result<T, Throwable>> intercept(
             AsyncContext context, AsyncInvocation<T> invocation);
@@ -84,23 +92,26 @@ public interface AsyncInterceptor {
      * @param after  执行后动作，可为 null
      */
     static AsyncInterceptor around(
-            Consumer<AsyncContext> before,
-            BiConsumer<AsyncContext, Result<?, Throwable>> after) {
+            @Nullable Consumer<AsyncContext> before,
+            @Nullable BiConsumer<AsyncContext, Result<?, Throwable>> after) {
         return new AsyncInterceptor() {
             @Override
             public <T> CompletableFuture<Result<T, Throwable>> intercept(
                     AsyncContext context, AsyncInvocation<T> invocation) {
-                if (before != null) {
-                    before.accept(context);
+                Result<T, Throwable> result;
+                try {
+                    if (before != null) before.accept(context);
+                    var future = java.util.Objects.requireNonNull(invocation.proceed(), "invocation result");
+                    if (!future.isDone()) throw new IllegalStateException("AsyncInterceptor must complete within its execution scope");
+                    result = java.util.Objects.requireNonNull(future.join(), "invocation Result");
+                } catch (Throwable failure) {
+                    result = Result.err(DefaultAsync.unwrap(failure));
                 }
-                CompletableFuture<Result<T, Throwable>> future = invocation.proceed();
-                if (after != null) {
-                    return future.whenComplete((result, ex) -> {
-                        Result<T, Throwable> r = (ex != null) ? Result.err(ex) : result;
-                        after.accept(context, r);
-                    });
+                try {
+                    return CompletableFuture.completedFuture(result);
+                } finally {
+                    if (after != null) after.accept(context, result);
                 }
-                return future;
             }
         };
     }

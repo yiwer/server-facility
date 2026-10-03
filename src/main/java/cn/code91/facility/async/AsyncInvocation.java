@@ -7,7 +7,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * <b>拦截器链调用抽象</b>
  * <p>
- * 类比 Spring AOP 的 {@code MethodInvocation}，代表链中下游（更靠近实际任务）的调用。
+ * 类比 Spring AOP 的 {@code MethodInvocation}，代表同一个执行线程上同步的下游用户执行段。
  * 拦截器通过调用 {@link #proceed()} 将控制权交给下一个拦截器或实际任务。
  * </p>
  *
@@ -31,7 +31,7 @@ public interface AsyncInvocation<T> {
     /**
      * 向链的下游传递控制权，执行下一个拦截器或实际任务。
      *
-     * @return 代表异步结果的 CompletableFuture
+     * @return 已完成的 CompletableFuture；调用与作用域清理发生在同一工作线程
      */
     CompletableFuture<Result<T, Throwable>> proceed();
 }

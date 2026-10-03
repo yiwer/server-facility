@@ -34,7 +34,7 @@
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **快照（2026-07-10）**：测试 1196 项全绿（含 5 条 ArchUnit）；覆盖率实测约 instruction 93.6% / line 93.4% / branch 87.0%。
+- **快照（2026-10-03，Windows / Java 25 中间基线）**：测试 1251 项全绿（含 5 条 ArchUnit）；instruction 93.8400% / line 93.7312% / branch 87.1890%。本票版本的 Linux 与最终 Boot 4 验证见各票证据状态。
 
 ## 仓库地图
 
@@ -129,7 +129,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `pattern` | `Patterns` | 常用正则校验 |
 | `copy` | `CopyUtil` | Bean 属性拷贝 |
 | `locale` | `LocaleUtil` | i18n 消息翻译 + 聚合 MessageSource |
-| `async` | `Async<T>` | 惰性异步计算，结果落 `Result`；虚拟线程默认执行器 |
+| `async` | `Async<T>` | 惰性组合、整体 deadline 与协作取消；有界平台线程默认，应用显式注入 Executor |
 | `web.*` | filter / interceptor / exception / session / response / argument / util / download / upload | Servlet 栈：traceId、可重复读请求体、访问日志、全局异常、统一响应、安全上传下载、XSS（optional：jsoup） |
 | `ratelimit` | `RateLimiterUtil` / `RateLimiter`（SPI） | 令牌桶限流：纯 JDK 默认实现 + SPI 可替换（Redis）；编程门面 + 无 bean 降级放行 |
 | `web.ratelimit` | `@RateLimit` | 方法级声明式限流（拦截器）；超限 429 + `Retry-After` |
