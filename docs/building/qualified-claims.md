@@ -31,9 +31,9 @@ try (var store = new InMemoryIdempotencyStore(1024, 64 * 1024, 8L * 1024 * 1024,
 | 默认构造器 | `maxEntries`由调用者提供；单条1MiB，总量64MiB，系统UTC Clock |
 | 字节所有权 | complete复制输入，Replay与旧IdempotencyRecord复制输出；调用者负责分配输入、并发与调用返回前不修改输入 |
 | 时间 | 注入Clock；观察到回拨时夹紧至已观察最高毫秒，前跳推进到期；新claim截止溢出/时钟异常返回CLOCK；合格完成/释放取时失败保存UNKNOWN |
-| 清理 | 无后台线程。压力下最多扫描maxEntries条目以释放过期payload/旧TTL记录；永不驱逐新协议绑定。close清内存且不可重开 |
+| 清理 | 无后台线程。压力下最多扫描maxEntries条目以释放过期payload/旧TTL记录；永不驱逐新协议绑定。close断开底层Map引用，清内存且不可重开 |
 
-新协议的 `DONE` 到期只释放正文，留下 `RESULT_EXPIRED`；`RELEASED` 和 `UNKNOWN` 也保留终态绑定，不会因为等了更久而重新授予业务许可。不同fingerprint始终Conflict。满额时需要应用持久化/分代或核对政策，不能用LRU/clear解决正确性问题。失败返回中不包含调用者key、owner或Clock异常消息；请求与token的默认诊断也脱敏。
+新协议的 `DONE` 到期只释放正文，留下 `RESULT_EXPIRED`；`RELEASED` 和 `UNKNOWN` 也保留终态绑定，不会因为等了更久而重新授予业务许可。不同fingerprint始终Conflict。满额时需要应用持久化/分代或核对政策，不能用LRU/clear解决正确性问题。合格更新在取时或复制前先留UNKNOWN；复制OOM/宿主Clock的Error仍原样传播，不吞掉首因，也不重新授权。失败返回中不包含调用者key、owner或Clock异常消息；请求与token的默认诊断也脱敏。
 
 **PROCESSING是明确例外**：租约到期允许同内容取得新owner，旧执行者可能仍在执行。当前owner比较只能拒绝旧执行者覆盖记录，不能取消其支付、数据库写入或其他副作用。真正的唯一命令、数据库约束、事务receipt和恢复策略由业务负责；票29的新模板采用同库唯一键与原子receipt，不依赖本地租约窗口。
 

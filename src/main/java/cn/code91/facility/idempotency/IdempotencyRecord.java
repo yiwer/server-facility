@@ -43,7 +43,7 @@ public record IdempotencyRecord(State state, int statusCode, String contentType,
     }
 
     /**
-     * 构造一条"占位中"记录（{@link #tryBegin} 成功时写入）
+     * 构造一条"占位中"记录（{@link IdempotencyStore#tryBegin(String, long)} 成功时写入）
      *
      * @param expiresAtMillis 过期时间点
      * @return {@link State#PROCESSING} 记录，statusCode/contentType/body 均为空值

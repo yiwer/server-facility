@@ -18,7 +18,7 @@ import java.util.UUID;
  */
 public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoCloseable {
 
-    private final Map<String, IdempotencyRecord> store = new HashMap<>();
+    private Map<String, IdempotencyRecord> store = new HashMap<>();
     private final int maxEntries;
     private final int maxReceiptBytes;
     private final long maxStoredReceiptBytes;
@@ -39,7 +39,7 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoClo
             this.request = request; this.token = token; this.expiresAt = expiresAt;
         }
     }
-    private final Map<QualifiedKey, ClaimState> claims = new HashMap<>();
+    private Map<QualifiedKey, ClaimState> claims = new HashMap<>();
 
 
     /**
@@ -106,13 +106,18 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoClo
         ClaimState existing = claims.get(new QualifiedKey(token.scope(), token.key()));
         if (existing == null || !existing.token.equals(token) || existing.phase != Phase.PROCESSING)
             return ClaimUpdate.REJECTED;
+        // Qualified failures, including Error from the host clock, must not grant another execution.
+        existing.phase = Phase.UNKNOWN;
         long now;
         try { now = now(); }
         catch (RuntimeException unavailable) {
             existing.phase = Phase.UNKNOWN;
             return ClaimUpdate.UNAVAILABLE;
         }
-        if (now >= existing.expiresAt) return ClaimUpdate.REJECTED;
+        if (now >= existing.expiresAt) {
+            existing.phase = Phase.PROCESSING; // Known expired qualification: preserve the explicit lease policy.
+            return ClaimUpdate.REJECTED;
+        }
         long deadline;
         try { deadline = Math.addExact(now, retention.toMillis()); }
         catch (ArithmeticException overflow) {
@@ -128,7 +133,9 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoClo
             existing.phase = Phase.UNKNOWN;
             return ClaimUpdate.UNAVAILABLE;
         }
-        existing.receipt = receipt.clone();
+        // If allocation fails, UNKNOWN remains without swallowing the original Error.
+        byte[] ownedReceipt = receipt.clone();
+        existing.receipt = ownedReceipt;
         storedReceiptBytes += receipt.length;
         existing.expiresAt = deadline;
         existing.phase = Phase.DONE;
@@ -142,13 +149,18 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoClo
         ClaimState existing = claims.get(new QualifiedKey(token.scope(), token.key()));
         if (existing == null || !existing.token.equals(token) || existing.phase != Phase.PROCESSING)
             return ClaimUpdate.REJECTED;
+        // Qualified failures, including Error from the host clock, must not grant another execution.
+        existing.phase = Phase.UNKNOWN;
         long now;
         try { now = now(); }
         catch (RuntimeException unavailable) {
             existing.phase = Phase.UNKNOWN;
             return ClaimUpdate.UNAVAILABLE;
         }
-        if (now >= existing.expiresAt) return ClaimUpdate.REJECTED;
+        if (now >= existing.expiresAt) {
+            existing.phase = Phase.PROCESSING; // Known expired qualification: preserve the explicit lease policy.
+            return ClaimUpdate.REJECTED;
+        }
         existing.phase = Phase.RELEASED;
         return ClaimUpdate.APPLIED;
     }
@@ -161,8 +173,9 @@ public final class InMemoryIdempotencyStore implements IdempotencyStore, AutoClo
     /** Closes this local store permanently and releases retained bindings and receipts. */
     @Override public synchronized void close() {
         closed = true;
-        claims.clear();
-        store.clear();
+        // clear() retains a HashMap's expanded table even when this closed store remains reachable.
+        claims = Map.of();
+        store = Map.of();
         storedReceiptBytes = 0;
     }
 

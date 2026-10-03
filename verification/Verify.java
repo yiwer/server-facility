@@ -319,12 +319,20 @@ class Verify {
         // Only the historical implementation enters runtime; the historical interface never shadows the new jar.
         Files.copy(legacy.resolve("LegacyOnlyStore.class"), classes.resolve("LegacyOnlyStore.class"));
         run(ROOT, Map.of(), "claim-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
-                "-cp", classes + File.pathSeparator + jar, "-d", classes.toString(), saved.resolve("ClaimConsumer.java").toString()), 45, null);
+                "-cp", classes + File.pathSeparator + jar, "-d", classes.toString(), saved.resolve("ClaimConsumer.java").toString(),
+                saved.resolve("ClaimFailureProbe.java").toString()), 45, null);
         Path log = run(ROOT, Map.of(), "claim-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
                 "-cp", classes + File.pathSeparator + jar, "ClaimConsumer"), 45, null);
         if (!Files.readString(log).contains("CLAIM_CONSUMER_PASS seed=110034 rounds=2048 slots=256 churn=32768 workers=16 close-rounds=128 legacy-binary=true framework=absent"))
             throw new AssertionError("Claim consumer did not complete: " + log);
+        for (String mode : List.of("clone", "close-tables", "clock-error")) {
+            Path faultLog = run(ROOT, Map.of(), "claim-failure-" + mode, List.of(java(), "-Xmx32m", "-XX:ActiveProcessorCount=2",
+                    "-Dfile.encoding=UTF-8", "-cp", classes + File.pathSeparator + jar, "ClaimFailureProbe", mode), 45, null);
+            if (!Files.readString(faultLog).contains("CLAIM_FAILURE_PROBE_PASS mode=" + mode))
+                throw new AssertionError("Claim failure probe did not complete " + mode + ": " + faultLog);
+        }
         summary.add("claim-consumer=ordinary jar; pre-expansion SPI binary; owner barrier; seed110034/2048; 256 slots/32768 churn/16 workers/128 closed reachable stores; -Xmx64m/2 processors/45s");
+        summary.add("claim-failures=clone OOME with 20MiB input; host Clock Error preserved; 2048 reachable closed stores each formerly holding 4096 mixed entries; -Xmx32m/2 processors/45s per JVM");
     }
 
     static void jsonConsumer() throws Exception {

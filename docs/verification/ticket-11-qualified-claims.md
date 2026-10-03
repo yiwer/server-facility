@@ -52,3 +52,15 @@
 ## 审阅与最终候选
 
 待记录最终候选SHA、同步integration SHA、完整runner目录/summary与审阅结论；本段未补齐前不作为全门通过证据。
+
+## 审阅修复的独立小堆证据
+
+首轮精确c9343f601cd8051c3fb9fb49c86a51c22d32010e的all在`.verification-results/20261004-040450-202-all/summary.txt`为PASS，1555/0/0/0；它只代表修复前候选，不替代以下修复后的最终全门。原首轮输出完整保留。
+
+root审阅指出receipt.clone抛Error时PROCESSING仍可到期重授；impl03审阅指出HashMap.clear保留扩容table，原payload压力不足以证明table释放。两项均在原c9343f6上以公开API独立JVM复现，随后各自最小修改转绿：
+
+- red-21-clone-allocation.log：32MiB堆、20MiB输入的第二份clone必然OOM，推进Clock后原实现重新Acquired。green-21-clone-allocation.log修复为原Error传播、保留UNKNOWN。
+- red-22-close-tables.log：每轮填充2048 qualified + 2048 legacy小条目，close后保持store可达，原实现OOM。green-22-close-tables.log断开Map引用后2048轮完整PASS（32MiB）。
+- 同类Clock Error边界red-23-clock-error.log也复现重授；green-23-clock-error.log覆盖complete和release，原Error对象传播且UNKNOWN保留。已知now等于/超过lease仍REJECTED并保持原PROCESSING租约例外，由既有边界测试防止误改。
+
+这三步GREEN用javac直接编译变更核心类并调用公开探针，命令/输出在对应green-21/22/23-compile.log及故障日志；最终仍由clean Maven和普通安装jar复验。ClaimFailureProbe已收入verification/claim-consumer并随Verify.integration/all执行，每个新JVM限制32MiB/2 processors/45秒，OOM只在独立消费者中触发，主测试JVM不制造OOM。
