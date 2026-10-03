@@ -31,6 +31,7 @@ import java.util.Objects;
 public class FacilityHttpErrors {
     private final FrameworkResolver framework = new FrameworkResolver();
     private static final Logger log = LoggerFactory.getLogger(FacilityHttpErrors.class);
+    private static final int MAX_CAUSE_DEPTH = 64;
     private final FacilityWebExceptionProperties properties;
     private final MessageSource messages;
     private final ObjectMapper mapper;
@@ -53,8 +54,14 @@ public class FacilityHttpErrors {
     public ResponseEntity<Object> response(Exception failure, WebRequest request) {
         if (request instanceof ServletWebRequest servlet && servlet.getResponse() != null
                 && servlet.getResponse().isCommitted()) return null;
-        if (failure instanceof ServletException servlet && servlet.getCause() instanceof Exception cause) {
-            return response(cause, request);
+        Exception original = failure;
+        var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Exception, Boolean>());
+        int depth = 0;
+        while (failure instanceof ServletException servlet && servlet.getCause() instanceof Exception cause) {
+            if (depth++ >= MAX_CAUSE_DEPTH || !seen.add(failure)) {
+                return render(original, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+            }
+            failure = cause;
         }
         try {
             return framework.handleException(failure, request);
@@ -64,8 +71,13 @@ public class FacilityHttpErrors {
             if (failure instanceof ErrorResponse error) {
                 status = error.getStatusCode();
                 headers.putAll(error.getHeaders());
-            } else if (failure instanceof BusinessException || failure instanceof BindException
-                    || failure instanceof ConstraintViolationException || failure instanceof MultipartException) {
+            } else if (failure instanceof ConstraintViolationException validation) {
+                boolean returnValue = validation.getConstraintViolations().stream().anyMatch(violation -> {
+                    for (var node : violation.getPropertyPath()) if (node.getKind() == jakarta.validation.ElementKind.RETURN_VALUE) return true;
+                    return false;
+                });
+                status = returnValue ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.BAD_REQUEST;
+            } else if (failure instanceof BusinessException || failure instanceof BindException || failure instanceof MultipartException) {
                 status = HttpStatus.BAD_REQUEST;
             } else if (failure instanceof RateLimitExceededException limited) {
                 status = HttpStatus.TOO_MANY_REQUESTS;
@@ -88,9 +100,9 @@ public class FacilityHttpErrors {
             if (servlet.getResponse().isCommitted()) return null;
             resetForError(servlet.getResponse());
         }
-        if (status.is5xxServerError()) log.error("HTTP request failed with status {}", status.value(), failure);
+        if (status.is5xxServerError()) logFailure("HTTP request failed with status " + status.value(), failure);
         String detail = status.value() == 500
-                ? messages.getMessage("facility.web.error.system", null, "Internal server error", locale(request))
+                ? message("facility.web.error.system", "Internal server error", locale(request))
                 : Objects.requireNonNullElse(HttpStatus.resolve(status.value()), HttpStatus.INTERNAL_SERVER_ERROR).getReasonPhrase();
         int code = failure instanceof FacilityException facility ? facility.getCode() : status.value();
         String traceId = traceId(request);
@@ -132,7 +144,7 @@ public class FacilityHttpErrors {
         } else if (failure instanceof ConstraintViolationException validation) {
             fields = validation.getConstraintViolations().stream().map(result -> result.getPropertyPath().toString());
         } else return java.util.List.of();
-        String message = messages.getMessage("facility.web.error.invalid_value", null, "Invalid value", locale(request));
+        String message = message("facility.web.error.invalid_value", "Invalid value", locale(request));
         return fields.map(FacilityHttpErrors::safeField).distinct().sorted().limit(32)
                 .map(field -> java.util.Map.of("field", field, "code", "invalid", "message", message)).toList();
     }
@@ -145,6 +157,29 @@ public class FacilityHttpErrors {
                 ? normalized : "request";
     }
 
+    private static void logFailure(String message, Throwable failure) {
+        var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Throwable, Boolean>());
+        Throwable cause = failure;
+        for (int depth = 0; cause != null; depth++) {
+            if (depth >= MAX_CAUSE_DEPTH || !seen.add(cause)) {
+                // Do not hand an unbounded graph to a logger that may recursively construct throwable proxies.
+                log.error("{} (cause diagnostic truncated: {})", message, failure.getClass().getName());
+                return;
+            }
+            cause = cause.getCause();
+        }
+        log.error(message, failure);
+    }
+
+    private String message(String key, String fallback, java.util.Locale locale) {
+        try {
+            return messages.getMessage(key, null, fallback, locale);
+        } catch (RuntimeException failure) {
+            logFailure("HTTP error message lookup failed", failure);
+            return fallback;
+        }
+    }
+
     private static java.util.Locale locale(WebRequest request) {
         return request instanceof ServletWebRequest servlet
                 ? org.springframework.web.servlet.support.RequestContextUtils.getLocale(servlet.getRequest())
@@ -153,9 +188,8 @@ public class FacilityHttpErrors {
 
     private String traceId(WebRequest request) {
         Object previous = request.getAttribute(TRACE_ATTRIBUTE, WebRequest.SCOPE_REQUEST);
-        if (previous instanceof String value) return value;
-        String value = null;
-        if (request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
+        String value = previous instanceof String saved ? saved : null;
+        if (value == null && request instanceof ServletWebRequest servlet && servlet.getResponse() != null) {
             value = servlet.getResponse().getHeader(trace.getHeaderName());
         }
         if (value == null || !value.matches("[0-9A-Za-z_-]{1,64}")) value = java.util.UUID.randomUUID().toString();
@@ -175,7 +209,7 @@ public class FacilityHttpErrors {
         try {
             bytes = mapper.writeValueAsBytes(resolved.getBody());
         } catch (Exception serializationFailure) {
-            log.error("HTTP error serialization failed", serializationFailure);
+            logFailure("HTTP error serialization failed", serializationFailure);
             // This fixed fallback cannot invoke the failed application serializer again.
             String traceId = traceId(new ServletWebRequest(request, response));
             bytes = ("{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,"

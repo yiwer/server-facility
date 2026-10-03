@@ -5,6 +5,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### JSON 配置扩展（2026-10-03，ADR-0044）
+
+- 新增应用作用域 `Jsons` 自动装配，复用本应用 ObjectMapper/customizer，用户 Jsons bean 优先；服务通过构造器注入。静态 JsonUtil/registry 的旧共享行为保留。
+- 新增 `JsonConfig.Builder.customizeBuilder`，在预设之后、build 之前定制；旧 mapper 回调仍最后执行。Boot 3/Jackson 2 平台和旧签名保留，主版本替换归票 22–24。
+- InputStream 字段 serializer/deserializer 新增显式 `int maxBytes` 构造参数，正数限制原始/解码字节数，默认及 ≤0 保留无上限。字段源流在成功/超限/读写失败时关闭，解码结果由调用方管理。
+- 新增独立普通 jar JSON/真实 HTTP 消费者及旧协议金样，覆盖默认/用户定制、两个应用和关闭重建；详见 [迁移影响登记](docs/building/platform-migration-inventory.md)。
+
 ### Async 行为迁移（2026-10-03，ADR-0026）
 
 - 默认由每次创建虚拟线程执行器改为共享有界平台线程池（4 工作线程/256 等待项）；容量满会通过 Result 返回提交拒绝。应用显式向 Async 传入注入的 Boot/User Executor；要用虚拟线程，通过标准 Boot 配置或显式 Executor 选择。

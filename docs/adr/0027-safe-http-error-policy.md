@@ -25,6 +25,7 @@ Spring 的 ErrorResponse / ResponseEntityExceptionHandler 提供状态及必要�
 - 兜底 ErrorPageRegistrar 先注册 `server.error.path`（默认 `/error`），Boot 与宿主 registrar 随后仍可选择映射路径；ERROR dispatch 在公共 filter 边界安全输出。宿主仅注册 404 不得导致其他状态暴露容器 HTML。
 - 默认 advice 优先级为 LOWEST_PRECEDENCE，宿主较高优先级 advice 可处理自己的异常；AbstractGlobalExceptionHandler 子类仍使默认 advice 退让。宿主自定义响应内容由宿主负责。
 - 响应已提交时不覆写、不追加。未提交时使用 Servlet reset 释放 Writer/OutputStream 选择并移除旧实体元数据（Content-Type/Length/Encoding/Disposition、ETag、Last-Modified、Content-Range、Accept-Ranges、缓存实体设置），保留 CORS/安全/追踪等其他头，错误默认 `Cache-Control: no-store`。
+- ServletException cause 解包采用身份环检测与最多 64 层迭代；环/超过上限退为通用 500，原 cause 对象保持不变。过深或循环 cause 只记录类型及截断标识，避免日志实现构造 Throwable proxy 时递归溢出；普通 cause 保留服务端异常诊断。
 - 错误体先序列化再写出。宿主错误 serializer 失败时只进行一次固定、安全、英文 500 ProblemDetail 回退，不再次调用失败的 mapper；此故障回退优先于 legacy 200。写入中的 IOException 传播给容器，已提交后不尝试再次写 JSON。
 - 显式 `use-problem-detail=false` 选择旧 BaseResponse 字段形状和 HTTP 200（历史 429 仍为 429 且保留 Retry-After）。此入口只兼容 envelope/状态；不会恢复任意异常原文或调试栈。`include-trace-profiles` 已弃用，无论 dev/test/prod 均不自动公开栈。迁移调用方应按真实 HTTP status 与 code 分支。
 

@@ -26,6 +26,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 
@@ -193,6 +194,7 @@ public class JsonConfig {
         // 模块管理
         private final List<Module> extraModules = new ArrayList<>();
         private final List<Consumer<ObjectMapper>> customizers = new ArrayList<>();
+        private final List<Consumer<JsonMapper.Builder>> builderCustomizers = new ArrayList<>();
 
         // 核心开关
         private boolean useJavaTimeModule = false;
@@ -593,6 +595,19 @@ public class JsonConfig {
             return this;
         }
 
+        /**
+         * 在预设、模块和特性配置之后、mapper 构建之前定制 Jackson builder。
+         * 回调按注册顺序执行；旧 {@link #customize(Consumer)} 回调仍在 build 后执行并拥有最终优先级。
+         * 回调仅用于构建，不应保留 builder 或 mapper 引用以供后续并发突变。
+         *
+         * @param customizer 必需的构建期配置函数
+         * @return Builder 实例
+         */
+        public Builder customizeBuilder(Consumer<JsonMapper.Builder> customizer) {
+            builderCustomizers.add(Objects.requireNonNull(customizer, "builder customizer cannot be null"));
+            return this;
+        }
+
         // -------------------- Build --------------------
 
         /**
@@ -659,19 +674,19 @@ public class JsonConfig {
                 builder.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
             }
 
-            ObjectMapper mapper = builder.build();
-
             // 6. 配置时区 (针对 java.util.Date)
-            mapper.setTimeZone(timeZone);
+            builder.defaultTimeZone(timeZone);
             if (dateTimeFormat != null) {
                 // 设置 java.util.Date 的默认格式
-                mapper.setDateFormat(new SimpleDateFormat(dateTimeFormat));
+                builder.defaultDateFormat(new SimpleDateFormat(dateTimeFormat));
             }
 
             // 7. 配置特性开关
-            configureFeatures(mapper);
+            configureFeatures(builder);
 
-            // 8. 应用自定义回调
+            // 8. 构建期定制先于发布；兼容的 mapper 回调保留最终优先级。
+            builderCustomizers.forEach(c -> c.accept(builder));
+            ObjectMapper mapper = builder.build();
             customizers.forEach(c -> c.accept(mapper));
 
             return mapper;
@@ -683,9 +698,9 @@ public class JsonConfig {
          * 根据 Builder 中的配置选项，应用相应的序列化、反序列化和解析特性。
          * </p>
          *
-         * @param mapper 要配置的 ObjectMapper 实例
+         * @param mapper 要配置的 Jackson builder
          */
-        private void configureFeatures(ObjectMapper mapper) {
+        private void configureFeatures(JsonMapper.Builder mapper) {
             // Serialization
             if (Boolean.TRUE.equals(prettyPrint)) mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -697,7 +712,7 @@ public class JsonConfig {
                 mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, failOnEmptyBeans);
             }
 
-            if (serializationInclusion != null) mapper.setSerializationInclusion(serializationInclusion);
+            if (serializationInclusion != null) mapper.serializationInclusion(serializationInclusion);
 
             // Deserialization
             if (failOnUnknownProperties != null) {

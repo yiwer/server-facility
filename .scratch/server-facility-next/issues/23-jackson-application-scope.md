@@ -29,4 +29,8 @@
 
 不混装两套主版本试图保持所有二进制签名，不引入新 JSON DSL。
 
+## 票 21 交接（2026-10-03，ADR-0044）
+
+票 21 的新应用 Jsons 注入、customizeBuilder、独立 JSON/HTTP 金样和 InputStream 显式预算是 expand 接缝，旧无参/≤0 无上限仅为当前平台保留兼容。23 的新推荐字段入口必须正数预算或显式不注册能力，不能继续默认无界。解码数组在分配前必须受预算限制，JSON 字符串形成前的文档/字段输入预算也需由应用明确配置；21 当前 Base64 长度闸门将临时数组限制为 N+2 固定舍入开销，实际返回严格≤N。Jsons payload 日志/错误参数泄露及 catch 边界仍由 23 关闭。详见 docs/building/platform-migration-inventory.md 与 verification/json-consumer/README.md；所有样本是字面来源，不以写后读替代。
+
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。

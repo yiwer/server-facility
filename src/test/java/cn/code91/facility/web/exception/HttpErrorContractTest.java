@@ -86,6 +86,10 @@ class HttpErrorContractTest {
             var response = client.send(HttpRequest.newBuilder(app.uri("/failure/SECRET-INPUT?token=SECRET-INPUT"))
                     .header("X-Trace-Id", "contract-trace").GET().build(), HttpResponse.BodyHandlers.ofString());
             var body = new ObjectMapper().readTree(response.body());
+            assertThat(body).isEqualTo(new ObjectMapper().readTree("""
+                    {"type":"about:blank","title":"Internal Server Error","status":500,"detail":"Internal server error",
+                     "instance":"urn:facility:error:contract-trace","code":500,"traceId":"contract-trace","errors":[]}
+                    """));
             assertThat(body.path("code").asInt()).isEqualTo(500);
             assertThat(body.path("traceId").asText()).isEqualTo("contract-trace");
             assertThat(body.path("instance").asText()).isEqualTo("urn:facility:error:contract-trace");
@@ -229,7 +233,8 @@ class HttpErrorContractTest {
     @Test
     void uncommittedWriterAndEntityMetadataAreReplacedWithoutLosingSecurityHeaders() throws Exception {
         try (var app = application(); var client = HttpClient.newHttpClient()) {
-            var response = client.send(HttpRequest.newBuilder(app.uri("/writer-failure")).GET().build(), HttpResponse.BodyHandlers.ofString());
+            for (String path : new String[]{"/writer-failure", "/mvc-writer-failure"}) {
+            var response = client.send(HttpRequest.newBuilder(app.uri(path)).timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
             assertThat(response.statusCode()).isEqualTo(500);
             assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("application/problem+json");
             for (String header : new String[]{"Content-Encoding", "Content-Disposition", "ETag", "Last-Modified", "Content-Range"}) {
@@ -240,6 +245,7 @@ class HttpErrorContractTest {
             assertThat(response.headers().firstValue("X-Content-Type-Options")).contains("nosniff");
             assertThat(new ObjectMapper().readTree(response.body()).path("status").asInt()).isEqualTo(500);
             assertThat(response.body()).doesNotContain("SECRET-INPUT");
+            }
         }
     }
 
@@ -266,6 +272,26 @@ class HttpErrorContractTest {
                 assertThat(new ObjectMapper().readTree(response.body()).path("code").asInt()).isEqualTo(status);
                 if (status == 401) assertThat(response.headers().firstValue("WWW-Authenticate")).contains("Bearer realm=api");
                 assertThat(response.body()).doesNotContain("SECRET-INPUT");
+            }
+        }
+    }
+
+    @Test
+    void concurrentRequestsKeepLocaleAndTraceInTheirOwnResponse() throws Exception {
+        try (var app = application(new Class<?>[]{HostCustomization.class}); var client = HttpClient.newHttpClient()) {
+            var pending = java.util.stream.IntStream.range(0, 16).mapToObj(index -> {
+                String locale = index % 2 == 0 ? "fr" : "en";
+                return client.sendAsync(HttpRequest.newBuilder(app.uri(index % 3 == 0 ? "/filter-failure" : "/failure"))
+                        .timeout(Duration.ofSeconds(5)).header("Accept-Language", locale).header("X-Trace-Id", "request-" + index)
+                        .GET().build(), HttpResponse.BodyHandlers.ofString());
+            }).toList();
+            for (int index = 0; index < pending.size(); index++) {
+                var response = pending.get(index).join();
+                assertThat(response.statusCode()).isEqualTo(500);
+                var body = new ObjectMapper().readTree(response.body());
+                assertThat(body.path("detail").asText()).isEqualTo(index % 2 == 0 ? "Erreur serveur" : "Internal server error");
+                assertThat(body.path("traceId").asText()).isEqualTo("request-" + index);
+                assertThat(response.headers().firstValue("X-Trace-Id")).contains("request-" + index);
             }
         }
     }
@@ -322,6 +348,7 @@ class HttpErrorContractTest {
                     gen.writeBooleanField("hostMapper", true);
                     gen.writeStringField("detail", value.getDetail());
                     gen.writeNumberField("status", value.getStatus());
+                    gen.writeStringField("traceId", (String) value.getProperties().get("traceId"));
                     gen.writeEndObject();
                 }
             });
@@ -423,6 +450,18 @@ class HttpErrorContractTest {
         @org.springframework.web.bind.annotation.PostMapping("/upload")
         Map<String, Long> upload(@org.springframework.web.bind.annotation.RequestPart org.springframework.web.multipart.MultipartFile file) {
             return Map.of("bytes", file.getSize());
+        }
+        @GetMapping("/mvc-writer-failure") void writerFailure(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+            response.setContentType("text/plain");
+            response.setContentLength(999);
+            response.setHeader("Content-Encoding", "gzip");
+            response.setHeader("Content-Disposition", "attachment; filename=old.txt");
+            response.setHeader("ETag", "old");
+            response.setHeader("Last-Modified", "Wed, 21 Oct 2015 07:28:00 GMT");
+            response.setHeader("Content-Range", "bytes 0-998/999");
+            response.setHeader("X-Content-Type-Options", "nosniff");
+            response.getWriter().write("SECRET-INPUT");
+            throw new IllegalStateException("SECRET-INPUT");
         }
         @GetMapping("/serialization") BrokenBody serialization() { return new BrokenBody(); }
         static class BrokenBody {

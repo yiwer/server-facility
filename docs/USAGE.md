@@ -67,6 +67,18 @@ worker/dataCenter 经 `facility.id.*` 配置(见开关全表)。范围校验在 
 
 ## JSON:JsonUtil
 
+Spring 服务代码优先注入应用拥有的 `Jsons`（ADR-0044）；它复用本应用的 ObjectMapper 和 Boot Jackson customizer，两个应用的实例各自保有其策略。用户自有 `Jsons` bean 优先，此时与 MVC 策略的一致性由用户负责。
+
+```java
+final class OrderExport {
+    private final Jsons jsons;
+    OrderExport(Jsons jsons) { this.jsons = jsons; }
+    Result<String, WrappedError> encode(Order order) { return jsons.serialize(order); }
+}
+```
+
+非 Spring 代码继续显式构造 `new Jsons(mapper)`。构造 mapper 时可以使用 `JsonConfig.standard().customizeBuilder(builder -> builder.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)).build()`；预设/模块/特性先应用，再按顺序执行 builder 回调，随后构建。旧 `customize(mapper -> ...)` 仍在构建后最后执行；新代码优先选构建期入口，发布后不再突变 mapper。
+
 序列化/反序列化返回 `Result`,不抛异常。支持多命名空间(不同 ObjectMapper 策略)。
 
 ```java
@@ -81,6 +93,8 @@ Result<String, WrappedError> pj = pretty.serialize(user);
 ```
 
 `JsonsRegistry`(经 `JsonUtil.registry()`)是进程级单例 —— 见[消费方须知](#消费方须知)。
+
+InputStream 字段可用 `new SimpleModule().addSerializer(InputStream.class, new InputStreamSerializer(1024)).addDeserializer(InputStream.class, new InputStreamDeserializer(1024))` 注册显式字节预算，再通过 `JsonConfig.Builder.addModule` 或宿主 Jackson builder 装配。正数限制原始/解码字节数；serializer 最多读取上限加一个探测字节，并在成功、超限和 I/O 失败时关闭字段源流。解码后的返回流由调用方关闭。无参及 ≤0 仍无上限；JSON 文本读取预算由宿主单独设置。根 JSON 输入/输出流的关闭由 mapper 的 AUTO_CLOSE_SOURCE / AUTO_CLOSE_TARGET 决定，与字段源流分别管理。解析、预算和 I/O 失败通过 `Jsons` 的 Result 错误通道返回；必需依赖/回调为 null 时立即失败。
 
 ## 日志:LogUtil
 
@@ -162,15 +176,40 @@ public <T> CompletableFuture<Result<T, Throwable>> intercept(AsyncContext ctx, A
 需要 servlet 栈 optional 依赖(见矩阵)。整体在 servlet Web 应用下装配,各组件由 `facility.web.*` 开关控制。
 
 - **统一响应**:`BaseResponse<T>` / `PageBaseResponse<T>`;`BaseResponse.fromResult(result)` 把 `Result` 桥到响应体。
-- **全局异常**:默认注册 `DefaultGlobalExceptionHandler`;继承 `AbstractGlobalExceptionHandler`
-  并声明 `@RestControllerAdvice` 即可覆盖(`@ConditionalOnMissingBean` 让位)。`use-problem-detail=true`
-  切 RFC 7807(ADR-0003)。
+- **全局异常**:默认注册 `DefaultGlobalExceptionHandler`，失败使用真实 HTTP 状态与 RFC 9457 ProblemDetail，成功 DTO 不包装（ADR-0027 替代 ADR-0003 的默认协议）。宿主较高优先级 `@RestControllerAdvice` 可以处理自己的异常；`AbstractGlobalExceptionHandler` 子类会使默认 advice 退让。
 - **过滤链**:`TraceIdFilter`(MDC traceId)、`RepeatableRequestFilter`(可重复读请求体,超限 413)。
 - **访问日志**:`AccessLogInterceptor`(慢请求阈值告警)。
 - **安全上传下载**:`SafeUpload`(路径穿越防御 + 危险扩展名拦截 + 类型/大小校验)、`HttpFileResponses`
   (中文文件名 RFC 5987 编码、Content-Type 推断)。
 - **会话**:`SessionUtil` / `SessionUserHolder`(ThreadLocal 当前用户,请求结束由 `SessionUserClearInterceptor` 清理)。
 - **工具**:`RequestUtil`(客户端 IP 等)、`ResponseUtil`(写 JSON / 下载头)、`CookieUtil`、`XssUtil`(jsoup allowlist)。
+
+### HTTP 错误迁移与扩展
+
+默认错误体的 `code` 为业务短码（FacilityException）或 HTTP 状态；`detail` 使用安全文案，`errors` 为字段错误数组，`traceId` 与追踪响应头一致。实例 URI 使用 `urn:facility:error:<traceId>`，不会反射请求路径、查询或秘密输入。字段错误最多 32 项，包含 `field`、`code=invalid`、安全 `message`；不公开 rejectedValue、校验注解原文或 cause。
+
+| 场景 | 默认 HTTP | 必要头 |
+|---|---|---|
+| 输入解析/校验、业务拒绝、坏 multipart | 400 | — |
+| 无匹配资源/方法/媒体 | 404/405/406/415 | 405 Allow、415 Accept |
+| 显式业务状态、上传超限 | 409/413/422 | 标准 ErrorResponse 携带的协议头 |
+| 限流 | 429 | Retry-After，毫秒向上取整为秒且至少 1 |
+| 内部异常、内部返回值校验、异步超时 | 500/503 | — |
+| 认证入口/权限拒绝 adapter | 401/403 | 401 可携带 WWW-Authenticate；身份实现由宿主提供 |
+
+`FacilityHttpErrors` 是可替换 bean，MVC、Filter 和 ERROR dispatch 共享相同策略。程序式 adapter 注入它并使用 Spring 标准异常：
+
+```java
+errors.write(request, response, new ErrorResponseException(HttpStatus.FORBIDDEN));
+// MVC 或宿主 advice 需要响应对象时：
+return errors.response(failure, new ServletWebRequest(request, response));
+```
+
+策略使用应用 ObjectMapper 和 MessageSource。宿主可以覆盖 `facility.web.error.system`、`facility.web.error.invalid_value` 等安全文案；不把输入值放入文案模板。新 advice 子类注入 `FacilityHttpErrors` 并 `super(errors)`；旧 `(properties, environment)` 构造器仅作为弃用的源代码兼容入口，无法采用宿主 mapper/MessageSource。
+
+过滤顺序约定为 TraceIdFilter（最高优先级）、FacilityHttpErrorFilter（+1）、RepeatableRequestFilter（票 05 接合后 +2）。ERROR dispatch 也走统一边界；Boot 和宿主错误页映射仍可选目的路径，部分状态注册不会撤掉其他错误的兜底。已提交响应保持原样；未提交的响应清除旧正文和实体头，保留安全/CORS/追踪头并设置 `Cache-Control: no-store`。错误 serializer 失败时回退为固定英文安全 500 ProblemDetail。
+
+旧客户端必须显式配置 `facility.web.exception.use-problem-detail=false`。这保留 `{code,message,data,description,success}` 字段形状、HTTP 200（429 仍为 429）与必要头；消息已安全化，`description` 为空，dev/test/local 也不恢复调试栈。依赖旧异常消息或原始 ErrorResponse body 的客户端应迁移到稳定 code 和 traceId。完整决策与真实 HTTP 证据见 [ADR-0027](adr/0027-safe-http-error-policy.md) 与票 04。
 
 ## 限流:RateLimiterUtil / @RateLimit
 
@@ -469,8 +508,8 @@ facility:
       allow-credentials: false
       max-age: 3600
     exception:
-      include-trace-profiles: [dev, test, local]   # 仅这些 profile 暴露堆栈摘要
-      use-problem-detail: false                     # true = RFC 7807
+      use-problem-detail: true        # 默认 RFC 9457；false 显式选择安全的旧 HTTP 200 envelope
+      # include-trace-profiles 已弃用；任何 profile 都不自动输出异常原文或调试栈
   ratelimit:
     enabled: true
     default-capacity: 100                # 令牌桶容量(未被 @RateLimit 覆盖时的默认)
@@ -500,10 +539,7 @@ facility:
   `spring.messages.basename` 等配置**不影响** facility 自带文案(facility 的 basename 固定为
   `i18n/facility-messages`)。你自己的 `MessageSource` bean 会被聚合进来一起解析;若要完全接管,
   声明名为 `messageSource` 的 bean 即可(`@ConditionalOnMissingBean(name="messageSource")` 让位)。
-- **JsonUtil 单例 × 多上下文**:`JsonsRegistry` 是进程级(静态)单例,不随 Spring 上下文创建。
-  同一 JVM 内多个 `ApplicationContext`(如测试并行、多模块)共享同一套 ObjectMapper 命名空间 ——
-  这是刻意设计(门面无状态、零上下文耦合),但若你在不同上下文注册了不同的 Jackson 定制,注意它们
-  作用于同一注册表。
+- **JsonUtil 兼容单例 × 多上下文**：旧静态 JsonUtil / JsonsRegistry 共享进程级命名空间，后创建应用会覆盖默认 mapper，关闭不恢复；bean 初始化中捕获 DEFAULT 还可能早于 registry 装配。多个应用使用构造器注入的 `Jsons` 保持各自策略；不要依赖静态注册表表达应用归属。GENERIC/CANONICAL/PRETTY 仍是旧独立预设，并不自动继承宿主 customizer。
 - **Context 生命周期与注入**：新代码将 `CacheManager`、`MessageSource`、业务 Module 等必需依赖写在构造器中，由各应用自己的 Spring 容器装配。不要通过静态 holder 再查一次依赖。例如 `OrderQueries(CacheManager cacheManager)` 的实例始终使用本应用传入的缓存管理器；父子容器按 Spring 的常规依赖解析规则工作。
 - **SpringContextHolder 兼容入口（已弃用，ADR-0025）**：首个成功发出本容器 `ContextRefreshedEvent` 的 holder 取得唯一进程级注册，刷新中不可查。只有取得注册的实例可以撤销；被拒绝的 B 关闭/启动失败不清理 A，A 关闭后不会自动将曾被拒绝的 B 提升为 owner。新的应用或显式重新成功刷新可以竞争空位。关闭事件先撤销，destroy 兜底且幂等；lookup 与关闭竞争返回既有 Result 错误，已经返回的 bean/正在执行的业务由应用生命周期负责。
 - **兼容测试迁移**：用真实 context 注册 holder、refresh、close；不要全局 reset 或用反射清空 holder。`setApplicationContextManually` 只在 `refresh()` 返回后接受活跃且未开始关闭、使用 Spring 标准 singleton registry 的 `AbstractApplicationContext`，不替换已有 owner，并随自己的 context 关闭/原地刷新撤销；原地刷新后须重新手工登记，不支持与 refresh 并发调用。null 保持忽略；未刷新/关闭中/已关闭/不支持该生命周期的对象抛 `IllegalArgumentException`。查询的必需 Class 参数 null 立即报错，null bean 名按缺席返回错误/false。`IdUtil` 和 `LogUtil` 不缓存 Spring bean，因此应用重新创建后使用新服务；`IdUtil.setGenerator` 的显式进程级 override 仍由调用方管理。`LogUtil.clearHandlerCache()` 仅保留为已弃用空操作。
