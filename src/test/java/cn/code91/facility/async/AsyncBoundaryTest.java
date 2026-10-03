@@ -13,6 +13,97 @@ import static org.assertj.core.api.Assertions.*;
 /** Additional boundary and reproducible scheduling checks through the public API. */
 class AsyncBoundaryTest {
     @Test
+    void cancellationWhileExecutorIsAcceptingCannotLeaveCancelledQueueEntry() throws Exception {
+        var accepting = new CompletableFuture<Future<?>>();
+        var cancellationRemovalFinished = new CountDownLatch(1);
+        var allowEnqueue = new CountDownLatch(1);
+        var workerEntered = new CountDownLatch(1);
+        var releaseWorker = new CountDownLatch(1);
+        class GatedExecutor extends ThreadPoolExecutor {
+            GatedExecutor() { super(1, 1, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<>(4)); }
+            void occupyWorker() {
+                super.execute(() -> {
+                    workerEntered.countDown();
+                    try { releaseWorker.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                });
+            }
+            @Override public boolean remove(Runnable command) {
+                boolean removed = super.remove(command);
+                cancellationRemovalFinished.countDown();
+                return removed;
+            }
+            @Override public void execute(Runnable command) {
+                accepting.complete((Future<?>) command);
+                try { if (!allowEnqueue.await(5, TimeUnit.SECONDS)) throw new RejectedExecutionException("test gate not released"); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new RejectedExecutionException(e); }
+                super.execute(command);
+            }
+        }
+        try (var executor = new GatedExecutor(); var submitter = Executors.newSingleThreadExecutor()) {
+            executor.occupyWorker();
+            assertThat(workerEntered.await(2, TimeUnit.SECONDS)).isTrue();
+            try {
+                var submission = submitter.submit(() -> Async.supply(() -> "must not run", executor)
+                        .timeout(Duration.ofMillis(250)).submit());
+                var offeredWork = accepting.get(2, TimeUnit.SECONDS);
+                assertThatThrownBy(() -> offeredWork.get(2, TimeUnit.SECONDS)).isInstanceOf(CancellationException.class);
+                assertThat(cancellationRemovalFinished.await(2, TimeUnit.SECONDS)).isTrue();
+                allowEnqueue.countDown();
+                assertThat(submission.get(2, TimeUnit.SECONDS).get(2, TimeUnit.SECONDS).getErr()).isInstanceOf(TimeoutException.class);
+                assertThat(executor.getQueue()).isEmpty();
+            } finally { allowEnqueue.countDown(); releaseWorker.countDown(); }
+        }
+    }
+    @Test
+    void terminalObserversCanWaitForWorkerFinallyBecauseCancellationSignalComesFirst() throws Exception {
+        for (boolean timeout : new boolean[]{false, true}) {
+            var entered = new CountDownLatch(1);
+            var cleaned = new CountDownLatch(1);
+            var observerSawCleanup = new AtomicBoolean();
+            try (var executor = Executors.newSingleThreadExecutor()) {
+                var task = Async.run(() -> {
+                    entered.countDown();
+                    try { new CountDownLatch(1).await(); }
+                    finally { cleaned.countDown(); }
+                }, executor);
+                var future = (timeout ? task.timeout(Duration.ofMillis(250)) : task).submit();
+                assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
+                var observerDone = new CountDownLatch(1);
+                future.whenComplete((result, error) -> {
+                    try { observerSawCleanup.set(cleaned.await(1, TimeUnit.SECONDS)); }
+                    catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                    finally { observerDone.countDown(); }
+                });
+                if (!timeout) future.cancel(true);
+                assertThat(observerDone.await(2, TimeUnit.SECONDS)).isTrue();
+                assertThat(observerSawCleanup).as("timeout=%s", timeout).isTrue();
+            }
+        }
+    }
+    @Test
+    void externallyCompletedFutureCannotBeCancelledOrInterruptWork() throws Exception {
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var exited = new CountDownLatch(1);
+        var interrupted = new AtomicBoolean();
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var future = Async.supply(() -> {
+                entered.countDown();
+                try { release.await(); } catch (InterruptedException e) { interrupted.set(true); }
+                finally { exited.countDown(); }
+                return "work";
+            }, executor).submit();
+            assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
+            try {
+                assertThat(future.complete(Result.ok("external"))).isTrue();
+                assertThat(future.cancel(true)).isFalse();
+            } finally { release.countDown(); }
+            assertThat(exited.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(interrupted).isFalse();
+            assertThat(future.join().get()).isEqualTo("external");
+        }
+    }
+    @Test
     void deadlineBoundariesAreImmediateAtZeroAndSaturateOnOverflow() {
         var calls = new AtomicInteger();
         for (var budget : List.of(Duration.ZERO, Duration.ofNanos(-1))) {

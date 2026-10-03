@@ -51,9 +51,9 @@ final class AsyncExecution {
                 if (!settled.compareAndSet(false, true)) return isCancelled();
                 interruptOnStop = interrupt;
                 stopped.set(new CancellationException("Async submission cancelled"));
-                boolean cancelled = super.cancel(interrupt);
+                // Signal actual work before public callbacks can wait for its cleanup.
                 cancelWork(interrupt);
-                return cancelled;
+                return super.cancel(interrupt);
             }
         };
         fail = reason -> promise.complete(Result.err(reason));
@@ -64,6 +64,8 @@ final class AsyncExecution {
         ScheduledFuture<?> alarm = timed ? TIMER.schedule(() -> stop(new TimeoutException("Async deadline exceeded")),
                 Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS) : null;
         promise.whenComplete((r, e) -> {
+            // CompletableFuture is publicly completable as well as cancellable.
+            settled.set(true);
             if (alarm != null) alarm.cancel(false);
             if (parent != null) parent.children.remove(this);
         });
@@ -96,17 +98,15 @@ final class AsyncExecution {
         if (!settled.compareAndSet(false, true)) return;
         interruptOnStop = interrupt;
         stopped.set(reason);
-        fail.accept(reason);
         cancelWork(interrupt);
+        fail.accept(reason);
     }
 
     private void cancelWork(boolean interrupt) {
         for (var child : children) child.stop(stopped.get(), interrupt);
         for (var task : tasks) {
             task.cancel(interrupt);
-            if (executor instanceof ThreadPoolExecutor pool) pool.remove(task);
-            else if (executor instanceof org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor springPool)
-                springPool.getThreadPoolExecutor().remove(task);
+            removeQueued(task);
         }
     }
 
@@ -146,9 +146,19 @@ final class AsyncExecution {
         };
         tasks.add(work);
         if (!available()) work.cancel(true);
-        else try { executor.execute(work); }
+        else try {
+            executor.execute(work);
+            // Cancellation may have removed the handle before execute enqueued it.
+            if (work.isCancelled()) removeQueued(work);
+        }
         catch (Throwable failure) { tasks.remove(work); result.complete(Result.err(failure)); }
         return result;
+    }
+
+    private void removeQueued(Runnable task) {
+        if (executor instanceof ThreadPoolExecutor pool) pool.remove(task);
+        else if (executor instanceof org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor springPool)
+            springPool.getThreadPoolExecutor().remove(task);
     }
 
     private static void install(Map<String, String> context) {
