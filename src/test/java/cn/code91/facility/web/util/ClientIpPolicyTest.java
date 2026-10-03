@@ -57,6 +57,12 @@ class ClientIpPolicyTest {
             org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new ClientIpPolicy(List.of(cidr)));
         org.assertj.core.api.Assertions.assertThatIllegalArgumentException().isThrownBy(() -> new ClientIpPolicy(java.util.Collections.nCopies(129, "127.0.0.1")));
         assertThat(new ClientIpPolicy(java.util.Collections.nCopies(128, "127.0.0.1")).resolve(request)).isEqualTo("192.0.2.9");
+        assertThat(new ClientIpPolicy(java.util.Collections.nCopies(127, "127.0.0.1")).resolve(request)).isEqualTo("192.0.2.9");
+        for (String cidr : List.of("0.0.0.0/0", "127.0.0.1/32"))
+            assertThat(new ClientIpPolicy(List.of(cidr)).resolve(request)).isEqualTo("192.0.2.9");
+        request.setRemoteAddr("2001:db8::1");
+        for (String cidr : List.of("::/0", "2001:db8::1/128"))
+            assertThat(new ClientIpPolicy(List.of(cidr)).resolve(request)).isEqualTo("192.0.2.9");
         assertThat(policy.resolve(null)).isEqualTo("unknown");
         request.setRemoteAddr("localhost"); assertThat(policy.resolve(request)).isEqualTo("unknown");
     }

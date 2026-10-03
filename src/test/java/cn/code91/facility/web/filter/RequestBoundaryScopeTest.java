@@ -35,11 +35,23 @@ class RequestBoundaryScopeTest {
 
     @Test void invalidConfigurationFailsBeforeServingAndMutablePropertiesCannotChangeAnInstalledTraceScope() throws Exception {
         var props = new FacilityWebTraceProperties();
-        for (String name : new String[]{"", "a".repeat(129), "X:Trace", "X Trace"}) {
+        for (String name : new String[]{null, "", "a".repeat(129), "X:Trace", "X Trace"}) {
             props.setHeaderName(name); assertThatIllegalArgumentException().isThrownBy(() -> new TraceIdFilter(props));
         }
-        props.setHeaderName("X-Trace-Id"); props.setMdcKey("bad key");
-        assertThatIllegalArgumentException().isThrownBy(() -> new TraceIdFilter(props));
+        props.setHeaderName("X-Trace-Id");
+        for (String key : new String[]{null, "", "a".repeat(129), "bad key"}) {
+            props.setMdcKey(key); assertThatIllegalArgumentException().isThrownBy(() -> new TraceIdFilter(props));
+        }
+        for (int length : new int[]{1, 127, 128}) {
+            String name = "a".repeat(length);
+            props.setHeaderName(name); props.setMdcKey(name);
+            var bounded = new TraceIdFilter(props);
+            var request = new MockHttpServletRequest(); request.addHeader(name, "x");
+            var response = new MockHttpServletResponse();
+            bounded.doFilter(request, response, (rq, rs) -> assertThat(MDC.get(name)).isEqualTo("x"));
+            assertThat(response.getHeader(name)).isEqualTo("x"); assertThat(MDC.get(name)).isNull();
+        }
+        props.setHeaderName("X-Trace-Id");
         props.setMdcKey("traceId"); var installed = new TraceIdFilter(props);
         props.setHeaderName("Invalid\r\n"); props.setMdcKey("changed");
         var request = new MockHttpServletRequest(); request.addHeader("X-Trace-Id", "frozen");

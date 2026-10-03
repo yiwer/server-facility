@@ -54,6 +54,10 @@ class TraceIdFilterTest {
     @Test
     @DisplayName("长度边界:64 位合法透传;65 位重新生成")
     void lengthBoundary_64ok_65regenerated() throws Exception {
+        for (int length : new int[]{1, 63}) {
+            var request = new MockHttpServletRequest(); request.addHeader(props.getHeaderName(), "a".repeat(length));
+            assertThat(runAndCaptureMdc(request, new MockHttpServletResponse())).isEqualTo("a".repeat(length));
+        }
         String ok64 = "a".repeat(64);
         MockHttpServletRequest req64 = new MockHttpServletRequest();
         req64.addHeader(props.getHeaderName(), ok64);
