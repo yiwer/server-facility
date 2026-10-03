@@ -55,11 +55,16 @@ jobs:
             .verification-results/**/json-consumer-effective-pom.xml
             .verification-results/**/json-consumer-pom.xml
             .verification-results/**/json-consumer-dependency-tree.txt
+            .verification-results/**/csv-consumer-*.xml
+            .verification-results/**/csv-consumer-*.txt
+            .verification-results/**/CsvConsumer.java
             .verification-results/**/JsonConsumer.java
             .verification-results/**/PlatformWebConsumer.java
             .verification-results/**/PlatformUploadConsumer.java
             .verification-results/**/core-consumer/CoreConsumer.java
             .verification-results/**/crypto-consumer/CryptoConsumer.java
+            .verification-results/**/io-consumer/IoConsumer.java
+            .verification-results/**/rate-limit-consumer/RateLimitConsumer.java
             .verification-results/**/artifacts/*.jar
             .verification-results/**/matrix-inputs/**
             .verification-results/**/matrix/**

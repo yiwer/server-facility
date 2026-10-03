@@ -5,6 +5,28 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### ZIP 与目录完整性（2026-10-04，ADR-0037）
+
+- ZIP 任一条目缺失、重复 basename、读取/关闭失败即 Err，不再跳过并报成功；目录统计也不把不可读节点计作零。ZIP 保留空目录。
+- ZIP 默认不覆盖，禁止输出位于输入树；拒绝链接和链接祖先。关闭完整 ZIP 后以同目录硬链接发布，不支持该能力时失败。成功结果才是消费信号，父目录创建及文件系统拒绝清理时的残留政策见 USAGE。
+- 新增正数 Limits；ZIP 默认 10,000 条目、256 MiB 实际输入和输出、64 层；PathIo 默认 10,000 后代、256 MiB 逻辑文件大小、64 层。ZIP 名字最多 1,024 UTF-8 bytes，拒绝冒号/反斜线/dot 路径片段。需要更大输入的调用方显式传有限预算。
+- 递归删除有界逐项进行，失败可能已经删除部分条目，不回滚；拒绝文件系统根。中断保留标志并停止后续工作，清理失败附在原始错误之后。
+
+### 有界 CSV 迁移（2026-10-04，ADR-0038）
+
+- 解析转为 Commons CSV 1.14.1 required 依赖。新 `CsvDialect.STRICT/LEGACY` 区分闭合引号后尾随文本；旧 `read` 保留 LEGACY。STRICT 的库语法容差有明文说明，不等于完整 RFC 语法验证。
+- 旧 `read`/`write` 收紧到 1 MiB、10,000 行、128 列、每字段 1,024 个 UTF-16 单元；预算全部正数。较大任务迁移至显式 `CsvLimits` 的 `forEach`/`readAll`/导出入口；错误累计固定首次失败停止。坏 UTF-8 确定拒绝，不再替换为乱码。
+- `writeMachine` 无 BOM 并保持原值；`writeSpreadsheet` 带 BOM，拒绝文档列出的公式/控制字符前缀而不改写。旧 BOM 写法继续保留原值，不能当成安全电子表格导出。
+- 借用流不关闭，Path 打开的流总会关闭；取消发生在打开前时不截断已有目标。消费异常传播，先前副作用/已写前缀不回滚。安全外层行列诊断不暴露字段，外部 IO cause 不作为公开文本。详见 USAGE 与票15报告。
+
+### 本地入口配额迁移（2026-10-04，ADR-0032）
+
+- 拒绝非正cost、超容量成本、非有限/非正rate、非法key及同驻留key冲突政策；long大容量保持精确扣费，按实际缺额向上取整等待。
+- maxBuckets改为严格槽位预算，只回收已经补满的桶；无法准入抛设施不可用，不再整体清空恢复其他主体额度。
+- RateLimiterUtil普通入口从缺Bean放行改为必需；显式tryAcquireOptional/acquireOptional保留可接受的降级。HTTP缺Adapter/运行故障默认安全503；fail-open=true显式允许降级，enabled=false只关闭默认provider，仍保留注解守卫。
+- @RateLimit新增IP/PRINCIPAL/GLOBAL scope；DEFAULT保留旧空key/IP、固定key/global选择，操作默认含完整类名与参数类型。SPI key编码改变且限512单元，外部后端需迁移旧key；Principal只由宿主认证提供。
+- 入口额度先于默认幂等重放扣费，新重试仍计费，同请求ASYNC完成不重复扣费；业务配额不因此获得事务语义。见USAGE及ADR0032。
+
 ### 历史密文与错误诊断（2026-10-04，ADR-0040）
 
 - 保留原AES-GCM密文和PBKDF2-HMAC-SHA256/210000读取政策，不改变旧密文、key或salt存储格式。

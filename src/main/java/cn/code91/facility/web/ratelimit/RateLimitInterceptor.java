@@ -17,14 +17,12 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * （如 {@code AbstractGlobalExceptionHandler}）转换为 HTTP 429 响应。
  * </p>
  * <p>
- * 构造仅注入 {@link RateLimiter} 与两个默认值（{@code defaultCapacity} /
- * {@code defaultPermitsPerSecond}），不直接依赖 properties 类——装配层
- * （{@code FacilityRateLimitAutoConfiguration}）从 {@code FacilityRateLimitProperties}
- * 取值后传入这两个默认值。
+ * 构造注入本应用RateLimiter、默认容量/速率与显式failOpen政策，不依赖properties。
+ * 三参数兼容构造器默认设施不可用时拒绝；自动装配在默认幂等拦截器前扣入口额度。
  * </p>
  * <p>
- * 空 {@link RateLimit#key()} 时 key 含 {@code RequestUtil.getClientIp} 的来源快照；
- * 默认连接 peer，显式可信代理配置才解析转发链。该值不是认证身份，详见 {@link RateLimit#key()}。
+ * scope选择IP来源、宿主Principal或全局操作额度；DEFAULT保留旧空key/IP、固定key/GLOBAL选择。
+ * 相同请求/操作/身份/政策的ASYNC完成复用扣费收据。详见 {@link RateLimit#scope()} 和ADR-0032。
  * </p>
  *
  * @author yvvb
@@ -34,19 +32,37 @@ import org.springframework.web.servlet.HandlerInterceptor;
  */
 public class RateLimitInterceptor implements HandlerInterceptor {
 
-    private final RateLimiter rateLimiter;
+    private final @jakarta.annotation.Nullable RateLimiter rateLimiter;
     private final long defaultCapacity;
     private final double defaultPermitsPerSecond;
+    private final boolean failOpen;
+    private final String receiptAttribute = RateLimitInterceptor.class.getName() + ".receipt." + java.util.UUID.randomUUID();
+    private record Receipt(java.lang.reflect.Method method, String key, int cost, long capacity, double rate) { }
+
 
     /**
      * @param rateLimiter             限流器
      * @param defaultCapacity         {@link RateLimit#capacity()} 为 0 时使用的默认桶容量
      * @param defaultPermitsPerSecond {@link RateLimit#permitsPerSecond()} 为 0 时使用的默认填充速率
      */
-    public RateLimitInterceptor(RateLimiter rateLimiter, long defaultCapacity, double defaultPermitsPerSecond) {
+    public RateLimitInterceptor(@jakarta.annotation.Nullable RateLimiter rateLimiter, long defaultCapacity, double defaultPermitsPerSecond) {
+        this(rateLimiter, defaultCapacity, defaultPermitsPerSecond, false);
+    }
+
+    /**
+     * @param rateLimiter host adapter, nullable so required annotation guards can reject absence
+     * @param defaultCapacity positive default capacity
+     * @param defaultPermitsPerSecond finite positive default refill rate
+     * @param failOpen explicit infrastructure fallback; never hides invalid policy or quota rejection
+     */
+    public RateLimitInterceptor(@jakarta.annotation.Nullable RateLimiter rateLimiter, long defaultCapacity, double defaultPermitsPerSecond,
+                                boolean failOpen) {
+        if (defaultCapacity <= 0 || !(defaultPermitsPerSecond > 0) || !Double.isFinite(defaultPermitsPerSecond))
+            throw new IllegalArgumentException("Invalid default rate-limit policy");
         this.rateLimiter = rateLimiter;
         this.defaultCapacity = defaultCapacity;
         this.defaultPermitsPerSecond = defaultPermitsPerSecond;
+        this.failOpen = failOpen;
     }
 
     @Override
@@ -58,15 +74,63 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         if (ann == null) {
             return true;
         }
-        String key = ann.key().isEmpty()
-                ? hm.getBeanType().getSimpleName() + "#" + hm.getMethod().getName() + "#" + RequestUtil.getClientIp(request)
-                : ann.key();
-        long capacity = ann.capacity() > 0 ? ann.capacity() : defaultCapacity;
-        double permitsPerSecond = ann.permitsPerSecond() > 0 ? ann.permitsPerSecond() : defaultPermitsPerSecond;
-        RateLimitResult result = rateLimiter.acquire(key, ann.permits(), capacity, permitsPerSecond);
+        String key = quotaKey(request, hm, ann);
+        long capacity = ann.capacity() == 0 ? defaultCapacity : ann.capacity();
+        double permitsPerSecond = ann.permitsPerSecond() == 0 ? defaultPermitsPerSecond : ann.permitsPerSecond();
+        if (key.isBlank() || key.length() > 512 || key.chars().anyMatch(Character::isISOControl)
+                || capacity <= 0 || ann.permits() <= 0 || ann.permits() > capacity
+                || !(permitsPerSecond > 0) || !Double.isFinite(permitsPerSecond))
+            throw new IllegalArgumentException("Invalid @RateLimit policy");
+        Receipt receipt = new Receipt(hm.getMethod(), key, ann.permits(), capacity, permitsPerSecond);
+        if (request.getDispatcherType() == jakarta.servlet.DispatcherType.ASYNC
+                && receipt.equals(request.getAttribute(receiptAttribute))) return true;
+        if (rateLimiter == null) {
+            if (failOpen) return true;
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Rate limiter unavailable");
+        }
+        RateLimitResult result;
+        try {
+            result = java.util.Objects.requireNonNull(rateLimiter.acquire(key, ann.permits(), capacity, permitsPerSecond),
+                    "Rate limiter returned no decision");
+        } catch (IllegalArgumentException invalidPolicy) { throw invalidPolicy; }
+        catch (RuntimeException unavailable) {
+            if (failOpen) return true;
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Rate limiter unavailable", unavailable);
+        }
         if (!result.allowed()) {
             throw new RateLimitExceededException(key, result.retryAfterMillis());
         }
+        request.setAttribute(receiptAttribute, receipt);
         return true;
     }
+
+    private static String quotaKey(HttpServletRequest request, HandlerMethod handler, RateLimit annotation) {
+        if (!annotation.key().isEmpty() && annotation.key().isBlank())
+            throw new IllegalArgumentException("Invalid @RateLimit operation alias");
+        String operation = annotation.key().isEmpty()
+                ? "m:" + org.springframework.util.ClassUtils.getUserClass(handler.getBeanType()).getName() + "#"
+                    + handler.getMethod().getName() + "(" + java.util.Arrays.stream(handler.getMethod().getParameterTypes())
+                    .map(Class::getName).collect(java.util.stream.Collectors.joining(",")) + ")"
+                : "a:" + annotation.key();
+        RateLimit.Scope scope = annotation.scope() == RateLimit.Scope.DEFAULT
+                ? (annotation.key().isEmpty() ? RateLimit.Scope.IP : RateLimit.Scope.GLOBAL) : annotation.scope();
+        String subject = switch (scope) {
+            case PRINCIPAL -> {
+                java.security.Principal principal = request.getUserPrincipal();
+                String name = principal == null ? null : principal.getName();
+                if (name == null || name.isBlank() || name.length() > 128 || name.chars().anyMatch(Character::isISOControl))
+                    throw new org.springframework.web.server.ResponseStatusException(
+                            org.springframework.http.HttpStatus.FORBIDDEN, "Verified quota identity required");
+                yield name;
+            }
+            case IP -> RequestUtil.getClientIp(request);
+            case GLOBAL -> "";
+            default -> throw new IllegalStateException("Unresolved rate-limit scope");
+        };
+        // Length delimiting prevents operation/identity delimiters from aliasing another quota.
+        return scope.name() + "|" + operation.length() + ":" + operation + "|" + subject;
+    }
+
 }
