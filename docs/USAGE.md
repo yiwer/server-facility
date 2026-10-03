@@ -407,14 +407,16 @@ public BaseResponse<Order> createOrder(...) { ... }
 
 ## 加解密:CryptoUtil
 
-纯 JDK 静态门面(`crypto` 包),无需任何配置(无 bean、无 properties),恒可用;算法固定
-AES-256-GCM,不暴露 mode/padding 参数(ADR-0019)。
+纯 JDK 静态门面(`crypto` 包)，无 bean、无 properties；算法固定AES-GCM，默认生成256位key，
+不暴露mode/padding参数。先落实输入与并发预算，详见[历史读取和消费示例](building/legacy-crypto.md)及ADR-0040。
 
 ```java
 // 对称加解密
 SecretKey key = CryptoUtil.generateAesKey();                          // 或 deriveKey / aesKeyFromBytes
-String cipher = CryptoUtil.encrypt("敏感数据", key).orElse("");         // Base64(IV‖密文+tag)
-String plain  = CryptoUtil.decrypt(cipher, key).orElse("");            // 失败(错误密钥/篡改/畸形)→ err
+String cipher = CryptoUtil.encrypt("敏感数据", key)
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage())); // Base64(IV‖密文+tag)
+String plain = CryptoUtil.decrypt(cipher, key)
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage())); // 不把读取失败默认为空明文
 
 // 口令派生密钥(PBKDF2)
 byte[] salt  = CryptoUtil.generateSalt();                             // 16 字节,须与密文一同持久化
@@ -427,7 +429,8 @@ SecretKey restored  = CryptoUtil.importKey(exported)
         .orElseThrow(e -> new IllegalStateException(e.getFullMessage()));
 
 // HMAC 消息认证 / 编解码
-String mac = CryptoUtil.hmacSha256("body", "secret").orElse("");     // hex 小写
+String mac = CryptoUtil.hmacSha256("body", "secret")
+        .orElseThrow(e -> new IllegalStateException(e.getFullMessage())); // hex 小写；示例key非生产凭据
 byte[] bytes = "payload".getBytes(StandardCharsets.UTF_8);           // 待编码字节(示例)
 String b64 = CryptoUtil.base64Encode(bytes);
 String hex = CryptoUtil.hexEncode(bytes);
@@ -435,15 +438,13 @@ String hex = CryptoUtil.hexEncode(bytes);
 
 - **密钥存储是调用方责任**:密钥/盐**不得硬编码**进源码或配置,应取自密钥管理服务(KMS/Vault)或
   受控环境变量;`CryptoUtil` 只做算法调用,不托管密钥。
-- **GCM nonce 由门面管理**:每次 `encrypt` 自动生成随机 IV 前置拼进密文,调用方无需也无从操心 nonce
-  ——不要试图复用密文或自行拼 IV。
+- **GCM nonce 由门面生成**:每次 `encrypt` 自动生成随机IV前置拼进密文；随机性不保证无限调用无碰撞，
+  消费应用仍负责密钥生命周期与使用量。不要自行改写IV。
 - **对称密钥强度取决于传入的 `SecretKey`**:`generateAesKey()` 产出 256-bit;`aesKeyFromBytes` 接受
   16/24/32 字节原始密钥(对应 AES-128/192/256),自行拼装密钥字节时留意长度选择。
-- **解密失败统一且不含原因**:错误密钥、密文篡改、畸形输入(Base64 畸形/IV 长度不足)全部返回
-  `equals` 相等的 `CRYPTO_DECRYPT_ERROR`,且**不附加底层异常**——这正是设计目的所在(细分失败原因
-  会给攻击者提供 padding-oracle 类判别信号),`WrappedError.getException()` 对解密失败恒为 `null`,
-  无失败模式可供区分;需要排障请用已知明文/密钥在别处**复现**,不要指望检视该异常(ADR-0019)。
-  这与其他方法不同——`encrypt` 失败仍保留底层异常(非 oracle 向量,cause 有助于诊断)。
+- **Result失败不携带秘密诊断**:全部加密/解密/派生/MAC/解码错误只带稳定错误类型，不附provider原始cause、
+  输入或日志。解密失败均为相等的`CRYPTO_DECRYPT_ERROR`，但这不是恒定时间保证。业务只记录稳定错误码与
+  自有请求关联；程序`Error`继续传播，非Result入口可抛参数/配置异常。旧版本加密等错误保留cause的政策已由ADR-0040替代。
 - **`deriveKey` 口令内存卫生**:内部用 PBKDF2WithHmacSHA256(210_000 迭代)拉伸口令,并在 `finally`
   清零 `PBEKeySpec` 内部口令副本;但入参 `String password` 本身**不可清零**(JVM 字符串不可变)——
   调用方应避免长期持有明文口令 `String`(用完即弃引用,不缓存、不打日志)。

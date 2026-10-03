@@ -28,6 +28,39 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StreamingHttpContractTest {
     @TempDir Path directory;
 
+    @ParameterizedTest @ValueSource(strings = {"boolean-keep", "boolean-clear", "status", "full-keep", "full-clear"})
+    @Timeout(20)
+    void servlet61RedirectsPreserveLiveContainerSemanticsButNeverReplayDiscardedCapture(String mode) throws Exception {
+        try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{WebConfiguration.class});
+             var client = HttpClient.newHttpClient()) {
+            var request = HttpRequest.newBuilder(app.uri("/redirect/" + mode))
+                    .header("Idempotency-Key", mode).GET().build();
+            var first = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertThat(first.statusCode()).isEqualTo(mode.startsWith("boolean") ? 302 : 307);
+            assertThat(first.headers().firstValue("Location").orElseThrow()).endsWith("/destination");
+            if (mode.endsWith("keep")) assertThat(first.body()).isEqualTo("prefix");
+            else assertThat(first.body()).doesNotContain("prefix");
+            var replay = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertThat(replay.statusCode()).isEqualTo(409);
+            assertThat(replay.headers().firstValue("Location")).isEmpty();
+            assertThat(replay.body()).doesNotContain("prefix");
+        }
+    }
+
+    @org.junit.jupiter.api.Test @Timeout(20)
+    void servlet61CharsetOverloadCannotChangeEncodingAfterWriterSelection() throws Exception {
+        try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{WebConfiguration.class});
+             var client = HttpClient.newHttpClient()) {
+            for (int attempt = 0; attempt < 2; attempt++) {
+                var response = client.send(HttpRequest.newBuilder(app.uri("/charset"))
+                        .header("Idempotency-Key", "charset").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+                assertThat(response.statusCode()).isEqualTo(200);
+                assertThat(response.headers().firstValue("Content-Type").orElseThrow()).contains("charset=UTF-8");
+                assertThat(response.body()).isEqualTo(new byte[]{(byte) 0xc3, (byte) 0xa9});
+            }
+        }
+    }
+
     @org.junit.jupiter.api.Test @Timeout(20)
     void actualAsyncSseEmitterFlushesBeforeCompletion() throws Exception {
         try (var app = EmbeddedServletApplication.start(directory, new Class<?>[]{WebConfiguration.class});
@@ -114,6 +147,27 @@ class StreamingHttpContractTest {
         final CountDownLatch finished = new CountDownLatch(1);
         final CountDownLatch asyncReady = new CountDownLatch(1);
         volatile org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter;
+        @Idempotent @GetMapping("/redirect/{mode}")
+        void redirect(@org.springframework.web.bind.annotation.PathVariable("mode") String mode,
+                      HttpServletResponse response) throws Exception {
+            response.getWriter().write("prefix");
+            switch (mode) {
+                case "boolean-keep" -> response.sendRedirect("/destination", false);
+                case "boolean-clear" -> response.sendRedirect("/destination", true);
+                case "status" -> response.sendRedirect("/destination", 307);
+                case "full-keep" -> response.sendRedirect("/destination", 307, false);
+                case "full-clear" -> response.sendRedirect("/destination", 307, true);
+                default -> throw new IllegalArgumentException(mode);
+            }
+        }
+        @Idempotent @GetMapping("/charset")
+        void charset(HttpServletResponse response) throws Exception {
+            response.setContentType("text/plain");
+            response.setCharacterEncoding(StandardCharsets.UTF_8);
+            var writer = response.getWriter();
+            response.setCharacterEncoding(StandardCharsets.ISO_8859_1);
+            writer.write("é");
+        }
         @GetMapping("/async-events") org.springframework.web.servlet.mvc.method.annotation.SseEmitter asyncEvents() {
             emitter = new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(10_000L);
             asyncReady.countDown();

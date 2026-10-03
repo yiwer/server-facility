@@ -128,6 +128,9 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
     @Override public void setCharacterEncoding(@Nullable String charset) {
         if (writer == null) super.setCharacterEncoding(charset);
     }
+    @Override public void setCharacterEncoding(@Nullable Charset charset) {
+        if (writer == null) super.setCharacterEncoding(charset);
+    }
     @Override public void setContentType(@Nullable String type) {
         super.setContentType(type);
         if (writerCharset != null) super.setCharacterEncoding(writerCharset.name());
@@ -159,4 +162,13 @@ final class BoundedResponseCapture extends HttpServletResponseWrapper {
     @Override public void sendError(int status) throws IOException { discard(); super.sendError(status); }
     @Override public void sendError(int status, @Nullable String message) throws IOException { discard(); super.sendError(status, message); }
     @Override public void sendRedirect(String location) throws IOException { discard(); super.sendRedirect(location); }
+    @Override public void sendRedirect(String location, boolean clearBuffer) throws IOException {
+        discard(); super.sendRedirect(location, clearBuffer);
+    }
+    @Override public void sendRedirect(String location, int status) throws IOException {
+        discard(); super.sendRedirect(location, status);
+    }
+    @Override public void sendRedirect(String location, int status, boolean clearBuffer) throws IOException {
+        discard(); super.sendRedirect(location, status, clearBuffer);
+    }
 }

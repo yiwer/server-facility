@@ -1,5 +1,7 @@
 # ADR-0028: 显式、有界捕获与 Servlet 流所有权
 
+> 2026-10-04：[ADR0047](0047-boot4-consumer-integration.md) 补全Servlet6.1三个sendRedirect及Charset重载；本记录的有界捕获与流归属决定保留。Windows实际已验证，Linux状态见票24报告。
+
 ## Status
 
 Accepted
@@ -49,4 +51,3 @@ Web 研究 §2.2/3.4 的真实探针证明全局响应缓存使下载及 SSE 的
 ---
 
 *本 ADR 遵循 Michael Nygard 模板。模板见 `docs/adr/0000-adr-template.md`。*
-

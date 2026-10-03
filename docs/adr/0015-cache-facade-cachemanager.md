@@ -1,5 +1,7 @@
 # ADR-0015: 缓存门面复用 Spring CacheManager SPI + Caffeine/ConcurrentMap 双后端
 
+> 2026-10-04：[ADR0047](0047-boot4-consumer-integration.md) 补全成对依赖缺任一时的目标平台装配验证与实现条件，保留本记录的门面/optional理由；新TTL/容量政策仍归票08。
+
 - **状态**:Accepted(2026-07-03)
 - **源起**:限流+缓存实现计划 簇B(docs/superpowers/plans/2026-07-03-ratelimit-cache.md),spec §10 新组件
 

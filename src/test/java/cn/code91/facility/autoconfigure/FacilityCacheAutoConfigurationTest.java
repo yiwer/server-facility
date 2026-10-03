@@ -44,6 +44,15 @@ class FacilityCacheAutoConfigurationTest {
     }
 
     @Test
+    void caffeineWithoutSpringContextSupportFallsBackToConcurrentMap() {
+        runner.withClassLoader(new FilteredClassLoader("org.springframework.cache.caffeine"))
+                .run(ctx -> {
+                    assertThat(ctx).hasSingleBean(CacheManager.class);
+                    assertThat(ctx.getBean(CacheManager.class)).isInstanceOf(ConcurrentMapCacheManager.class);
+                });
+    }
+
+    @Test
     @DisplayName("F15:回退 ConcurrentMap 时装配期 WARN(default-ttl/maximum-size 被忽略的信号)")
     void concurrentMapFallback_emitsWarn() {
         ch.qos.logback.classic.Logger root =

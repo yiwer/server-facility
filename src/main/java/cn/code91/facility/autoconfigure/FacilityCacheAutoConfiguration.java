@@ -5,6 +5,7 @@ import cn.code91.facility.log.LogUtil;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,6 +14,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 
 /**
  * 缓存自动装配(ADR-0015)。
@@ -25,7 +27,7 @@ import org.springframework.context.annotation.Bean;
  *     {@code CaffeineCacheManager} 支持类(见下)时装配,{@link FacilityCacheProperties#getDefaultTtl()}
  *     经 {@code expireAfterWrite} 应用、{@link FacilityCacheProperties#getMaximumSize()}
  *     经 {@code maximumSize} 应用;</li>
- *     <li>{@link #concurrentMapCacheManager}:classpath 不存在 {@code Caffeine} 时装配,
+ *     <li>{@link #concurrentMapCacheManager}:classpath 缺少 {@code Caffeine} 或其 Spring 支持类时装配,
  *     纯 JDK {@code ConcurrentHashMap} 包装,不支持 TTL/大小上限。</li>
  * </ul>
  * <p>
@@ -75,11 +77,21 @@ public class FacilityCacheAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(CacheManager.class)
-    @ConditionalOnMissingClass("com.github.benmanes.caffeine.cache.Caffeine")
+    @Conditional(MissingCaffeineSupport.class)
     public CacheManager concurrentMapCacheManager() {
         // F15:回退分支装配期一次性提示——Caffeine 独有的 TTL/容量配置在此后端不生效
         LogUtil.warn("facility.cache.default-ttl / maximum-size only apply to the Caffeine backend; "
                 + "falling back to ConcurrentMapCacheManager, these properties are ignored");
         return new ConcurrentMapCacheManager();
+    }
+
+    static final class MissingCaffeineSupport extends AnyNestedCondition {
+        MissingCaffeineSupport() { super(ConfigurationPhase.REGISTER_BEAN); }
+
+        @ConditionalOnMissingClass("com.github.benmanes.caffeine.cache.Caffeine")
+        static class MissingCaffeine {}
+
+        @ConditionalOnMissingClass("org.springframework.cache.caffeine.CaffeineCacheManager")
+        static class MissingSpringSupport {}
     }
 }
