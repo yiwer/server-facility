@@ -69,6 +69,7 @@ class Verify {
                     csvConsumer();
                     excelConsumer();
                     rateLimitConsumer();
+                    htmlConsumer();
                     lockConsumer();
                     claimConsumer();
                     httpReplayConsumer();
@@ -447,6 +448,30 @@ class Verify {
             throw new AssertionError("Rate-limit consumer did not complete: " + log);
         }
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
+    }
+
+    static void htmlConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jsoup = repository.resolve("org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar");
+        Path source = ROOT.resolve("verification/html-consumer");
+        Path evidence = Files.createDirectories(report.resolve("html-consumer"));
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        copyDirectory(source, evidence.resolve("inputs"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        String runtime = classes + File.pathSeparator + jar;
+        run(ROOT, Map.of(), "html-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar + File.pathSeparator + jsoup, "-d", classes.toString(),
+                source.resolve("PolicySamples.java").toString(), source.resolve("HtmlConsumer.java").toString()), 45, null);
+        Path absent = run(ROOT, Map.of(), "html-consumer-absent", List.of(java(), "-Xmx64m", "-cp", runtime,
+                "HtmlConsumer", "absent"), 45, null);
+        if (!Files.readString(absent).contains("HTML_CONSUMER_ABSENT_PASS explicitDependency=true"))
+            throw new AssertionError("HTML missing-dependency consumer failed: " + absent);
+        Path log = run(ROOT, Map.of(), "html-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
+                "-cp", runtime + File.pathSeparator + jsoup, "HtmlConsumer"), 45, null);
+        if (!Files.readString(log).contains("HTML_CONSUMER_PASS samples=16 seed=320025 fuzz=512 depth=10000 cycles=5 successful=10000 rejected=10000"))
+            throw new AssertionError("HTML policy/resource consumer failed: " + log);
+        summary.add("html-consumer=ordinary jar/jsoup only; missing dependency refuses; 16 fixed samples/seed320025/512 URI variants/10000 nesting/10000 success+rejection cycles; -Xmx64m/2 processors/45s");
     }
 
     static void partnerConsumer() throws Exception {

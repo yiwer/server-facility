@@ -60,14 +60,14 @@ class CookieUtilTest {
     }
 
     @Test
-    @DisplayName("removeCookie: maxAge=0、value=null、指定 path")
-    void removeCookie_setsMaxAgeZeroAndNullValue() {
+    @DisplayName("removeCookie: maxAge=0、空协议值、指定 path")
+    void removeCookie_setsMaxAgeZeroAndEmptyValue() {
         MockHttpServletResponse resp = new MockHttpServletResponse();
         CookieUtil.removeCookie(resp, "t", "/app");
         Cookie cookie = resp.getCookie("t");
         assertThat(cookie).isNotNull();
         assertThat(cookie.getMaxAge()).isZero();
-        assertThat(cookie.getValue()).isNull();
+        assertThat(cookie.getValue()).isEmpty();
         assertThat(cookie.getPath()).isEqualTo("/app");
     }
 }
