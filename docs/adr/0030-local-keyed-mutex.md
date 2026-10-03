@@ -1,6 +1,6 @@
 # ADR0030: 明确进程内互斥与必需实现
 
-- 状态：Proposed（2026-10-04；票07）。
+- 状态：Accepted（2026-10-04；票07）。
 - 部分替代0016：不再默认把本地锁注册为 DistributedLock；缺实现不执行业务；严格容量与安全键回收取代历史永久累积/advisory bound；等待参数不作为持有租约。
 
 新增纯JDK LocalKeyedMutex，使用公开的 tryLock/unlock/executeWithLock 同步契约，范围仅本对象实例；多个JVM或同JVM多个对象不共享互斥。owner是实际执行线程，可重入，每次成功获取需同线程释放一次。等待预算为0至1天，使用纳秒不截断亚毫秒值；无持有期限或定时自动释放，observer取消/超时不释放实际action。异步操作须在真正执行工作线程内获取并在实际工作结束释放；返回Future的Supplier只保护Future的构建。
