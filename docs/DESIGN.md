@@ -92,7 +92,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-31 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+32 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -124,16 +124,17 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
 | 0027 | 安全 RFC 9457 错误策略贯通 Filter/MVC/ERROR，真实状态和必要头；已提交边界、宿主政策与显式 legacy 迁移 |
 | 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
+| 0041 | 保留Result/领域错误语义；浅引用所有权、必需回调与集合算术边界，纯Java普通jar消费者 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
 
 ## 6. 质量门
 
-- **当前目标平台（2026-10-04）**：`07682f4` Windows `all` 为1335/0/0/0；instruction92.786%、line93.325%、branch85.979%，原5架构及依赖门通过。普通jar非Web/真实HTTP两应用消费者、重复JVM资源周期和工具链负控全部通过；Linux与Servlet6.1/缺类矩阵仍归24，见 [票23证据](verification/ticket-23-jackson3.md)。
+- **当前目标平台（2026-10-04）**：`5c29047` Windows `integration` 为1339/0/0/0；instruction92.7970%、line93.3351%、branch85.9795%，原5架构及依赖门通过。普通jar核心值无框架消费者、非Web/JSON真实HTTP两应用消费者和工具链负控通过；Linux与Servlet6.1/缺类矩阵仍归24，见 [票18证据](verification/ticket-18-core-values.md)。票23的重复JVM资源周期另见其报告。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载责任仍由24关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
-  (旧平台快照 instruction92.9939% / line93.3940% / branch86.1614%)，当前目标覆盖率尚未执行，门槛保持。
+  (旧平台快照 instruction92.9939% / line93.3940% / branch86.1614%)，当前目标实测见上，门槛保持。
 - **依赖账目**:`maven-dependency-plugin` `analyze-only` 绑 `verify` 且 `failOnWarning` ——
   used-undeclared / unused-declared 必须清零(运行时 SPI / 聚合传递依赖显式 ignore 并注明理由)。
 

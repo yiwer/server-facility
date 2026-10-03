@@ -21,11 +21,16 @@ import java.util.stream.Stream;
  *
  * <h3>设计原则：</h3>
  * <ul>
- *   <li>不可变性：Result 一旦创建，状态不可改变</li>
+ *   <li>引用不可变：成功/失败状态不可改变，载荷不做防御性复制</li>
  *   <li>空安全：成功值允许为 null，错误值不允许为 null</li>
  *   <li>函数式：支持 map、flatMap、recover 等链式操作</li>
- *   <li>线程安全：不可变对象天然线程安全</li>
+ *   <li>可变载荷的同步、复制以及作为 hash key 的稳定性由调用方负责</li>
  * </ul>
+ * <p>推荐入口为 {@code ok/empty/err}、{@code map/flatMap/mapErr} 和 {@code fold}。
+ * 查询缺席可以在领域使用 {@link Optional}；{@code empty()} 表示无值成功。
+ * 必需回调始终先检查非空，未选中分支不执行回调。普通回调异常直接传播；
+ * {@link #of(ThrowableSupplier)} / {@link #ofRunnable(ThrowableRunnable)} 是显式 Exception 适配器，
+ * 包括 RuntimeException，并在捕获 InterruptedException 后恢复中断；Error 始终传播。</p>
  *
  * <h3>使用示例：</h3>
  * <pre>{@code
@@ -50,7 +55,7 @@ import java.util.stream.Stream;
  * @param <E> 失败时的错误类型
  *
  * @author yvvb
- * @apiNote 重构版本，修复了线程安全和异常处理问题
+ * @apiNote 此容器不是任意可变载荷的深不可变包装器。
  * @since 2.0.0
  */
 public sealed interface Result<T, E> extends Serializable permits Result.Ok, Result.Err {
@@ -78,8 +83,7 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
 
     /**
      * 创建无值的成功结果（与 {@link #ok(Object)} 传 null 语义等价，但更显式）。
-     * <p>设计意图：phase-4 RP-10 / ADR-0007。让"无值成功"有专属 API，与
-     * Java {@link java.util.Optional#empty()} 形状对齐。</p>
+     * <p>ADR-0007/0041：这是无值成功，不是查询缺席；转为 Optional 会丢失此区别。</p>
      *
      * @return 内部 value=null 的 Ok 实例
      * @since phase-4
@@ -522,7 +526,7 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
     // ==================== Collectors ====================
 
     /**
-     * 转换为 Optional（仅保留成功值）
+     * 转换为 Optional（仅保留非 null 成功值；失败与无值成功均变为 empty）
      */
     default Optional<T> toOptional() {
         return isOk() ? Optional.ofNullable(get()) : Optional.empty();
@@ -563,7 +567,7 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
     // ==================== 成功实现 ====================
 
     /**
-     * 成功结果实现（不可变、线程安全）
+     * 成功结果实现（引用固定，value 的可变性由调用方管理）
      *
      * @param value 成功值（允许为 null）
      */
@@ -611,7 +615,7 @@ public sealed interface Result<T, E> extends Serializable permits Result.Ok, Res
     // ==================== 失败实现 ====================
 
     /**
-     * 失败结果实现（不可变、线程安全）
+     * 失败结果实现（引用固定，error 的可变性由调用方管理）
      */
     record Err<T, E>(E error) implements Result<T, E> {
 
