@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-09；AC-12
 
@@ -26,5 +26,10 @@
 ## Scope boundary
 
 不做 KMS、用户密码认证或自动密钥轮换；持久数据改变需先有迁移证据。
+
+## Implementation record
+
+- 2026-10-04：root 从集成 `042006d` 创建独立 `codex/ticket-17`。先采用未变更旧 CryptoUtil 生成、独立 JCE 与 .NET 验证的三项固定历史密文，来源写入测试资源；不重新生成金样来迎合新实现。
+- 读取政策保持 PBKDF2-HMAC-SHA256/210000、AES-GCM 的12字节IV与16字节tag、独立salt；不新增KDF元数据或密文envelope。下一步先以公开 crypto seam 对 provider 失败的秘密泄漏建立 RED，再定义输入预算与兼容读取政策。尚未修改产品实现或声明本票通过。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
