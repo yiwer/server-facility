@@ -12,7 +12,7 @@ import org.springframework.context.support.StaticMessageSource;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -64,7 +64,8 @@ class GlobalExceptionHandlerTest {
         binding.addError(new FieldError("input", "password", SECRET, false, null, null, SECRET));
         var validation = new HandlerMethodValidationException(MethodValidationResult.create(this, parameter.getMethod(),
                 List.of(new ParameterValidationResult(parameter, new Input(SECRET),
-                        List.of(new DefaultMessageSourceResolvable(new String[]{"input"}, SECRET))))));
+                        List.of(new DefaultMessageSourceResolvable(new String[]{"input"}, SECRET)),
+                        null, null, null, (error, type) -> error))));
         jakarta.validation.ConstraintViolationException constraint;
         try (var factory = Validation.byDefaultProvider().configure()
                 .messageInterpolator(new org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator())
@@ -87,7 +88,7 @@ class GlobalExceptionHandlerTest {
                 new Scenario("method", 405, (h,r) -> h.handleHttpRequestMethodNotSupportedException(new HttpRequestMethodNotSupportedException("POST", List.of("GET")), r)),
                 new Scenario("media input", 415, (h,r) -> h.handleHttpMediaTypeNotSupportedException(new HttpMediaTypeNotSupportedException(MediaType.TEXT_PLAIN, List.of(MediaType.APPLICATION_JSON)), r)),
                 new Scenario("media output", 406, (h,r) -> h.handleHttpMediaTypeNotAcceptableException(new HttpMediaTypeNotAcceptableException(List.of(MediaType.APPLICATION_JSON)), r)),
-                new Scenario("no resource", 404, (h,r) -> h.handleNotFound(new NoResourceFoundException(HttpMethod.GET, SECRET), r)),
+                new Scenario("no resource", 404, (h,r) -> h.handleNotFound(new NoResourceFoundException(HttpMethod.GET, SECRET, SECRET), r)),
                 new Scenario("no handler", 404, (h,r) -> h.handleNotFound(new NoHandlerFoundException("GET", SECRET, new HttpHeaders()), r)),
                 new Scenario("bad multipart", 400, (h,r) -> h.handleMultipartException(new MultipartException(SECRET), r)),
                 new Scenario("upload limit", 413, (h,r) -> h.handleMultipartException(new MaxUploadSizeExceededException(64), r)),
@@ -114,7 +115,7 @@ class GlobalExceptionHandlerTest {
                         assertThat(body.getCode()).isEqualTo(scenario.code());
                         assertThat(body.getDescription()).isEmpty();
                     }
-                    assertThat(Jackson2ObjectMapperBuilder.json().build().writeValueAsString(response.getBody()))
+                    assertThat(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper().writeValueAsString(response.getBody()))
                             .doesNotContain(SECRET, "stackTrace", "rejectedValue");
                 })));
     }
@@ -163,9 +164,9 @@ class GlobalExceptionHandlerTest {
         var servletResponse = new MockHttpServletResponse();
         servletResponse.setHeader("X-Trace-Id", "invalid value".repeat(100));
         policy().write(servletRequest, servletResponse, new Exception(SECRET));
-        var tree = Jackson2ObjectMapperBuilder.json().build().readTree(servletResponse.getContentAsString());
-        assertThat(tree.path("traceId").asText()).matches("[0-9A-Za-z_-]{1,64}");
-        assertThat(tree.path("instance").asText()).isEqualTo("urn:facility:error:" + tree.path("traceId").asText());
+        var tree = new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper().readTree(servletResponse.getContentAsString());
+        assertThat(tree.path("traceId").asString()).matches("[0-9A-Za-z_-]{1,64}");
+        assertThat(tree.path("instance").asString()).isEqualTo("urn:facility:error:" + tree.path("traceId").asString());
         assertThat(servletResponse.getContentAsString()).doesNotContain(SECRET, "invalid value");
     }
 
@@ -219,7 +220,7 @@ class GlobalExceptionHandlerTest {
                 throw new IllegalStateException(SECRET);
             }
         };
-        var policy = new FacilityHttpErrors(new FacilityWebExceptionProperties(), messages, Jackson2ObjectMapperBuilder.json().build());
+        var policy = new FacilityHttpErrors(new FacilityWebExceptionProperties(), messages, new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper());
         var result = policy.response(new Exception(SECRET), request());
         assertThat(((ProblemDetail) result.getBody()).getDetail()).isEqualTo("Internal server error");
     }
@@ -259,7 +260,7 @@ class GlobalExceptionHandlerTest {
     }
 
     private FacilityHttpErrors policy() {
-        return new FacilityHttpErrors(new FacilityWebExceptionProperties(), new StaticMessageSource(), Jackson2ObjectMapperBuilder.json().build());
+        return new FacilityHttpErrors(new FacilityWebExceptionProperties(), new StaticMessageSource(), new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper());
     }
     private ServletWebRequest request() { return new ServletWebRequest(new MockHttpServletRequest(), new MockHttpServletResponse()); }
 }

@@ -2,8 +2,8 @@ package cn.code91.facility.json;
 
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -97,7 +97,7 @@ class JsonUtilTest {
         }
 
         @Test
-        @DisplayName("超长非法 JSON 反序列化失败,来源串按 500 字符截断(不抛异常)")
+        @DisplayName("超长非法 JSON 返回错误且不保留源文本")
         void deserialize_longInvalidJson_truncatesSourceInError() {
             String longInvalidJson = "{" + "x".repeat(600);
             Result<Map, WrappedError> result = JsonUtil.deserialize(longInvalidJson, Map.class);
@@ -273,24 +273,23 @@ class JsonUtilTest {
         }
 
         @Test
-        @DisplayName("serializeUnsafe 序列化失败(JsonUtil 门面)抛 JsonSerializationException")
+        @DisplayName("serializeUnsafe 用户 getter 故障(JsonUtil 门面)传播原程序异常")
         void serializeUnsafe_error_throwsJsonSerializationException() {
             assertThatThrownBy(() -> JsonUtil.serializeUnsafe(new Broken()))
-                    .isInstanceOf(JsonUtil.JsonSerializationException.class);
+                    .isInstanceOf(RuntimeException.class).hasMessage("boom");
         }
 
         @Test
-        @DisplayName("Jsons 实例级 serializeUnsafe 序列化失败同样抛 JsonSerializationException")
+        @DisplayName("Jsons 实例级 serializeUnsafe 用户 getter 故障同样传播原程序异常")
         void jsonsInstanceSerializeUnsafe_error_throwsJsonSerializationException() {
             assertThatThrownBy(() -> JsonUtil.use(JsonUtil.DEFAULT).serializeUnsafe(new Broken()))
-                    .isInstanceOf(JsonUtil.JsonSerializationException.class);
+                    .isInstanceOf(RuntimeException.class).hasMessage("boom");
         }
 
         @Test
-        @DisplayName("serialize 序列化失败(getter 抛异常) → err")
+        @DisplayName("serialize getter 程序故障不作为 Result 输入错误")
         void serialize_brokenBean_err() {
-            Result<String, WrappedError> result = JsonUtil.serialize(new Broken());
-            assertThat(result.isErr()).isTrue();
+            assertThatThrownBy(() -> JsonUtil.serialize(new Broken())).isInstanceOf(RuntimeException.class).hasMessage("boom");
         }
     }
 
@@ -476,9 +475,9 @@ class JsonUtilTest {
         }
 
         @Test
-        @DisplayName("valueToTree 转换失败(getter 抛异常) → err")
+        @DisplayName("valueToTree getter 程序故障不作为 Result 转换错误")
         void valueToTree_brokenBean_err() {
-            assertThat(JsonUtil.valueToTree(new Broken()).isErr()).isTrue();
+            assertThatThrownBy(() -> JsonUtil.valueToTree(new Broken())).isInstanceOf(RuntimeException.class).hasMessage("boom");
         }
 
         @Test
@@ -512,8 +511,7 @@ class JsonUtilTest {
     }
 
     /**
-     * getter 抛异常的探测对象,用于触发 Jackson 序列化失败分支
-     * (handleSerializeError / safeToString / valueToTree 的 catch 分支)。非合法业务场景,仅供测试。
+     * 用户 getter 程序故障必须由公共入口传播。
      */
     private static class Broken {
         public String getValue() {
