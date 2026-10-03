@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("LockUtil - 分布式锁门面(委托 DistributedLock bean + 无 bean 降级)")
+@DisplayName("LockUtil - 分布式锁门面(委托 DistributedLock bean + 缺实现拒绝)")
 class LockUtilTest {
 
     private final SpringContextHolderTestSupport contexts = new SpringContextHolderTestSupport();
@@ -30,17 +30,14 @@ class LockUtilTest {
     }
 
     @Test
-    @DisplayName("无 DistributedLock bean 时,executeWithLock(Supplier 重载)直接执行 action 并返回其值")
-    void noBean_executeWithLock_runsAction() {
+    @DisplayName("缺少所需锁时在 action 之前拒绝")
+    void noBean_executeWithLock_rejectsBeforeAction() {
         AtomicBoolean ran = new AtomicBoolean(false);
-
-        String result = LockUtil.executeWithLock("k", Duration.ofSeconds(1), () -> {
+        assertThatThrownBy(() -> LockUtil.executeWithLock("k", Duration.ofSeconds(1), () -> {
             ran.set(true);
             return "done";
-        });
-
-        assertThat(ran).isTrue();
-        assertThat(result).isEqualTo("done");
+        })).isInstanceOf(LockAcquisitionException.class);
+        assertThat(ran).isFalse();
     }
 
     @Test
@@ -59,9 +56,9 @@ class LockUtilTest {
     }
 
     @Test
-    @DisplayName("无 DistributedLock bean 时,tryLock 降级放行返回 true")
-    void noBean_tryLock_returnsTrue() {
-        assertThat(LockUtil.tryLock("k", Duration.ofMillis(50))).isTrue();
+    @DisplayName("无 DistributedLock bean 时,tryLock 返回 false")
+    void noBean_tryLock_returnsFalse() {
+        assertThat(LockUtil.tryLock("k", Duration.ofMillis(50))).isFalse();
     }
 
     @Test
@@ -90,13 +87,13 @@ class LockUtilTest {
     }
 
     @Test
-    @DisplayName("无 DistributedLock bean 时,executeWithLock(Runnable 重载)直接执行 action")
-    void executeWithLock_runnable_noBean_runs() {
+    @DisplayName("无 DistributedLock bean 时,Runnable 不执行")
+    void executeWithLock_runnable_noBean_rejected() {
         AtomicBoolean ran = new AtomicBoolean(false);
 
-        LockUtil.executeWithLock("k", Duration.ofSeconds(1), () -> ran.set(true));
-
-        assertThat(ran).isTrue();
+        assertThatThrownBy(() -> LockUtil.executeWithLock("k", Duration.ofSeconds(1), () -> ran.set(true)))
+                .isInstanceOf(LockAcquisitionException.class);
+        assertThat(ran).isFalse();
     }
 
     @Test

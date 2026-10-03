@@ -141,7 +141,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `ratelimit` | `RateLimiterUtil` / `RateLimiter`（SPI） | 本地令牌桶：合法成本、精确扣费与有界准入；必需门面 + 显式 Optional 降级 |
 | `web.ratelimit` | `@RateLimit` | 方法级入口限流；IP / Principal / Global；429 + `Retry-After`，不可用默认 503 |
 | `cache` | `CacheUtil` | 缓存门面委托 Spring `CacheManager`；`@Cacheable` 自然可用；Caffeine optional 支持 TTL/maxSize |
-| `lock` | `LockUtil` / `DistributedLock`（SPI） | 分布式锁：高阶 `executeWithLock` 自动获取释放 + `tryLock`/`unlock`；默认单机 ReentrantLock，SPI 可替换 Redisson |
+| `lock` | `LocalKeyedMutex`；旧锁入口兼容 | 实例内同步互斥、严格活动键预算和安全回收；缺少所需实现不执行 action，等待与实际持有分开 |
 | `http` | `HttpClients` | HTTP client 门面：委托 RestClient，`get`/`post`/`put`/`delete`→`Result`；超时可配 |
 | `idempotency` | `IdempotencyStore`（SPI） | 执行资格、指纹绑定与有界回执；lease/retention分离，旧入口保留迁移（ADR0034） |
 | `web.idempotency` | `@Idempotent` | 旧HTTP响应重放与有界捕获；安全claim路径迁移由票12完成 |

@@ -171,10 +171,9 @@ ADR-0032 的限流capacity/rate/cost/maxBuckets均必须正且rate有限；注�
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
-高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。现状审计(2026-07-06,
-全部符合):WARN 侧——锁 executeWithLock 无 bean 降级执行、锁/幂等溢出 fail-closed 拒绝、
+高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。历史审计(2026-07-06)中的锁降级已由ADR0030替代：缺实现拒绝、容量拒绝直接返回结果，不打印业务key。其余历史WARN项包括
 cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
-CopyUtil null key drop;静默侧——LockUtil.tryLock/unlock 无 bean、CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+CopyUtil null key drop;静默侧——旧LockUtil缺bean时tryLock返回false/unlock为no-op，execute拒绝；CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
 ADR-0032已替代限流clear-all与默认无Bean放行：新key只回收补满桶或拒绝；普通门面不可用抛异常，Optional显式降级仍不逐请求记日志。
 
 **C4 门面命名双家族**:`XxxUtil` = 静态门面(可能有状态/参与 Spring 边缘/装配交互);
@@ -190,3 +189,5 @@ result/structure 簇(`Result`/`Tuple`/`Triple`);**error 包例外**——ADR-001
 public default → 接口 private(契约面收缩);B2 删除 `getSeverity()`/`ErrorSeverity`
 (零消费 YAGNI),`getDetailedDescription` 改三段格式;B3 `NullSafe.allNotNull(空数组)`
 false → true(vacuous truth 对齐业界惯例;null 入参仍 false)。
+
+当前锁能力由ADR0030明确分名：默认仅装配LocalKeyedMutex，旧DistributedLock不是默认本地bean。活动key严格限额、引用覆盖等待者，最后退出才回收；应用关闭和Async observer终止均不提前释放运行中的action。见[锁迁移](building/local-locking.md)。

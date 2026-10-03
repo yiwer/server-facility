@@ -19,7 +19,7 @@
 | [0013](0013-properties-validation-constructor-guard.md) | Accepted | 配置属性不用 @Validated,构造器兜底(消费方无 provider 可启动) |
 | [0014](0014-ratelimit-token-bucket-seam.md) | Accepted; 部分由 [0029](0029-request-boundaries.md) / [0032](0032-local-rate-limit-contract.md) 替代 | 保留本地令牌桶/SPI/Web分包理由；0029替代代理来源假设，0032替代数值/缺设施放行/整体clear/操作身份政策 |
 | [0015](0015-cache-facade-cachemanager.md) | Accepted; 装配条件由 [0047](0047-boot4-consumer-integration.md) 补全 | 保留CacheManager门面/成对optional理由；缺任一的真实回退由0047验证，TTL/容量政策归08 |
-| [0016](0016-distributed-lock-seam.md) | Accepted | 分布式锁 DistributedLock SPI + 默认单机 InMemory,real seam 升级 Redisson 示范 |
+| [0016](0016-distributed-lock-seam.md) | Accepted; 部分由 [0030](0030-local-keyed-mutex.md) 替代 | 保留旧SPI签名；默认本地能力分名、缺实现拒绝、无租约持有及严格容量回收由0030定义 |
 | [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted; 部分由 [0028](0028-bounded-web-streams.md) / [0034](0034-qualified-legacy-claims.md) 替代 | 0028替代全站/无界捕获；0034替代无owner完成、到期重授与advisory容量，HTTP资格迁移归12 |
 | [0018](0018-http-client-restclient-result.md) | Accepted; 部分由 [0048](0048-application-owned-outbound-http.md) 替代 | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
 | [0019](0019-crypto-facade-safe-defaults.md) | Accepted; 部分由 [0040](0040-legacy-crypto-reader-policy.md) 替代 | 保留纯JDK/固定历史协议；原始cause安全性、随机IV与never-throw过度保证由0040替代 |
@@ -49,3 +49,5 @@
 | [0049](0049-application-owned-observability.md) | Accepted | 应用 MessageSource/SLF4J/Micrometer 所有权；退出默认静态日志与旧 trace，保留迁移入口 |
 | [0050](0050-secured-application-template.md) | Accepted; 业务持久接合由 [0051](0051-postgresql-business-module.md) 扩展 | 独立MVC模板的应用自有JWT信任、Actor与标准Security授权；安全401/403/503、JWK有限I/O、真实Servlet/执行器上下文及独立打包门 |
 | [0051](0051-postgresql-business-module.md) | Accepted | 扩展0050：应用自有PostgreSQL/JdbcClient/Flyway，当前成员授权、事务/分页/独立迁移与有限数据库预算 |
+| [0030](0030-local-keyed-mutex.md) | Accepted | 实例内线程owner互斥、原子活动键预算和等待者安全回收；关闭不强制释放，旧入口明确迁移 |
+

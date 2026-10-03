@@ -69,6 +69,7 @@ class Verify {
                     csvConsumer();
                     excelConsumer();
                     rateLimitConsumer();
+                    lockConsumer();
                     claimConsumer();
                     jsonConsumer();
                     platformConsumers();
@@ -404,6 +405,31 @@ class Verify {
                 throw new AssertionError("Excel dependency graph failed " + mode + ": " + log);
         }
         summary.add("excel-consumer=4 real production graphs; POI absent/core/ooxml-without-core/full; paired engine contract; independent xlwt/XlsxWriter XLS+XLSX fixtures; text export; -Xmx64m/45s each");
+    }
+
+    static void lockConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path inputs = report.resolve("lock-consumer/inputs");
+        copyDirectory(ROOT.resolve("verification/lock-consumer"), inputs);
+        Path classes = Files.createDirectories(report.resolve("lock-consumer/classes"));
+        Path historical = Files.createDirectories(report.resolve("lock-consumer/historical-classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        Path legacy = inputs.resolve("legacy-api/cn/code91/facility/lock");
+        run(ROOT, Map.of(), "lock-historical-api-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-d", historical.toString(), legacy.resolve("DistributedLock.java").toString(),
+                legacy.resolve("LockAcquisitionException.java").toString()), 45, null);
+        run(ROOT, Map.of(), "lock-legacy-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", historical + File.pathSeparator + jar, "-d", classes.toString(),
+                inputs.resolve("LegacyLockConsumer.java").toString()), 45, null);
+        run(ROOT, Map.of(), "lock-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", classes.toString(), inputs.resolve("LockConsumer.java").toString()), 45, null);
+        for (String consumer : List.of("LegacyLockConsumer", "LockConsumer")) {
+            Path log = run(ROOT, Map.of(), "lock-consumer-" + consumer, List.of(java(), "-Xmx64m",
+                    "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8", "-cp", classes + File.pathSeparator + jar, consumer), 45, null);
+            String marker = consumer.equals("LockConsumer") ? "LOCK_CONSUMER_PASS" : "LEGACY_LOCK_CONSUMER_PASS";
+            if (!Files.readString(log).contains(marker)) throw new AssertionError("Lock consumer incomplete: " + log);
+        }
+        summary.add("lock-consumer=ordinary jar/JDK only; original 0ee9d54 SPI compile/current runtime; 250000 key churn/10000 invalid inputs; 16 workers/platform+virtual; strict capacity and ownership; -Xmx64m/2 processors/45s");
     }
 
     static void rateLimitConsumer() throws Exception {
