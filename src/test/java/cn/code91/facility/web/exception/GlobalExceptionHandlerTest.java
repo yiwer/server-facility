@@ -140,6 +140,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void invalidAndLongFieldMetadataAreBoundedWithoutReflectingInput() {
+        for (int length : new int[]{119, 120, 121}) {
+            var boundary = new BeanPropertyBindingResult(new Object(), "input");
+            boundary.addError(new FieldError("input", "x".repeat(length), SECRET));
+            var problem = (ProblemDetail) policy().response(new BindException(boundary), request()).getBody();
+            var first = (Map<?, ?>) ((List<?>) problem.getProperties().get("errors")).getFirst();
+            assertThat(first.get("field")).isEqualTo(length <= 120 ? "x".repeat(length) : "request");
+        }
         var binding = new BeanPropertyBindingResult(new Object(), "input");
         for (String field : List.of("x".repeat(121), "password[SECRET-INPUT]", "\u5bc6\u7801", "bad/SECRET-INPUT")) {
             binding.addError(new FieldError("input", field, SECRET));

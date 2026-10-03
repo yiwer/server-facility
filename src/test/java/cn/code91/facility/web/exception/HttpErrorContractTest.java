@@ -86,6 +86,10 @@ class HttpErrorContractTest {
             var response = client.send(HttpRequest.newBuilder(app.uri("/failure/SECRET-INPUT?token=SECRET-INPUT"))
                     .header("X-Trace-Id", "contract-trace").GET().build(), HttpResponse.BodyHandlers.ofString());
             var body = new ObjectMapper().readTree(response.body());
+            assertThat(body).isEqualTo(new ObjectMapper().readTree("""
+                    {"type":"about:blank","title":"Internal Server Error","status":500,"detail":"Internal server error",
+                     "instance":"urn:facility:error:contract-trace","code":500,"traceId":"contract-trace","errors":[]}
+                    """));
             assertThat(body.path("code").asInt()).isEqualTo(500);
             assertThat(body.path("traceId").asText()).isEqualTo("contract-trace");
             assertThat(body.path("instance").asText()).isEqualTo("urn:facility:error:contract-trace");
