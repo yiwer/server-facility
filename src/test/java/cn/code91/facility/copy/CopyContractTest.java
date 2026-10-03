@@ -171,6 +171,37 @@ class CopyContractTest {
         @Override public NullField copy() { return CopyUtil.autoCopy(this); }
     }
 
+    record ObservedCopy(boolean interrupt, java.util.concurrent.atomic.AtomicInteger calls)
+            implements CopyTrait<ObservedCopy> {
+        @Override public ObservedCopy copy() {
+            calls.incrementAndGet();
+            if (interrupt) Thread.currentThread().interrupt();
+            return this;
+        }
+    }
+    static final class ObservedMap { Map<ObservedCopy, ObservedCopy> entries; }
+
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void mapKeyInterruptionPreventsTheSameEntriesValueCallback(boolean reflective) {
+        var keyCalls = new java.util.concurrent.atomic.AtomicInteger();
+        var valueCalls = new java.util.concurrent.atomic.AtomicInteger();
+        var entries = Map.of(new ObservedCopy(true, keyCalls), new ObservedCopy(false, valueCalls));
+        Throwable failure = null;
+        try {
+            try {
+                if (reflective) {
+                    var bean = new ObservedMap(); bean.entries = entries;
+                    CopyUtil.autoCopy(bean);
+                } else CopyUtil.copyMapAll(entries);
+            } catch (Throwable caught) { failure = caught; }
+            assertThat(keyCalls).hasValue(1);
+            assertThat(valueCalls).hasValue(0);
+            assertThat(failure).isInstanceOf(CopyUtil.CopyException.class).hasMessageContaining("interrupt");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally { Thread.interrupted(); }
+        assertThat(CopyUtil.copyList(Collections.nCopies(10_000, "fresh"), value -> value)).hasSize(10_000);
+    }
+
     @Test void nullFieldTraversalStillConsumesTheNestedWorkBudget() {
         for (int size : new int[]{4999, 5000})
             assertThat(CopyUtil.copyList(Collections.nCopies(size, new NullField()))).hasSize(size);

@@ -30,6 +30,7 @@ Baseline integration418e26f, synchronized2b06f52 before implementation; branchco
 |19|null fields still require traversal and must consume nested work|red-19-null-field-budget.log:5001 entries+5001 null fields accepted|green-19-null-field-budget.log:78 related tests;4999/5000 pass,5001 reject|
 |20|old public ABI and historical compatible subset remain executable|compile-20-old-api.log compiles actual consumer against frozen pre19 ordinary jar;green-20-old-api.log passes with that jar|green-20-new-api-binary.log runs identical class files on new jar, SHA manifest checked in|
 |21|resource rerun after null traversal correction|earlier source's resource evidence is retained, not relabeled|green-21-resource-final-slice.log repeats64MiB consumer:1,649,560→1,657,832 retained bytes,7→7 threads|
+|22|a Map key callback interrupts before the same entry value callback, for copyMapAll and autoCopy|red-22-map-key-interruption.log: both public paths executed the forbidden value callback (2 failures)|green-22-map-key-interruption.log: between-callback check,80/0/0/0 selected tests; flag retained and next independent budget fresh|
 
 These tests call CopyUtil, not private guard methods. The cycle RED deliberately stops after32 calls rather than exhausting the host stack. Existing historical shallow-reference, null-default, array, generic collection and exception policies remain in the regressions.
 
@@ -58,3 +59,12 @@ The binary fixture is compiled now against ticket16's real pre19 jar (SHA25612c2
 | Q10 | Code/example/migration/ADR/evidence delivered together; final full/platform evidence remains outstanding until executed |
 
 J14 DTO evolution applies directly. No new persisted wire format, network request, transaction, TTL or filesystem publication is introduced; database/timezone/real backend fault scenarios from unrelated tickets are not fabricated here. Old ordinary-jar behavior and compiler/business mutation controls are the independent evolution evidence. Future33 owns final all-ticket candidate rechecks separately.
+
+
+## First frozen full run, before review correction
+
+`2353992f04c9446f0ec00b1c20b978304e4c4876` (includes central07/d28072f) completed Windows `all --fresh` with `RESULT=PASS`,101 commands, in `.verification-results/20261004-071141-243-all`. Root library1662/0/0/0; instruction24999/26917,line4924/5219,branch2638/3108 and all original gates passed. OracleJDK25.0.4.1/Windows11 amd64/zh_CN/Asia/Shanghai, real JDK21 prerequisite and pinned PostgreSQL18.6 tools. Library jar SHA256 `bb1e493252eacd764ae246f42d823e84206d07437a675c267e49397ded541d69`.
+
+The four new mapping commands passed: actual application compilation/business result/evolution controls;64MiB ordinary-jar resource consumer(seed190042/512,2000 rounds,200 callback Errors,retained1650632→1658904bytes,threads7→7); identical pre-change consumer class bytes linked against the new ordinary jar. Other dependency/optional/Web consumers, partner15, template76 with PostgreSQL packaged platform/virtual CRUD/restart, coverage negatives, five repeated application lifecycles and three toolchain negatives all passed. This local result does not replace the Windows CI14 database failure investigation.
+
+Root's subsequent focused review found that a key.copy interruption was not checked before the same Map entry's value.copy. Round22 reproduced the external value callback twice through public helpers and reflected fields, then added a zero-work interruption check at both boundaries. The first full run above remains a historical pre-correction source, not the final ticket candidate. Final corrected-source integration evidence is still required below; no failed or unexecuted scenario is relabeled as passing.

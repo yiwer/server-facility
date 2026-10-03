@@ -298,7 +298,7 @@ public class CopyUtil {
             Map<K, V> resultMap = new HashMap<>();
             originMap.forEach((key, value) -> {
                 scope.take(1);
-                processMapEntry(key, value, resultMap, options);
+                processMapEntry(key, value, resultMap, options, scope);
             });
             return resultMap;
         }
@@ -405,7 +405,7 @@ public class CopyUtil {
             @Nullable K key,
             @Nullable V value,
             Map<K, V> resultMap,
-            CopyOptions options) {
+            CopyOptions options, CopyScope scope) {
 
         if (key == null) {
             if (options.throwOnNullCopy) {
@@ -428,6 +428,7 @@ public class CopyUtil {
         K copiedKey = key.copy();
         validateCopied(copiedKey, key, options, "map key");
 
+        scope.checkSize(0);
         V copiedValue = value.copy();
         validateCopied(copiedValue, value, options, "map value");
 

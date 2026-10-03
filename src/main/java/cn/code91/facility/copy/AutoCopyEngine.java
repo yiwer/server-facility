@@ -273,6 +273,7 @@ final class AutoCopyEngine {
         source.forEach((key, value) -> {
             scope.take(1);
             Object copiedKey = key != null ? key.copy() : null;
+            scope.checkSize(0);
             Object copiedValue = value != null ? value.copy() : null;
             result.put(copiedKey, copiedValue);
         });
