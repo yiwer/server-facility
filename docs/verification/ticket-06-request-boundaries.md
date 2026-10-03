@@ -6,7 +6,7 @@
 
 - 工作树 `E:/GenCode/server-facility-worktrees/ticket-06`，分支 `codex/ticket-06`。
 - 旧平台最终实现 `9e3a5578779e44835a476ae0135f9db94a33d592`；Boot 3.5.16 / Spring 6.2.19 / Tomcat 10.1.55 / Servlet 6.0 / Jackson 2.21.4。
-- 最终目标被测提交 **`d010234dd4afc9c092de3dd0109e7507a89cb8e3`**，运行开始时工作树干净，包含 integration `7e168199a812fba6396540922241036d85767d8e`。后续仅提交本报告和票据。Boot 4.1.1 / Spring 7.0.9 / Tomcat 11.0.24 / Servlet 6.1 / Jackson 3.1.5 / JUnit 6.0.3。
+- 最终目标被测提交 **`ee95d0743d817424a293a29dd8fa719d54e91470`**，运行开始时工作树干净，包含最新 integration `8ca516c345928a996737ac568b32f5b617526f1a`（23平台及18核心消费者）。后续仅提交本报告和票据。Boot 4.1.1 / Spring 7.0.9 / Tomcat 11.0.24 / Servlet 6.1 / Jackson 3.1.5 / JUnit 6.0.3。
 - Windows 11 amd64、Oracle JDK 25.0.4.1、Wrapper Maven 3.10.0、JaCoCo 0.8.15；时区 Asia/Shanghai。旧命令使用 zh_CN；目标 runner 显式 en_US / UTF-8。
 - 本票不使用数据库，不新增生产线程池、网络客户端或外部资源。HTTP fixture 使用真实 localhost Tomcat 和 JDK HttpClient/Socket。
 
@@ -16,11 +16,12 @@
 | 旧平台最终 `clean verify`，精确 `9e3a557` | PASS，1352 tests / 0 failures / 0 errors / 0 skipped；原 5 架构规则、88/88/75 覆盖率和 dependency analyze 门；`.verification-results/ticket-06/final-reviewed-old-platform-verify.log` |
 | 目标平台公共契约子集，`1e2b138` | PASS，33/0/0/0；真实 HTTP 14、MDC 隔离子进程 5、IP 4、trace 7、作用域 3；`target-platform-request-contracts.log` |
 | 目标首次普通 jar integration runner，精确 `bc3657e` | PASS，1364/0/0/0、原全部门、普通 jar 非 Web/JSON 真 HTTP 双应用消费者及三项工具链负控；归档 `.verification-results/20261004-013339-502-integration` |
-| 最终目标普通 jar integration runner，精确 `d010234` | **RESULT=PASS**，1364/0/0/0，5架构规则、原覆盖率/依赖门；非 Web configured/override/invalid、JSON constructed/injected 真 HTTP 与双应用关闭重建、三项真实工具链负控全部通过；`.verification-results/20261004-013843-605-integration` |
+| 补充边界后目标普通 jar integration runner，精确 `d010234` | PASS，1364/0/0/0，5架构规则、原覆盖率/依赖门；非 Web configured/override/invalid、JSON constructed/injected 真 HTTP 与双应用关闭重建、三项真实工具链负控全部通过；`.verification-results/20261004-013843-605-integration` |
+| 最新集成完整 runner，精确 `ee95d074` | **RESULT=PASS**，1368/0/0/0，原5架构/覆盖率/依赖门、上述全部消费者/负控，加票18普通jar纯Java独立消费者通过；`.verification-results/20261004-014223-240-integration` |
 
-最终覆盖率：指令 `18241/19642 = 92.867%`，行 `3702/3964 = 93.391%`，分支 `1871/2187 = 85.551%`；原 88/88/75 门保留。相对目标集成1335项净增29项：新IP 4、作用域3、真HTTP 14、隔离MDC 5、trace新增3；原测试未删除或跳过，最终测试数1364。原无条件XFF期望按明确迁移改为默认peer。
+最终覆盖率：指令 `18270/19671 = 92.878%`，行 `3708/3970 = 93.401%`，分支 `1871/2187 = 85.551%`；原 88/88/75 门保留。本票净增29项：新IP 4、作用域3、真HTTP 14、隔离MDC 5、trace新增3；23基线1335项加本票=1364，最后合入18的4项=1368。原测试未删除或跳过，原无条件XFF期望按明确迁移改为默认peer。
 
-普通 jar SHA-256：`b69d5f799cb8f0c23de1796afadc6d3bf8b2e3584c74386ef8a7b1fb04a5fc32`；两次目标 runner 产物相同，最后一步仅补测试预算极值。最终完整日志 `final-target-integration-runner.log`；根测试、effective POM、依赖树、consumer构建与HTTP日志、字面金样和summary均在最后归档目录。
+最终普通 jar SHA-256：`873cf6bac6b62987b560f43f5152ed87b3f58c9c677852259e88a97cdb8dbd13`。在18合入前两次目标 runner 的产物相同，为 `b69d5f799cb8f0c23de1796afadc6d3bf8b2e3584c74386ef8a7b1fb04a5fc32`；18产品/验证入口变化后重新验证，没有将旧产物结果冒充新组合。最终完整日志 `integrated-core-runner.log`；根测试、effective POM、依赖树、consumer构建与HTTP日志、字面金样和summary均在最后归档目录。
 
 目标完整命令（PowerShell 的 `-D` 参数必须加引号）：
 

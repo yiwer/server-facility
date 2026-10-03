@@ -32,6 +32,6 @@
 - 已交付显式 `ClientIpPolicy`、默认连接 peer 与可信 CIDR/XFF 有界解析；全程 literal-only 无 DNS。请求边界统一拥有 IP 快照、兼容身份和 trace，Filter/MVC/实际 Callable worker 有不同的清理时点；DeferredResult 外部 producer 不自动继承身份。
 - 原生宿主 Principal/观测优先，TraceIdFilter 和来源策略用户 bean 覆盖；关闭默认 trace 时显式用户 bean 仍单次注册。异常恢复先清身份，再恢复所拥有的 MDC 键；部分安装失败与恢复失败均保留原异常和 suppressed。
 - ADR-0029 明确部分替代旧0014无条件代理头假设；USAGE/CHANGELOG/公共JavaDoc同步迁移。没有新增 JWT、SecurityContext DSL 或生产 executor。
-- 旧平台最终精确 `9e3a5578779e44835a476ae0135f9db94a33d592`：`clean verify` 1352/0/0/0，原质量门全过。Boot4 集成基线 `7e168199` 已同步；目标普通 jar 验证及来源见 [本票报告](../../../docs/verification/ticket-06-request-boundaries.md)。
+- 旧平台最终精确 `9e3a5578779e44835a476ae0135f9db94a33d592`：`clean verify` 1352/0/0/0，原质量门全过。最新Boot4集成 `8ca516c` 已同步，最终被测 `ee95d0743d817424a293a29dd8fa719d54e91470`：integration **PASS，1368/0/0/0**，原覆盖率/5架构/依赖门、非Web/真实HTTP双应用/纯Java核心消费者与三项工具链负控全过。完整来源和产物hash见 [本票报告](../../../docs/verification/ticket-06-request-boundaries.md)。
 - Q01–Q07/Q09 的代码、公开场景和结果已映射；Q08/Q10 的同源 Linux CI 尚待集成者收集，故不标 closed。日志在本工作树 `.verification-results/ticket-06` 和报告中指定的完整 runner 归档目录；Maven clean 不删除。
 - 27/31 完成真实 Security/模板，09/33 完成限流与候选组合；这些后续能力没有在本票使用伪认证头冒充交付。
