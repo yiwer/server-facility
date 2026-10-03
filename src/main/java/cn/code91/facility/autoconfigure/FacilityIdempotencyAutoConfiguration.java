@@ -59,10 +59,10 @@ public class FacilityIdempotencyAutoConfiguration {
         }
 
         @Bean
-        public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration() {
+        public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration(FacilityIdempotencyProperties props) {
             FilterRegistrationBean<IdempotencyFilter> registration = new FilterRegistrationBean<>();
-            registration.setFilter(new IdempotencyFilter());
-            registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+            registration.setFilter(new IdempotencyFilter(props.getMaxResponseBytes()));
+            registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 3);
             registration.addUrlPatterns("/*");
             return registration;
         }

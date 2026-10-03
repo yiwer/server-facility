@@ -95,6 +95,8 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         }
         request.setAttribute(ATTR_KEY, key);
         request.setAttribute(ATTR_TTL, ttl);   // afterCompletion 写 DONE 记录时复用同一 ttl(含 @Idempotent.ttlSeconds 覆盖)
+        var capture = org.springframework.web.util.WebUtils.getNativeResponse(response, BoundedResponseCapture.class);
+        if (capture != null) capture.start();
         return true;
     }
 
@@ -108,7 +110,15 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         if (ex != null) {
             return;
         }
-        if (response instanceof ContentCachingResponseWrapper wrapper) {
+        var capture = org.springframework.web.util.WebUtils.getNativeResponse(response, BoundedResponseCapture.class);
+        if (capture != null) {
+            var body = capture.body();
+            if (body.isPresent()) {
+                long ttl = (long) request.getAttribute(ATTR_TTL);
+                store.complete(key, IdempotencyRecord.done(response.getStatus(), response.getContentType(), body.get(),
+                        System.currentTimeMillis() + ttl));
+            }
+        } else if (response instanceof ContentCachingResponseWrapper wrapper) {
             byte[] body = wrapper.getContentAsByteArray();
             long ttl = (long) request.getAttribute(ATTR_TTL);   // 与 preHandle 占位同一 ttl,尊重 @Idempotent.ttlSeconds
             store.complete(key, IdempotencyRecord.done(wrapper.getStatus(), wrapper.getContentType(), body,

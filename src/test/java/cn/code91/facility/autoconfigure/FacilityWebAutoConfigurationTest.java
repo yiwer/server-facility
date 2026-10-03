@@ -25,7 +25,7 @@ class FacilityWebAutoConfigurationTest {
     void registersWebBeansInServletContext() {
         runner.run(ctx -> assertThat(ctx)
             .hasSingleBean(TraceIdFilter.class)
-            .hasSingleBean(RepeatableRequestFilter.class)
+            .doesNotHaveBean(RepeatableRequestFilter.class)
             .hasSingleBean(AccessLogInterceptor.class)
             .hasSingleBean(AbstractGlobalExceptionHandler.class));
     }
@@ -122,3 +122,4 @@ class FacilityWebAutoConfigurationTest {
             });
     }
 }
+
