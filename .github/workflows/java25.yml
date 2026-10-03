@@ -68,6 +68,8 @@ jobs:
             .verification-results/**/artifacts/*.jar
             .verification-results/**/matrix-inputs/**
             .verification-results/**/matrix/**
+            .verification-results/**/template-inputs/**
+            .verification-results/**/template/**
             .verification-results/**/json-golden/**
             .verification-results/**/surefire-reports/**
             .verification-results/**/jacoco/**
