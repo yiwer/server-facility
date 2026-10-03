@@ -36,6 +36,30 @@ class ZippingIntegrityTest {
     @TempDir Path root;
 
     @Test
+    void aDirectoryLinkLoopIsRejectedWithoutRecursingOrPublishing() throws Exception {
+        Path tree = Files.createDirectory(root.resolve("tree"));
+        Path loop = tree.resolve("loop");
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            var builder = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+                    "New-Item -ItemType Junction -Path $env:ZIP_LINK -Target $env:ZIP_TARGET | Out-Null");
+            builder.environment().put("ZIP_LINK", loop.toString());
+            builder.environment().put("ZIP_TARGET", tree.toString());
+            var process = builder.redirectErrorStream(true).start();
+            try {
+                assertThat(process.waitFor(10, TimeUnit.SECONDS)).isTrue();
+                assertThat(process.exitValue()).as(new String(process.getInputStream().readAllBytes())).isZero();
+            } finally { if (process.isAlive()) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); } }
+        } else { Files.createSymbolicLink(loop, tree); }
+        try {
+            assertThat(Zipping.zipDirectory(tree, root.resolve("output.zip")).isErr()).isTrue();
+            assertThat(PathIo.directorySize(tree).isErr()).isTrue();
+            assertThat(PathIo.deleteDirectory(tree).isErr()).isTrue();
+            assertThat(tree).isDirectory();
+            assertThat(root.resolve("output.zip")).doesNotExist();
+        } finally { Files.delete(loop); }
+    }
+
+    @Test
     void concurrentPublishersHaveOneCompleteWinnerWithoutClobbering() throws Exception {
         var entered = new CountDownLatch(2);
         var release = new CountDownLatch(1);

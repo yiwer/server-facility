@@ -34,6 +34,7 @@
 | [0028](0028-bounded-web-streams.md) | Accepted; [0047](0047-boot4-consumer-integration.md) 补充目标重载 | 普通响应直通、显式有界捕获、repeatable正预算与流所有权；6.1新入口接合由0047登记 |
 | [0029](0029-request-boundaries.md) | Accepted | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
 | [0036](0036-upload-integrity.md) | Accepted | 实际字节预算、内容探测流所有权、服务端存储键与同卷硬链接发布；保留0001的optional理由 |
+| [0037](0037-complete-zip-and-directory-results.md) | Accepted | ZIP完整关闭后不覆盖发布、有限读写/条目/深度预算；目录完整统计与有界逐项删除，失败及残留真实可见 |
 | [0040](0040-legacy-crypto-reader-policy.md) | Accepted | 保留历史AES-GCM/PBKDF2读取，全部Result失败不携原始cause；协议最小/最大长度前置拒绝，应用显式资源预算 |
 | [0041](0041-core-value-contracts.md) | Accepted | 保留核心 Result/领域错误语义，明确浅引用所有权、必需回调与集合算术边界；无框架普通 jar 消费 |
 | [0044](0044-json-application-scope-expand.md) | Accepted; 旧兼容阶段由 [0046](0046-jackson3-application-ownership.md) 替代 | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |

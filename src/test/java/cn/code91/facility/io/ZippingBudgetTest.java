@@ -125,14 +125,16 @@ class ZippingBudgetTest {
     void entryNamesCannotBecomeDrivePathsAndTheirUtf8MetadataIsBounded() throws Exception {
         Path fixture = root.resolve("source-filesystem.zip");
         try (var filesystem = FileSystems.newFileSystem(fixture, Map.of("create", "true"))) {
-            String[] names = {"正常文档.txt", "C:drive-path", "a".repeat(1025), "文".repeat(342)};
+            String[] names = {"正常文档.txt", "C:drive-path", "a".repeat(1023), "a".repeat(1024),
+                    "a".repeat(1025), "文".repeat(341), "文".repeat(341) + "a", "文".repeat(341) + "ab"};
+            boolean[] accepted = {true, false, true, true, false, true, true, false};
             for (int i = 0; i < names.length; i++) {
                 // ZipFS provides legal names that the host filesystem cannot represent. The owned
                 // external provider below supports NOFOLLOW_LINKS, unlike JDK ZipFS input streams.
                 Path source = namedSource(filesystem.getPath(names[i]));
                 Path output = root.resolve("entry" + i + ".zip");
                 var result = Zipping.zipFiles(List.of(source), output);
-                if (i == 0) {
+                if (accepted[i]) {
                     assertThat(result.isOk()).as(result.isErr() ? String.valueOf(result.getErr().getException()) : "ok").isTrue();
                     try (var zip = new ZipFile(output.toFile())) { assertThat(zip.getEntry(names[i])).isNotNull(); }
                 } else {
