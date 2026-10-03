@@ -8,7 +8,7 @@
 
 1. **权威链**：代码 + `docs/adr/` ＞ `docs/USAGE.md` / `docs/DESIGN.md` ＞ 本文 ＞ `CONTEXT.md`（术语基准）。文档与代码冲突时以代码 + ADR 为准，并回头修订文档。
 2. **按任务路由**：先查下表，只加载与当前任务相关的文档，不要全量通读。
-3. **快照数据**：本文标注「快照」的计数允许滞后，权威取 `mvn verify` 实际输出与对应源文件。
+3. **快照数据**：本文标注「快照」的计数允许滞后，权威取 `./mvnw verify` 实际输出与对应源文件。
 
 ## 任务路由
 
@@ -27,9 +27,9 @@
 ## 硬事实
 
 - **坐标**：`cn.code91:server-facility:0.1.0-SNAPSHOT`，单模块 jar。
-- **环境**：Java 21+；Spring Boot 3.5.x（依赖版本经 `spring-boot-dependencies` BOM 收敛）。
+- **环境**：JDK 25；Spring Boot 3.5.16 中间基线（最终 Boot 4 / Jackson 3 由票 21–24 完成）。Maven Wrapper 固定 3.10.0 并校验下载。
 - **命名**：包根 `cn.code91.facility.*`；类前缀 `Facility*`；配置前缀 `facility.*`；i18n bundle `i18n/facility-messages_*`。
-- **命令**：`mvn verify` = 全部质量门（测试 + 覆盖率 + 依赖账目）；`mvn test` = 仅测试。
+- **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。完整命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
 - **质量门**（不达即构建失败，禁止以调低门槛的方式通过）：
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
@@ -175,7 +175,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 修改本仓库代码时的成文规则。完整条款：DESIGN §7 一致性宪法；工作流：SDD（spec → plan → TDD 实施，档案在 `docs/superpowers/`）。
 
-**完成判定**：`mvn verify` 全绿。门槛失败修代码、补测试，**不得调低 pom 门槛值或随手加 ignore**（依赖账目确需 ignore 时必须注明理由，样例见 pom 注释）。
+**完成判定**：`./mvnw verify` 库质量门全绿，发布/集成另运行 `java verification/Verify.java all --fresh`。门槛失败修代码、补测试，**不得调低 pom 门槛值或随手加 ignore**（依赖账目确需 ignore 时必须注明理由，样例见 pom 注释）。
 
 **架构红线**（ArchUnit，`src/test/java/cn/code91/facility/architecture/ArchitectureTest.java`，违反即测试红）：
 
