@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
+
+**当前闭合记录（2026-10-04）**：`80670fa`的Windows/Ubuntu `all --fresh`与独立平台控制全部通过，见[同源CI证据](../../../docs/verification/ticket-24-ci.md)。下列实施记录中“待24/Linux”等为各阶段历史状态，现由此记录闭合；未实施的下游能力仍按各自票负责。
 
 **Traceability:** FR-09；AC-12
 
@@ -14,7 +16,7 @@
 - [x] 新写入若改变格式，必须明确版本、KDF 元数据、keyId/AAD 的适用政策与回滚；不为完成本票强制新建 envelope 平台。保持原格式，无新envelope。
 - [x] 错误密钥、损坏格式与篡改给出安全公开失败，内部诊断不输出 key/password/plaintext；只有引入新格式时才需定义未知版本失败。
 - [x] 若引入外部可变 KDF 元数据，必须限制参数与计算预算，防止新写入政策被降级；若保持现有格式，验证固定 legacy 参数与原读取协议，不为满足测试额外建设元数据系统。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 

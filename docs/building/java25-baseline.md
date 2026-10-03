@@ -1,6 +1,6 @@
 # Java 25 中间构建基线与验证入口
 
-本文件保留 ticket 01 / ADR-0024 的 Java 25 验证入口及历史 Boot 3.5.16 依赖账本。**票 22 已切换目标 Boot 4.1.1；当前依赖归属与中间态限制以 [Boot 4 平台账本](boot4-platform.md) 为准**，Jackson 行为和完整可选依赖矩阵由票 23/24 闭合。
+本文件保留 ticket 01 / ADR-0024 的 Java 25 验证入口及历史 Boot 3.5.16 依赖账本。**票 22 已切换目标 Boot 4.1.1；当前依赖归属与支持边界以 [Boot 4 平台账本](boot4-platform.md) 为准**，Jackson行为和适用可选依赖矩阵已由23/24完成，双端实际证据见[票24 CI](../verification/ticket-24-ci.md)。
 
 ## 先决条件与命令
 

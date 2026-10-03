@@ -1,5 +1,7 @@
 # 票 05：有界 Web 流的 Windows 验证证据
 
+**2026-10-04 平台闭合**：本票适用待验证项已由`80670fa`的Windows/Ubuntu同源CI完成，状态closed。见[票24 CI证据](ticket-24-ci.md)。下文保留各次执行的来源、数值及当时状态，不以旧数字代替新环境观测。
+
 日期：2026-10-04。下文保留实现时的Windows证据及待办快照；此后集成提交2304a57已通过[Windows/Ubuntu完整CI](ticket-05-ci.md)。当前仅待Boot4/Servlet6.1复验，故票仍为 `verification-pending`；不能把后续平台范围写成已通过。
 
 ## 固定源码、命令与质量门

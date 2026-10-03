@@ -1,5 +1,7 @@
 # Ticket 13：上传完整性、MIME 与公共 Hashing 验证
 
+**2026-10-04 平台闭合**：本票适用待验证项已由`80670fa`的Windows/Ubuntu同源CI完成，状态closed。见[票24 CI证据](ticket-24-ci.md)。下文保留各次执行的来源、数值及当时状态，不以旧数字代替新环境观测。
+
 本报告分别记录 Windows / Boot 3 中间基线与 Windows / Boot 4 目标平台证据；Linux 尚未完成。票 13 保持 verification-pending，不把未来 31/33 的组合验收反向列为本票实现依赖。
 
 最新合并源码 `e698642be82eb9d6d036e09a06dab21face34929` 已包含票 18、票 06 和中央登记；2026-10-04 01:49:16 +08:00 的 Windows `clean verify` 为 **1433/0/0/0**。详细证据见末节；此前各次结果保留为有明确源码的历史记录。

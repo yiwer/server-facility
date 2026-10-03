@@ -78,3 +78,8 @@
 - 2026-10-04：merger从干净 `ddb7680` 以 `--no-ff` 合入24最终 `768c5267929604353695c06e47328abe50791485`，merge `78309a138080617b36ab074f6d10f80c50b21905`。根src/POM/Runner/Workflow与被测 `31e77656472cefa497804ac6da6aacec16a754ff` 相同；仅两个consumer的EOF多余空行已在最终分支删除，无执行语义变化。
 - 核读 `.verification-results/20261004-020830-494-all/summary.txt`：Windows空仓库all--fresh PASS1449/0/0/0，原5架构/覆盖率/依赖门、普通jar/core/crypto/JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5资源周期、3负控全过；jar SHA256 `4e1012daa5fa4a363c9c9d3827d4d0ee2bcaf5e0bc997f2c6bb94989f58ddac5`。独立platform工具链输入同源子集另已通过，见[报告](../../verification/ticket-24-platform-integration.md)。
 - 中央登记0047和36条实际ADR：0047补全0015成对依赖装配、0028新Servlet6.1入口、0045/0046的平台验收责任，保留旧决定理由，没有虚构整票superseded。03/05/06/13/17/24仍待同源Linux适用证据；未改产品、未重跑同源码全门、未push。主checkout释放，root负责推送CI和准确闭合。
+
+
+## 2026-10-04 同源Boot4平台门闭合
+
+root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128两个OS的all --fresh、platform --fresh和归档全success；精确job/artifact/digest见`docs/verification/ticket-24-ci.md`。03/05/06/13/17/24据实closed，25/26/27解除24依赖；不代表所有33票已完成。未下载artifact内部文件，不混用本地/CI数值。

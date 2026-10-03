@@ -1,6 +1,6 @@
 # Boot 4 目标平台账本与消费者验证边界
 
-2026-10-04；票 22 的工具链决策见 [ADR-0045](../adr/0045-boot4-platform-toolchain.md)，票 23 已完成 Jackson 迁移并清空全部预期编译错误。票 24 按 [ADR-0047](../adr/0047-boot4-consumer-integration.md) 验证完整质量门、真实缺类/覆盖/Servlet 与普通 jar 消费。支持结论以 [24 执行报告](../verification/ticket-24-platform-integration.md) 的实际 OS 证据为准；本批仍在非发布集成线 `codex/server-facility-next`，不能将配置好的 CI 视作 Linux 已通过。
+2026-10-04；票 22 的工具链决策见 [ADR-0045](../adr/0045-boot4-platform-toolchain.md)，票 23 已完成 Jackson 迁移并清空全部预期编译错误。票 24 按 [ADR-0047](../adr/0047-boot4-consumer-integration.md) 验证完整质量门、真实缺类/覆盖/Servlet 与普通 jar 消费。支持结论以 [24 执行报告](../verification/ticket-24-platform-integration.md) 的实际 OS 证据为准；目标平台现已在`80670fa`完成[Windows/Ubuntu同源CI](../verification/ticket-24-ci.md)，平台门已闭合；本批其他能力仍在集成分支实施，未发布制品。
 
 ## 依赖归属
 
