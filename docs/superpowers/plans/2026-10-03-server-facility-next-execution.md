@@ -74,3 +74,7 @@
 - 2026-10-04：merger复核17实际summary、密码原语diff与独立消费者，无阻断；从干净 `d4922df` 以 `--no-ff` 合入最终 `1234f2ae12438cb00f979a64c4f3875cda21d5df`，merge `538e7d9709ed928a9b46e3643d700b31243e842d`。src/POM/verification/Wrapper与被测 `6f7f06c10aee2717a90f783fb938df1b0e31156f` 完全相同，后续中央文档不改产品。
 - 17 Windows integration 1442/0/0/0，5原架构/原覆盖率/依赖门、ordinaryjar/core/crypto64MiB消费者/JSON真实HTTP双应用/3工具链负控全PASS；jar SHA256 `2fa7c58a20b14ddc6fd65eb5da3465f6955b9e3db44e628b132de1280d456098`。原始summary在ticket-17 `.verification-results/20261004-015807-675-integration`，详见[报告](../../verification/ticket-17-crypto-legacy.md)。本轮integration没有all额外资源周期。
 - 中央登记0040/0019部分替代、35条实际ADR。17仍verification-pending，仅同源Linux CI待24闭合；原协议/KDF参数不变、应用预算由可执行消费者展示。未重复同源码完整门，未push；主checkout释放，24可由此tip继续验证。
+
+- 2026-10-04：merger从干净 `ddb7680` 以 `--no-ff` 合入24最终 `768c5267929604353695c06e47328abe50791485`，merge `78309a138080617b36ab074f6d10f80c50b21905`。根src/POM/Runner/Workflow与被测 `31e77656472cefa497804ac6da6aacec16a754ff` 相同；仅两个consumer的EOF多余空行已在最终分支删除，无执行语义变化。
+- 核读 `.verification-results/20261004-020830-494-all/summary.txt`：Windows空仓库all--fresh PASS1449/0/0/0，原5架构/覆盖率/依赖门、普通jar/core/crypto/JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5资源周期、3负控全过；jar SHA256 `4e1012daa5fa4a363c9c9d3827d4d0ee2bcaf5e0bc997f2c6bb94989f58ddac5`。独立platform工具链输入同源子集另已通过，见[报告](../../verification/ticket-24-platform-integration.md)。
+- 中央登记0047和36条实际ADR：0047补全0015成对依赖装配、0028新Servlet6.1入口、0045/0046的平台验收责任，保留旧决定理由，没有虚构整票superseded。03/05/06/13/17/24仍待同源Linux适用证据；未改产品、未重跑同源码全门、未push。主checkout释放，root负责推送CI和准确闭合。

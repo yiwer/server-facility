@@ -92,7 +92,7 @@ POI 只能出现在包私有 `ExcelSupport`)。
 
 ## 5. ADR 索引
 
-35 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+36 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -131,10 +131,11 @@ POI 只能出现在包私有 `ExcelSupport`)。
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
+| 0047 | 真实依赖图和普通jar/HTTP平台门；补全Servlet6.1重载与缺任一缓存依赖回退，OS证据分别登记 |
 
 ## 6. 质量门
 
-- **当前目标平台（2026-10-04）**：票17含18/06/13的 `6f7f06c` Windows `integration` 为1442/0/0/0；instruction92.8233%、line93.3884%、branch85.2128%，原5架构及依赖门通过，见 [票17证据](verification/ticket-17-crypto-legacy.md)。普通jar/core/crypto独立消费者、JSON真实HTTP两应用与3工具链负控全部PASS。本次integration不含all模式额外5轮资源周期；06/13/17新增Linux场景待集成CI，Servlet6.1新重载与完整optional矩阵仍归24。
+- **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；03/05/06/13/17/24仍等待同源Linux适用项，不提前closed。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载责任仍由24关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75
   (旧平台快照 instruction92.9939% / line93.3940% / branch86.1614%)，当前目标实测见上，门槛保持。
