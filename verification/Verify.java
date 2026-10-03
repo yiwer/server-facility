@@ -70,8 +70,10 @@ class Verify {
                     csvConsumer();
                     excelConsumer();
                     rateLimitConsumer();
+                    htmlConsumer();
                     lockConsumer();
                     claimConsumer();
+                    httpReplayConsumer();
                     jsonConsumer();
                     platformConsumers();
                     partnerConsumer();
@@ -284,6 +286,19 @@ class Verify {
                 throw new AssertionError("Coverage runtime leaked into production jar");
         }
         Files.copy(jar, Files.createDirectories(evidence.resolve("artifacts")).resolve(jar.getFileName()));
+        Path databaseContract = ROOT.resolve("verification/template-consumer/DatabaseProcessContract.java");
+        Files.copy(databaseContract, evidence.resolve("DatabaseProcessContract.java"));
+        for (String mode : List.of("diagnostics", "lifecycle", "cleanup")) {
+            Path contractLog = run(application, Map.of(), "template-database-" + mode, List.of(java(), "-Xmx96m",
+                    databaseContract.toString(), application.toUri().toASCIIString(), evidence.resolve("database-" + mode).toUri().toASCIIString(),
+                    mode, client.toString()), 220, null);
+            String marker = switch (mode) {
+                case "diagnostics" -> "DATABASE_FAILURE_DIAGNOSTICS_PASS";
+                case "lifecycle" -> "DATABASE_LIFECYCLE_PASS";
+                default -> "DATABASE_CLEANUP_FAILURE_PASS";
+            };
+            if (!Files.readString(contractLog).contains(marker)) throw new AssertionError("Missing database process contract: " + contractLog);
+        }
         Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
                 application.toUri().toASCIIString(), evidence.toUri().toASCIIString()), 180, null);
         if (!Files.readString(log).contains("PACKAGED_TEMPLATE_PASS")) throw new AssertionError("Missing packaged template result");
@@ -487,6 +502,30 @@ class Verify {
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
     }
 
+    static void htmlConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jsoup = repository.resolve("org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar");
+        Path source = ROOT.resolve("verification/html-consumer");
+        Path evidence = Files.createDirectories(report.resolve("html-consumer"));
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        copyDirectory(source, evidence.resolve("inputs"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        String runtime = classes + File.pathSeparator + jar;
+        run(ROOT, Map.of(), "html-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar + File.pathSeparator + jsoup, "-d", classes.toString(),
+                source.resolve("PolicySamples.java").toString(), source.resolve("HtmlConsumer.java").toString()), 45, null);
+        Path absent = run(ROOT, Map.of(), "html-consumer-absent", List.of(java(), "-Xmx64m", "-cp", runtime,
+                "HtmlConsumer", "absent"), 45, null);
+        if (!Files.readString(absent).contains("HTML_CONSUMER_ABSENT_PASS explicitDependency=true"))
+            throw new AssertionError("HTML missing-dependency consumer failed: " + absent);
+        Path log = run(ROOT, Map.of(), "html-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
+                "-cp", runtime + File.pathSeparator + jsoup, "HtmlConsumer"), 45, null);
+        if (!Files.readString(log).contains("HTML_CONSUMER_PASS samples=16 seed=320025 fuzz=512 depth=10000 cycles=5 successful=10000 rejected=10000"))
+            throw new AssertionError("HTML policy/resource consumer failed: " + log);
+        summary.add("html-consumer=ordinary jar/jsoup only; missing dependency refuses; 16 fixed samples/seed320025/512 URI variants/10000 nesting/10000 success+rejection cycles; -Xmx64m/2 processors/45s");
+    }
+
     static void partnerConsumer() throws Exception {
         Path owned = Files.createTempDirectory("facility-partner-").toRealPath();
         Path application = owned.resolve("partner app-示例-שלום");
@@ -572,6 +611,26 @@ class Verify {
         }
         summary.add("claim-consumer=ordinary jar; pre-expansion SPI binary; owner barrier; seed110034/2048; 256 slots/32768 churn/16 workers/128 closed reachable stores; -Xmx64m/2 processors/45s");
         summary.add("claim-failures=clone OOME with 20MiB input; host Clock Error preserved; 2048 reachable closed stores each formerly holding 4096 mixed entries; -Xmx32m/2 processors/45s per JVM");
+    }
+
+    static void httpReplayConsumer() throws Exception {
+        Path consumer = ROOT.resolve("verification/http-replay-consumer");
+        maven(consumer, "http-replay-consumer-build", "clean", "compile", "dependency:build-classpath",
+                "-Dmdep.outputFile=" + consumer.resolve("target/classpath.txt"));
+        maven(consumer, "http-replay-consumer-dependencies", "dependency:tree",
+                "-DoutputFile=" + report.resolve("http-replay-consumer-dependency-tree.txt"));
+        Files.copy(consumer.resolve("pom.xml"), report.resolve("http-replay-consumer-pom.xml"));
+        Files.copy(consumer.resolve("src/main/java/example/HttpReplayConsumer.java"), report.resolve("HttpReplayConsumer.java"));
+        String dependencies = Files.readString(consumer.resolve("target/classpath.txt")).trim();
+        for (String entry : dependencies.split(java.util.regex.Pattern.quote(File.pathSeparator))) {
+            if (!entry.endsWith(".jar") || !Path.of(entry).toAbsolutePath().startsWith(repository))
+                throw new AssertionError("HTTP replay consumer dependency is not an isolated repository jar: " + entry);
+        }
+        Path log = run(ROOT, Map.of(), "http-replay-security", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", consumer.resolve("target/classes") + File.pathSeparator + dependencies, "example.HttpReplayConsumer"), 120, null);
+        if (!Files.readString(log).contains("HTTP_REPLAY_SECURITY_PASS identity=tenant/actor/route current-permission=revoked/restored capacity=32 churn=512 cycles=2"))
+            throw new AssertionError("HTTP replay Security consumer did not complete: " + log);
+        summary.add("http-replay-consumer=installed ordinary jar; real Boot Security wrappers/method authorization; current permission revoke/restore; trusted tenant/actor/route; 32 bindings/512 churn/2 application lifecycles; -Xmx128m/2 processors/120s");
     }
 
     static void jsonConsumer() throws Exception {

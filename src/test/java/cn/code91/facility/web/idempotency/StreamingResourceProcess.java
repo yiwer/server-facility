@@ -63,7 +63,13 @@ public final class StreamingResourceProcess {
 
     @Configuration(proxyBeanMethods = false) @EnableWebMvc
     @Import({FacilityIdempotencyAutoConfiguration.class, Endpoints.class})
-    static class ConfigurationUnderTest { @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); } }
+    static class ConfigurationUnderTest {
+        @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); }
+        @Bean IdempotencyAuthorization authorization() {
+            return (request, operation, body) -> new IdempotencyAuthorization.Command("resource-fixture", "fixture",
+                    "size-v1:" + request.getParameter("bytes"));
+        }
+    }
     @RestController static class Endpoints {
         @GetMapping("/bulk") void bulk(HttpServletRequest request, HttpServletResponse response) throws Exception { write(request, response); }
         @Idempotent @GetMapping("/capture") void captured(HttpServletRequest request, HttpServletResponse response) throws Exception { write(request, response); }

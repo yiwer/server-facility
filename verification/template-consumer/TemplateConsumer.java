@@ -14,15 +14,18 @@ class TemplateConsumer {
         Path app = path(args[0]).toAbsolutePath(), evidence = Files.createDirectories(path(args[1]));
         Path state = app.resolve("target/local-trust-" + UUID.randomUUID());
         Path helperLog = evidence.resolve("local-fixture.log");
-        Process helper = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
+        Process helper = null, database = null;
+        Path databaseRoot = null, databaseState = null;
+        Path databaseLog = evidence.resolve("local-database.log");
+        Throwable primary = null;
+        try {
+        helper = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
                 "dev/LocalIssuer.java", app.relativize(state).toString())
                 .directory(app.toFile()).redirectErrorStream(true).redirectOutput(helperLog.toFile()).start();
-        Path databaseRoot = Files.createTempDirectory("facility-packaged-database-");
-        Path databaseState = databaseRoot.resolve("cluster");
-        Path databaseLog = evidence.resolve("local-database.log");
-        Process database = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "dev/LocalDatabase.java", databaseState.toString())
+        databaseRoot = Files.createTempDirectory("facility-packaged-database-");
+        databaseState = databaseRoot.resolve("cluster");
+        database = new ProcessBuilder(JAVA, "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "dev/LocalDatabase.java", databaseState.toString())
                 .directory(app.toFile()).redirectErrorStream(true).redirectOutput(databaseLog.toFile()).start();
-        try {
             awaitFile(databaseState.resolve("database.properties"), database, databaseLog);
             awaitFile(state.resolve("no-scope-token.txt"), helper, helperLog);
             String token = Files.readString(state.resolve("token.txt")), denied = Files.readString(state.resolve("no-scope-token.txt"));
@@ -80,22 +83,46 @@ class TemplateConsumer {
                 check(invalid.exitValue() != 0 && Files.readString(failedLog).contains("Invalid application JWT trust policy"), "production silently accepted missing trust");
             } finally { stop(invalid); }
             System.out.println("PACKAGED_TEMPLATE_PASS platform/virtual restart; no repository source or test classpath");
+        } catch (Exception | Error failure) {
+            primary = failure;
+            throw failure;
         } finally {
-            try { stop(helper); } finally {
-                database.getOutputStream().close();
-                if (!database.waitFor(25, TimeUnit.SECONDS)) { stop(database); throw new AssertionError("local database cleanup timed out"); }
-                check(database.exitValue() == 0, "local database cleanup failed: " + Files.readString(databaseLog));
+            Throwable cleanup = null;
+            try { if (helper != null) stop(helper); } catch (Exception | Error failure) { cleanup = failure; }
+            try {
+                if (database != null) {
+                    if (database.isAlive()) database.getOutputStream().close();
+                    if (!database.waitFor(85, TimeUnit.SECONDS)) { stop(database); throw new AssertionError("local database cleanup timed out"); }
+                    check(database.exitValue() == 0, "local database cleanup failed: " + Files.readString(databaseLog));
+                }
+            } catch (Exception | Error failure) { cleanup = append(cleanup, failure); }
+            // Archive even when startup or shutdown failed; never delete the only native diagnostics first.
+            try {
                 Path archived = Files.createDirectories(evidence.resolve("postgres"));
-                try (var files = Files.list(databaseState)) {
+                if (databaseState != null && Files.isDirectory(databaseState)) try (var files = Files.list(databaseState)) {
                     for (Path file : files.filter(Files::isRegularFile).toList()) Files.copy(file, archived.resolve(file.getFileName()), StandardCopyOption.REPLACE_EXISTING);
                 }
-                check(!Files.exists(databaseState.resolve("data/postmaster.pid")), "native database remained running");
+            } catch (Exception | Error failure) { cleanup = append(cleanup, failure); }
+            try {
+                if (databaseState != null) check(!Files.exists(databaseState.resolve("data/postmaster.pid")), "native database remained running");
+                if (databaseRoot != null && cleanup == null) {
                 Path owned = databaseRoot.toRealPath();
                 check(owned.getParent().equals(Path.of(System.getProperty("java.io.tmpdir")).toRealPath())
                         && owned.getFileName().toString().startsWith("facility-packaged-database-"), "unexpected owned database directory");
                 try (var files = Files.walk(owned)) { for (Path file : files.sorted(Comparator.reverseOrder()).toList()) Files.delete(file); }
+                }
+            } catch (Exception | Error failure) { cleanup = append(cleanup, failure); }
+            if (cleanup != null) {
+                if (primary != null) primary.addSuppressed(cleanup);
+                else if (cleanup instanceof Exception exception) throw exception;
+                else throw (Error) cleanup;
             }
         }
+    }
+    private static Throwable append(Throwable primary, Throwable next) {
+        if (primary == null) return next;
+        if (primary != next) primary.addSuppressed(next);
+        return primary;
     }
     private static Path path(String value) {
         return value.startsWith("file:") ? Path.of(URI.create(value)) : Path.of(value);

@@ -16,6 +16,19 @@
 - 所有旧复制入口同步嵌套调用共用10,000工作单元和32活动层限制；实际遍历计数，循环/超限/协作中断用CopyException拒绝，异常后清理作用域。依赖无界输入或final反射的调用方必须迁移。
 - 可选警告改标准SLF4J固定安全消息，backend RuntimeException不改变复制结果；不再经LogUtil二次分发。见[完整迁移](docs/building/explicit-mapping.md)。
 
+### Cookie与HTML政策（2026-10-04，ADR0055）
+
+- Cookie使用标准ResponseCookie，完整写入/删除保留scope；旧默认增加SameSite=Lax，删除发送空协议值及同默认flags。写入需Spring Web；最大4096ASCII头、整秒-1..400天、明确路径/安全组合，重复请求名字不再首值/末值任选。
+- jsoup1.18.3→1.23.2，仍optional。16个历史比较样本明确无host HTTP href移除和iframe后备文本不保留；旧公开清洗签名保留，所有入口增加262144 UTF-16输入上限和必需策略校验。
+- [迁移与适用边界](docs/building/cookie-html-policy.md)：不自动重写业务输入，不宣称HTML清洗覆盖其他输出上下文。
+
+### 已授权有界 HTTP 重放（2026-10-04，ADR-0035）
+
+- `@Idempotent` 整条 HTTP 路径迁至 qualified claim。新增必需 `IdempotencyAuthorization`：每次取得或重放前进行当前操作授权与命令规范化；可信 tenant/actor、具体方法与路由隔离结果。缺 Adapter/provider/capture 明确拒绝，不回落旧无 owner 执行。
+- 请求/响应仅在显式有限同步目标上有界捕获；普通流式响应直通。内层 filter 成功退出后才保存允许状态与 Content-Type/Location；advice 异常、5xx、超限、断连及异步逃逸终止，不因等待更久重新执行。
+- `lease` 与 `result-retention` 独立，旧 `default-ttl`/注解 TTL 仅作明确兼容。过期但仍为当前 PROCESSING 的 owner 可终止；迟到旧 owner 不得更新已替换 generation。记录 CAS 不取消旧业务副作用。
+- 保留旧 SPI/构造器签名并隔离不安全回退；既有消费者必须迁移授权政策、字节预算与状态/头政策，见 [HTTP 迁移说明](docs/building/authorized-http-replay.md)。提交响应后的 Store 故障仍可能导致连接失败与宿主容器日志，不伪造完整成功响应。
+
 ### 应用消息、日志与观测（2026-10-04，ADR0049）
 
 - MessageSource 改为 Boot/宿主优先，设施 bundle 通过明确 basename 顺序贡献；退出默认聚合委托。BusinessException 的公开本地化只查宿主 bundle，不插入异常 args/defaultMessage。
