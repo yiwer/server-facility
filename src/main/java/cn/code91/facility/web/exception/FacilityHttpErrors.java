@@ -2,7 +2,7 @@ package cn.code91.facility.web.exception;
 
 import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -111,6 +111,8 @@ public class FacilityHttpErrors {
                     .body(BaseResponse.err(code, detail));
         }
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        // Spring 7 leaves type unset; retain the published HTTP error protocol explicitly.
+        problem.setType(java.net.URI.create("about:blank"));
         problem.setInstance(java.net.URI.create("urn:facility:error:" + traceId));
         problem.setProperty("code", code);
         problem.setProperty("traceId", traceId);
@@ -226,7 +228,7 @@ public class FacilityHttpErrors {
             response.setHeader(name, null);
             values.forEach(value -> response.addHeader(name, value));
         });
-        if (!resolved.getHeaders().containsKey(HttpHeaders.CONTENT_TYPE)) response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        if (!resolved.getHeaders().containsHeader(HttpHeaders.CONTENT_TYPE)) response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getOutputStream().write(bytes);
     }
 }

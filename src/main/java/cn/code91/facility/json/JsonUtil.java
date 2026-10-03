@@ -2,8 +2,8 @@ package cn.code91.facility.json;
 
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -13,25 +13,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * <b>JSON 静态门面</b>
- * <p>零配置入口，委托到一个进程级 {@link JsonsRegistry} 单例。Spring 应用启动后，
- * {@link cn.code91.facility.autoconfigure.FacilityJsonAutoConfiguration} 会把默认
- * namespace 替换为复用 Spring 自动配置 {@link com.fasterxml.jackson.databind.ObjectMapper} 的
- * {@link Jsons}，杜绝 controller 出口与 {@code JsonUtil} 出口序列化结果不一致的隐患。</p>
- *
- * <h3>切换 namespace</h3>
- * <pre>{@code
- * JsonUtil.use(JsonUtil.PRETTY).serialize(obj);
- * }</pre>
- *
- * <h3>DI 用法</h3>
- * <pre>{@code
- * @Autowired JsonsRegistry jsons;       // 同一个进程级单例
- * jsons.use("pretty").serialize(obj);
- * }</pre>
- *
- * @see Jsons
- * @see JsonsRegistry
+ * 兼容的 standalone JSON 静态门面。
+ * 不读取 Spring 应用 mapper，应用启停也不改写本 registry；应用代码应注入 Jsons。
+ * 该入口保留原 namespace 预设，用于明确不依赖应用 HTTP 政策的调用方。
  */
 public final class JsonUtil {
 

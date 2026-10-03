@@ -1,8 +1,8 @@
 package cn.code91.facility.json.support;
 
 import cn.code91.facility.json.Jsons;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.PropertyNamingStrategies;
 import org.junit.jupiter.api.Test;
 import java.util.Date;
 import java.util.TimeZone;
@@ -14,15 +14,26 @@ class JsonBuilderCustomizationTest {
     public record Customer(String displayName) {}
 
     @Test
-    void callbackOrderAndLegacyFinalOverrideAreExplicit() {
+    void nonNullPresetRetainsMapContentInclusionPolicy() {
+        var values = new java.util.LinkedHashMap<String, String>();
+        values.put("missing", null);
+        values.put("present", "x");
+        assertThat(new Jsons(JsonConfig.standard().includeNonNull().build()).serialize(values).get())
+                .isEqualTo("{\"present\":\"x\"}");
+    }
+
+    @Test
+    void laterBuildDoesNotMutateAnAlreadyPublishedMapper() {
         var configured = JsonConfig.standard()
                 .customizeBuilder(builder -> builder.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE))
                 .customizeBuilder(builder -> builder.propertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE));
-        assertThat(new Jsons(configured.build()).serialize(new Customer("Ada")).get())
+        var published = new Jsons(configured.build());
+        assertThat(published.serialize(new Customer("Ada")).get())
                 .isEqualTo("{\"display-name\":\"Ada\"}");
-        assertThat(new Jsons(configured.customize(mapper -> mapper.setPropertyNamingStrategy(
+        assertThat(new Jsons(configured .customizeBuilder(mapper -> mapper.propertyNamingStrategy(
                 PropertyNamingStrategies.LOWER_CAMEL_CASE)).build()).serialize(new Customer("Ada")).get())
                 .isEqualTo("{\"displayName\":\"Ada\"}");
+        assertThat(published.serialize(new Customer("Ada")).get()).isEqualTo("{\"display-name\":\"Ada\"}");
     }
 
     @Test

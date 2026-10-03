@@ -1,11 +1,11 @@
 package cn.code91.facility.json.support;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ser.std.ToStringSerializer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class JsonConfigTest {
         void strict_failsOnUnknownProperties() {
             ObjectMapper mapper = JsonConfig.strict().build();
             assertThatThrownBy(() -> mapper.readValue("{\"name\":\"a\",\"extra\":1}", NamePojo.class))
-                    .isInstanceOf(JsonProcessingException.class);
+                    .isInstanceOf(JacksonException.class);
         }
 
         @Test
@@ -63,11 +63,10 @@ class JsonConfigTest {
         }
 
         @Test
-        @DisplayName("builder() 裸构建器无 Java8 时间支持,序列化 LocalDate 抛异常")
-        void builder_bare_noJavaTimeSupport() {
+        @DisplayName("builder() 在 Jackson3 中内置 Java 时间支持")
+        void builder_bare_includesJavaTimeSupport() {
             ObjectMapper mapper = JsonConfig.builder().build();
-            assertThatThrownBy(() -> mapper.writeValueAsString(LocalDate.of(2025, 6, 15)))
-                    .isInstanceOf(JsonProcessingException.class);
+            assertThat(mapper.writeValueAsString(LocalDate.of(2025, 6, 15))).isEqualTo("\"2025-06-15\"");
         }
     }
 
@@ -169,7 +168,7 @@ class JsonConfigTest {
         void failOnUnknownProperties_throwsOnExtraField() {
             ObjectMapper mapper = JsonConfig.builder().failOnUnknownProperties().build();
             assertThatThrownBy(() -> mapper.readValue("{\"name\":\"a\",\"extra\":1}", NamePojo.class))
-                    .isInstanceOf(JsonProcessingException.class);
+                    .isInstanceOf(JacksonException.class);
         }
 
         private record DatedPojo(LocalDate d) {}
@@ -194,7 +193,7 @@ class JsonConfigTest {
         void byDefault_commentsRejected() {
             ObjectMapper mapper = JsonConfig.builder().build();
             assertThatThrownBy(() -> mapper.readTree("{\"a\":1 /* c */}"))
-                    .isInstanceOf(JsonProcessingException.class);
+                    .isInstanceOf(JacksonException.class);
         }
 
         @Test
@@ -210,7 +209,7 @@ class JsonConfigTest {
         void allowSingleQuotes_parsesSingleQuotedStrings() throws Exception {
             ObjectMapper mapper = JsonConfig.builder().allowSingleQuotes().build();
             JsonNode node = mapper.readTree("{'a':'x'}");
-            assertThat(node.get("a").asText()).isEqualTo("x");
+            assertThat(node.get("a").asString()).isEqualTo("x");
         }
 
         @Test
@@ -239,7 +238,7 @@ class JsonConfigTest {
         @DisplayName("customize 回调作用于最终构建的 ObjectMapper")
         void customize_appliesToFinalMapper() throws Exception {
             ObjectMapper mapper = JsonConfig.builder()
-                    .customize(m -> m.enable(SerializationFeature.INDENT_OUTPUT))
+                    .customizeBuilder(m -> m.enable(SerializationFeature.INDENT_OUTPUT))
                     .build();
             assertThat(mapper.writeValueAsString(Map.of("a", 1))).contains("\n");
         }

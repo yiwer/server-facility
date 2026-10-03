@@ -4,7 +4,7 @@
 
 **Blocked by:** 22 迁移 Boot 4、Spring 技术模块与测试工具链
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-01、FR-08、FR-09；AC-02、AC-11、AC-12
 
