@@ -41,7 +41,9 @@ ADR-0026 将替代 ADR-0002 的 TaskExecutor-only 回退类型及裸虚拟线程
 
 完整证据见 [ticket-03-windows](../../../docs/verification/ticket-03-windows.md)：已测代码提交75ed834，已合入集成最新731598b；Wrapper `clean verify` 1251 tests、0失败/错误/跳过；instruction93.8400%、line93.7312%、branch87.1890%，架构和依赖检查通过。环境为Windows10.0.26100 / Oracle JDK25.0.4.1 / Boot3.5.16；不代表Linux/Boot4证据。
 
-Q01–Q10 逐项证据与不适用理由记录在验证文档；公共契约与本票有界资源验证已实现并通过。尚缺包含本票的Linux CI和票24的Boot4目标平台复验，因此共同完成标准及资源整行保留未勾选，状态verification-pending。任务本身无数据库/线格式协议，相关金样与持久化维度不适用。
+Q01–Q10 逐项证据与不适用理由记录在验证文档；公共契约与本票有界资源验证已实现并通过。尚缺票24的Boot4目标平台复验，因此共同完成标准及资源整行保留未勾选，状态verification-pending。任务本身无数据库/线格式协议，相关金样与持久化维度不适用。
+
+2026-10-03 补充：含本票的 `0e8d5863ec51dd2ea691332b3cbbc1512de17c55` 已通过 [CI 37132912477](https://github.com/yiwer/server-facility/actions/runs/37132912477) 的 Windows/Ubuntu `all --fresh`，完整验证和归档均成功；本次 Linux 环境缺口已关闭，详见 [跨平台记录](../../../docs/verification/ticket-02-03-ci.md)。
 
 J04 HTTP身份接合、J17锁接合及票33的候选扩大长稳由各自下游票负责，不是本票的新增前置依赖；本票不依赖票33才能关闭。多小时heap/外部连接长稳未执行，固定循环只作为本票有界资源证据。
 
