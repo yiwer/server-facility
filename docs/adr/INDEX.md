@@ -32,6 +32,7 @@
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
 | [0027](0027-safe-http-error-policy.md) | Accepted | Filter/MVC/ERROR 共用安全 RFC 9457 错误策略、真实状态和必要头；宿主 mapper/locale、已提交边界与显式 legacy 迁移 |
 | [0028](0028-bounded-web-streams.md) | Accepted | 普通响应直通、显式有界捕获、repeatable 正预算与流所有权；Servlet6.1 迁移门 |
+| [0041](0041-core-value-contracts.md) | Accepted | 保留核心 Result/领域错误语义，明确浅引用所有权、必需回调与集合算术边界；无框架普通 jar 消费 |
 | [0044](0044-json-application-scope-expand.md) | Accepted; 旧兼容阶段由 [0046](0046-jackson3-application-ownership.md) 替代 | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |
 | [0046](0046-jackson3-application-ownership.md) | Accepted | Jackson3不可变配置、应用mapper/registry所有权、安全错误与正数字段流预算；保留旧金样和明确静态迁移 |
