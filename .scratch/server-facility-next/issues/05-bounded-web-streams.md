@@ -21,7 +21,7 @@
 - [x] 正常/接合：实际客户端在服务端生成完成前读到下载/SSE 前缀，HEAD、空体和错误派发遵守协议。
 - [x] 边界：Content-Length 正确/缺失/失真、chunked、N−1/N/N+1、超大但受控输入与多字节边界。
 - [x] 故障：慢读慢写、客户端断开、写失败、取消、已提交后异常，资源清理且不二次写入。
-- [ ] 资源：受限堆的独立进程里响应规模增加不会无界增长；不耗尽宿主模拟极端情况。Windows/JDK25/Boot3已完成（96MiB堆、64/256MiB普通与选定响应）；本票Linux CI与Boot4/Servlet6.1复验归root/24闭合。
+- [ ] 资源：受限堆的独立进程里响应规模增加不会无界增长；不耗尽宿主模拟极端情况。Windows/JDK25/Boot3已完成（96MiB堆、64/256MiB普通与选定响应），新增Linux场景已由CI37137011984通过；仅待24的Boot4/Servlet6.1复验。
 - [x] 请求协议：两次读取正文相同；合法 application/problem+json、伪 application/json-unknown、声明字符集/畸形 charset、非阻塞回调的完成/错误和重复注册按约定验证。
 
 ## Scope boundary
@@ -39,4 +39,6 @@
 - 子进程96MiB堆/32MiB direct cap，8MiB预热后普通与选定响应各64/256MiB全部完成，保留堆最大17295320、较基线增长44448字节（阈值16MiB），进程退出0。固定seed `0x05b0d1` 的64个有界字节样本与所有RED/GREEN日志保存在 `.verification-results/ticket-05/`，clean未删除。
 - [ADR0028](../../../docs/adr/0028-bounded-web-streams.md)部分替代0017的全局/无界捕获；USAGE/CHANGELOG有明确迁移。完整SHA/产物hash/环境/Q01–Q10/J03/J08/测试数变化和已发生失败见[验证报告](../../../docs/verification/ticket-05-bounded-web-streams.md)。
 
-仍为 **verification-pending**：本票集成后的Linux CI及Boot4/Servlet6.1目标平台尚无证据，Q08/Q10与资源整行未提前勾选。Servlet6.1新增sendRedirect重载及Charset重载会旁路旧wrapper方法，24须补入口并复验（ADR/报告已记录），不能把Boot3绿色当作目标平台通过。票12负责授权/scope、业务保存资格、过期重试与异步端点政策；J08后续接合、33最终扩大组合保持其主责，不反向建立05依赖33的循环。本票未推送或发布。
+2026-10-04，root推送集成`2304a57103b8c6f6a0791a783b80440dd652c1b0`，新增场景在Windows/Ubuntu的完整`all --fresh`均通过且归档成功，见[跨平台证据](../../../docs/verification/ticket-05-ci.md)。各环境精确数值以各自原始报告为准，未用本地数字代替Linux观测。
+
+仍为 **verification-pending**：仅待Boot4/Servlet6.1目标平台复验，Q08/Q10与资源整行未提前勾选。Servlet6.1新增sendRedirect重载及Charset重载会旁路旧wrapper方法，24须补入口并复验（ADR/报告已记录），不能把Boot3绿色当作目标平台通过。票12负责授权/scope、业务保存资格、过期重试与异步端点政策；J08后续接合、33最终扩大组合保持其主责，不反向建立05依赖33的循环。未发布制品。

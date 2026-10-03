@@ -3,7 +3,7 @@ package cn.code91.facility.web.filter;
 import cn.code91.facility.autoconfigure.FacilityWebAutoConfiguration;
 import cn.code91.facility.autoconfigure.FacilityIdempotencyAutoConfiguration;
 import cn.code91.facility.web.test.EmbeddedServletApplication;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -81,7 +81,7 @@ class RepeatableHttpContractTest {
                     } else {
                         assertThat(response.statusCode()).isEqualTo(413);
                         assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("application/problem+json");
-                        assertThat(new ObjectMapper().readTree(response.body()).path("status").asInt()).isEqualTo(413);
+                        assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("status").asInt()).isEqualTo(413);
                     }
                 }
             }
@@ -107,7 +107,7 @@ class RepeatableHttpContractTest {
                     .header("Content-Type", "application/json;charset=not-real-charset")
                     .POST(HttpRequest.BodyPublishers.ofString("abc")).build(), HttpResponse.BodyHandlers.ofString());
             assertThat(response.statusCode()).isEqualTo(400);
-            assertThat(new ObjectMapper().readTree(response.body()).path("status").asInt()).isEqualTo(400);
+            assertThat(tools.jackson.databind.json.JsonMapper.builder().build().readTree(response.body()).path("status").asInt()).isEqualTo(400);
         }
     }
 
@@ -119,7 +119,7 @@ class RepeatableHttpContractTest {
 
     @Configuration(proxyBeanMethods = false) @EnableWebMvc
     @Import({FacilityWebAutoConfiguration.class, FacilityIdempotencyAutoConfiguration.class, Endpoints.class,
-            org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.class})
+            org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration.class})
     static class WebConfiguration {
         @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); }
     }

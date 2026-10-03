@@ -62,7 +62,7 @@ public abstract class AbstractGlobalExceptionHandler {
         messages.setDefaultEncoding("UTF-8");
         messages.setFallbackToSystemLocale(false);
         errors = new FacilityHttpErrors(props == null ? new FacilityWebExceptionProperties() : props,
-                messages, org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build());
+                messages, new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter().getMapper());
     }
 
     @ExceptionHandler({BusinessException.class, SystemException.class})

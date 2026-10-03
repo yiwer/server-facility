@@ -2,21 +2,19 @@ package cn.code91.facility.json.support;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalTimeDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalTimeSerializer;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.*;
+import tools.jackson.databind.JacksonModule;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ser.std.ToStringSerializer;
+import tools.jackson.databind.ext.javatime.deser.LocalDateDeserializer;
+import tools.jackson.databind.ext.javatime.deser.LocalDateTimeDeserializer;
+import tools.jackson.databind.ext.javatime.deser.LocalTimeDeserializer;
+import tools.jackson.databind.ext.javatime.ser.LocalDateSerializer;
+import tools.jackson.databind.ext.javatime.ser.LocalDateTimeSerializer;
+import tools.jackson.databind.ext.javatime.ser.LocalTimeSerializer;
 import lombok.experimental.UtilityClass;
 
 import java.text.SimpleDateFormat;
@@ -34,7 +32,7 @@ import java.util.function.Consumer;
  * <b>JSON配置构建器</b>
  * <p>
  * 用于构建配置良好的 ObjectMapper。
- * 注意：ObjectMapper 初始化成本较高，建议构建后全局单例复用。
+ * 注意：ObjectMapper 初始化成本较高，建议在所属应用内复用构建后的不可变实例。
  * </p>
  *
  * <p><b>功能说明：</b></p>
@@ -99,7 +97,7 @@ public class JsonConfig {
      */
     public static Builder standard() {
         return new Builder()
-                .enableJava8Support() // 包含 Time, JDK8, ParamNames
+                .enableJava8Support()
                 .ignoreUnknownProperties()
                 .datesAsString()
                 .disableFailOnEmptyBeans();
@@ -133,13 +131,14 @@ public class JsonConfig {
     public static Builder strict() {
         return new Builder()
                 .enableJava8Support()
+                .failOnUnknownProperties()
                 .datesAsString();
     }
 
     /**
      * <b>规范化配置</b>
      * <p>
-     * 属性按字母序排列，空值不序列化，适合用于对象比较和签名。
+     * 属性按字母序排列，空值不序列化，适合稳定展示和对象比较；不是加密签名所需的规范化算法。
      * </p>
      *
      * @return Builder实例
@@ -192,14 +191,10 @@ public class JsonConfig {
 
     public static class Builder {
         // 模块管理
-        private final List<Module> extraModules = new ArrayList<>();
-        private final List<Consumer<ObjectMapper>> customizers = new ArrayList<>();
+        private final List<JacksonModule> extraModules = new ArrayList<>();
         private final List<Consumer<JsonMapper.Builder>> builderCustomizers = new ArrayList<>();
 
         // 核心开关
-        private boolean useJavaTimeModule = false;
-        private boolean useJdk8Module = false;
-        private boolean useParamNamesModule = false;
         private boolean longToString = false; // Long 转 String 防止前端精度丢失
 
         // 日期格式
@@ -227,21 +222,8 @@ public class JsonConfig {
 
         // -------------------- 模块增强 --------------------
 
-        /**
-         * 启用 Java8 全套支持 (Time, Optional, ParameterNames)
-         * <p>
-         * 启用以下三个模块：
-         * <ul>
-         *   <li>JDK8Module: 支持 Optional 等 JDK8 类型</li>
-         *   <li>ParameterNamesModule: 支持通过参数名称反序列化</li>
-         *   <li>JavaTimeModule: 支持 Java 8 时间类型 (LocalDate, LocalDateTime 等)</li>
-         * </ul>
-         * </p>
-         */
+        /** Jackson 3 已内置时间、Optional 和参数名称支持；保留旧调用的兼容表达，不再注册模块。 */
         public Builder enableJava8Support() {
-            this.useJavaTimeModule = true;
-            this.useJdk8Module = true;
-            this.useParamNamesModule = true;
             return this;
         }
 
@@ -255,8 +237,8 @@ public class JsonConfig {
          *
          * @return Builder实例
          */
-        public Builder addModule(Module module) {
-            this.extraModules.add(module);
+        public Builder addModule(JacksonModule module) {
+            this.extraModules.add(Objects.requireNonNull(module, "module cannot be null"));
             return this;
         }
 
@@ -303,7 +285,7 @@ public class JsonConfig {
          * 设置日期时间格式
          * <p>
          * 配置 LocalDateTime 类型的序列化和反序列化格式。
-         * 调用此方法会自动启用 JavaTimeModule。
+         * 自定义格式覆盖 Jackson 3 内置的对应时间类型处理器。
          * </p>
          *
          * @param format 日期时间格式，如 "yyyy-MM-dd HH:mm:ss"
@@ -312,7 +294,6 @@ public class JsonConfig {
          */
         public Builder dateTimeFormat(String format) {
             this.dateTimeFormat = format;
-            this.useJavaTimeModule = true; // 暗含启用 TimeModule
             return this;
         }
 
@@ -320,7 +301,7 @@ public class JsonConfig {
          * 设置日期格式
          * <p>
          * 配置 LocalDate 类型的序列化和反序列化格式。
-         * 调用此方法会自动启用 JavaTimeModule。
+         * 自定义格式覆盖 Jackson 3 内置的对应时间类型处理器。
          * </p>
          *
          * @param format 日期格式，如 "yyyy-MM-dd"
@@ -329,7 +310,6 @@ public class JsonConfig {
          */
         public Builder dateFormat(String format) {
             this.dateFormat = format;
-            this.useJavaTimeModule = true;
             return this;
         }
 
@@ -337,7 +317,7 @@ public class JsonConfig {
          * 设置时间格式
          * <p>
          * 配置 LocalTime 类型的序列化和反序列化格式。
-         * 调用此方法会自动启用 JavaTimeModule。
+         * 自定义格式覆盖 Jackson 3 内置的对应时间类型处理器。
          * </p>
          *
          * @param format 时间格式，如 "HH:mm:ss"
@@ -346,7 +326,6 @@ public class JsonConfig {
          */
         public Builder timeFormat(String format) {
             this.timeFormat = format;
-            this.useJavaTimeModule = true;
             return this;
         }
 
@@ -567,7 +546,7 @@ public class JsonConfig {
          * 属性按字母序排列
          * <p>
          * 配置 ObjectMapper 按字母顺序排列序列化后的 JSON 属性。
-         * 这对于生成一致的输出（如签名验证）很有用。
+         * 这只稳定对象/Map 的属性顺序，不承诺数字、Unicode 或加密签名规范化。
          * </p>
          *
          * @return Builder实例
@@ -580,24 +559,8 @@ public class JsonConfig {
         // -------------------- 自定义 --------------------
 
         /**
-         * 自定义 ObjectMapper 配置
-         * <p>
-         * 允许用户通过自定义函数直接修改 ObjectMapper 实例。
-         * 这提供了最大的灵活性来应用特定的配置。
-         * </p>
-         *
-         * @param customizer 接收 ObjectMapper 实例的自定义函数
-         *
-         * @return Builder实例
-         */
-        public Builder customize(Consumer<ObjectMapper> customizer) {
-            this.customizers.add(customizer);
-            return this;
-        }
-
-        /**
          * 在预设、模块和特性配置之后、mapper 构建之前定制 Jackson builder。
-         * 回调按注册顺序执行；旧 {@link #customize(Consumer)} 回调仍在 build 后执行并拥有最终优先级。
+         * 回调按注册顺序执行；只在 build 前配置，返回的 mapper 不再提供运行时突变入口。
          * 回调仅用于构建，不应保留 builder 或 mapper 引用以供后续并发突变。
          *
          * @param customizer 必需的构建期配置函数
@@ -616,7 +579,7 @@ public class JsonConfig {
          * 根据当前配置构建并返回一个配置好的 ObjectMapper 实例。
          * 构建过程包括：
          * <ol>
-         *   <li>添加配置的模块（JDK8, ParameterNames, JavaTime等）</li>
+         *   <li>按需添加自定义 Java 时间格式模块</li>
          *   <li>配置 Long 转 String 序列化</li>
          *   <li>添加用户自定义模块</li>
          *   <li>应用 MapperFeature 配置</li>
@@ -628,16 +591,14 @@ public class JsonConfig {
          *
          * @return 配置好的 ObjectMapper 实例
          */
-        public ObjectMapper build() {
+        public JsonMapper build() {
             JsonMapper.Builder builder = JsonMapper.builder();
 
-            // 1. 基础模块装配
-            if (useJdk8Module) builder.addModule(new Jdk8Module());
-            if (useParamNamesModule) builder.addModule(new ParameterNamesModule());
+            // 1. Jackson 3 内置 Java 时间、Optional、参数名称支持
 
-            // 2. 复杂的 JavaTimeModule 装配
-            if (useJavaTimeModule) {
-                JavaTimeModule javaTimeModule = new JavaTimeModule();
+            // 2. 仅按需注册自定义时间格式
+            if (dateTimeFormat != null || dateFormat != null || timeFormat != null) {
+                SimpleModule javaTimeModule = new SimpleModule();
                 if (dateTimeFormat != null) {
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateTimeFormat);
                     javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(formatter));
@@ -669,7 +630,7 @@ public class JsonConfig {
 
             // 5. 应用 MapperFeature
             if (Boolean.TRUE.equals(sortProperties)) {
-                // POJO 属性按字母序输出；同时让 Map<K,V> 按 key 排序，保证 canonical 真正字节稳定。
+                // POJO 属性按字母序输出；同时让 Map<K,V> 按 key 排序，不承诺完整 JSON 规范化。
                 builder.enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
                 builder.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
             }
@@ -684,12 +645,9 @@ public class JsonConfig {
             // 7. 配置特性开关
             configureFeatures(builder);
 
-            // 8. 构建期定制先于发布；兼容的 mapper 回调保留最终优先级。
+            // 8. 构建期定制先于不可变 mapper 发布。
             builderCustomizers.forEach(c -> c.accept(builder));
-            ObjectMapper mapper = builder.build();
-            customizers.forEach(c -> c.accept(mapper));
-
-            return mapper;
+            return builder.build();
         }
 
         /**
@@ -705,14 +663,15 @@ public class JsonConfig {
             if (Boolean.TRUE.equals(prettyPrint)) mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
             if (writeDatesAsTimestamps != null) {
-                mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, writeDatesAsTimestamps);
+                mapper.configure(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS, writeDatesAsTimestamps);
             }
 
             if (failOnEmptyBeans != null) {
                 mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, failOnEmptyBeans);
             }
 
-            if (serializationInclusion != null) mapper.serializationInclusion(serializationInclusion);
+            if (serializationInclusion != null) mapper.changeDefaultPropertyInclusion(value -> value
+                    .withValueInclusion(serializationInclusion).withContentInclusion(serializationInclusion));
 
             // Deserialization
             if (failOnUnknownProperties != null) {
@@ -723,10 +682,10 @@ public class JsonConfig {
             }
 
             // Parser
-            if (Boolean.TRUE.equals(allowComments)) mapper.enable(JsonParser.Feature.ALLOW_COMMENTS);
-            if (Boolean.TRUE.equals(allowSingleQuotes)) mapper.enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
+            if (Boolean.TRUE.equals(allowComments)) mapper.enable(JsonReadFeature.ALLOW_JAVA_COMMENTS);
+            if (Boolean.TRUE.equals(allowSingleQuotes)) mapper.enable(JsonReadFeature.ALLOW_SINGLE_QUOTES);
             if (Boolean.TRUE.equals(allowUnquotedFieldNames))
-                mapper.enable(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES);
+                mapper.enable(JsonReadFeature.ALLOW_UNQUOTED_PROPERTY_NAMES);
         }
     }
 }

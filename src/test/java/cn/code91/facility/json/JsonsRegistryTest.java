@@ -1,6 +1,6 @@
 package cn.code91.facility.json;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +29,7 @@ class JsonsRegistryTest {
     @Test
     @DisplayName("外部 ObjectMapper 构造默认 namespace")
     void springMapperConstructor() {
-        ObjectMapper springMapper = new ObjectMapper();
+        ObjectMapper springMapper = tools.jackson.databind.json.JsonMapper.builder().build();
         JsonsRegistry r = new JsonsRegistry(new Jsons(springMapper));
         assertThat(r.getDefault().mapper()).isSameAs(springMapper);
         // generic/canonical/pretty 仍使用 JsonConfig 自造
@@ -41,7 +41,7 @@ class JsonsRegistryTest {
     void registerReplacesDefault() {
         JsonsRegistry r = new JsonsRegistry();
         Jsons original = r.getDefault();
-        Jsons replacement = new Jsons(new ObjectMapper());
+        Jsons replacement = new Jsons(tools.jackson.databind.json.JsonMapper.builder().build());
         r.register(JsonsRegistry.DEFAULT, replacement);
         assertThat(r.getDefault()).isSameAs(replacement).isNotSameAs(original);
     }

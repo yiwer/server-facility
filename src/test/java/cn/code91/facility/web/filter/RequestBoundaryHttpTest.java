@@ -266,7 +266,7 @@ class RequestBoundaryHttpTest {
     @Configuration(proxyBeanMethods = false) @EnableWebMvc
     @Import(Endpoints.class)
     @org.springframework.boot.autoconfigure.ImportAutoConfiguration({FacilityWebAutoConfiguration.class,
-            org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.class})
+            org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration.class})
     static class Config implements WebMvcConfigurer {
         @org.springframework.beans.factory.annotation.Autowired org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor mvcExecutor;
         @Override public void configureAsyncSupport(AsyncSupportConfigurer configurer) { configurer.setTaskExecutor(mvcExecutor).setDefaultTimeout(1000); }
@@ -300,11 +300,11 @@ class RequestBoundaryHttpTest {
         }
         @Bean Probe probe() { return new Probe(); }
         @Bean org.springframework.web.servlet.DispatcherServlet dispatcherServlet() { return new org.springframework.web.servlet.DispatcherServlet(); }
-        @Bean org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean dispatcherRegistration(org.springframework.web.servlet.DispatcherServlet servlet) {
-            var bean = new org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean(servlet, "/");
+        @Bean org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean dispatcherRegistration(org.springframework.web.servlet.DispatcherServlet servlet) {
+            var bean = new org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean(servlet, "/");
             bean.setAsyncSupported(true); return bean;
         }
-        @Bean org.springframework.boot.web.server.WebServerFactoryCustomizer<org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory> servletThreads(Probe probe) {
+        @Bean org.springframework.boot.web.server.WebServerFactoryCustomizer<org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory> servletThreads(Probe probe) {
             return factory -> {
                 factory.addConnectorCustomizers(connector -> {
                     var protocol = (org.apache.coyote.AbstractProtocol<?>) connector.getProtocolHandler();
