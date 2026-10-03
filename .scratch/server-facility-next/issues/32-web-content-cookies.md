@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+实现分支：`codex/ticket-32`，基于集成提交 `f4837ee`。公共测试入口沿用已批准的 CookieUtil、XssUtil 和真实 Servlet HTTP；ADR-0055 登记完整 Cookie 作用域与显式 HTML 片段清洗，保留 ADR-0001 的 optional 依赖决定。
 
 **Traceability:** FR-01、FR-03、FR-09；AC-04、AC-12
 
