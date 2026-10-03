@@ -34,7 +34,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  */
 public class RateLimitInterceptor implements HandlerInterceptor {
 
-    private final RateLimiter rateLimiter;
+    private final @jakarta.annotation.Nullable RateLimiter rateLimiter;
     private final long defaultCapacity;
     private final double defaultPermitsPerSecond;
 
@@ -43,7 +43,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
      * @param defaultCapacity         {@link RateLimit#capacity()} 为 0 时使用的默认桶容量
      * @param defaultPermitsPerSecond {@link RateLimit#permitsPerSecond()} 为 0 时使用的默认填充速率
      */
-    public RateLimitInterceptor(RateLimiter rateLimiter, long defaultCapacity, double defaultPermitsPerSecond) {
+    public RateLimitInterceptor(@jakarta.annotation.Nullable RateLimiter rateLimiter, long defaultCapacity, double defaultPermitsPerSecond) {
         this.rateLimiter = rateLimiter;
         this.defaultCapacity = defaultCapacity;
         this.defaultPermitsPerSecond = defaultPermitsPerSecond;
@@ -58,12 +58,24 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         if (ann == null) {
             return true;
         }
+        if (rateLimiter == null) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Rate limiter unavailable");
         String key = ann.key().isEmpty()
-                ? hm.getBeanType().getSimpleName() + "#" + hm.getMethod().getName() + "#" + RequestUtil.getClientIp(request)
+                ? org.springframework.util.ClassUtils.getUserClass(hm.getBeanType()).getName() + "#"
+                    + hm.getMethod().getName() + "(" + java.util.Arrays.stream(hm.getMethod().getParameterTypes())
+                    .map(Class::getName).collect(java.util.stream.Collectors.joining(",")) + ")#" + RequestUtil.getClientIp(request)
                 : ann.key();
         long capacity = ann.capacity() > 0 ? ann.capacity() : defaultCapacity;
         double permitsPerSecond = ann.permitsPerSecond() > 0 ? ann.permitsPerSecond() : defaultPermitsPerSecond;
-        RateLimitResult result = rateLimiter.acquire(key, ann.permits(), capacity, permitsPerSecond);
+        RateLimitResult result;
+        try {
+            result = java.util.Objects.requireNonNull(rateLimiter.acquire(key, ann.permits(), capacity, permitsPerSecond),
+                    "Rate limiter returned no decision");
+        } catch (IllegalArgumentException invalidPolicy) { throw invalidPolicy; }
+        catch (RuntimeException unavailable) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Rate limiter unavailable", unavailable);
+        }
         if (!result.allowed()) {
             throw new RateLimitExceededException(key, result.retryAfterMillis());
         }
