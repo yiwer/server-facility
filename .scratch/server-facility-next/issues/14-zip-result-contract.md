@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-06、FR-09；AC-10、AC-12
 
@@ -24,5 +24,9 @@
 ## Scope boundary
 
 不依赖上传、CSV 或 Excel；不添加未需要的压缩格式框架。
+
+## Implementation record
+
+2026-10-04：root从integration `d4922df`建立独立分支/worktree `codex/ticket-14`。公开seam为Zipping与PathIo；先复现完整成功误报、覆盖与目录失败，再实现明确的严格结果和有限预算。采用ADR-0037登记政策；不把旧实现静默跳过的行为继续称为完整成功。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
