@@ -6,14 +6,14 @@ import java.util.Arrays;
 /**
  * <b>错误类型接口</b>
  * <p>
- * 定义错误信息的标准接口，所有错误类型枚举应实现此接口。
+ * 定义可选的错误描述接口；领域可拥有自己的实现，Result 的错误类型 E 不要求实现此接口。
  * 用于统一错误码和错误消息的定义，便于错误处理和国际化。
  * </p>
  *
  * <h3>设计原则：</h3>
  * <ul>
  *     <li><b>模块隔离</b>：通过 {@link #getModule()} 区分错误来源模块</li>
- *     <li><b>唯一标识</b>：{@code module + code} 组合保证全局唯一</li>
+ *     <li><b>标识约定</b>：{@code module + code} 的唯一性由应用分配规则保证，本接口没有全局注册表</li>
  *     <li><b>纯数据契约</b>：本接口只承载 code / messageKey / defaultMessage，不做 i18n 解析；
  *         {@link #getMessageKey()} 是给边界（locale 包）解析用的数据（ADR-0010，C1 断环）</li>
  *     <li><b>参数化消息</b>：通过 {@link #format(Object...)} 渲染默认模板的动态参数</li>
