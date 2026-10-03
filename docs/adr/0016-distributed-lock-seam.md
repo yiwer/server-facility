@@ -1,6 +1,6 @@
 # ADR-0016: 分布式锁 DistributedLock SPI seam + 单机 InMemoryDistributedLock 默认实现
 
-- **状态**:Accepted(2026-07-04)
+- **状态**:Accepted(2026-07-04)；默认装配、缺实现降级、等待/持有期限与容量政策由 [ADR0030](0030-local-keyed-mutex.md) 部分替代。下列 Redisson 同一参数兼作等待和租约的代码仅为历史决策记录，不是当前迁移建议。
 - **源起**:幂等+分布式锁+HTTP client 实现计划(docs/superpowers/plans/2026-07-04-idempotency-lock-http.md),簇 C
 
 ## 背景

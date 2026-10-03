@@ -13,9 +13,9 @@ package cn.code91.facility.lock;
 public class LockAcquisitionException extends RuntimeException {
 
     /**
-     * @param key 历史签名保留；不复制业务key到异常诊断
+     * @param key 获取失败的锁维度标识
      */
     public LockAcquisitionException(String key) {
-        super("Required lock protection was not acquired");
+        super("Failed to acquire lock for key: " + key);
     }
 }
