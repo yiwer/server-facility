@@ -405,13 +405,14 @@ class Verify {
                 if (Files.isRegularFile(application.resolve("target/" + name))) Files.copy(application.resolve("target/" + name), evidence.resolve(name));
         }
         var factory = DocumentBuilderFactory.newInstance();factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-        long tests=0;var discovered=new HashSet<String>();var base=new HashSet<String>();var inheritedCases=new HashSet<String>();
+        long tests=0;var discovered=new HashSet<String>();var base=new HashSet<String>();var inheritedCases=new HashSet<String>();var workflowCases=new HashSet<String>();
         try(var files=Files.list(report.resolve("template/surefire-reports"))) {
             for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList()) {
                 var suite=factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement();base.add(suite.getAttribute("name"));
                 var cases=suite.getElementsByTagName("testcase");
                 for(int i=0;i<cases.getLength();i++) {
-                    var testcase=(Element)cases.item(i);inheritedCases.add(testcase.getAttribute("classname")+"#"+testcase.getAttribute("name"));
+                    var testcase=(Element)cases.item(i);String identity=testcase.getAttribute("classname")+"#"+testcase.getAttribute("name");
+                    if(!inheritedCases.add(identity))throw new AssertionError("Duplicate template test case: "+identity);
                 }
             }
         }
@@ -423,7 +424,9 @@ class Verify {
                     if(Long.parseLong(suite.getAttribute(outcome))!=0)throw new AssertionError("Workflow "+outcome+": "+file);
                 var cases=suite.getElementsByTagName("testcase");
                 for(int i=0;i<cases.getLength();i++) {
-                    var testcase=(Element)cases.item(i);inheritedCases.remove(testcase.getAttribute("classname")+"#"+testcase.getAttribute("name"));
+                    var testcase=(Element)cases.item(i);String identity=testcase.getAttribute("classname")+"#"+testcase.getAttribute("name");
+                    if(!workflowCases.add(identity))throw new AssertionError("Duplicate workflow test case: "+identity);
+                    inheritedCases.remove(identity);
                 }
             }
         }
