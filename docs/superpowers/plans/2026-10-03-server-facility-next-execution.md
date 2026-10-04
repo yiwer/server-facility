@@ -269,6 +269,8 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 
 ## 31最终实现合入，完整本地门与CI21并行
 
+2026-10-04后续候选登记：审查后的`b2cbb0f368d7187c87fb90b0bd11741c9d71e0a7`合入本集成线，包含模板最小连接池2前置政策、两个公开回归和严格workflow继承/重复testcase校验。该政策修正源于独立最大值1控制，默认4/1000ms不变，未解释或抹去本地18/19失败。owner完整本地20 all与集成CI22独立验证新候选，当前仍verification-pending；先前CI21成功只属于其准确来源。中央历史归档index继续由root维护，本次不关闭31、不开始33、不发布制品。
+
 - 2026-10-04：owner确认`57dc707e39a0d4670d49a431bf78284e05af3a2f`为最终实现冻结且无已知产品/runner待改，已包含main`0edb5198d640b5d2575b94f7e60cc635c42ca96d`。root授权在冻结完整all16仍运行时并行启动现有CI；从干净main以--no-ff合为`f72cad58da0f2d7797e7d8b2a89dfdf5665ac5bd`，无冲突，产品/模板/测试/消费者/runner/workflow/Wrapper与交接源零差异。
 - 实际历史before78/after80、冻结旧/新五任务与后续独立workflow151项及打包两线程模式分别保留来源；10s请求回归和Apply拒绝已有局部证据。当前源码的完整all16及随后platform尚未完成，不写全门PASS，不把早期跳过测试构建或测量臂定向测试冒充最终门。详细来源见[31报告](../../verification/ticket-31-template-upgrade.md)。
 - 已有CHANGELOG、ADR0054及INDEX内容保持；中央补DESIGN0054、55条实际ADR与31 verification-pending，保留未闭合复选框。0054扩展0050–0053并分离runtime0.2/template2026.10.0身份，不重标历史jar。按root确认修复25票报告的单个相对链接；没有修改执行逻辑、质量/时间预算或其他扫描诊断。
