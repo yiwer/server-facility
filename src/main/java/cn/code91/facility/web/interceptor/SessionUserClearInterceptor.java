@@ -1,5 +1,6 @@
 package cn.code91.facility.web.interceptor;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.web.session.SessionUserHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +21,7 @@ public class SessionUserClearInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
-                                Object handler, Exception ex) {
+                                Object handler, @Nullable Exception ex) {
         if (request.getAttribute(cn.code91.facility.web.filter.FacilityRequestContextFilter.class.getName()) == null)
             SessionUserHolder.clear();
     }

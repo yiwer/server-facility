@@ -1,5 +1,6 @@
 package cn.code91.facility.lock;
 
+import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -79,6 +80,7 @@ public final class LocalKeyedMutex implements AutoCloseable {
     }
 
     /** Protects synchronous work until it returns or throws; a returned Future is not awaited. */
+    @Nullable
     public <T> T executeWithLock(String key, Duration waitTimeout, Supplier<T> action) {
         Objects.requireNonNull(action, "action");
         if (!tryLock(key, waitTimeout)) throw new LockAcquisitionException(key);

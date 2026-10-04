@@ -1,5 +1,6 @@
 package cn.code91.facility.mime;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
@@ -92,7 +93,7 @@ public final class MimeTyping {
 
     private MimeTyping() { throw new UnsupportedOperationException(); }
 
-    public static Result<String, WrappedError> detect(File file) {
+    public static Result<String, WrappedError> detect(@Nullable File file) {
         if (file == null || !file.exists()) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));
         }
@@ -109,7 +110,7 @@ public final class MimeTyping {
      * 不支持 mark 的原始流在读取前返回 Err；调用者可保留 BufferedInputStream 并继续使用该包装流。
      * 既有 mark 会被替换；reset 失败进入 Err，此时不能保证位置恢复。
      */
-    public static Result<String, WrappedError> detect(InputStream inputStream) {
+    public static Result<String, WrappedError> detect(@Nullable InputStream inputStream) {
         if (inputStream == null) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_READ_ERROR));
         }
@@ -120,7 +121,7 @@ public final class MimeTyping {
         }
     }
 
-    public static String detect(byte[] bytes) {
+    public static String detect(@Nullable byte[] bytes) {
         try { return detectBytes(bytes, null); }
         catch (IOException e) { throw new UncheckedIOException(e); }
     }
@@ -139,7 +140,7 @@ public final class MimeTyping {
      * 借用流，mark/reset 与 64 KiB 预算同 {@link #detect(InputStream)}。
      * IO 失败抛 UncheckedIOException；调用者需要 Result 时使用无文件名重载。
      */
-    public static String detect(InputStream inputStream, String filename) {
+    public static String detect(InputStream inputStream, @Nullable String filename) {
         try {
             return detectBorrowed(inputStream, filename);
         } catch (IOException e) {
@@ -186,12 +187,12 @@ public final class MimeTyping {
     /**
      * 仅按文件名（扩展名）探测，不读流。
      */
-    public static String detectByName(String filename) {
+    public static String detectByName(@Nullable String filename) {
         try { return registry().detector().detect(filename); }
         catch (IOException e) { throw new UncheckedIOException(e); }
     }
 
-    public static Optional<String> getExtensionByMimeType(String mimeType) {
+    public static Optional<String> getExtensionByMimeType(@Nullable String mimeType) {
         if (mimeType == null || mimeType.isBlank()) {
             return Optional.empty();
         }
@@ -206,23 +207,23 @@ public final class MimeTyping {
         }
     }
 
-    public static boolean isImage(File file) {
+    public static boolean isImage(@Nullable File file) {
         return detect(file).map(IMAGE_MIME_TYPES::contains).orElse(false);
     }
 
-    public static boolean isDocument(File file) {
+    public static boolean isDocument(@Nullable File file) {
         return detect(file).map(DOCUMENT_MIME_TYPES::contains).orElse(false);
     }
 
-    public static boolean isVideo(File file) {
+    public static boolean isVideo(@Nullable File file) {
         return detect(file).map(VIDEO_MIME_TYPES::contains).orElse(false);
     }
 
-    public static boolean isAudio(File file) {
+    public static boolean isAudio(@Nullable File file) {
         return detect(file).map(AUDIO_MIME_TYPES::contains).orElse(false);
     }
 
-    public static boolean isMimeTypeAllowed(File file, Set<String> allowedMimeTypes) {
+    public static boolean isMimeTypeAllowed(@Nullable File file, @Nullable Set<String> allowedMimeTypes) {
         if (allowedMimeTypes == null || allowedMimeTypes.isEmpty()) {
             return true;
         }

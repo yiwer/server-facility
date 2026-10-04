@@ -1,5 +1,6 @@
 package cn.code91.facility.web.filter;
 
+import jakarta.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -19,13 +20,19 @@ public class FacilityWebRepeatableRequestProperties {
     private long maxBodyBytes = 10L * 1024 * 1024;
 
     /** Media-type patterns, including structured suffixes; historical text/ is accepted as text/*. */
+    @Getter(onMethod_ = @Nullable)
+    @Setter(onParam_ = @Nullable)
     private List<String> includeContentTypes = List.of(
         "application/json", "application/*+json", "application/xml", "application/*+xml", "text/*"
     );
 
     /** Explicit enabled filter may be narrowed to selected Ant-style paths. Empty means no targets. */
+    @Getter(onMethod_ = @Nullable)
+    @Setter(onParam_ = @Nullable)
     private List<String> includePaths = List.of("/**");
 
     /** Skip wrapping for requests matching these Ant-style paths. */
+    @Getter(onMethod_ = @Nullable)
+    @Setter(onParam_ = @Nullable)
     private List<String> excludePaths = List.of("/actuator/**");
 }

@@ -118,9 +118,12 @@ final class AsyncExecution {
         var result = new CompletableFuture<Result<T, Throwable>>();
         FutureTask<Void> work = new FutureTask<>(() -> {
             if (!available()) { result.complete(Result.err(stopped.get())); return null; }
-            var previous = MDC.getCopyOfContextMap();
+            Map<String, String> previous = null;
+            boolean captured = false;
             Result<T, Throwable> value;
             try {
+                previous = MDC.getCopyOfContextMap();
+                captured = true;
                 install(mdc);
                 AsyncInvocation<T> chain = () -> {
                     try { return CompletableFuture.completedFuture(action.get()); }
@@ -135,7 +138,15 @@ final class AsyncExecution {
                 if (!intercepted.isDone()) throw new IllegalStateException("AsyncInterceptor must complete within its execution scope");
                 value = Objects.requireNonNull(intercepted.join(), "interceptor Result");
             } catch (Throwable failure) { value = Result.err(DefaultAsync.unwrap(failure)); }
-            finally { install(previous); }
+            // Every captured scope restores before publishing its result, including partial setup.
+            if (captured) {
+                try { install(previous); }
+                catch (Throwable cleanup) {
+                    if (value.isErr()) {
+                        if (cleanup != value.getErr()) value.getErr().addSuppressed(cleanup);
+                    } else value = Result.err(cleanup);
+                }
+            }
             result.complete(value);
             return null;
         }) {

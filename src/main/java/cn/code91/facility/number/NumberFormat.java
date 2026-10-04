@@ -1,5 +1,6 @@
 package cn.code91.facility.number;
 
+import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
@@ -96,7 +97,7 @@ public class NumberFormat {
      * ASCII decimal input is limited to 128 UTF-16 units and decimal scale -128..128 before multiplication.
      * Zero/negative values remain valid here; resource-budget callers must reject them explicitly.</p>
      */
-    public static Optional<Long> parseSize(String sizeStr) {
+    public static Optional<Long> parseSize(@Nullable String sizeStr) {
         if (sizeStr == null || sizeStr.length() > 128 || sizeStr.isBlank()) return Optional.empty();
         try {
             String str = sizeStr.trim().toUpperCase(Locale.ROOT);

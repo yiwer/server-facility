@@ -1,5 +1,6 @@
 package cn.code91.facility.cache;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.context.SpringContextHolder;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -103,6 +104,7 @@ public final class CacheUtil {
      * @param <T>       值类型泛型
      * @return 命中的缓存值，或 loader 计算出的新值；无 {@link CacheManager} bean 时降级为直接调用 loader（不缓存）
      */
+    @Nullable
     public static <T> T getOrCompute(String cacheName, Object key, Class<T> type, Supplier<T> loader) {
         java.util.Objects.requireNonNull(type, "type");
         java.util.Objects.requireNonNull(loader, "loader");

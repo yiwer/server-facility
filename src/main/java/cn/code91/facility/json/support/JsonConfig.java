@@ -1,5 +1,6 @@
 package cn.code91.facility.json.support;
 
+import jakarta.annotation.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import tools.jackson.core.json.JsonReadFeature;
@@ -165,7 +166,7 @@ public class JsonConfig {
      *
      * @return Builder实例
      */
-    public static Builder withDateFormat(String dateTimeFormat, String dateFormat, String timeFormat) {
+    public static Builder withDateFormat(@Nullable String dateTimeFormat, @Nullable String dateFormat, @Nullable String timeFormat) {
         return new Builder()
                 .enableJava8Support()
                 .dateTimeFormat(dateTimeFormat)
@@ -266,7 +267,7 @@ public class JsonConfig {
          *
          * @return Builder实例
          */
-        public Builder numberToString(Class<?>... types) {
+        public Builder numberToString(@Nullable Class<?>... types) {
             if (types != null && types.length > 0) {
                 SimpleModule numberModule = new SimpleModule();
                 for (Class<?> type : types) {
@@ -292,7 +293,7 @@ public class JsonConfig {
          *
          * @return Builder实例
          */
-        public Builder dateTimeFormat(String format) {
+        public Builder dateTimeFormat(@Nullable String format) {
             this.dateTimeFormat = format;
             return this;
         }
@@ -308,7 +309,7 @@ public class JsonConfig {
          *
          * @return Builder实例
          */
-        public Builder dateFormat(String format) {
+        public Builder dateFormat(@Nullable String format) {
             this.dateFormat = format;
             return this;
         }
@@ -324,7 +325,7 @@ public class JsonConfig {
          *
          * @return Builder实例
          */
-        public Builder timeFormat(String format) {
+        public Builder timeFormat(@Nullable String format) {
             this.timeFormat = format;
             return this;
         }

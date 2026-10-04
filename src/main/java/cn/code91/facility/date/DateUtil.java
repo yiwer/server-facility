@@ -165,7 +165,7 @@ public final class DateUtil {
      *
      * @apiNote 格式化日期时间工具方法
      */
-    public static Result<String, WrappedError> format(TemporalAccessor temporal, String pattern) {
+    public static Result<String, WrappedError> format(@Nullable TemporalAccessor temporal, @Nullable String pattern) {
         if (temporal == null || pattern == null) {
             return Result.err(WrappedError.of(FacilityErrorType.FORMAT_TEMPORAL_ERROR));
         }
@@ -184,7 +184,7 @@ public final class DateUtil {
      *
      * @apiNote 格式化当前时间工具方法
      */
-    public static Result<String, WrappedError> formatDateTimeNow(String pattern) {
+    public static Result<String, WrappedError> formatDateTimeNow(@Nullable String pattern) {
         return format(LocalDateTime.now(), pattern);
     }
 
@@ -195,7 +195,7 @@ public final class DateUtil {
      *
      * @apiNote 格式化当前日期工具方法
      */
-    public static Result<String, WrappedError> formatDateNow(String pattern) {
+    public static Result<String, WrappedError> formatDateNow(@Nullable String pattern) {
         return format(LocalDate.now(), pattern);
     }
 
@@ -207,7 +207,7 @@ public final class DateUtil {
      *
      * @apiNote 从字符串解析LocalDateTime的工具方法
      */
-    public static Result<LocalDateTime, WrappedError> parseDateTime(String localDateTimeStr, String pattern) {
+    public static Result<LocalDateTime, WrappedError> parseDateTime(@Nullable String localDateTimeStr, @Nullable String pattern) {
         if (localDateTimeStr == null || pattern == null) {
             return Result.err(WrappedError.of(FacilityErrorType.PARSE_STR_TO_TEMPORAL_ERROR));
         }
@@ -227,7 +227,7 @@ public final class DateUtil {
      *
      * @apiNote 从字符串解析LocalDate的工具方法
      */
-    public static Result<LocalDate, WrappedError> parseDate(String localDateStr, String pattern) {
+    public static Result<LocalDate, WrappedError> parseDate(@Nullable String localDateStr, @Nullable String pattern) {
         if (localDateStr == null || pattern == null) {
             return Result.err(WrappedError.of(FacilityErrorType.PARSE_STR_TO_TEMPORAL_ERROR));
         }
@@ -251,7 +251,7 @@ public final class DateUtil {
      *
      * @return {@link Result} 解析成功返回LocalDate，全部失败返回错误
      */
-    public static Result<LocalDate, WrappedError> parseDate(String localDateStr, String... patterns) {
+    public static Result<LocalDate, WrappedError> parseDate(@Nullable String localDateStr, String... patterns) {
         for (String pattern : patterns) {
             Result<LocalDate, WrappedError> result = parseDate(localDateStr, pattern);
             if (result.isOk()) {

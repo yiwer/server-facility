@@ -1,5 +1,6 @@
 package cn.code91.facility.json;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
@@ -42,7 +43,7 @@ public final class Jsons {
 
     // ==================== 序列化 ====================
 
-    public Result<String, WrappedError> serialize(Object value) {
+    public Result<String, WrappedError> serialize(@Nullable Object value) {
         try {
             return Result.ok(objectMapper.writeValueAsString(value));
         } catch (JacksonException e) {
@@ -50,12 +51,12 @@ public final class Jsons {
         }
     }
 
-    public String serializeUnsafe(Object value) {
+    public String serializeUnsafe(@Nullable Object value) {
         return serialize(value).orElseThrow(err ->
                 new JsonUtil.JsonSerializationException("Serialize failed", err.getException()));
     }
 
-    public Result<byte[], WrappedError> serializeToBytes(Object value) {
+    public Result<byte[], WrappedError> serializeToBytes(@Nullable Object value) {
         try {
             return Result.ok(objectMapper.writeValueAsBytes(value));
         } catch (JacksonException e) {
@@ -63,7 +64,7 @@ public final class Jsons {
         }
     }
 
-    public Result<Void, WrappedError> serializeTo(Object value, OutputStream output) {
+    public Result<Void, WrappedError> serializeTo(@Nullable Object value, OutputStream output) {
         Objects.requireNonNull(output, "output cannot be null");
         try {
             objectMapper.writeValue(output, value);
@@ -75,7 +76,7 @@ public final class Jsons {
 
     // ==================== 反序列化 ====================
 
-    public <T> Result<T, WrappedError> deserialize(String json, Class<T> target) {
+    public <T> Result<T, WrappedError> deserialize(@Nullable String json, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         if (json == null) {
             return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
@@ -87,7 +88,7 @@ public final class Jsons {
         }
     }
 
-    public <T> Result<T, WrappedError> deserialize(String json, TypeReference<T> typeReference) {
+    public <T> Result<T, WrappedError> deserialize(@Nullable String json, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         if (json == null) {
             return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
@@ -99,7 +100,7 @@ public final class Jsons {
         }
     }
 
-    public <T> Result<T, WrappedError> deserialize(byte[] bytes, Class<T> target) {
+    public <T> Result<T, WrappedError> deserialize(@Nullable byte[] bytes, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         if (bytes == null) {
             return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
@@ -111,7 +112,7 @@ public final class Jsons {
         }
     }
 
-    public <T> Result<T, WrappedError> deserialize(byte[] bytes, TypeReference<T> typeReference) {
+    public <T> Result<T, WrappedError> deserialize(@Nullable byte[] bytes, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         if (bytes == null) {
             return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
@@ -123,7 +124,7 @@ public final class Jsons {
         }
     }
 
-    public <T> Result<T, WrappedError> deserialize(InputStream input, Class<T> target) {
+    public <T> Result<T, WrappedError> deserialize(@Nullable InputStream input, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         if (input == null) {
             return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
@@ -135,7 +136,7 @@ public final class Jsons {
         }
     }
 
-    public <T> Result<T, WrappedError> deserialize(InputStream input, TypeReference<T> typeReference) {
+    public <T> Result<T, WrappedError> deserialize(@Nullable InputStream input, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         if (input == null) {
             return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
@@ -147,21 +148,21 @@ public final class Jsons {
         }
     }
 
-    public <E> Result<List<E>, WrappedError> deserializeToList(String json, Class<E> elementClass) {
+    public <E> Result<List<E>, WrappedError> deserializeToList(@Nullable String json, Class<E> elementClass) {
         Objects.requireNonNull(elementClass, "elementClass cannot be null");
         JavaType type = objectMapper.getTypeFactory()
                 .constructCollectionType(ArrayList.class, elementClass);
         return deserializeWithJavaType(json, type);
     }
 
-    public <E> Result<Set<E>, WrappedError> deserializeToSet(String json, Class<E> elementClass) {
+    public <E> Result<Set<E>, WrappedError> deserializeToSet(@Nullable String json, Class<E> elementClass) {
         Objects.requireNonNull(elementClass, "elementClass cannot be null");
         JavaType type = objectMapper.getTypeFactory()
                 .constructCollectionType(LinkedHashSet.class, elementClass);
         return deserializeWithJavaType(json, type);
     }
 
-    public <K, V> Result<Map<K, V>, WrappedError> deserializeToMap(String json, Class<K> keyClass, Class<V> valueClass) {
+    public <K, V> Result<Map<K, V>, WrappedError> deserializeToMap(@Nullable String json, Class<K> keyClass, Class<V> valueClass) {
         Objects.requireNonNull(keyClass, "keyClass cannot be null");
         Objects.requireNonNull(valueClass, "valueClass cannot be null");
         JavaType type = objectMapper.getTypeFactory()
@@ -182,7 +183,7 @@ public final class Jsons {
 
     // ==================== JsonNode ====================
 
-    public Result<JsonNode, WrappedError> parseTree(String json) {
+    public Result<JsonNode, WrappedError> parseTree(@Nullable String json) {
         if (json == null) {
             return Result.err(WrappedError.of(FacilityErrorType.JSON_DESERIALIZE_ERROR));
         }
@@ -193,7 +194,7 @@ public final class Jsons {
         }
     }
 
-    public Result<JsonNode, WrappedError> valueToTree(Object value) {
+    public Result<JsonNode, WrappedError> valueToTree(@Nullable Object value) {
         try {
             return Result.ok(objectMapper.valueToTree(value));
         } catch (JacksonException e) {

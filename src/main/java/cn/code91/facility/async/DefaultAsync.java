@@ -160,8 +160,11 @@ public final class DefaultAsync<T> implements Async<T> {
 
     private CompletableFuture<Result<T, Throwable>> start(AsyncExecution parent) {
         Executor selected = executor != null ? executor : parent != null ? parent.executor : AsyncExecution.DEFAULT_EXECUTOR;
+        Map<String, String> mdc;
+        try { mdc = parent == null ? org.slf4j.MDC.getCopyOfContextMap() : parent.mdc; }
+        catch (Throwable failure) { return CompletableFuture.completedFuture(Result.err(unwrap(failure))); }
         AsyncExecution execution = new AsyncExecution(selected, context, interceptors,
-                parent == null ? org.slf4j.MDC.getCopyOfContextMap() : parent.mdc, parent, timeout);
+                mdc, parent, timeout);
         return execution.submit(() -> computation.apply(execution));
     }
 

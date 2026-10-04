@@ -1,5 +1,6 @@
 package cn.code91.facility.json.support;
 
+import jakarta.annotation.Nullable;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.ValueSerializer;
 import tools.jackson.databind.SerializationContext;
@@ -60,7 +61,7 @@ public class InputStreamSerializer extends ValueSerializer<InputStream> {
      * @throws tools.jackson.core.exc.JacksonIOException IO异常
      */
     @Override
-    public void serialize(InputStream value, JsonGenerator gen, SerializationContext serializers) {
+    public void serialize(@Nullable InputStream value, JsonGenerator gen, @Nullable SerializationContext serializers) {
         if (value == null) {
             gen.writeNull();
             return;

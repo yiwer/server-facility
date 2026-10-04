@@ -1,5 +1,7 @@
 package cn.code91.facility.lock;
 
+import jakarta.annotation.Nullable;
+
 /**
  * <b>锁获取失败异常</b>
  * <p>
@@ -15,7 +17,7 @@ public class LockAcquisitionException extends RuntimeException {
     /**
      * @param key 历史签名保留；不复制业务key到异常诊断
      */
-    public LockAcquisitionException(String key) {
+    public LockAcquisitionException(@Nullable String key) {
         super("Required lock protection was not acquired");
     }
 }

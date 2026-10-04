@@ -126,5 +126,23 @@ class CandidateCliTest(unittest.TestCase):
             self.assertEqual("PASS", json.loads((root / "candidate-identity.json").read_text())["platform"])
 
 
+    def test_qualify_rejects_python_equal_platform_types(self):
+        for key, bad in (("schemaVersion", True), ("schemaVersion", 1.0), ("sourceClean", 1), ("sourceClean", 1.0)):
+            with self.subTest(key=key, bad=bad), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                candidate = sample("Windows")
+                candidate.pop("platform")
+                platform_gate = {k: v for k, v in candidate.items() if k not in ("artifacts", "historical")}
+                platform_gate.update(mode="platform", **{key: bad})
+                (root / "all.json").write_text(json.dumps(candidate), encoding="utf-8")
+                (root / "platform.json").write_text(json.dumps(platform_gate), encoding="utf-8")
+                command = [sys.executable, str(SCRIPT), "qualify", "--candidate", str(root / "all.json"),
+                           "--platform", str(root / "platform.json"), "--source", SOURCE,
+                           "--run-id", "123", "--attempt", "1", "--os", "Windows"]
+                result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+                self.assertNotEqual(0, result.returncode)
+                self.assertFalse((root / "candidate-identity.json").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

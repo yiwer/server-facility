@@ -36,6 +36,21 @@ class ZippingTest {
         return names;
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void filesystemRootIsRejectedAsAnArchiveDestinationWithoutTouchingInputs(boolean directory) throws Exception {
+        Path source = file("owned/source.txt", "unchanged");
+        Path destination = tempDir.toAbsolutePath().getRoot();
+        var result = directory ? Zipping.zipDirectory(source.getParent(), destination)
+                : Zipping.zipFiles(List.of(source), destination);
+        assertThat(result.isErr()).isTrue();
+        assertThat(result.getErr().getErrorType()).isEqualTo(FacilityErrorType.FILE_NAME_INVALID);
+        assertThat(Files.readString(source)).isEqualTo("unchanged");
+        try (var paths = Files.walk(tempDir)) {
+            assertThat(paths).containsExactlyInAnyOrder(tempDir, source.getParent(), source);
+        }
+    }
+
     @Test
     void zipFiles_roundTrip_containsFlatEntryNames() throws Exception {
         Path a = file("a.txt", "AAA");

@@ -1,5 +1,6 @@
 package cn.code91.facility.lock;
 
+import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -39,6 +40,7 @@ public interface DistributedLock {
      * @return {@code action} 的执行结果
      * @throws LockAcquisitionException 获取锁失败（等待超时）
      */
+    @Nullable
     default <T> T executeWithLock(String key, Duration waitTimeout, Supplier<T> action) {
         Objects.requireNonNull(action, "action");
         if (!tryLock(key, waitTimeout)) {

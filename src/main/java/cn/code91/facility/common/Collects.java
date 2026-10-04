@@ -65,7 +65,7 @@ public class Collects {
     /**
      * 安全从 Map 中按 type 提取。
      */
-    public static <K, E> Optional<E> safeExtractFromMap(@Nullable Map<K, ?> map, @Nullable K key, Class<E> type) {
+    public static <K, E> Optional<E> safeExtractFromMap(@Nullable Map<K, ?> map, @Nullable K key, @Nullable Class<E> type) {
         if (map == null || key == null || type == null) return Optional.empty();
         Object value = map.get(key);
         if (type.isInstance(value)) return Optional.of(type.cast(value));
@@ -94,7 +94,7 @@ public class Collects {
      * @throws ArithmeticException 合并长度超过 int 上限时，在分配和遍历前失败
      */
     @SafeVarargs
-    public static <E> List<E> safelyJoin(List<E>... lists) {
+    public static <E> List<E> safelyJoin(@Nullable List<E>... lists) {
         if (lists == null || lists.length == 0) return new ArrayList<>();
         int totalSize = 0;
         for (List<E> list : lists) if (list != null) totalSize = Math.addExact(totalSize, list.size());
@@ -109,7 +109,7 @@ public class Collects {
      * 映射并聚合多列表，过滤 null 元素与 null 映射结果。
      */
     @SafeVarargs
-    public static <E, R> List<R> safelyMappingAndJoin(Function<E, R> mapper, List<E>... lists) {
+    public static <E, R> List<R> safelyMappingAndJoin(Function<E, R> mapper, @Nullable List<E>... lists) {
         Objects.requireNonNull(mapper, "mapper cannot be null");
         if (lists == null || lists.length == 0) return new ArrayList<>();
         List<R> resultList = new ArrayList<>();
@@ -173,6 +173,7 @@ public class Collects {
 
     // ==================== List → Array ====================
 
+    @Nullable
     public static Long[] longListToLongArray(@Nullable List<Long> list) {
         if (list == null) return null;
         Long[] arr = new Long[list.size()];

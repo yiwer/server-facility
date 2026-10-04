@@ -1,5 +1,6 @@
 package cn.code91.facility.web.exception;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
 import tools.jackson.databind.ObjectMapper;
@@ -7,6 +8,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -51,6 +54,7 @@ public class FacilityHttpErrors {
     }
 
     /** Resolves standard Spring status and headers while replacing diagnostic exception bodies. */
+    @Nullable
     public ResponseEntity<Object> response(Exception failure, WebRequest request) {
         if (request instanceof ServletWebRequest servlet && servlet.getResponse() != null
                 && servlet.getResponse().isCommitted()) return null;
@@ -146,23 +150,43 @@ public class FacilityHttpErrors {
         if (status.is5xxServerError()) return java.util.List.of();
         java.util.stream.Stream<String> fields;
         if (failure instanceof BindException binding) {
-            fields = binding.getFieldErrors().stream().map(org.springframework.validation.FieldError::getField);
+            fields = binding.getFieldErrors().stream().map(error -> error.contains(ConstraintViolation.class)
+                    ? safeField(error.unwrap(ConstraintViolation.class).getPropertyPath()) : safeField(error.getField()));
         } else if (failure instanceof org.springframework.web.method.annotation.HandlerMethodValidationException validation) {
             fields = validation.getParameterValidationResults().stream()
-                    .map(result -> result.getMethodParameter().getParameterName());
+                    .map(result -> safeField(result.getMethodParameter().getParameterName()));
         } else if (failure instanceof ConstraintViolationException validation) {
-            fields = validation.getConstraintViolations().stream().map(result -> result.getPropertyPath().toString());
+            fields = validation.getConstraintViolations().stream().map(result -> safeField(result.getPropertyPath()));
         } else return java.util.List.of();
         String message = message("facility.web.error.invalid_value", "Invalid value", locale(request));
-        return fields.map(FacilityHttpErrors::safeField).distinct().sorted().limit(32)
+        return fields.distinct().sorted().limit(32)
                 .map(field -> java.util.Map.of("field", field, "code", "invalid", "message", message)).toList();
+    }
+
+    private static String safeField(Path path) {
+        var field = new StringBuilder();
+        for (Path.Node node : path) {
+            // Keys, indices and container display names are never field metadata.
+            if (node.isInIterable() && !field.isEmpty()) field.append("[]");
+            if (node.getKind() == jakarta.validation.ElementKind.PROPERTY
+                    || node.getKind() == jakarta.validation.ElementKind.PARAMETER) {
+                String name = node.getName();
+                if (name == null || name.length() > 120 || !name.matches("[A-Za-z_$][A-Za-z0-9_$]*")) return "request";
+                if (!field.isEmpty()) field.append('.');
+                field.append(name);
+            }
+            if (field.length() > 120) return "request";
+        }
+        return field.isEmpty() ? "request" : field.toString();
     }
 
     private static String safeField(String field) {
         if (field == null) return "request";
-        // Map keys and collection indices are input, not field metadata.
-        String normalized = field.replaceAll("\\[[^\\]]*\\]", "[]");
-        return normalized.length() <= 120 && normalized.matches("[A-Za-z_$][A-Za-z0-9_$.\\[\\]]*")
+        // A flattened binding path cannot distinguish a key's delimiters from a later property.
+        int bracket = field.indexOf('[');
+        String trusted = bracket < 0 ? field : field.substring(0, bracket);
+        String normalized = bracket < 0 ? trusted : trusted + "[]";
+        return normalized.length() <= 120 && trusted.matches("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*")
                 ? normalized : "request";
     }
 

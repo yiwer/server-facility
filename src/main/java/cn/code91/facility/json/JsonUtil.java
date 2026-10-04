@@ -1,5 +1,6 @@
 package cn.code91.facility.json;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
 import tools.jackson.core.type.TypeReference;
@@ -41,7 +42,7 @@ public final class JsonUtil {
     /**
      * 取指定 namespace 的 {@link Jsons}。
      */
-    public static Jsons use(String namespace) {
+    public static Jsons use(@Nullable String namespace) {
         Jsons jsons = REGISTRY.use(namespace);
         if (jsons == null) {
             throw new IllegalArgumentException("Unknown JSON namespace: " + namespace);
@@ -55,73 +56,73 @@ public final class JsonUtil {
 
     // ==================== 序列化 ====================
 
-    public static Result<String, WrappedError> serialize(Object value) {
+    public static Result<String, WrappedError> serialize(@Nullable Object value) {
         return getDefault().serialize(value);
     }
 
-    public static Result<byte[], WrappedError> serializeToBytes(Object value) {
+    public static Result<byte[], WrappedError> serializeToBytes(@Nullable Object value) {
         return getDefault().serializeToBytes(value);
     }
 
-    public static Result<Void, WrappedError> serializeTo(Object value, OutputStream output) {
+    public static Result<Void, WrappedError> serializeTo(@Nullable Object value, OutputStream output) {
         Objects.requireNonNull(output, "output cannot be null");
         return getDefault().serializeTo(value, output);
     }
 
-    public static String serializeUnsafe(Object value) {
+    public static String serializeUnsafe(@Nullable Object value) {
         return serialize(value).orElseThrow(err ->
                 new JsonSerializationException("Serialize failed", err.getException()));
     }
 
     // ==================== 反序列化 ====================
 
-    public static <T> Result<T, WrappedError> deserialize(String json, Class<T> target) {
+    public static <T> Result<T, WrappedError> deserialize(@Nullable String json, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         return getDefault().deserialize(json, target);
     }
 
-    public static <T> Result<T, WrappedError> deserialize(String json, TypeReference<T> typeReference) {
+    public static <T> Result<T, WrappedError> deserialize(@Nullable String json, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         return getDefault().deserialize(json, typeReference);
     }
 
-    public static <T> Result<T, WrappedError> deserialize(byte[] bytes, Class<T> target) {
+    public static <T> Result<T, WrappedError> deserialize(@Nullable byte[] bytes, Class<T> target) {
         Objects.requireNonNull(target, "target cannot be null");
         return getDefault().deserialize(bytes, target);
     }
 
-    public static <T> Result<T, WrappedError> deserialize(byte[] bytes, TypeReference<T> typeReference) {
+    public static <T> Result<T, WrappedError> deserialize(@Nullable byte[] bytes, TypeReference<T> typeReference) {
         Objects.requireNonNull(typeReference, "typeReference cannot be null");
         return getDefault().deserialize(bytes, typeReference);
     }
 
-    public static <T> Result<T, WrappedError> deserialize(InputStream input, Class<T> target) {
+    public static <T> Result<T, WrappedError> deserialize(@Nullable InputStream input, Class<T> target) {
         return getDefault().deserialize(input, target);
     }
 
-    public static <T> Result<T, WrappedError> deserialize(InputStream input, TypeReference<T> typeReference) {
+    public static <T> Result<T, WrappedError> deserialize(@Nullable InputStream input, TypeReference<T> typeReference) {
         return getDefault().deserialize(input, typeReference);
     }
 
-    public static <E> Result<List<E>, WrappedError> deserializeToList(String json, Class<E> elementClass) {
+    public static <E> Result<List<E>, WrappedError> deserializeToList(@Nullable String json, Class<E> elementClass) {
         return getDefault().deserializeToList(json, elementClass);
     }
 
-    public static <E> Result<Set<E>, WrappedError> deserializeToSet(String json, Class<E> elementClass) {
+    public static <E> Result<Set<E>, WrappedError> deserializeToSet(@Nullable String json, Class<E> elementClass) {
         return getDefault().deserializeToSet(json, elementClass);
     }
 
-    public static <K, V> Result<Map<K, V>, WrappedError> deserializeToMap(String json, Class<K> keyClass, Class<V> valueClass) {
+    public static <K, V> Result<Map<K, V>, WrappedError> deserializeToMap(@Nullable String json, Class<K> keyClass, Class<V> valueClass) {
         return getDefault().deserializeToMap(json, keyClass, valueClass);
     }
 
     // ==================== JsonNode ====================
 
-    public static Result<JsonNode, WrappedError> parseTree(String json) {
+    public static Result<JsonNode, WrappedError> parseTree(@Nullable String json) {
         return getDefault().parseTree(json);
     }
 
-    public static Result<JsonNode, WrappedError> valueToTree(Object value) {
+    public static Result<JsonNode, WrappedError> valueToTree(@Nullable Object value) {
         return getDefault().valueToTree(value);
     }
 
@@ -135,7 +136,7 @@ public final class JsonUtil {
      * JSON 序列化异常（unsafe 路径抛出）。保留为内嵌类型供 {@link Jsons#serializeUnsafe(Object)} 引用。
      */
     public static class JsonSerializationException extends RuntimeException {
-        public JsonSerializationException(String message, Throwable cause) {
+        public JsonSerializationException(String message, @Nullable Throwable cause) {
             super(message, cause);
         }
     }

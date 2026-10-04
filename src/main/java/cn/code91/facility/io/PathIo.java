@@ -1,5 +1,6 @@
 package cn.code91.facility.io;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
@@ -37,11 +38,11 @@ public final class PathIo {
     /**
      * 递归删除目录及其所有内容。不存在时视为成功。
      */
-    public static Result<Void, WrappedError> deleteDirectory(Path dir) {
+    public static Result<Void, WrappedError> deleteDirectory(@Nullable Path dir) {
         return deleteDirectory(dir, DEFAULT_LIMITS);
     }
 
-    public static Result<Void, WrappedError> deleteDirectory(Path dir, Limits limits) {
+    public static Result<Void, WrappedError> deleteDirectory(@Nullable Path dir, Limits limits) {
         java.util.Objects.requireNonNull(limits, "limits");
         if (dir == null || Files.notExists(dir, LinkOption.NOFOLLOW_LINKS)) {
             return Result.ok();
@@ -78,11 +79,11 @@ public final class PathIo {
     /**
      * 递归计算完整目录总大小（字节）。遍历失败返回Err，不把部分值当成完整统计。
      */
-    public static Result<Long, WrappedError> directorySize(Path dir) {
+    public static Result<Long, WrappedError> directorySize(@Nullable Path dir) {
         return directorySize(dir, DEFAULT_LIMITS);
     }
 
-    public static Result<Long, WrappedError> directorySize(Path dir, Limits limits) {
+    public static Result<Long, WrappedError> directorySize(@Nullable Path dir, Limits limits) {
         java.util.Objects.requireNonNull(limits, "limits");
         if (dir == null || Files.notExists(dir, LinkOption.NOFOLLOW_LINKS)) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));

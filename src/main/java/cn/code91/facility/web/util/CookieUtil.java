@@ -1,5 +1,6 @@
 package cn.code91.facility.web.util;
 
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -139,7 +140,7 @@ public class CookieUtil {
      * @param httpOnly 是否HttpOnly
      * @param secure   是否Secure
      */
-    public void addCookie(HttpServletResponse response, String name, String value,
+    public void addCookie(HttpServletResponse response, String name, @Nullable String value,
                           int maxAge, String path, boolean httpOnly, boolean secure) {
         if (maxAge < -1) throw new IllegalArgumentException("Cookie maxAge must be at least -1");
         requireHeaderBudget(name, value, path, null);
@@ -162,7 +163,7 @@ public class CookieUtil {
      * @param value    Cookie值
      * @param maxAge   过期时间（秒）
      */
-    public void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
+    public void addCookie(HttpServletResponse response, String name, @Nullable String value, int maxAge) {
         addCookie(response, name, value, maxAge, "/", true, true);
     }
 
@@ -175,7 +176,7 @@ public class CookieUtil {
      * @param maxAge   过期时间（秒）
      * @param secure   是否 Secure（HTTPS-only）
      */
-    public void addCookie(HttpServletResponse response, String name, String value, int maxAge, boolean secure) {
+    public void addCookie(HttpServletResponse response, String name, @Nullable String value, int maxAge, boolean secure) {
         addCookie(response, name, value, maxAge, "/", true, secure);
     }
 

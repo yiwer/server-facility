@@ -1,5 +1,7 @@
 package cn.code91.facility.idempotency;
 
+import jakarta.annotation.Nullable;
+
 /**
  * <b>幂等记录</b>
  * <p>
@@ -15,7 +17,7 @@ package cn.code91.facility.idempotency;
  * @author yvvb
  * @since 1.0.0
  */
-public record IdempotencyRecord(State state, int statusCode, String contentType, byte[] body, long expiresAtMillis) {
+public record IdempotencyRecord(State state, int statusCode, @Nullable String contentType, @Nullable byte[] body, long expiresAtMillis) {
     public IdempotencyRecord {
         java.util.Objects.requireNonNull(state, "state");
         if (state == State.PROCESSING) {
@@ -28,7 +30,7 @@ public record IdempotencyRecord(State state, int statusCode, String contentType,
         }
     }
 
-    @Override public byte[] body() { return body == null ? null : body.clone(); }
+    @Override @Nullable public byte[] body() { return body == null ? null : body.clone(); }
 
     int bodyLength() { return body == null ? 0 : body.length; }
 
@@ -61,7 +63,7 @@ public record IdempotencyRecord(State state, int statusCode, String contentType,
      * @param expiresAtMillis 过期时间点
      * @return {@link State#DONE} 记录
      */
-    public static IdempotencyRecord done(int statusCode, String contentType, byte[] body, long expiresAtMillis) {
+    public static IdempotencyRecord done(int statusCode, @Nullable String contentType, byte[] body, long expiresAtMillis) {
         return new IdempotencyRecord(State.DONE, statusCode, contentType, body, expiresAtMillis);
     }
 

@@ -140,6 +140,17 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void flattenedBindingPathsDiscardSuffixAfterTheFirstUntrustedMapKey() {
+        var binding = new BeanPropertyBindingResult(new Object(), "input");
+        binding.addError(new FieldError("input", "values[a].SECRET_INPUT[0].name", SECRET));
+        var problem = (ProblemDetail) policy().response(new BindException(binding), request()).getBody();
+        var errors = (List<?>) problem.getProperties().get("errors");
+        assertThat(errors).hasSize(1);
+        assertThat(((Map<?, ?>) errors.getFirst()).get("field")).isEqualTo("values[]");
+        assertThat(errors.toString()).doesNotContain("SECRET_INPUT", SECRET);
+    }
+
+    @Test
     void invalidAndLongFieldMetadataAreBoundedWithoutReflectingInput() {
         for (int length : new int[]{119, 120, 121}) {
             var boundary = new BeanPropertyBindingResult(new Object(), "input");

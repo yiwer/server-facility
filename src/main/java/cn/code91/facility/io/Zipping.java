@@ -1,5 +1,6 @@
 package cn.code91.facility.io;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
@@ -45,13 +46,13 @@ public final class Zipping {
     /**
      * 将多个文件压缩为单个 ZIP。
      */
-    public static Result<Path, WrappedError> zipFiles(List<Path> files, Path outputPath) {
+    public static Result<Path, WrappedError> zipFiles(@Nullable List<Path> files, @Nullable Path outputPath) {
         return zipFiles(files, outputPath, DEFAULT_LIMITS);
     }
 
-    public static Result<Path, WrappedError> zipFiles(List<Path> files, Path outputPath, Limits limits) {
+    public static Result<Path, WrappedError> zipFiles(@Nullable List<Path> files, @Nullable Path outputPath, Limits limits) {
         Objects.requireNonNull(limits, "limits");
-        if (outputPath == null) return Result.err(WrappedError.of(FacilityErrorType.FILE_NAME_INVALID));
+        if (invalidDestination(outputPath)) return Result.err(WrappedError.of(FacilityErrorType.FILE_NAME_INVALID));
         if (files == null || files.isEmpty() || files.size() > limits.maxEntries()) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_READ_ERROR));
         }
@@ -85,16 +86,16 @@ public final class Zipping {
     /**
      * 递归打包整个目录。
      */
-    public static Result<Path, WrappedError> zipDirectory(Path sourceDir, Path outputPath) {
+    public static Result<Path, WrappedError> zipDirectory(@Nullable Path sourceDir, @Nullable Path outputPath) {
         return zipDirectory(sourceDir, outputPath, DEFAULT_LIMITS);
     }
 
-    public static Result<Path, WrappedError> zipDirectory(Path sourceDir, Path outputPath, Limits limits) {
+    public static Result<Path, WrappedError> zipDirectory(@Nullable Path sourceDir, @Nullable Path outputPath, Limits limits) {
         Objects.requireNonNull(limits, "limits");
         if (sourceDir == null || !Files.exists(sourceDir)) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));
         }
-        if (outputPath == null || outputPath.toAbsolutePath().normalize()
+        if (invalidDestination(outputPath) || outputPath.toAbsolutePath().normalize()
                 .startsWith(sourceDir.toAbsolutePath().normalize())) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NAME_INVALID));
         }
@@ -142,6 +143,10 @@ public final class Zipping {
             return Result.err(WrappedError.of(
                     FacilityErrorType.FILE_WRITE_ERROR, e, new Object[]{outputPath.toString()}));
         }
+    }
+
+    private static boolean invalidDestination(Path outputPath) {
+        return outputPath == null || outputPath.toAbsolutePath().normalize().getParent() == null;
     }
 
     private static String entryName(Path relative, boolean directory) throws IOException {

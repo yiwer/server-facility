@@ -1,5 +1,6 @@
 package cn.code91.facility.web.exception;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.locale.LocaleUtil;
 import cn.code91.facility.web.ratelimit.RateLimitExceededException;
 import cn.code91.facility.web.response.BaseResponse;
@@ -65,101 +66,121 @@ public abstract class AbstractGlobalExceptionHandler {
     }
 
     @ExceptionHandler({BusinessException.class, SystemException.class})
+    @Nullable
     public Object handleFacilityException(FacilityException e, WebRequest request) {
         return errors.response((Exception) e, request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
+    @Nullable
     public Object handleMethodArgumentNotValidException(MethodArgumentNotValidException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(BindException.class)
+    @Nullable
     public Object handleBindException(BindException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)
+    @Nullable
     public Object handleHandlerMethodValidationException(HandlerMethodValidationException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
+    @Nullable
     public Object handleConstraintViolationException(ConstraintViolationException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
+    @Nullable
     public Object handleHttpMessageNotReadableException(HttpMessageNotReadableException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
+    @Nullable
     public Object handleMissingServletRequestParameterException(MissingServletRequestParameterException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
+    @Nullable
     public Object handleMissingServletRequestPartException(MissingServletRequestPartException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @Nullable
     public Object handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(TypeMismatchException.class)
+    @Nullable
     public Object handleTypeMismatchException(TypeMismatchException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(ConversionNotSupportedException.class)
+    @Nullable
     public Object handleConversionNotSupportedException(ConversionNotSupportedException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @Nullable
     public Object handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @Nullable
     public Object handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    @Nullable
     public Object handleHttpMediaTypeNotAcceptableException(HttpMediaTypeNotAcceptableException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    @Nullable
     public Object handleNotFound(Exception e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(MultipartException.class)
+    @Nullable
     public Object handleMultipartException(MultipartException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(RateLimitExceededException.class)
+    @Nullable
     public Object handleRateLimitExceeded(RateLimitExceededException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(AsyncRequestTimeoutException.class)
+    @Nullable
     public Object handleAsyncRequestTimeout(AsyncRequestTimeoutException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(ErrorResponseException.class)
+    @Nullable
     public Object handleErrorResponseException(ErrorResponseException e, WebRequest request) {
         return errors.response(e, request);
     }
 
     @ExceptionHandler(Exception.class)
+    @Nullable
     public Object handleException(Exception e, WebRequest request) {
         return errors.response(e, request);
     }

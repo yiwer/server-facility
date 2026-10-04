@@ -1,5 +1,6 @@
 package cn.code91.facility.json;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.json.support.JsonConfig;
 
 import java.util.Map;
@@ -56,7 +57,8 @@ public final class JsonsRegistry {
     /**
      * 取指定 namespace 的 {@link Jsons}；未注册返回 {@code null}。
      */
-    public Jsons use(String namespace) {
+    @Nullable
+    public Jsons use(@Nullable String namespace) {
         if (namespace == null) return getDefault();
         return namespaces.get(namespace);
     }

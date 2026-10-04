@@ -1,5 +1,6 @@
 package cn.code91.facility.lock;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.context.SpringContextHolder;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
@@ -54,6 +55,7 @@ public final class LockUtil {
      * @return {@code action} 的执行结果；缺少所需 bean 时不执行 action
      * @throws LockAcquisitionException 缺少所需 bean 或获取被拒绝
      */
+    @Nullable
     public static <T> T executeWithLock(String key, Duration waitTimeout, Supplier<T> action) {
         Objects.requireNonNull(action, "action");
         Result<DistributedLock, WrappedError> bean = SpringContextHolder.getBean(DistributedLock.class);

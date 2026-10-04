@@ -1,5 +1,6 @@
 package cn.code91.facility.web.util;
 
+import jakarta.annotation.Nullable;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import java.util.Objects;
@@ -18,9 +19,11 @@ public final class XssUtil {
 
     private XssUtil() {}
 
-    public static String clean(String html) { return clean(html, XssLevel.BASIC); }
+    @Nullable
+    public static String clean(@Nullable String html) { return clean(html, XssLevel.BASIC); }
 
-    public static String clean(String html, XssLevel level) {
+    @Nullable
+    public static String clean(@Nullable String html, XssLevel level) {
         Objects.requireNonNull(level, "level");
         requireBoundedInput(html);
         if (html == null) return null;
@@ -28,7 +31,8 @@ public final class XssUtil {
         return Jsoup.clean(html, level.safelist());
     }
 
-    public static String clean(String html, Safelist safelist) {
+    @Nullable
+    public static String clean(@Nullable String html, Safelist safelist) {
         Objects.requireNonNull(safelist, "safelist");
         requireBoundedInput(html);
         if (html == null) return null;
@@ -37,7 +41,7 @@ public final class XssUtil {
     }
 
     /** Safelist validity only; null/empty means no content to validate, not a trust credential. */
-    public static boolean isSafe(String html, XssLevel level) {
+    public static boolean isSafe(@Nullable String html, XssLevel level) {
         Objects.requireNonNull(level, "level");
         requireBoundedInput(html);
         if (html == null || html.isEmpty()) return true;

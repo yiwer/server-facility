@@ -1,5 +1,6 @@
 package cn.code91.facility.hash;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
@@ -26,15 +27,15 @@ public final class Hashing {
 
     private Hashing() { throw new UnsupportedOperationException(); }
 
-    public static Result<String, WrappedError> md5(File file) {
+    public static Result<String, WrappedError> md5(@Nullable File file) {
         return hash(file, "MD5");
     }
 
-    public static Result<String, WrappedError> sha256(File file) {
+    public static Result<String, WrappedError> sha256(@Nullable File file) {
         return hash(file, "SHA-256");
     }
 
-    public static Result<String, WrappedError> hash(File file, String algorithm) {
+    public static Result<String, WrappedError> hash(@Nullable File file, @Nullable String algorithm) {
         if (file == null || !file.exists()) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_NOT_FOUND));
         }
@@ -62,11 +63,11 @@ public final class Hashing {
         }
     }
 
-    public static Result<String, WrappedError> md5(byte[] data) {
+    public static Result<String, WrappedError> md5(@Nullable byte[] data) {
         return hashBytes(data, "MD5");
     }
 
-    public static Result<String, WrappedError> hashBytes(byte[] data, String algorithm) {
+    public static Result<String, WrappedError> hashBytes(@Nullable byte[] data, @Nullable String algorithm) {
         if (data == null || data.length == 0) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_READ_ERROR));
         }

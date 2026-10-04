@@ -1,5 +1,6 @@
 package cn.code91.facility.web.interceptor;
 
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ public class AccessLogInterceptor implements HandlerInterceptor {
         return true;
     }
 
-    @Override public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+    @Override public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) {
         Object started = request.getAttribute(ATTR_START_TIME);
         long duration = started instanceof Long time ? Math.max(0, System.currentTimeMillis() - time) : -1;
         String method = METHODS.contains(java.util.Objects.toString(request.getMethod(), "")) ? request.getMethod() : "UNKNOWN";

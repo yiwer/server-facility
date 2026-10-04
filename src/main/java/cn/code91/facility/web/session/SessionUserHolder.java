@@ -1,5 +1,6 @@
 package cn.code91.facility.web.session;
 
+import jakarta.annotation.Nullable;
 import java.util.Optional;
 
 /**
@@ -40,7 +41,7 @@ public final class SessionUserHolder {
      * @param user 用户对象
      * @param <T>  用户类型
      */
-    public static <T> void setUser(T user) {
+    public static <T> void setUser(@Nullable T user) {
         if (user == null) USER_HOLDER.remove(); else USER_HOLDER.set(user);
     }
 

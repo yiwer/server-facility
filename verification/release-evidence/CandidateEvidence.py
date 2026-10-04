@@ -259,6 +259,9 @@ def notice(value, identity=False):
 
 def qualify(args):
     candidate, platform_gate = read(args.candidate), read(args.platform)
+    require(type(platform_gate["schemaVersion"]) is int and platform_gate["schemaVersion"] == 1,
+            "invalid platform schema version")
+    require(platform_gate["sourceClean"] is True, "platform source is not clean")
     for key in ("schemaVersion", "source", "sourceClean", "runId", "runAttempt", "os", "environment"):
         require(candidate[key] == platform_gate[key], "platform identity differs")
     require(platform_gate["mode"] == "platform" and platform_gate["result"] == "PASS", "platform not PASS")

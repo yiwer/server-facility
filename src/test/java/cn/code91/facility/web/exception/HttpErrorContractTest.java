@@ -180,6 +180,33 @@ class HttpErrorContractTest {
         }
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"/map-body", "/map-violation", "/map-nested"})
+    void validationMapKeysCannotMasqueradeAsTrustedFieldSegments(String path) throws Exception {
+        try (var app = application(); var client = HttpClient.newHttpClient()) {
+            var json = JsonMapper.builder().build();
+            for (String key : java.util.List.of("ordinary", "a]SECRET_INPUT[0", "a].SECRET_INPUT[0", "a][SECRET_INPUT][")) {
+                Object value = Map.of("name", "REJECTED_VALUE_SECRET");
+                if (path.equals("/map-nested")) value = java.util.List.of(value);
+                String input = json.writeValueAsString(Map.of("values", Map.of(key, value)));
+                var response = client.send(HttpRequest.newBuilder(app.uri(path)).timeout(Duration.ofSeconds(5))
+                        .header("Content-Type", "application/json").header("X-Trace-Id", "map-trace")
+                        .POST(HttpRequest.BodyPublishers.ofString(input)).build(), HttpResponse.BodyHandlers.ofString());
+                assertThat(response.statusCode()).isEqualTo(400);
+                assertThat(response.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
+                var body = json.readTree(response.body());
+                assertThat(body.path("code").asInt()).isEqualTo(400);
+                assertThat(body.path("traceId").asString()).isEqualTo("map-trace");
+                assertThat(body.path("errors").size()).isEqualTo(1);
+                assertThat(body.path("errors").get(0).path("field").asString())
+                        .isEqualTo(path.equals("/map-nested") ? "values[][].name" : "values[].name");
+                assertThat(body.path("errors").get(0).path("code").asString()).isEqualTo("invalid");
+                assertThat(body.path("errors").get(0).path("message").asString()).isEqualTo("Invalid value");
+                assertThat(response.body()).doesNotContain("SECRET_INPUT", "REJECTED_VALUE_SECRET", "Size", "rejectedValue");
+            }
+        }
+    }
+
     @Test
     void explicitLegacyGoldenIsSafeEvenInDevProfile() throws Exception {
         try (var app = application("facility.web.exception.use-problem-detail=false", "spring.profiles.active=dev");
@@ -481,6 +508,20 @@ class HttpErrorContractTest {
 
     @RestController
     static class Endpoints {
+        @org.springframework.beans.factory.annotation.Autowired
+        @org.springframework.beans.factory.annotation.Qualifier("getValidator")
+        org.springframework.validation.Validator validator;
+        @org.springframework.web.bind.annotation.PostMapping("/map-body")
+        MapInput mapBody(@org.springframework.web.bind.annotation.RequestBody @jakarta.validation.Valid MapInput input) { return input; }
+        @org.springframework.web.bind.annotation.PostMapping("/map-nested")
+        NestedMapInput mapNested(@org.springframework.web.bind.annotation.RequestBody @jakarta.validation.Valid NestedMapInput input) { return input; }
+        @org.springframework.web.bind.annotation.PostMapping("/map-violation")
+        void mapViolation(@org.springframework.web.bind.annotation.RequestBody MapInput input) {
+            throw new jakarta.validation.ConstraintViolationException(((jakarta.validation.Validator) validator).validate(input));
+        }
+        record MapInput(@jakarta.validation.Valid Map<String, MapValue> values) {}
+        record NestedMapInput(@jakarta.validation.Valid Map<String, java.util.List<@jakarta.validation.Valid MapValue>> values) {}
+        record MapValue(@jakarta.validation.constraints.Size(max = 3, message = "REJECTED_VALUE_SECRET") String name) {}
         @org.springframework.web.bind.annotation.PostMapping("/upload")
         Map<String, Long> upload(@org.springframework.web.bind.annotation.RequestPart org.springframework.web.multipart.MultipartFile file) {
             return Map.of("bytes", file.getSize());

@@ -1,5 +1,6 @@
 package cn.code91.facility.locale;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.common.NullSafe;
 import cn.code91.facility.context.SpringContextHolder;
 import cn.code91.facility.error.ErrorTypeInterface;
@@ -60,7 +61,7 @@ public class LocaleUtil {
      *
      * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
-    public static String translateMessageWithArgs(String messageKey, Object[] messageArgs, Locale locale) {
+    public static String translateMessageWithArgs(@Nullable String messageKey, @Nullable Object[] messageArgs, @Nullable Locale locale) {
         if (NullSafe.isBlank(messageKey)) {
             return "";
         }
@@ -77,7 +78,7 @@ public class LocaleUtil {
      *
      * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
-    public static String translateMessage(String messageKey, Locale locale) {
+    public static String translateMessage(@Nullable String messageKey, @Nullable Locale locale) {
         if (NullSafe.isBlank(messageKey)) {
             return "";
         }
@@ -94,7 +95,7 @@ public class LocaleUtil {
      *
      * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
-    public static String translateMessageWithArgs(String messageKey, Object[] messageArgs) {
+    public static String translateMessageWithArgs(@Nullable String messageKey, @Nullable Object[] messageArgs) {
         if (NullSafe.isBlank(messageKey)) {
             return "";
         }
@@ -110,7 +111,7 @@ public class LocaleUtil {
      *
      * @return 翻译后的消息；无 MessageSource bean 时返回原始 messageKey。注意:MessageSource 在场但 messageKey 缺失将抛 NoSuchMessageException 穿透——需缺键兜底请用 {@link #translateMessageWithFallback}
      */
-    public static String translateMessage(String messageKey) {
+    public static String translateMessage(@Nullable String messageKey) {
         if (NullSafe.isBlank(messageKey)) {
             return "";
         }
@@ -133,10 +134,10 @@ public class LocaleUtil {
      *
      * @return 翻译后的消息
      */
-    public static String translateMessageWithFallback(String messageKey,
-                                                      Object[] args,
-                                                      String fallbackPattern,
-                                                      Locale locale) {
+    public static String translateMessageWithFallback(@Nullable String messageKey,
+                                                      @Nullable Object[] args,
+                                                      @Nullable String fallbackPattern,
+                                                      @Nullable Locale locale) {
         if (NullSafe.isBlank(messageKey)) {
             return renderFallback(fallbackPattern, args, locale);
         }
@@ -168,7 +169,7 @@ public class LocaleUtil {
      * @param locale    目标语言环境
      * @return 本地化消息,或默认模板渲染结果
      */
-    public static String localize(ErrorTypeInterface errorType, Object[] args, Locale locale) {
+    public static String localize(ErrorTypeInterface errorType, @Nullable Object[] args, @Nullable Locale locale) {
         java.util.Objects.requireNonNull(errorType, "errorType cannot be null");
         return translateMessageWithFallback(errorType.getMessageKey(), args, errorType.getDefaultMessage(), locale);
     }
@@ -180,7 +181,7 @@ public class LocaleUtil {
      * @param args      消息参数
      * @return 本地化消息,或默认模板渲染结果
      */
-    public static String localize(ErrorTypeInterface errorType, Object... args) {
+    public static String localize(ErrorTypeInterface errorType, @Nullable Object... args) {
         return localize(errorType, args, getLocale());
     }
 

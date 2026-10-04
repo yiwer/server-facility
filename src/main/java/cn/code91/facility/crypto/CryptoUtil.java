@@ -1,5 +1,6 @@
 package cn.code91.facility.crypto;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.result.Result;
@@ -69,7 +70,7 @@ public final class CryptoUtil {
      * @param base64 Base64 字符串
      * @return 解码字节；null 或畸形输入 → {@link FacilityErrorType#CRYPTO_DECODE_ERROR}
      */
-    public static Result<byte[], WrappedError> base64Decode(String base64) {
+    public static Result<byte[], WrappedError> base64Decode(@Nullable String base64) {
         if (base64 == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECODE_ERROR));
         }
@@ -101,7 +102,7 @@ public final class CryptoUtil {
      * @param hex 十六进制字符串（偶数长度）
      * @return 解码字节；null/奇数长度/非法字符 → {@link FacilityErrorType#CRYPTO_DECODE_ERROR}
      */
-    public static Result<byte[], WrappedError> hexDecode(String hex) {
+    public static Result<byte[], WrappedError> hexDecode(@Nullable String hex) {
         if (hex == null || (hex.length() & 1) == 1) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECODE_ERROR));
         }
@@ -127,7 +128,7 @@ public final class CryptoUtil {
      * @param key       AES 密钥（见 {@link #generateAesKey()} / {@link #aesKeyFromBytes(byte[])}）
      * @return {@code Base64(IV ‖ ciphertext+tag)}；失败 → {@link FacilityErrorType#CRYPTO_ENCRYPT_ERROR}
      */
-    public static Result<String, WrappedError> encrypt(String plaintext, SecretKey key) {
+    public static Result<String, WrappedError> encrypt(@Nullable String plaintext, @Nullable SecretKey key) {
         if (plaintext == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_ENCRYPT_ERROR));
         }
@@ -142,7 +143,7 @@ public final class CryptoUtil {
      * @param key       AES 密钥
      * @return {@code Base64(IV ‖ ciphertext+tag)}；null 入参/失败 → {@link FacilityErrorType#CRYPTO_ENCRYPT_ERROR}
      */
-    public static Result<String, WrappedError> encrypt(byte[] plaintext, SecretKey key) {
+    public static Result<String, WrappedError> encrypt(@Nullable byte[] plaintext, @Nullable SecretKey key) {
         if (plaintext == null || key == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_ENCRYPT_ERROR));
         }
@@ -172,7 +173,7 @@ public final class CryptoUtil {
      * @param key          AES 密钥
      * @return 明文；失败（错误密钥/篡改/畸形/null）→ {@link FacilityErrorType#CRYPTO_DECRYPT_ERROR}
      */
-    public static Result<String, WrappedError> decrypt(String base64Cipher, SecretKey key) {
+    public static Result<String, WrappedError> decrypt(@Nullable String base64Cipher, @Nullable SecretKey key) {
         return decryptToBytes(base64Cipher, key).map(bytes -> new String(bytes, StandardCharsets.UTF_8));
     }
 
@@ -187,7 +188,7 @@ public final class CryptoUtil {
      * @param key          AES 密钥
      * @return 明文字节；失败 → {@link FacilityErrorType#CRYPTO_DECRYPT_ERROR}（粗粒度，不泄漏原因）
      */
-    public static Result<byte[], WrappedError> decryptToBytes(String base64Cipher, SecretKey key) {
+    public static Result<byte[], WrappedError> decryptToBytes(@Nullable String base64Cipher, @Nullable SecretKey key) {
         if (base64Cipher == null || key == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_DECRYPT_ERROR));
         }
@@ -233,7 +234,7 @@ public final class CryptoUtil {
      * @param raw 16/24/32 字节原始密钥
      * @return AES 密钥；null 或非法长度 → {@link FacilityErrorType#CRYPTO_KEY_ERROR}
      */
-    public static Result<SecretKey, WrappedError> aesKeyFromBytes(byte[] raw) {
+    public static Result<SecretKey, WrappedError> aesKeyFromBytes(@Nullable byte[] raw) {
         if (raw == null || (raw.length != 16 && raw.length != 24 && raw.length != 32)) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
         }
@@ -247,7 +248,7 @@ public final class CryptoUtil {
      * @param salt     盐（见 {@link #generateSalt()}）
      * @return 派生密钥；null 入参/空盐/失败 → {@link FacilityErrorType#CRYPTO_KEY_ERROR}
      */
-    public static Result<SecretKey, WrappedError> deriveKey(String password, byte[] salt) {
+    public static Result<SecretKey, WrappedError> deriveKey(@Nullable String password, @Nullable byte[] salt) {
         if (password == null || salt == null || salt.length == 0) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
         }
@@ -292,7 +293,7 @@ public final class CryptoUtil {
      * @param base64Key Base64 密钥
      * @return AES 密钥；null/畸形 Base64/非法长度 → {@link FacilityErrorType#CRYPTO_KEY_ERROR}
      */
-    public static Result<SecretKey, WrappedError> importKey(String base64Key) {
+    public static Result<SecretKey, WrappedError> importKey(@Nullable String base64Key) {
         // Padded AES-256 is the longest supported encoding (44 chars); reject before decoding.
         if (base64Key == null || base64Key.length() > 44) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_KEY_ERROR));
@@ -313,7 +314,7 @@ public final class CryptoUtil {
      * @param key  密钥字节（非空）
      * @return 小写 hex MAC；null 入参/空密钥/失败 → {@link FacilityErrorType#CRYPTO_MAC_ERROR}
      */
-    public static Result<String, WrappedError> hmacSha256(byte[] data, byte[] key) {
+    public static Result<String, WrappedError> hmacSha256(@Nullable byte[] data, @Nullable byte[] key) {
         if (data == null || key == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_MAC_ERROR));
         }
@@ -333,7 +334,7 @@ public final class CryptoUtil {
      * @param key  密钥
      * @return 小写 hex MAC；null 入参 → {@link FacilityErrorType#CRYPTO_MAC_ERROR}
      */
-    public static Result<String, WrappedError> hmacSha256(String data, String key) {
+    public static Result<String, WrappedError> hmacSha256(@Nullable String data, @Nullable String key) {
         if (data == null || key == null) {
             return Result.err(WrappedError.of(FacilityErrorType.CRYPTO_MAC_ERROR));
         }

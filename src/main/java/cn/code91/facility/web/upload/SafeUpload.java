@@ -1,5 +1,6 @@
 package cn.code91.facility.web.upload;
 
+import jakarta.annotation.Nullable;
 import cn.code91.facility.error.FacilityErrorType;
 import cn.code91.facility.error.WrappedError;
 import cn.code91.facility.mime.MimeTyping;
@@ -41,21 +42,21 @@ public final class SafeUpload {
 
     private SafeUpload() { throw new UnsupportedOperationException(); }
 
-    public static Result<Path, WrappedError> saveFile(MultipartFile file, String destPath) {
+    public static Result<Path, WrappedError> saveFile(@Nullable MultipartFile file, @Nullable String destPath) {
         return saveFile(file, destPath, null);
     }
 
-    public static Result<Path, WrappedError> saveFile(MultipartFile file, String destPath, String customFileName) {
+    public static Result<Path, WrappedError> saveFile(@Nullable MultipartFile file, @Nullable String destPath, @Nullable String customFileName) {
         return save(file, destPath, customFileName, DEFAULT_MAX_BYTES, null);
     }
 
     public static Result<Path, WrappedError> saveFileWithTypeCheck(
-            MultipartFile file, String destPath, Set<String> allowedMimeTypes) {
+            @Nullable MultipartFile file, @Nullable String destPath, @Nullable Set<String> allowedMimeTypes) {
         return save(file, destPath, null, DEFAULT_MAX_BYTES, allowedMimeTypes);
     }
 
     public static Result<Path, WrappedError> saveFileWithSizeCheck(
-            MultipartFile file, String destPath, long maxSizeBytes) {
+            @Nullable MultipartFile file, @Nullable String destPath, long maxSizeBytes) {
         return save(file, destPath, null, maxSizeBytes, null);
     }
 
@@ -65,7 +66,7 @@ public final class SafeUpload {
      * 至多多读 1 字节发现大小超限，返回的成品长度不超过 maxSizeBytes。
      */
     public static Result<Path, WrappedError> saveFile(
-            MultipartFile file, Path destPath, long maxSizeBytes, Set<String> allowedMimeTypes) {
+            @Nullable MultipartFile file, @Nullable Path destPath, long maxSizeBytes, @Nullable Set<String> allowedMimeTypes) {
         return save(file, destPath, null, maxSizeBytes, allowedMimeTypes);
     }
 
@@ -254,7 +255,7 @@ public final class SafeUpload {
     /**
      * 以默认 10 MiB 真实字节预算转为临时文件。成功后调用方必须删除返回文件；无 deleteOnExit 登记。
      */
-    public static Result<File, WrappedError> toTempFile(MultipartFile multipartFile) {
+    public static Result<File, WrappedError> toTempFile(@Nullable MultipartFile multipartFile) {
         if (multipartFile == null) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_UPLOAD_EMPTY));
         }
@@ -284,7 +285,7 @@ public final class SafeUpload {
      * 打开并关闭 MultipartFile 输入，至多探测 64 KiB 内容，不采用客户端文件名提示。
      * 空文件拒绝；I/O 失败保留原异常。此方法不验证整个文件大小，保存应使用同时接收大小和类型的入口。
      */
-    public static Result<String, WrappedError> detectMime(MultipartFile file) {
+    public static Result<String, WrappedError> detectMime(@Nullable MultipartFile file) {
         if (file == null) {
             return Result.err(WrappedError.of(FacilityErrorType.FILE_UPLOAD_EMPTY));
         }
@@ -306,7 +307,7 @@ public final class SafeUpload {
     /**
      * 是否为图片（基于魔数）。
      */
-    public static boolean isImage(MultipartFile file) {
+    public static boolean isImage(@Nullable MultipartFile file) {
         return detectMime(file)
                 .map(mime -> mime.startsWith("image/"))
                 .orElse(false);

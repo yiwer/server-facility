@@ -1,5 +1,6 @@
 package cn.code91.facility.idempotency;
 
+import jakarta.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -33,9 +34,13 @@ public class FacilityIdempotencyProperties {
     private Duration defaultTtl = Duration.ofMinutes(5);
 
     /** Positive whole-millisecond execution lease; null uses the compatibility default-ttl. */
+    @Getter(onMethod_ = @Nullable)
+    @Setter(onParam_ = @Nullable)
     private Duration lease;
 
     /** Positive whole-millisecond receipt retention from completion; null uses default-ttl. */
+    @Getter(onMethod_ = @Nullable)
+    @Setter(onParam_ = @Nullable)
     private Duration resultRetention;
 
     /**
