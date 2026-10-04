@@ -1,5 +1,7 @@
 # Ticket28: PostgreSQL business Module
 
+> 当前状态（2026-10-04）：本票已由207c0cc / CI16两OS完整门闭合，见[联合验收](ticket-07-12-19-28-32-ci.md)。下文保留各次冻结/交接时的本地证据和当时待验事项；其中pending描述不代表现在仍未关闭。
+
 ## Scope and source
 
 FR07/08, AC03/04/11 and ADR0051 are implemented in the copied `templates/secured-api` application. The ordinary facility library has no added database dependency. The `notes` Module owns workspace membership, note invariants, SQL and transactions; the HTTP adapter passes an explicit verified Actor. PostgreSQL18.6, Flyway12.4.0, pgJDBC42.7.13, HikariCP7.0.2 and Boot JdbcClient are the single recommended path. There is no H2 test substitute, ORM or second schema initializer.
