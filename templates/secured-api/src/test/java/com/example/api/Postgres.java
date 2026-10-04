@@ -40,13 +40,14 @@ final class Postgres {
     static String sharedUrl() { return Holder.INSTANCE.url("app_shared"); }
     static String adminUrl() { return Holder.INSTANCE.url("postgres"); }
     static String freshUrl() throws SQLException {
-        var cluster = Holder.INSTANCE; String name = "app_" + UUID.randomUUID().toString().replace("-", "");
         var scope = TEST_DATABASES.get();
-        if (scope == null) execute(cluster.url("postgres"), "create database " + name); // Standalone diagnostic owns its whole cluster.
-        else synchronized (scope) {
+        if (scope == null) throw new IllegalStateException("A test scope is required to create a native database");
+        var cluster = Holder.INSTANCE; String name = "app_" + UUID.randomUUID().toString().replace("-", "");
+        synchronized (scope) {
             if (scope.closed) throw new IllegalStateException("Cannot create a database after its test scope closed");
-            execute(cluster.url("postgres"), "create database " + name);
+            // Own the name before attempting CREATE: a failed response does not prove non-creation.
             scope.names.add(name);
+            executeAdmin("create database \"" + name + "\"");
         }
         return cluster.url(name);
     }
@@ -64,17 +65,8 @@ final class Postgres {
             long start = System.nanoTime(); boolean success = false;
             try {
                 if (!name.matches("app_[0-9a-f]{32}")) throw new IllegalStateException("Unexpected owned database name");
-                var properties = new Properties();
-                properties.setProperty("user", "postgres"); properties.setProperty("password", "");
-                properties.setProperty("connectTimeout", "2"); properties.setProperty("socketTimeout", "15");
-                properties.setProperty("cancelSignalTimeout", "1");
-                try (var connection = DriverManager.getConnection(Holder.INSTANCE.url("postgres"), properties);
-                     var statement = connection.createStatement()) {
-                    statement.setQueryTimeout(10);
-                    statement.execute("set lock_timeout = '2s'");
-                    // No FORCE: a still-open application connection must fail this test's cleanup.
-                    statement.execute("drop database \"" + name + "\"");
-                }
+                // No FORCE: a still-open application connection must fail this test's cleanup.
+                executeAdmin("drop database if exists \"" + name + "\"");
                 success = true;
             } catch (Exception failure) {
                 if (failures == null) failures = failure; else failures.addSuppressed(failure);
@@ -86,6 +78,18 @@ final class Postgres {
             }
         }
         if (failures != null) throw failures;
+    }
+    private static void executeAdmin(String sql) throws SQLException {
+        var properties = new Properties();
+        properties.setProperty("user", "postgres"); properties.setProperty("password", "");
+        properties.setProperty("connectTimeout", "2"); properties.setProperty("socketTimeout", "15");
+        properties.setProperty("cancelSignalTimeout", "1");
+        try (var connection = DriverManager.getConnection(Holder.INSTANCE.url("postgres"), properties);
+             var statement = connection.createStatement()) {
+            statement.setQueryTimeout(10);
+            statement.execute("set lock_timeout = '2s'");
+            statement.execute(sql);
+        }
     }
     private static synchronized void recordDrop(String name, long millis, boolean success) throws java.io.IOException {
         Path log = Path.of("target", "postgres-scope-cleanup.jsonl");
@@ -114,7 +118,8 @@ final class Postgres {
     static void closeIfStarted() throws Exception { if (started != null) started.close(); }
     private synchronized void close() throws Exception {
             if (closed) return;
-            // The full suite checkpoints many isolated databases; actual Windows fsync took 31s.
+            // Per-test drops avoid accumulating database files until this final durable checkpoint.
+            // Retain the original 60s fast-stop budget; do not mask leaks by disabling fsync or using FORCE.
             if (Files.exists(data.resolve("postmaster.pid"))) run("pg_ctl", "-D", data.toString(), "-m", "fast", "-w", "-t", "60", "stop");
             Path evidence = Files.createDirectories(Path.of("target", root.getFileName().toString()));
             try (var files = Files.list(root)) { for (Path log : files.filter(Files::isRegularFile).toList()) Files.copy(log, evidence.resolve(log.getFileName()), StandardCopyOption.REPLACE_EXISTING); }
