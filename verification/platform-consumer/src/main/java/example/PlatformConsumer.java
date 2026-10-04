@@ -59,7 +59,7 @@ public final class PlatformConsumer {
         String graph = args[0];
         String scenario = args.length == 1 ? "default" : args[1];
         require(Set.of("minimal", "no-jackson-module", "caffeine-only", "context-support-only", "cache-pair").contains(graph), "unknown graph " + graph);
-        require(Set.of("default", "disabled", "override", "jsons-override", "ambiguous", "primary", "virtual").contains(scenario), "unknown scenario " + scenario);
+        require(Set.of("default", "disabled", "override", "jsons-override", "ambiguous", "primary", "virtual", "cache-enabled").contains(scenario), "unknown scenario " + scenario);
         presence("com.github.benmanes.caffeine.cache.Caffeine", Set.of("caffeine-only", "cache-pair").contains(graph));
         presence("org.springframework.cache.caffeine.CaffeineCacheManager", Set.of("context-support-only", "cache-pair").contains(graph));
         presence("org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration", !graph.equals("no-jackson-module"));
@@ -80,21 +80,26 @@ public final class PlatformConsumer {
         application.setWebApplicationType(WebApplicationType.NONE);
         var properties = new ArrayList<>(List.of("--spring.main.banner-mode=off", "--facility.id.worker-id=1"));
         if (scenario.equals("disabled")) properties.addAll(List.of("--facility.cache.enabled=false", "--facility.idempotency.enabled=false"));
+        if (Set.of("cache-enabled", "override").contains(scenario)) properties.addAll(List.of("--facility.cache.enabled=true", "--facility.cache.cache-names=consumer"));
         if (scenario.equals("virtual")) properties.add("--spring.threads.virtual.enabled=true");
         try (var context = application.run(properties.toArray(String[]::new))) {
+            require(!scenario.equals("cache-enabled") || graph.equals("cache-pair"), "selected local cache requires the complete dependency pair");
             require(!scenario.equals("ambiguous"), "two unqualified mappers must fail deterministically");
             boolean disabled = scenario.equals("disabled");
-            require(context.getBeansOfType(CacheManager.class).size() == (disabled ? 0 : 1), "one cache manager for each enabled graph");
+            boolean cacheSelected = Set.of("cache-enabled", "override").contains(scenario);
+            require(context.getBeansOfType(CacheManager.class).size() == (cacheSelected ? 1 : 0), "cache is explicit and host managers win");
             require(context.getBeansOfType(IdempotencyStore.class).size() == (disabled ? 0 : 1), "non-web capability switch");
-            if (!disabled) {
+            if (cacheSelected) {
                 CacheManager manager = context.getBean(CacheManager.class);
-                String expected = graph.equals("cache-pair") && !scenario.equals("override")
-                        ? "org.springframework.cache.caffeine.CaffeineCacheManager" : ConcurrentMapCacheManager.class.getName();
-                require(manager.getClass().getName().equals(expected), "cache backend for " + graph + ": " + manager.getClass());
                 var cache = manager.getCache("consumer");
                 cache.put("key", "value");
                 require("value".equals(cache.get("key", String.class)), "cache public API must work");
                 if (scenario.equals("override")) require(manager == context.getBean("applicationCache"), "user cache must win");
+                else {
+                    require(manager.getCacheNames().equals(List.of("consumer")), "fixed selected name set");
+                    require(manager.getCache("unknown") == null, "unknown name must not create a cache");
+                    require(cache.getNativeCache().getClass().getName().startsWith("com.github.benmanes.caffeine.cache."), "selected local provider");
+                }
             }
             if (graph.equals("no-jackson-module")) {
                 require(context.getBeansOfType(JsonMapper.class).isEmpty(), "no implicit mapper without technology module");
@@ -118,6 +123,15 @@ public final class PlatformConsumer {
             boolean virtual = CompletableFuture.supplyAsync(() -> Thread.currentThread().isVirtual(), executor).get(5, TimeUnit.SECONDS);
             require(virtual == scenario.equals("virtual"), "Boot/user execution policy must be observed on actual worker");
         } catch (RuntimeException failure) {
+            if (scenario.equals("cache-enabled") && !graph.equals("cache-pair")) {
+                Throwable cause = failure;
+                for (int depth = 0; depth < 64 && cause.getCause() != null; depth++) cause = cause.getCause();
+                require(cause instanceof IllegalStateException &&
+                        "Selected local cache requires Caffeine and spring-context-support".equals(cause.getMessage()),
+                        "actionable missing local backend dependency");
+                System.out.println("PLATFORM_CONSUMER_OK " + graph + " " + scenario);
+                return;
+            }
             if (!scenario.equals("ambiguous")) throw failure;
             Throwable cause = failure;
             for (int depth = 0; depth < 64 && !(cause instanceof org.springframework.beans.factory.NoUniqueBeanDefinitionException); depth++) {

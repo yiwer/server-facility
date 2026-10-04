@@ -27,7 +27,8 @@ class CacheableIntegrationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(FacilityCacheAutoConfiguration.class))
-            .withUserConfiguration(CachingConfig.class);
+            .withUserConfiguration(CachingConfig.class)
+            .withPropertyValues("facility.cache.enabled=true", "facility.cache.cache-names=items");
 
     @Test
     @DisplayName("同一 key 调用两次,方法体只执行一次(第二次命中缓存)")
