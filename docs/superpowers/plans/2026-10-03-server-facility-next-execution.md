@@ -238,3 +238,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 08/10/20共同完成标准闭合，三票closed，累计29。CI17失败及真实trace读取竞争RED/GREEN完整保留；本次来源含推荐示例与最终观测清理修复。每票本地测试数/覆盖率/jar SHA按原冻结来源保留，未冒作本次Linux内部日志。
 - 29工作树已在此前领取并实施，中央状态同步为in-progress；其冻结f6a3a9b的完整门正在独立执行，不计CI18验收。30仍受29阻塞，31受30阻塞，33受剩余票与31阻塞。正式31/33未开始；候选artifact身份与模板升级预研不算验收。
 - 本次仅中央状态与证据文档更新，实际ADR仍52条；没有改产品、降低门槛或重跑相同源码已过全门，纯docs暂不单独push。后续docs提交不是CI18被测SHA。
+
+## 29事务命令集成与CI19候选
+
+- 2026-10-04：从干净`2bff4f2098f51c8e81582028e5a6811aed43471d`以--no-ff合入最终`bc7ce170a6114c3c430080f5458e26bc8932a7d4`，merge`edc4eaac1e8443a21f5da0c56a9736c222963bc7`，无冲突。产品、模板、runner、全部既有消费者、workflow与Wrapper等于交接树；中央登记ADR0052，共53条实际ADR，扩展0051而不替换独立claim/HTTP协议。
+- 核读f6a3a9b完整all PASS135命令、库1774；4c3ba76最终产品/template门PASS106/0/0/0、原质量门/三CLI/真实打包双模式/cleanup与coverage负控，包SHA a3259e4d89a504f2e09cb2b59a8170a25f10055b5c08363ad868cd63b4fff58e。普通库src/POM未变、jar仍0ad7ca80df4b8a8ddf2f5def024d6ccf4dc9ca21a68b6850c70e03ac90456b8b。三段来源见[29报告](../../verification/ticket-29-transactional-commands.md)，不冒称最终all已运行。
+- 最后34c06cb仅Postgres测试夹具和scope测试变化。实际46日志18/0/0/0、47日志4/0/0/0；48 XML为预期2测试/1failure/1error/0skip，保留原primary-assertion-sentinel及suppressed PostgreSQL清理错误，abort不能掩盖cleanup失败。原40全模板门在fast shutdown的79.458s checkpoint失败保留；修复自有数据库生命周期，不增加60s预算或关闭fsync，未重复无变化产品完整门。
+- 29设verification-pending，Q10待本次既有CI19双OS最终组合。累计closed仍29；30/31/33分别保留依赖边界。按用户授权推送一次新实现候选，Linux结果未返回前不关闭29。31中立harness/升级稿预研位于工作树外coordination，未混入本次源码、验收或交付计数。

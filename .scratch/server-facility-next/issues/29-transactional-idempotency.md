@@ -4,7 +4,7 @@
 
 **Blocked by:** 28 用一个受保护业务 Module 完成持久化 CRUD 与分页
 
-**Status:** in-progress
+**Status:** verification-pending
 
 2026-10-04: claimed from integration `0cbbfb9f555e42f1143059960736e04f528e33c5`, after ticket28 closed with CI16 dual-OS success. Independent `codex/ticket-29` worktree. Approved test seams remain signed real HTTP, the public Notes business Module and controlled real PostgreSQL transaction/constraint observations. No independent HTTP replay store or lease is added.
 
@@ -36,3 +36,5 @@
 ADR0052 records the application-owned transaction contract. Implementation and Windows evidence are in [ticket29 verification](../../../docs/verification/ticket-29-transactional-commands.md) (repository path `docs/verification/ticket-29-transactional-commands.md`). Source stages remain separate: full `all` at f6a3a9b passed135 commands with1774 library tests; the final product/template at4c3ba76 passed106 tests, independent packaging, quality and explicit negatives; final fixture-only34c06cb passed affected lifecycle/concurrency regressions and its deliberate cleanup negative. Run40's checkpoint timeout remains a recorded failure, repaired by owned per-test database cleanup without relaxing budgets or durability.
 
 Integration2bff4f2 is included. Required Linux/final-combination CI19 remains pending; Q10 and the combined completion checkbox stay open. Ticket30's exact commit-point process faults, dual independent JVMs and physical receipt cleanup have not been claimed by ticket29.
+
+Merger integrated final `bc7ce170a6114c3c430080f5458e26bc8932a7d4` from clean2bff4f2 with `--no-ff` as `edc4eaac1e8443a21f5da0c56a9736c222963bc7`. Product/test/runner/workflow/Wrapper equal the handoff tree; original consumers and the new explicit cleanup-negative guard remain. Required CI19 will validate this final combination before closure.
