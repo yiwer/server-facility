@@ -1,0 +1,1162 @@
+{
+  "externalRoot": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-history-evidence",
+  "scope": "executed historical before/after proof; excludes mutable Maven cache, native database data and fixture tokens",
+  "files": {
+    "01-before-inputs.json": {
+      "bytes": 9682,
+      "sha256": "9e25c940726d18210f3c58e021d51e9d5ed3e9947710f818eb1a06d2e28042ac"
+    },
+    "03-test-host-overlay.json": {
+      "bytes": 553,
+      "sha256": "fcc3124d657fee4fc14155e897fe2b0a67bc7f55e4203db456c1bbf00dbe2923"
+    },
+    "03-test-host-overlay.patch": {
+      "bytes": 10192,
+      "sha256": "0214e2b39bbf207d1ef571e0be6e271cf0f56fe57b432b4ac635f6b76d056884"
+    },
+    "04-upgrade-staging-red.log": {
+      "bytes": 1312,
+      "sha256": "46621206e6bdc5f6fc9d29b41497656eb2c07bffe71372c564c3a74cd54120df"
+    },
+    "05-test-host-overlay.json": {
+      "bytes": 919,
+      "sha256": "bd7e138904ec61154604f3be61dcfe393086edc32735e6a731b18947dd968e08"
+    },
+    "05-test-host-overlay.patch": {
+      "bytes": 11357,
+      "sha256": "f16c58dcdca649f1092f4f7dbbccb470edab255b1fd6d553da8d766a1a66ffa9"
+    },
+    "06-refusals.json": {
+      "bytes": 27578,
+      "sha256": "67071bb93ac2ed887b6a366eace5b60b5dd14d868004e0be7b09bb3ee3d30b44"
+    },
+    "06-refusals.log": {
+      "bytes": 27816,
+      "sha256": "cb89f490541baccd721ca9afe78de5ca18e459829d57f7c8a14700524f825693"
+    },
+    "07-install.log": {
+      "bytes": 1536,
+      "sha256": "ffdb294243690dc2c1babcf3333bddaca2fa27ccecb12d12480557c26d98f5d9"
+    },
+    "08-before-verify.log": {
+      "bytes": 1788,
+      "sha256": "d71f2b479e5c2551199cc5c3655eadd173b11eadeb80b9782b53dbb3a4a9f2f5"
+    },
+    "09-before-verify.log": {
+      "bytes": 600772,
+      "sha256": "a65f752d7e4dc8fbcce860723108bc77d050980083b802e1dfd9f0ab24ffcf38"
+    },
+    "11-upgrade.json": {
+      "bytes": 87510,
+      "sha256": "37fb6827a3f3bbf3891605cec0266cda0b85d6a737126fee6b478772d64c8d36"
+    },
+    "11-upgrade.log": {
+      "bytes": 88174,
+      "sha256": "e0035ed426abb7f269a7cdbdd3713e86611e38ecf5dedb1994550c21577a71d7"
+    },
+    "12-after-verify.log": {
+      "bytes": 600541,
+      "sha256": "4cda1050a30f9df8c2f026bb22135247f3f12f4bcc01e56f6587bdf526328d21"
+    },
+    "14-packaged.log": {
+      "bytes": 862,
+      "sha256": "d8823b44e06df2e0d4c6b12c36bf41c001962b03e7b1f14f104417576785a402"
+    },
+    "15-final-refusal.json": {
+      "bytes": 43739,
+      "sha256": "7c352f88a0e5fca74a271bf70f794170766382b9a208b12d48337b12d8bb0af8"
+    },
+    "16-model.log": {
+      "bytes": 1943,
+      "sha256": "4fe2c75f46d3adef23cf9bf90226b927d56323316be0c1fba1f604d3606daa12"
+    },
+    "dependency-tree.txt": {
+      "bytes": 8282,
+      "sha256": "9615d685c0a89c552a074c85e167ae6534918f2765c07b05e3b1c82bbb7686a8"
+    },
+    "effective-pom.xml": {
+      "bytes": 365698,
+      "sha256": "d0aa52b1384cb7eaa2716c5b2ad5968f33580140ea3e048ddb2244bfb10bb9b5"
+    },
+    "environment.json": {
+      "bytes": 575,
+      "sha256": "2e764f19da2a58fb095f1418f29b2e1dbac28a162e3cfa18c33091cced2ecb10"
+    },
+    "historical-runtime-pom.xml": {
+      "bytes": 19111,
+      "sha256": "2b008b684ce8ded6831e0cd3848ad289914e2019da2bc1da9b01821e4e201ce0"
+    },
+    "10-before/application.jar": {
+      "bytes": 33220809,
+      "sha256": "8240309b89316b25334e757754abe606de60d7bf955cc5537ecb2791268356bf"
+    },
+    "10-before/postgres-scope-cleanup.jsonl": {
+      "bytes": 2134,
+      "sha256": "bc2e7ec4947926c28ee59d1c284777168462339c2752af1bfa87da2915bcc66d"
+    },
+    "10-before/source.zip": {
+      "bytes": 89080,
+      "sha256": "5d28127f45c014bd69d7ded114f4fab059afc8182f5b2ef3c47e54d3260ce84b"
+    },
+    "10-before/summary.json": {
+      "bytes": 699,
+      "sha256": "40d65e659e59838e3c0011bac338511a433e4d0356c815727e1efd87f339bf13"
+    },
+    "13-after/application.jar": {
+      "bytes": 33220773,
+      "sha256": "7842f94dce345b2cc2ca5405ac8c4718cd464dcb7055654a07f7e64f84a6ae73"
+    },
+    "13-after/postgres-scope-cleanup.jsonl": {
+      "bytes": 2132,
+      "sha256": "8a2cb31e9dce7d94a806a6a1c02138858b91388376dfb7e65b2e08d51c52216f"
+    },
+    "13-after/source.zip": {
+      "bytes": 89267,
+      "sha256": "cda66c66dc29b594b0c11c71ba6576fa20cfe56a742a18aca842eb40f2ebb597"
+    },
+    "13-after/summary.json": {
+      "bytes": 698,
+      "sha256": "dec474fba5d17bc3d0b644a2485a952c693ec72508302db1470b57cc0961bdd1"
+    },
+    "14-packaged/after-platform-result.txt": {
+      "bytes": 86,
+      "sha256": "91f2d49249b6500f269f46e2d15118a7ebf14606c12a3f079e0f76b523fbb16d"
+    },
+    "14-packaged/after-platform.log": {
+      "bytes": 5763,
+      "sha256": "7c0c607c86c2acdf15f61e868cfd88f8a19743427512a9adc894d09164044bca"
+    },
+    "14-packaged/after-virtual-result.txt": {
+      "bytes": 85,
+      "sha256": "36c3ba1fcbc5a53cc2b5b8754af3df3e69cbd07207fce21948c215ab72b37726"
+    },
+    "14-packaged/after-virtual.log": {
+      "bytes": 5763,
+      "sha256": "b4e3fa86315802ca4034788e218c3234e45cc102d8d441d1d3a17a566ed019d1"
+    },
+    "14-packaged/before-platform-result.txt": {
+      "bytes": 86,
+      "sha256": "91f2d49249b6500f269f46e2d15118a7ebf14606c12a3f079e0f76b523fbb16d"
+    },
+    "14-packaged/before-platform.log": {
+      "bytes": 6803,
+      "sha256": "e2ac3b29d2dd867e21f3d38f6727d845237d9858dfa8868b74fc5c1a3e2c17db"
+    },
+    "14-packaged/database.log": {
+      "bytes": 147,
+      "sha256": "b6dab35a3f5fa53a84b68222f38410594708f5172e1d93bb90b4c0d0eb21505d"
+    },
+    "14-packaged/issuer.log": {
+      "bytes": 116,
+      "sha256": "d510724917057a8d980ec1122efa07a323e06fab846fd24ffb6012b602ddf00b"
+    },
+    "14-packaged/note-location.txt": {
+      "bytes": 95,
+      "sha256": "00fe718b473968691dd877f40256c8c2305367e7fe48285d12cf10f9cedfa4fb"
+    },
+    "14-packaged/persisted-before.json": {
+      "bytes": 174,
+      "sha256": "4683691dca7767f7bd07030262201e0a03250b882e54e0eff530068eb68d16c0"
+    },
+    "executed-helpers/fixture-provenance.json": {
+      "bytes": 1456,
+      "sha256": "32701194826cfaf1bea521413ce763599332f5a84552a4cf30b6145ad9540c4f"
+    },
+    "executed-helpers/HistoricalPackagedUpgrade.java": {
+      "bytes": 10332,
+      "sha256": "2eda2603d86f9f195d3e620068dde892c842ed584865e700eae63611b3025aa2"
+    },
+    "executed-helpers/HistoricalUpgrade.py": {
+      "bytes": 21147,
+      "sha256": "e0aa8c07d04e90b547cfa6a2f6785dbe270d374a56201f18882c713f6b46483a"
+    },
+    "executed-helpers/README.md": {
+      "bytes": 6997,
+      "sha256": "26c886e2243acf138e340a6bf58fa51231d1a48f417105165bf30c7390cf58c0"
+    },
+    "executed-helpers/test-host-overlay.patch": {
+      "bytes": 11357,
+      "sha256": "f16c58dcdca649f1092f4f7dbbccb470edab255b1fd6d553da8d766a1a66ffa9"
+    },
+    "executed-helpers/test_historical_upgrade.py": {
+      "bytes": 2088,
+      "sha256": "a467d6cc60ee8c2461f180d8e209afc129d8f45bc5f6b07c00a5ad12d20b8402"
+    },
+    "external-fixtures/provenance.json": {
+      "bytes": 355,
+      "sha256": "6259d9f0f3755e13076b95c3d94262afb6bdfaee6e5391b1cac9d9569bf8984f"
+    },
+    "external-fixtures/dev/LocalDatabase.java": {
+      "bytes": 6686,
+      "sha256": "3614c1521ddbcac690703e337458b10892a4459ee841714bd93136477e138d44"
+    },
+    "external-fixtures/dev/LocalIssuer.java": {
+      "bytes": 4411,
+      "sha256": "ded8176c47655dc7275bb192c1ea95a1c1ab6165a233d0670980bef54ccb4985"
+    },
+    "14-packaged/database/initdb.log": {
+      "bytes": 1119,
+      "sha256": "7b1fa280d9001dfdf756fa22d1ba6d0614320ace0b3bb7aab083ab33de99bd35"
+    },
+    "14-packaged/database/owned-local-database": {
+      "bytes": 30,
+      "sha256": "eb046443bb9e129043a31dbcb67d3afef3077ca5ef3840c81744ea928ee4b40e"
+    },
+    "14-packaged/database/postgres.log": {
+      "bytes": 2071,
+      "sha256": "fc099433d5bf97f4e41767111abf893cd3a3924d6f4e6489f2eb3c4fb3d0638a"
+    },
+    "14-packaged/database/start.log": {
+      "bytes": 54,
+      "sha256": "46038efb813fbca18a92272496901190638dea3f97b51f7af0daa1ca2eb13818"
+    },
+    "14-packaged/database/stop.log": {
+      "bytes": 58,
+      "sha256": "3589d2bd01f8295cc7c9ec3f5e07625fcd347ccb6f33f2d80edafe5f5217c1fb"
+    },
+    "14-packaged/database/version.log": {
+      "bytes": 28,
+      "sha256": "0b93c70e428f372f5afec09046895d965de70e57c8dffc137b53f66addf482e4"
+    },
+    "14-packaged/issuer/local.properties": {
+      "bytes": 217,
+      "sha256": "b09d0a1097f6890ca4712967864cb657d4045d4803ce9ae65403bdde3a122eb1"
+    },
+    "13-after/surefire-reports/2026-10-04T13-04-34_754.dumpstream": {
+      "bytes": 366,
+      "sha256": "e674d68fc1aa47cf2834d4259c637f6bd65a4e73725d371bde9637b32281d7a5"
+    },
+    "13-after/surefire-reports/com.example.api.AuthenticationHttpTest.txt": {
+      "bytes": 330,
+      "sha256": "6fa230388dd97f3dbcfd00fbe106e4c6b2427ab098e75348278d22fdf0ee8991"
+    },
+    "13-after/surefire-reports/com.example.api.BusinessBoundaryTest.txt": {
+      "bytes": 326,
+      "sha256": "7ccf4cd4c02625ffff57b9d2cecccf2eef24162e3ed96bd7dc3c3750eabdccb5"
+    },
+    "13-after/surefire-reports/com.example.api.ConfigurationHttpTest.txt": {
+      "bytes": 328,
+      "sha256": "69a81554d9babcc3e75c76e672f5be58d2983b628cecb25f289b9a3c2fdf8393"
+    },
+    "13-after/surefire-reports/com.example.api.CustomerUpgradeTest.txt": {
+      "bytes": 324,
+      "sha256": "bdc2805d1ab00cae1906144563c769d4639fa0f5809345870d4be423b57ced39"
+    },
+    "13-after/surefire-reports/com.example.api.DatabaseConfigurationTest.txt": {
+      "bytes": 336,
+      "sha256": "89da96c9a79846af462e45395f20e70a7e963ed7081862b48d3d4511c8933955"
+    },
+    "13-after/surefire-reports/com.example.api.DecoratorFailureTest.txt": {
+      "bytes": 326,
+      "sha256": "5042a91058a852ef8de3893c5e44f6498a9c8d9a2727c90bc3892783e6d56647"
+    },
+    "13-after/surefire-reports/com.example.api.ExecutorOwnershipTest.txt": {
+      "bytes": 328,
+      "sha256": "185aa981f7c44a4ee651607eba71b536f73f1a2dbba8b674947c34a2f4ca4486"
+    },
+    "13-after/surefire-reports/com.example.api.FailureLifecycleHttpTest.txt": {
+      "bytes": 334,
+      "sha256": "1930493378e06742ceb3fd6be67327bfeecab670638fb99d8f8e003db681a353"
+    },
+    "13-after/surefire-reports/com.example.api.JwkBoundaryHttpTest.txt": {
+      "bytes": 324,
+      "sha256": "5e323c3fd26bdd9baba1e41b4a1dac579cf59b5f1fc4aa26a42df0ba0753589b"
+    },
+    "13-after/surefire-reports/com.example.api.JwkLifecycleHttpTest.txt": {
+      "bytes": 326,
+      "sha256": "436bc6f5a7bead08dd2e9983958c7ccfe5d05aa22c05a4b678bf233f262c10ae"
+    },
+    "13-after/surefire-reports/com.example.api.LifecycleHttpTest.txt": {
+      "bytes": 320,
+      "sha256": "d062fe5fdbf26dda1a8fa97c59c0600c829d34e477901a1bc696ca6c4875fa63"
+    },
+    "13-after/surefire-reports/com.example.api.MigrationHttpTest.txt": {
+      "bytes": 320,
+      "sha256": "02eb35242836227163fc496d3ca0c6993f0a48503dd237e5067d83464e5fd42a"
+    },
+    "13-after/surefire-reports/com.example.api.NotesHttpTest.txt": {
+      "bytes": 312,
+      "sha256": "208619677f85337fa9bb0ba3651797fa53c0c92fa7d6a89fc4bd908aade4d955"
+    },
+    "13-after/surefire-reports/com.example.api.NotesModuleTest.txt": {
+      "bytes": 316,
+      "sha256": "cc895e04e846c93a6ec3f71a8bf96b795d2ba0522c08e0038b4e18345f4994c8"
+    },
+    "13-after/surefire-reports/com.example.api.PersistenceFailureHttpTest.txt": {
+      "bytes": 338,
+      "sha256": "0f595081fa75af09583c15a733c704818fc23ec8897e557544f4210146fb86d9"
+    },
+    "13-after/surefire-reports/com.example.api.PrincipalQuotaHttpTest.txt": {
+      "bytes": 330,
+      "sha256": "4ddf5aa3fc3aa5d6d3fb084f78088054ba31d8d66e46f18732cb568f8269d5b6"
+    },
+    "13-after/surefire-reports/com.example.api.StandardObservationHttpTest.txt": {
+      "bytes": 340,
+      "sha256": "d8530e2301a981bf325ac497a6e3de0767fbe46a9f1f0a7781a346c43e5cd67b"
+    },
+    "13-after/surefire-reports/com.example.api.SubjectRepresentationTest.txt": {
+      "bytes": 336,
+      "sha256": "e666844010f1623d28b8040084e8072968352f335bafdb036cf710878a2e4361"
+    },
+    "13-after/surefire-reports/com.example.api.TokenMutationHttpTest.txt": {
+      "bytes": 328,
+      "sha256": "33381c393d5c5ba14795cce3b8a8bffe06511093c80fce456f4ca922785236bf"
+    },
+    "13-after/surefire-reports/com.example.api.TrustPolicyHttpTest.txt": {
+      "bytes": 325,
+      "sha256": "0ec92d5fc61a49e499c0a4f711922b7de95e4af5f5036fb6cdac7e0265a72d93"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.AuthenticationHttpTest.xml": {
+      "bytes": 58252,
+      "sha256": "f7f1d395bb0e3ccf49459dbc25c37bc9c38c9c7ba3265d98dfd08e87423bbfbe"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.BusinessBoundaryTest.xml": {
+      "bytes": 48457,
+      "sha256": "7464020a6c6c1c478b8ef7d2c484a1e85f976899f75b7d36cf0bf1b4cb92c6f5"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.ConfigurationHttpTest.xml": {
+      "bytes": 125526,
+      "sha256": "41f84eef8bb1f10cb46e7f171d69b5265d720d5ead4e9966a724ee526a298046"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.CustomerUpgradeTest.xml": {
+      "bytes": 50393,
+      "sha256": "1481be210aae9f0824dd55f6e33a7279c677a04e0f7654b827fb4886af3c4bc7"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.DatabaseConfigurationTest.xml": {
+      "bytes": 48769,
+      "sha256": "04018a574734abcf86830c052b914707f76af0a6f7cab37712f0b9f1b49945fc"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.DecoratorFailureTest.xml": {
+      "bytes": 48471,
+      "sha256": "0ddc7af5df2a66910aaa93ba1c9842e65caef1ecd3c9b71e38411d112f4da2fb"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.ExecutorOwnershipTest.xml": {
+      "bytes": 48565,
+      "sha256": "168079acd3f5d2c760c504021b43dce6020c5517305e96a1443470c8bb5dcafa"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.FailureLifecycleHttpTest.xml": {
+      "bytes": 51764,
+      "sha256": "116e0b526ca426eef68b68146db9aa2098b6b8aa0f42c053149ff68dbd3ddf3d"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.JwkBoundaryHttpTest.xml": {
+      "bytes": 52107,
+      "sha256": "a653632fb2420af880283dbbc3c51330d0676003a95eb22b29c005d0773d1ed7"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.JwkLifecycleHttpTest.xml": {
+      "bytes": 51241,
+      "sha256": "26102726713475c951e2e877334e529263beb241711f5bad5e07280669f6c797"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.LifecycleHttpTest.xml": {
+      "bytes": 49231,
+      "sha256": "6be12fffa6e79bc74506963593c9bdf533fea654a030606aef1341be59184e80"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.MigrationHttpTest.xml": {
+      "bytes": 51177,
+      "sha256": "099edfd7922501dd4360a47c1d3f24760e1e788855d111bbde3ea73c0f5ff730"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.NotesHttpTest.xml": {
+      "bytes": 52128,
+      "sha256": "2c6b05175d7d379de03dd9de25c12cd0848c1a043f4c4b63f144b42bf56b4747"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.NotesModuleTest.xml": {
+      "bytes": 48825,
+      "sha256": "121755eede9d4243747ebe7e79411e56c06eae695369a82bbb4c1ee02fc29a64"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.PersistenceFailureHttpTest.xml": {
+      "bytes": 200409,
+      "sha256": "2866aeadd0779cd80ef0bb6f36769198c43b27ac84db24b34d888d46c52ad917"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.PrincipalQuotaHttpTest.xml": {
+      "bytes": 48679,
+      "sha256": "91979547b9ec13093e6cbcaf1bd7ced7a4d495489068b2a4eb1ee1a0d6100eb0"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.StandardObservationHttpTest.xml": {
+      "bytes": 51450,
+      "sha256": "61a91a3c998f966d9d2212990aeb3d7af725f0b174e6de21a66c842b09737b4c"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.SubjectRepresentationTest.xml": {
+      "bytes": 48748,
+      "sha256": "7d3d92b724da61b7fc8a7d0b6e45c8d181e4360af2a78e362036d80cf930a005"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.TokenMutationHttpTest.xml": {
+      "bytes": 48695,
+      "sha256": "13a15a6f88404b2e18e9f176ed64b815db0de366d514126b3399cd7920182021"
+    },
+    "13-after/surefire-reports/TEST-com.example.api.TrustPolicyHttpTest.xml": {
+      "bytes": 388126,
+      "sha256": "0bec236480c327c593f2985dad9a462333af1dd06bce2fd5f1d4778af9592124"
+    },
+    "13-after/site/jacoco/index.html": {
+      "bytes": 5615,
+      "sha256": "db9af097f8b491d4cce92ec19f61ba6664440bb325be7ff44a4ad593fd9eaf71"
+    },
+    "13-after/site/jacoco/jacoco-sessions.html": {
+      "bytes": 6404,
+      "sha256": "e9edcfea435279d3467f1e06b533a99e2b7b1ac6a6c0bc2a2f9a189777a43622"
+    },
+    "13-after/site/jacoco/jacoco.csv": {
+      "bytes": 2340,
+      "sha256": "fefbc3f72af54f37c15ad71464b13dc47a79e33f4651e579161e5a1cfd6dfa30"
+    },
+    "13-after/site/jacoco/jacoco.xml": {
+      "bytes": 67607,
+      "sha256": "72867a4e77a019ba1485053c5548af36e39d3e6668a5f3c7076a0254edf9d322"
+    },
+    "13-after/site/jacoco/com.example.api/ApiApplication.html": {
+      "bytes": 3234,
+      "sha256": "5a3dbe43a2aefb1c6ffe8d6702d6b38277c9b42a35c716a4abfbda9697338495"
+    },
+    "13-after/site/jacoco/com.example.api/ApiApplication.java.html": {
+      "bytes": 1594,
+      "sha256": "26f98c64a334322a5bceaadcf8611966266b6c476d99925f36aa060252df2db8"
+    },
+    "13-after/site/jacoco/com.example.api/GreetingController.html": {
+      "bytes": 3782,
+      "sha256": "dc04b28b27ac1df3f37a9fee8b49ec72bdcd927fc73dc4e7c0f7982ac7ee50f9"
+    },
+    "13-after/site/jacoco/com.example.api/GreetingController.java.html": {
+      "bytes": 2573,
+      "sha256": "2373d7f4697bf4927aea3aba937d383270a3dbfece901313ca66aaed1aaece2e"
+    },
+    "13-after/site/jacoco/com.example.api/index.html": {
+      "bytes": 3643,
+      "sha256": "6e22c7e7a7919fe3ac63c054b7e9b48e523b9edcab07b4f8a2ced23084ff1157"
+    },
+    "13-after/site/jacoco/com.example.api/index.source.html": {
+      "bytes": 3652,
+      "sha256": "a14b49cc164dd6cf95679c6554b52d9cce584c1715f2e812065dd1f0d5c227b7"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/index.html": {
+      "bytes": 7708,
+      "sha256": "6b3e1739af2c12edce58d83d52bab6a52833e812f1076936a6dca3e55b1336f6"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/index.source.html": {
+      "bytes": 5642,
+      "sha256": "3f2c67ebb8a9b1e1ec2fffcd3637b58e93d7d45b0758ff8989ccbaff42269370"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/JwkRequests$1$1.html": {
+      "bytes": 5284,
+      "sha256": "e6d29a394812790a9d1267aa73d4d0368a306c4af1e5fe12cead8d875107233a"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/JwkRequests$1.html": {
+      "bytes": 5003,
+      "sha256": "9f5165ce962e9135b194735b5df2d4366bf3fa95f77bb934d0e17b8b1f9c4110"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/JwkRequests.html": {
+      "bytes": 4113,
+      "sha256": "6979d85294b01b4abdf546f174dc9e8f4ef91eff9973d286033d4b406a784c08"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/JwkRequests.java.html": {
+      "bytes": 6172,
+      "sha256": "f878390ff7fd0fdd7646519ef520d934c7d1e1116a7b303be664c98c31b9d598"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/RequestExecutionConfiguration.html": {
+      "bytes": 4848,
+      "sha256": "b3f02790b41e7d179e092238ede318d2dd1e94f8fc825a31e17e3c32e4d4cc0a"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/RequestExecutionConfiguration.java.html": {
+      "bytes": 4948,
+      "sha256": "6386730a465359b3ee7122329d8dbb7660b2ac8461e0fc3dda80937bbfe6c685"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/SecurityConfiguration$1.html": {
+      "bytes": 4122,
+      "sha256": "9e42d7b0627c31c2c32c1c687f356304b3805db7255b6b422dd3de725112b913"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/SecurityConfiguration.html": {
+      "bytes": 14779,
+      "sha256": "3baa0d2b48fb8784bc71fcceabae7fcb375f6fc98e9baff561259f90b6514417"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/SecurityConfiguration.java.html": {
+      "bytes": 9180,
+      "sha256": "a07dc9e97abe9b401fb01c0b9a8bc8769cda36e50ba3b4243069c9b5b4b2d3d0"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/TrustPolicy.html": {
+      "bytes": 4728,
+      "sha256": "4b69d9fca9bacafc1a885e7337ede93721131409fb87f0350b25eb2cc79575ff"
+    },
+    "13-after/site/jacoco/com.example.api.configuration/TrustPolicy.java.html": {
+      "bytes": 4358,
+      "sha256": "07682ea17dfc978d56915036390d51a75a431e1e9f30b2721919ac488c55fbc8"
+    },
+    "13-after/site/jacoco/com.example.api.customer/CustomerStatusController$CustomerStatus.html": {
+      "bytes": 2880,
+      "sha256": "2d02c959b12f80311e386e7fe7846348f339ca91a48d1ee89b5fad93eff74fea"
+    },
+    "13-after/site/jacoco/com.example.api.customer/CustomerStatusController.html": {
+      "bytes": 3320,
+      "sha256": "40eee028993644377bfc5f753b7052dd483a2c99df088b694033d56a16dfa562"
+    },
+    "13-after/site/jacoco/com.example.api.customer/CustomerStatusController.java.html": {
+      "bytes": 2232,
+      "sha256": "a8cf97a49b867cd79e52bc3be3a9ceddde15b973ce12707835c224894775b9c8"
+    },
+    "13-after/site/jacoco/com.example.api.customer/index.html": {
+      "bytes": 3651,
+      "sha256": "4cd0a2165f2a50596e67abdfedaa0fe4505ef323455556b15ef232d1434509f4"
+    },
+    "13-after/site/jacoco/com.example.api.customer/index.source.html": {
+      "bytes": 3053,
+      "sha256": "306bd0a5837d1c6c6b14deb55dd1c8a0ee4c7331e921ce0feeac0bbd2cdc88f4"
+    },
+    "13-after/site/jacoco/com.example.api.greeting/Actor.html": {
+      "bytes": 2727,
+      "sha256": "163d140236448aa9b0555a8d50dca75550f353838d4c07213051c6fbc88edf73"
+    },
+    "13-after/site/jacoco/com.example.api.greeting/Actor.java.html": {
+      "bytes": 1578,
+      "sha256": "aaf9838fdd67c7289f1196f6aae5797d07cc790fc5d85e4d2078630374373845"
+    },
+    "13-after/site/jacoco/com.example.api.greeting/Greetings$Greeting.html": {
+      "bytes": 2779,
+      "sha256": "0ecd6f3ae5b409ea6eca09208ca3b0f7f282d2892277f4a0360c2216acc2e4b7"
+    },
+    "13-after/site/jacoco/com.example.api.greeting/Greetings.html": {
+      "bytes": 3217,
+      "sha256": "e37b2b42ec9be61e7bf9324bfd28b385e64ed7c04310dabba2a90087297fee0e"
+    },
+    "13-after/site/jacoco/com.example.api.greeting/Greetings.java.html": {
+      "bytes": 1694,
+      "sha256": "5b545c28be16b62b713485b4abbf9f8d2224f5797a8dc0995d66d2cf44509793"
+    },
+    "13-after/site/jacoco/com.example.api.greeting/index.html": {
+      "bytes": 4109,
+      "sha256": "f1199ba8f813fe629a5309984c55fb0b313ee9816f8dd75d9ac5532b1a364f72"
+    },
+    "13-after/site/jacoco/com.example.api.greeting/index.source.html": {
+      "bytes": 3564,
+      "sha256": "1f6a97a354e40895e2d94c11a183b45b5dd60ed0c51ac1e90cb62975a438fd0e"
+    },
+    "13-after/site/jacoco/com.example.api.notes/DatabaseConfiguration.html": {
+      "bytes": 7115,
+      "sha256": "1ff8fc0e6d203f546aff3a2959cb59af717287ddadb91eeeb87b476f20e8d441"
+    },
+    "13-after/site/jacoco/com.example.api.notes/DatabaseConfiguration.java.html": {
+      "bytes": 9056,
+      "sha256": "40e830b96fa6a104dd9235ecc566d9456006025ec01de3e026271963208a1c4e"
+    },
+    "13-after/site/jacoco/com.example.api.notes/index.html": {
+      "bytes": 10472,
+      "sha256": "aedc4c992df110f9e0afd215b652fa1bd2c2434e44a55a32486684028dde335d"
+    },
+    "13-after/site/jacoco/com.example.api.notes/index.source.html": {
+      "bytes": 6376,
+      "sha256": "c693c61961ec4b92ff2ca11607de69b392801384c5c056e8acb8bd7a251895cf"
+    },
+    "13-after/site/jacoco/com.example.api.notes/JsonInputConfiguration.html": {
+      "bytes": 3852,
+      "sha256": "961ff8c82a5c35825065a4881f76cc5ca6f930107d4f680f8bc96be72fa061fd"
+    },
+    "13-after/site/jacoco/com.example.api.notes/JsonInputConfiguration.java.html": {
+      "bytes": 2081,
+      "sha256": "88846de3ad45e4cf4993e138ff09bde26bd8a54b28b657a3f823a638cae503ba"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes$EditNote.html": {
+      "bytes": 2761,
+      "sha256": "b65f72b16a769da1c7baed6c97438ed41f5aa52adc9370ebe915e840432bc2ed"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes$NewNote.html": {
+      "bytes": 2858,
+      "sha256": "3e70bc81ab74863c2fd1db1b174df59708a6bfe2c2a39c07a6e7c8bec28dec85"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes$Note.html": {
+      "bytes": 2765,
+      "sha256": "044daea8063f00fa3b9af6b8cf632e339ef8996660fef4b47354f110c12ef70e"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes$Page.html": {
+      "bytes": 2751,
+      "sha256": "d48f9af281f6ba2c5dab4d6cb8fe2d4300a9213dba11e0de3179c082d4f9d179"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes$PageQuery.html": {
+      "bytes": 3033,
+      "sha256": "9ac32ad9ccf246b3f27f58e63d94ec9bf2f12d9f6ed382ca78a13c72572c80cf"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes$Workspace.html": {
+      "bytes": 2760,
+      "sha256": "779f72f2b3f0cb9d8ef8b6bc66c7096ec0a34f93a8cb5ee1c2202239844b2daa"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes.html": {
+      "bytes": 13678,
+      "sha256": "09bdb95fef3965feaf10e256392dcab0e8c08b592ccf715ed4f3a26784c2db60"
+    },
+    "13-after/site/jacoco/com.example.api.notes/Notes.java.html": {
+      "bytes": 11729,
+      "sha256": "21c90da3dc0aafbe55dd5b1401b144cae9e0ddb33854c9b6a8d893eb81e66a29"
+    },
+    "13-after/site/jacoco/com.example.api.notes/NotesController$WorkspaceInput.html": {
+      "bytes": 2824,
+      "sha256": "831336a8e4e922377b101a3a4fda1fad76beee88fea36f19559899e134bbfe83"
+    },
+    "13-after/site/jacoco/com.example.api.notes/NotesController.html": {
+      "bytes": 6331,
+      "sha256": "6dc2d1e72aa01db5489b2008e1821988ba98f3ba9882c40da3c2d427c67caf09"
+    },
+    "13-after/site/jacoco/com.example.api.notes/NotesController.java.html": {
+      "bytes": 4616,
+      "sha256": "a478fd62b1cfaed867116fa193a67596c8f707404361262fff44e9915e2ba06a"
+    },
+    "13-after/site/jacoco/com.example.api.notes/NotesErrors.html": {
+      "bytes": 4226,
+      "sha256": "a716f5af99ac4356ed1eb01d94856dba703f61221aa222fb6bc19c2c525e3b73"
+    },
+    "13-after/site/jacoco/com.example.api.notes/NotesErrors.java.html": {
+      "bytes": 4812,
+      "sha256": "4e9e5825014e1b699533ff86f1de00d9913290ba03831fa7a680bc10f084c277"
+    },
+    "13-after/site/jacoco/com.example.api.notes/NotesFailure.html": {
+      "bytes": 3232,
+      "sha256": "0a510602df30d77596d86900e08a6083ac5a8f44fd7cf3ac291c873987a9adad"
+    },
+    "13-after/site/jacoco/com.example.api.notes/NotesFailure.java.html": {
+      "bytes": 1609,
+      "sha256": "a569305b747199f19305e6a16c7f4907f2da11c52bf505615e80d28698389af4"
+    },
+    "13-after/site/jacoco/jacoco-resources/branchfc.gif": {
+      "bytes": 91,
+      "sha256": "a90e2acee1486fcc06a9dc77dc3a2c7d1103f9f65a9c833834c22079ca446d76"
+    },
+    "13-after/site/jacoco/jacoco-resources/branchnc.gif": {
+      "bytes": 91,
+      "sha256": "cfd1d5ad1e939c895fc6c3a4b621f5b4bec61a4b71f8386d3520f0920930ba1f"
+    },
+    "13-after/site/jacoco/jacoco-resources/branchpc.gif": {
+      "bytes": 91,
+      "sha256": "a419dc4732e7c225b409bfd5457263de4f20b6aa9737f4636f6dfad36b194b1d"
+    },
+    "13-after/site/jacoco/jacoco-resources/bundle.gif": {
+      "bytes": 709,
+      "sha256": "22656fa2e683f8e5f7adae31f091ce045fc91f042a8fed82ee7a05fc4029e0c2"
+    },
+    "13-after/site/jacoco/jacoco-resources/class.gif": {
+      "bytes": 586,
+      "sha256": "7ad9ac2c3f87d220f46d077e1b03d743ba45084cbbbccc2577e18c167f0fb2b1"
+    },
+    "13-after/site/jacoco/jacoco-resources/down.gif": {
+      "bytes": 67,
+      "sha256": "69233accdde9fbbeef01a6bb5c117a4af85f24f7312054bccbeb0f64b7bb437c"
+    },
+    "13-after/site/jacoco/jacoco-resources/greenbar.gif": {
+      "bytes": 91,
+      "sha256": "a29475aae8c0a107bc41459eb2ca079bc34fc5092f107a78a287c4864b325791"
+    },
+    "13-after/site/jacoco/jacoco-resources/group.gif": {
+      "bytes": 351,
+      "sha256": "eb39f2e57cabfd740ab8d0c5fb4b26fc5ca71b334e2cfc8d6481c34842b4c360"
+    },
+    "13-after/site/jacoco/jacoco-resources/method.gif": {
+      "bytes": 193,
+      "sha256": "6308ea5fba7f5e989f67e3e9bb3366f0cb4c90ab72e838af7ff813aca5aac487"
+    },
+    "13-after/site/jacoco/jacoco-resources/package.gif": {
+      "bytes": 227,
+      "sha256": "82577b6b416bbf65cc99bc1c249e6462ae4ac708687fe2e1428b610c049300c2"
+    },
+    "13-after/site/jacoco/jacoco-resources/prettify.css": {
+      "bytes": 323,
+      "sha256": "2247d0cf27cb7fd9cd850eb33444c059f261eb63a718c26b8f357a938401c5f9"
+    },
+    "13-after/site/jacoco/jacoco-resources/prettify.js": {
+      "bytes": 59057,
+      "sha256": "743c6c4cab9499cd0bfe18a5a62281eccce843f47ec75eedb32eeb29c755aa68"
+    },
+    "13-after/site/jacoco/jacoco-resources/redbar.gif": {
+      "bytes": 91,
+      "sha256": "906ce7fcec0fbac1a26c16521e375f020a513f0cf87888766b69c4bf63f4d9bd"
+    },
+    "13-after/site/jacoco/jacoco-resources/report.css": {
+      "bytes": 4046,
+      "sha256": "0c464ff9ce9154fdf1a041b0efed7bc31da4a4c9744249d8ffa6b80f1c36ed9e"
+    },
+    "13-after/site/jacoco/jacoco-resources/report.gif": {
+      "bytes": 363,
+      "sha256": "c765cafa65ec9a3c221b46062c6ef691f2dd5ff25628ee2c65cc9fe0b74aeea6"
+    },
+    "13-after/site/jacoco/jacoco-resources/session.gif": {
+      "bytes": 213,
+      "sha256": "1ec062e347bc7db837b9471b6c6128e1d0a5ae8d4c6a2eaa8fee4d5cb6441dab"
+    },
+    "13-after/site/jacoco/jacoco-resources/sort.gif": {
+      "bytes": 58,
+      "sha256": "1875d39ff1be841991aa768486f1bcfc0ca02969323e2d2ec52ec156bb5cf240"
+    },
+    "13-after/site/jacoco/jacoco-resources/sort.js": {
+      "bytes": 3956,
+      "sha256": "15c9a3f8a4dac379c8521491fd7949f0b705cad53be33512eb8b0741fd1202df"
+    },
+    "13-after/site/jacoco/jacoco-resources/source.gif": {
+      "bytes": 354,
+      "sha256": "50257f70adf3ebe4d18bb2432a61370dac06dad7a45f235c8e5f376081251ac3"
+    },
+    "13-after/site/jacoco/jacoco-resources/up.gif": {
+      "bytes": 67,
+      "sha256": "e1ce2c1d5128b701f2dc5bb5f63c5c402d5d8125ad9c3ffc31c6abc7767899a0"
+    },
+    "10-before/surefire-reports/2026-10-04T13-00-42_083.dumpstream": {
+      "bytes": 366,
+      "sha256": "302661a137b8c63195f434ccf45f4e3c99472c488ab2866922598af914af951f"
+    },
+    "10-before/surefire-reports/com.example.api.AuthenticationHttpTest.txt": {
+      "bytes": 330,
+      "sha256": "77b0c0b0a14539e48c44b3574adb9a6827967b34be6a2e482e9090fb53d0674c"
+    },
+    "10-before/surefire-reports/com.example.api.BusinessBoundaryTest.txt": {
+      "bytes": 326,
+      "sha256": "494994c9ee176dff016641a6b2f9627d1fb74ce8bb271076f241f59408c66094"
+    },
+    "10-before/surefire-reports/com.example.api.ConfigurationHttpTest.txt": {
+      "bytes": 328,
+      "sha256": "fa16477fb2370a8eb1e164a261288844b8622b4c40af2486103836c3649bc9d6"
+    },
+    "10-before/surefire-reports/com.example.api.CustomerUpgradeTest.txt": {
+      "bytes": 324,
+      "sha256": "ba891d54eecff4cf9d03d9771c27d6acda6f99419c9ee6a4876297c37f8c0094"
+    },
+    "10-before/surefire-reports/com.example.api.DatabaseConfigurationTest.txt": {
+      "bytes": 336,
+      "sha256": "8beb0c20825c5b9c98811067bdcf14936e1392c3db49d98d6214850135daa4c9"
+    },
+    "10-before/surefire-reports/com.example.api.DecoratorFailureTest.txt": {
+      "bytes": 326,
+      "sha256": "35a22442dfd8b84167d1528b72b11d852c072db7e43f9e3ddaca0310b7561f95"
+    },
+    "10-before/surefire-reports/com.example.api.ExecutorOwnershipTest.txt": {
+      "bytes": 328,
+      "sha256": "320e9ea18f47c9dc3c160e064b0f03a5fb0c101f93c9ff37a4e8a9f7fec19e9e"
+    },
+    "10-before/surefire-reports/com.example.api.FailureLifecycleHttpTest.txt": {
+      "bytes": 334,
+      "sha256": "db636ff516e5cf529d8db15b941dc527e3eb657b3842ec4026949a6d8a64cc45"
+    },
+    "10-before/surefire-reports/com.example.api.JwkBoundaryHttpTest.txt": {
+      "bytes": 324,
+      "sha256": "4b3442ecd5c536e77ef34468a37a5001a2fc6b70ffe8f48f37e4f9e96f875610"
+    },
+    "10-before/surefire-reports/com.example.api.JwkLifecycleHttpTest.txt": {
+      "bytes": 326,
+      "sha256": "6b8629d0b437d675361df277adfb87be2c70e62c881b3a31178f599c9d265389"
+    },
+    "10-before/surefire-reports/com.example.api.LifecycleHttpTest.txt": {
+      "bytes": 320,
+      "sha256": "c0adbe2d8565c01c50d91ec7fb43baf861bdcde0acd16f77c003c489afee1f71"
+    },
+    "10-before/surefire-reports/com.example.api.MigrationHttpTest.txt": {
+      "bytes": 320,
+      "sha256": "3b32f6703627ad78bd5e55ad12899f58de513c6af63fa168152e5054c802c0a4"
+    },
+    "10-before/surefire-reports/com.example.api.NotesHttpTest.txt": {
+      "bytes": 312,
+      "sha256": "eb0d8cdb3fc248edd556218267f21167810513a5be106a91e14157bab661a788"
+    },
+    "10-before/surefire-reports/com.example.api.NotesModuleTest.txt": {
+      "bytes": 316,
+      "sha256": "a5353486ce15996356a365174107851d27cf225d3e51b6e276c4c932774b3b8b"
+    },
+    "10-before/surefire-reports/com.example.api.PersistenceFailureHttpTest.txt": {
+      "bytes": 338,
+      "sha256": "a7035b4d56e4955e0ca296876f69f113d786afd0805c842cafac39479e1665ff"
+    },
+    "10-before/surefire-reports/com.example.api.PrincipalQuotaHttpTest.txt": {
+      "bytes": 330,
+      "sha256": "b4bd2240affb66a72a2b10de786d6246718e89caa7e17a881944d387c4bf1720"
+    },
+    "10-before/surefire-reports/com.example.api.StandardObservationHttpTest.txt": {
+      "bytes": 340,
+      "sha256": "e3ed678f5503c4567eb799ee91005f2d4e9c978819b7ef5c229052fdca0a4c2c"
+    },
+    "10-before/surefire-reports/com.example.api.SubjectRepresentationTest.txt": {
+      "bytes": 336,
+      "sha256": "0e2da3122682cfc53bb8f4b3316db97fc7e934eeafb49876d79cb88d9e0d53a7"
+    },
+    "10-before/surefire-reports/com.example.api.TokenMutationHttpTest.txt": {
+      "bytes": 328,
+      "sha256": "318f707549d604ba9d6657e3bcd1ea9354b99f9e9233117f94a315bb54309a86"
+    },
+    "10-before/surefire-reports/com.example.api.TrustPolicyHttpTest.txt": {
+      "bytes": 325,
+      "sha256": "5d3d6b69fa4dee2bf3133618eaeb76920a85b713b3d007446b4cc8cf18f3bc4a"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.AuthenticationHttpTest.xml": {
+      "bytes": 58251,
+      "sha256": "fb8efabca3502e4abd380d4c56290308be0f0ce3fb25ba9ecb9a23ada71911e2"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.BusinessBoundaryTest.xml": {
+      "bytes": 48457,
+      "sha256": "7c547c53e9b167f641c2b80697266c4a786badd718265bea8970a02592d978b5"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.ConfigurationHttpTest.xml": {
+      "bytes": 125523,
+      "sha256": "2febb7cec2fcf5241a5c2132053fd8eeb6fa2bec2c77cb72810292514eec89f5"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.CustomerUpgradeTest.xml": {
+      "bytes": 50774,
+      "sha256": "237cac33481e8bb0c8124f473dd0012952937ce6f057a3dd0548abaf02978230"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.DatabaseConfigurationTest.xml": {
+      "bytes": 48456,
+      "sha256": "33ae11bb65484e7ce1138327ad0c26f82900fa254cfc28e6e5e2d55fe77c1493"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.DecoratorFailureTest.xml": {
+      "bytes": 48470,
+      "sha256": "2550ba7d923c439f531ca02ca13d1e8f191b3444fcb14dcb16103b8e15f63c2c"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.ExecutorOwnershipTest.xml": {
+      "bytes": 48563,
+      "sha256": "3b0a7072fbb8a4c5966c84c715b01facb3016ee4072a20b4ed9d0ac88f8f43d4"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.FailureLifecycleHttpTest.xml": {
+      "bytes": 51765,
+      "sha256": "fc5ce2b95532c5fcb8fcd811a9795f9d331a377c26634046983cbf1593d8db54"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.JwkBoundaryHttpTest.xml": {
+      "bytes": 52106,
+      "sha256": "8db89892d50ef9452e12b123557255a8680ef32033dfaa9ff745333521668ffe"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.JwkLifecycleHttpTest.xml": {
+      "bytes": 51242,
+      "sha256": "3fa861b020a025d0c0bae0ef7e10754ed1a719ae9676ea42eeaaa69e4b2f3053"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.LifecycleHttpTest.xml": {
+      "bytes": 49230,
+      "sha256": "6597624f227cf5726c1ecfd57671cb0b2e4ad20887ccc910299f69f4ab31b556"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.MigrationHttpTest.xml": {
+      "bytes": 51176,
+      "sha256": "7c72ec769d564c51397e2c2a63e8bd2b30512e72b1a2acdc1da6565a61466771"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.NotesHttpTest.xml": {
+      "bytes": 52130,
+      "sha256": "ce05c3566b7f338ab8133ef109961970d397e727402388bd11b24bb3d8780497"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.NotesModuleTest.xml": {
+      "bytes": 48825,
+      "sha256": "d6942cd60371d3215492f4f2f8579b82c33d2ec179569b9170d6e5f4a25193ea"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.PersistenceFailureHttpTest.xml": {
+      "bytes": 200411,
+      "sha256": "2e9be0dd6940d17f7f4e007aba8208c1e72d7e47826bc5a23dbbb9dcbbb14536"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.PrincipalQuotaHttpTest.xml": {
+      "bytes": 48676,
+      "sha256": "4e0620445867c6e8ea4c06bfc74ebad80bcac43b5dee125d0a04a8439347c8e7"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.StandardObservationHttpTest.xml": {
+      "bytes": 51449,
+      "sha256": "c545775c149fe1a39f69d65d717c4926169691d52c7f6d39b76f2cfb3d51b1e7"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.SubjectRepresentationTest.xml": {
+      "bytes": 48748,
+      "sha256": "c9a78b05b0e353a344c75a3b32e9c3c2b98997566c4fea69fee3f07aca747077"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.TokenMutationHttpTest.xml": {
+      "bytes": 48694,
+      "sha256": "9abcaab558e13f425a4e5287f63d23d57e9b67a0133e055c6c04a2e9b8657fff"
+    },
+    "10-before/surefire-reports/TEST-com.example.api.TrustPolicyHttpTest.xml": {
+      "bytes": 388124,
+      "sha256": "b620cc988dc6ffc270f7ca38f131b0f5de0d3a0aed14fea88c4e57acd7cf1da0"
+    },
+    "10-before/site/jacoco/index.html": {
+      "bytes": 5614,
+      "sha256": "224c198fa251788cb0a3a3e01de38133cf375333058783aa9c62ac74b624a9dc"
+    },
+    "10-before/site/jacoco/jacoco-sessions.html": {
+      "bytes": 6404,
+      "sha256": "ec5f9b9d70c8d430972d619bc50ce36b0201d0ddc99a7ea76e2ac7e2e68bc8c8"
+    },
+    "10-before/site/jacoco/jacoco.csv": {
+      "bytes": 2340,
+      "sha256": "09c3312ed7d164b8b666cbfbff78aa5fbc1d6f9cee094803e38329eb5f0abb1d"
+    },
+    "10-before/site/jacoco/jacoco.xml": {
+      "bytes": 67607,
+      "sha256": "c52c5bb1d530e1fbbc305ab86c896e79121e1cfd85357ac4a306247fcf0d0281"
+    },
+    "10-before/site/jacoco/com.example.api/ApiApplication.html": {
+      "bytes": 3234,
+      "sha256": "5a3dbe43a2aefb1c6ffe8d6702d6b38277c9b42a35c716a4abfbda9697338495"
+    },
+    "10-before/site/jacoco/com.example.api/ApiApplication.java.html": {
+      "bytes": 1594,
+      "sha256": "26f98c64a334322a5bceaadcf8611966266b6c476d99925f36aa060252df2db8"
+    },
+    "10-before/site/jacoco/com.example.api/GreetingController.html": {
+      "bytes": 3782,
+      "sha256": "dc04b28b27ac1df3f37a9fee8b49ec72bdcd927fc73dc4e7c0f7982ac7ee50f9"
+    },
+    "10-before/site/jacoco/com.example.api/GreetingController.java.html": {
+      "bytes": 2573,
+      "sha256": "2373d7f4697bf4927aea3aba937d383270a3dbfece901313ca66aaed1aaece2e"
+    },
+    "10-before/site/jacoco/com.example.api/index.html": {
+      "bytes": 3643,
+      "sha256": "6e22c7e7a7919fe3ac63c054b7e9b48e523b9edcab07b4f8a2ced23084ff1157"
+    },
+    "10-before/site/jacoco/com.example.api/index.source.html": {
+      "bytes": 3652,
+      "sha256": "a14b49cc164dd6cf95679c6554b52d9cce584c1715f2e812065dd1f0d5c227b7"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/index.html": {
+      "bytes": 7708,
+      "sha256": "6b3e1739af2c12edce58d83d52bab6a52833e812f1076936a6dca3e55b1336f6"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/index.source.html": {
+      "bytes": 5642,
+      "sha256": "3f2c67ebb8a9b1e1ec2fffcd3637b58e93d7d45b0758ff8989ccbaff42269370"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/JwkRequests$1$1.html": {
+      "bytes": 5284,
+      "sha256": "e6d29a394812790a9d1267aa73d4d0368a306c4af1e5fe12cead8d875107233a"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/JwkRequests$1.html": {
+      "bytes": 5003,
+      "sha256": "9f5165ce962e9135b194735b5df2d4366bf3fa95f77bb934d0e17b8b1f9c4110"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/JwkRequests.html": {
+      "bytes": 4113,
+      "sha256": "6979d85294b01b4abdf546f174dc9e8f4ef91eff9973d286033d4b406a784c08"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/JwkRequests.java.html": {
+      "bytes": 6172,
+      "sha256": "f878390ff7fd0fdd7646519ef520d934c7d1e1116a7b303be664c98c31b9d598"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/RequestExecutionConfiguration.html": {
+      "bytes": 4848,
+      "sha256": "b3f02790b41e7d179e092238ede318d2dd1e94f8fc825a31e17e3c32e4d4cc0a"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/RequestExecutionConfiguration.java.html": {
+      "bytes": 4948,
+      "sha256": "6386730a465359b3ee7122329d8dbb7660b2ac8461e0fc3dda80937bbfe6c685"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/SecurityConfiguration$1.html": {
+      "bytes": 4122,
+      "sha256": "9e42d7b0627c31c2c32c1c687f356304b3805db7255b6b422dd3de725112b913"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/SecurityConfiguration.html": {
+      "bytes": 14779,
+      "sha256": "3baa0d2b48fb8784bc71fcceabae7fcb375f6fc98e9baff561259f90b6514417"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/SecurityConfiguration.java.html": {
+      "bytes": 9180,
+      "sha256": "a07dc9e97abe9b401fb01c0b9a8bc8769cda36e50ba3b4243069c9b5b4b2d3d0"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/TrustPolicy.html": {
+      "bytes": 4728,
+      "sha256": "4b69d9fca9bacafc1a885e7337ede93721131409fb87f0350b25eb2cc79575ff"
+    },
+    "10-before/site/jacoco/com.example.api.configuration/TrustPolicy.java.html": {
+      "bytes": 4358,
+      "sha256": "07682ea17dfc978d56915036390d51a75a431e1e9f30b2721919ac488c55fbc8"
+    },
+    "10-before/site/jacoco/com.example.api.customer/CustomerStatusController$CustomerStatus.html": {
+      "bytes": 2880,
+      "sha256": "2d02c959b12f80311e386e7fe7846348f339ca91a48d1ee89b5fad93eff74fea"
+    },
+    "10-before/site/jacoco/com.example.api.customer/CustomerStatusController.html": {
+      "bytes": 3320,
+      "sha256": "40eee028993644377bfc5f753b7052dd483a2c99df088b694033d56a16dfa562"
+    },
+    "10-before/site/jacoco/com.example.api.customer/CustomerStatusController.java.html": {
+      "bytes": 2232,
+      "sha256": "a8cf97a49b867cd79e52bc3be3a9ceddde15b973ce12707835c224894775b9c8"
+    },
+    "10-before/site/jacoco/com.example.api.customer/index.html": {
+      "bytes": 3651,
+      "sha256": "4cd0a2165f2a50596e67abdfedaa0fe4505ef323455556b15ef232d1434509f4"
+    },
+    "10-before/site/jacoco/com.example.api.customer/index.source.html": {
+      "bytes": 3053,
+      "sha256": "306bd0a5837d1c6c6b14deb55dd1c8a0ee4c7331e921ce0feeac0bbd2cdc88f4"
+    },
+    "10-before/site/jacoco/com.example.api.greeting/Actor.html": {
+      "bytes": 2727,
+      "sha256": "163d140236448aa9b0555a8d50dca75550f353838d4c07213051c6fbc88edf73"
+    },
+    "10-before/site/jacoco/com.example.api.greeting/Actor.java.html": {
+      "bytes": 1578,
+      "sha256": "aaf9838fdd67c7289f1196f6aae5797d07cc790fc5d85e4d2078630374373845"
+    },
+    "10-before/site/jacoco/com.example.api.greeting/Greetings$Greeting.html": {
+      "bytes": 2779,
+      "sha256": "0ecd6f3ae5b409ea6eca09208ca3b0f7f282d2892277f4a0360c2216acc2e4b7"
+    },
+    "10-before/site/jacoco/com.example.api.greeting/Greetings.html": {
+      "bytes": 3217,
+      "sha256": "e37b2b42ec9be61e7bf9324bfd28b385e64ed7c04310dabba2a90087297fee0e"
+    },
+    "10-before/site/jacoco/com.example.api.greeting/Greetings.java.html": {
+      "bytes": 1694,
+      "sha256": "5b545c28be16b62b713485b4abbf9f8d2224f5797a8dc0995d66d2cf44509793"
+    },
+    "10-before/site/jacoco/com.example.api.greeting/index.html": {
+      "bytes": 4109,
+      "sha256": "f1199ba8f813fe629a5309984c55fb0b313ee9816f8dd75d9ac5532b1a364f72"
+    },
+    "10-before/site/jacoco/com.example.api.greeting/index.source.html": {
+      "bytes": 3564,
+      "sha256": "1f6a97a354e40895e2d94c11a183b45b5dd60ed0c51ac1e90cb62975a438fd0e"
+    },
+    "10-before/site/jacoco/com.example.api.notes/DatabaseConfiguration.html": {
+      "bytes": 7115,
+      "sha256": "75be8525c957312d559abc11152c1ee51a0822a0948292cc2a24e3680b9bafc4"
+    },
+    "10-before/site/jacoco/com.example.api.notes/DatabaseConfiguration.java.html": {
+      "bytes": 9073,
+      "sha256": "aada178651378a6fd888e12f01e8778744fd54501f68a22787db15fd7b92a879"
+    },
+    "10-before/site/jacoco/com.example.api.notes/index.html": {
+      "bytes": 10472,
+      "sha256": "96d7be0f4b6717df6a5615e01f9b520af1cd4160c1534953dbba62264aba3174"
+    },
+    "10-before/site/jacoco/com.example.api.notes/index.source.html": {
+      "bytes": 6376,
+      "sha256": "6a43cc2d6527a77bbb6a34102782d5705132f63921c1bec89d577af1be9bde87"
+    },
+    "10-before/site/jacoco/com.example.api.notes/JsonInputConfiguration.html": {
+      "bytes": 3852,
+      "sha256": "961ff8c82a5c35825065a4881f76cc5ca6f930107d4f680f8bc96be72fa061fd"
+    },
+    "10-before/site/jacoco/com.example.api.notes/JsonInputConfiguration.java.html": {
+      "bytes": 2081,
+      "sha256": "88846de3ad45e4cf4993e138ff09bde26bd8a54b28b657a3f823a638cae503ba"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes$EditNote.html": {
+      "bytes": 2761,
+      "sha256": "b65f72b16a769da1c7baed6c97438ed41f5aa52adc9370ebe915e840432bc2ed"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes$NewNote.html": {
+      "bytes": 2858,
+      "sha256": "3e70bc81ab74863c2fd1db1b174df59708a6bfe2c2a39c07a6e7c8bec28dec85"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes$Note.html": {
+      "bytes": 2765,
+      "sha256": "044daea8063f00fa3b9af6b8cf632e339ef8996660fef4b47354f110c12ef70e"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes$Page.html": {
+      "bytes": 2751,
+      "sha256": "d48f9af281f6ba2c5dab4d6cb8fe2d4300a9213dba11e0de3179c082d4f9d179"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes$PageQuery.html": {
+      "bytes": 3033,
+      "sha256": "9ac32ad9ccf246b3f27f58e63d94ec9bf2f12d9f6ed382ca78a13c72572c80cf"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes$Workspace.html": {
+      "bytes": 2760,
+      "sha256": "779f72f2b3f0cb9d8ef8b6bc66c7096ec0a34f93a8cb5ee1c2202239844b2daa"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes.html": {
+      "bytes": 13678,
+      "sha256": "09bdb95fef3965feaf10e256392dcab0e8c08b592ccf715ed4f3a26784c2db60"
+    },
+    "10-before/site/jacoco/com.example.api.notes/Notes.java.html": {
+      "bytes": 11729,
+      "sha256": "21c90da3dc0aafbe55dd5b1401b144cae9e0ddb33854c9b6a8d893eb81e66a29"
+    },
+    "10-before/site/jacoco/com.example.api.notes/NotesController$WorkspaceInput.html": {
+      "bytes": 2824,
+      "sha256": "831336a8e4e922377b101a3a4fda1fad76beee88fea36f19559899e134bbfe83"
+    },
+    "10-before/site/jacoco/com.example.api.notes/NotesController.html": {
+      "bytes": 6331,
+      "sha256": "6dc2d1e72aa01db5489b2008e1821988ba98f3ba9882c40da3c2d427c67caf09"
+    },
+    "10-before/site/jacoco/com.example.api.notes/NotesController.java.html": {
+      "bytes": 4616,
+      "sha256": "a478fd62b1cfaed867116fa193a67596c8f707404361262fff44e9915e2ba06a"
+    },
+    "10-before/site/jacoco/com.example.api.notes/NotesErrors.html": {
+      "bytes": 4226,
+      "sha256": "a716f5af99ac4356ed1eb01d94856dba703f61221aa222fb6bc19c2c525e3b73"
+    },
+    "10-before/site/jacoco/com.example.api.notes/NotesErrors.java.html": {
+      "bytes": 4812,
+      "sha256": "4e9e5825014e1b699533ff86f1de00d9913290ba03831fa7a680bc10f084c277"
+    },
+    "10-before/site/jacoco/com.example.api.notes/NotesFailure.html": {
+      "bytes": 3232,
+      "sha256": "0a510602df30d77596d86900e08a6083ac5a8f44fd7cf3ac291c873987a9adad"
+    },
+    "10-before/site/jacoco/com.example.api.notes/NotesFailure.java.html": {
+      "bytes": 1609,
+      "sha256": "a569305b747199f19305e6a16c7f4907f2da11c52bf505615e80d28698389af4"
+    },
+    "10-before/site/jacoco/jacoco-resources/branchfc.gif": {
+      "bytes": 91,
+      "sha256": "a90e2acee1486fcc06a9dc77dc3a2c7d1103f9f65a9c833834c22079ca446d76"
+    },
+    "10-before/site/jacoco/jacoco-resources/branchnc.gif": {
+      "bytes": 91,
+      "sha256": "cfd1d5ad1e939c895fc6c3a4b621f5b4bec61a4b71f8386d3520f0920930ba1f"
+    },
+    "10-before/site/jacoco/jacoco-resources/branchpc.gif": {
+      "bytes": 91,
+      "sha256": "a419dc4732e7c225b409bfd5457263de4f20b6aa9737f4636f6dfad36b194b1d"
+    },
+    "10-before/site/jacoco/jacoco-resources/bundle.gif": {
+      "bytes": 709,
+      "sha256": "22656fa2e683f8e5f7adae31f091ce045fc91f042a8fed82ee7a05fc4029e0c2"
+    },
+    "10-before/site/jacoco/jacoco-resources/class.gif": {
+      "bytes": 586,
+      "sha256": "7ad9ac2c3f87d220f46d077e1b03d743ba45084cbbbccc2577e18c167f0fb2b1"
+    },
+    "10-before/site/jacoco/jacoco-resources/down.gif": {
+      "bytes": 67,
+      "sha256": "69233accdde9fbbeef01a6bb5c117a4af85f24f7312054bccbeb0f64b7bb437c"
+    },
+    "10-before/site/jacoco/jacoco-resources/greenbar.gif": {
+      "bytes": 91,
+      "sha256": "a29475aae8c0a107bc41459eb2ca079bc34fc5092f107a78a287c4864b325791"
+    },
+    "10-before/site/jacoco/jacoco-resources/group.gif": {
+      "bytes": 351,
+      "sha256": "eb39f2e57cabfd740ab8d0c5fb4b26fc5ca71b334e2cfc8d6481c34842b4c360"
+    },
+    "10-before/site/jacoco/jacoco-resources/method.gif": {
+      "bytes": 193,
+      "sha256": "6308ea5fba7f5e989f67e3e9bb3366f0cb4c90ab72e838af7ff813aca5aac487"
+    },
+    "10-before/site/jacoco/jacoco-resources/package.gif": {
+      "bytes": 227,
+      "sha256": "82577b6b416bbf65cc99bc1c249e6462ae4ac708687fe2e1428b610c049300c2"
+    },
+    "10-before/site/jacoco/jacoco-resources/prettify.css": {
+      "bytes": 323,
+      "sha256": "2247d0cf27cb7fd9cd850eb33444c059f261eb63a718c26b8f357a938401c5f9"
+    },
+    "10-before/site/jacoco/jacoco-resources/prettify.js": {
+      "bytes": 59057,
+      "sha256": "743c6c4cab9499cd0bfe18a5a62281eccce843f47ec75eedb32eeb29c755aa68"
+    },
+    "10-before/site/jacoco/jacoco-resources/redbar.gif": {
+      "bytes": 91,
+      "sha256": "906ce7fcec0fbac1a26c16521e375f020a513f0cf87888766b69c4bf63f4d9bd"
+    },
+    "10-before/site/jacoco/jacoco-resources/report.css": {
+      "bytes": 4046,
+      "sha256": "0c464ff9ce9154fdf1a041b0efed7bc31da4a4c9744249d8ffa6b80f1c36ed9e"
+    },
+    "10-before/site/jacoco/jacoco-resources/report.gif": {
+      "bytes": 363,
+      "sha256": "c765cafa65ec9a3c221b46062c6ef691f2dd5ff25628ee2c65cc9fe0b74aeea6"
+    },
+    "10-before/site/jacoco/jacoco-resources/session.gif": {
+      "bytes": 213,
+      "sha256": "1ec062e347bc7db837b9471b6c6128e1d0a5ae8d4c6a2eaa8fee4d5cb6441dab"
+    },
+    "10-before/site/jacoco/jacoco-resources/sort.gif": {
+      "bytes": 58,
+      "sha256": "1875d39ff1be841991aa768486f1bcfc0ca02969323e2d2ec52ec156bb5cf240"
+    },
+    "10-before/site/jacoco/jacoco-resources/sort.js": {
+      "bytes": 3956,
+      "sha256": "15c9a3f8a4dac379c8521491fd7949f0b705cad53be33512eb8b0741fd1202df"
+    },
+    "10-before/site/jacoco/jacoco-resources/source.gif": {
+      "bytes": 354,
+      "sha256": "50257f70adf3ebe4d18bb2432a61370dac06dad7a45f235c8e5f376081251ac3"
+    },
+    "10-before/site/jacoco/jacoco-resources/up.gif": {
+      "bytes": 67,
+      "sha256": "e1ce2c1d5128b701f2dc5bb5f63c5c402d5d8125ad9c3ffc31c6abc7767899a0"
+    }
+  }
+}
