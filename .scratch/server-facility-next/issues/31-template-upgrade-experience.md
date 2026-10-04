@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+2026-10-04：30已由CI20候选`61094b53b23b5d00759df3e6837999bc63af0f44`的Windows/Ubuntu all、platform和归档成功闭合，本票所有前置现已完成，可正式领取。工作树外neutral harness、历史升级脚本及短审是准备证据，尚未执行本票实际新旧任务/升级验收。
+
 **Traceability:** FR-07、FR-08、FR-09、FR-10；AC-03、AC-11、AC-12、AC-14、AC-15
 
 ## Acceptance criteria

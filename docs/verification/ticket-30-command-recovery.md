@@ -1,6 +1,6 @@
 # Ticket30：不确定提交恢复与回执清理证据
 
-2026-10-04。实现冻结 `cd79a19540d1c4b1ce6ed26af3e14205bf1d79c3`，基于 CI19 后集成 `3f25c38a680be498ead77bf29fb7d5caf30537f6`。本报告覆盖 FR04、AC05/06 与 J10。Windows 最终同源完整门已通过；Linux 与最终同源 CI 尚待集成，不能以本机结果代替。
+2026-10-04。实现冻结 `cd79a19540d1c4b1ce6ed26af3e14205bf1d79c3`，基于 CI19 后集成 `3f25c38a680be498ead77bf29fb7d5caf30537f6`。本报告覆盖 FR04、AC05/06 与 J10。Windows 最终同源完整门已通过；后续CI20候选 `61094b53b23b5d00759df3e6837999bc63af0f44` 的Windows/Ubuntu all、platform及归档均成功，已[闭合30](ticket-30-ci20.md)。本报告的精确本地计数、资源观测与产物SHA仍归各自冻结来源，不代替未读取的CI内部报告。
 
 ## 变更与保证
 
@@ -21,9 +21,9 @@ V4 只新增应用私有 maintenance function 和仍含 receipt 的 partial expi
 | Q05 资源 | 子JVM128MiB/2CPU、pool4、HTTP10s、startup45s、正常stop15s+强制5s、PG观察5s且单查询3s、每child证据128files/16MiB；精确kill后pending future有限结束且独立PG会话归零；每方法DB正常DROP无FORCE；identity清理不释放quota。 |
 | Q06 兼容 | 冻结CI19的V1–V3 SQL checkpoint；独立Python length-prefix/SHA256金样与字面SQL历史receipt，真实升级到V4后HTTP恢复原ID/Location/Unicode正文，再清理410。不是已有生产版本承诺。 |
 | Q07 状态性质 | 固定seed30005364，6轮打乱8动作共48步：replay/conflict/expire/clear/revoke/restore/delete/clock-back；每步独立模型检查效果0/1、identity1、charge1。无宿主时钟修改或无界fuzz。 |
-| Q08 环境诊断 | JDK25.0.4.1、Windows11 10.0 amd64、Asia/Shanghai、Maven3.10.0、native PostgreSQL18.6；clean冻结SHA、原始失败账本、每子PID事件/预算/退出、PG原生日志与有界统计保留。测试issuer与secret是人工fixture，无真实凭证。 |
+| Q08 环境诊断 | 本地JDK25.0.4.1、Windows11 10.0 amd64、Asia/Shanghai、Maven3.10.0、native PostgreSQL18.6；clean冻结SHA、原始失败账本、每子PID事件/预算/退出、PG原生日志与有界统计保留。测试issuer与secret是人工fixture，无真实凭证。CI20已补齐同源Linux及双OS完整组合，精确metadata与限制另记。 |
 | Q09 质量 | 原指令/行88%、分支75%及架构/依赖门保留；8个新测试类被Verify强制发现；新的schema-v3与fault host不能进入生产jar。进程独立coverage不合并冒充父coverage。 |
-| Q10 交付 | 产品、ADR/协议/README、历史样本、fault测试、Verify归档同票；本机最终all、双OS CI来源分别记录。未验证不勾选closed。 |
+| Q10 交付 | 产品、ADR/协议/README、历史样本、fault测试、Verify归档同票；本机最终all、双OS CI来源分别记录。CI20实际成功后Q10闭合，30closed；31/33仍保留自己的最终验收责任。 |
 
 ## RED/GREEN 与失败账本
 
@@ -51,7 +51,7 @@ V4 只新增应用私有 maintenance function 和仍含 receipt 的 partial expi
 
 模板打包内 `BOOT-INF/lib/server-facility-0.1.0-SNAPSHOT.jar` 的SHA与普通jar完全相同，runner另做完整字节比较。这里记录同一Windows来源的实际产物，未据此宣称跨OS可复现构建；最终33负责同一候选的发布身份与重现核验。
 
-Linux通过已有CI执行：本票未改workflow，也不增加外部服务/secret先决条件。现有PG准备入口与全门会执行新增tests及归档；预计模板阶段较29增加独立child恢复成本。本地完整门不是未来CI通过保证，ticket30仍待双OS正式来源通过后关闭。
+Linux已通过既有CI20执行：本票未改workflow，也未增加外部服务/secret先决条件。现有PG准备入口与全门执行最终测试输入及归档，两个OS的all/platform/archive均success。30据此关闭；先前本地完整门没有被当作CI通过保证，具体闭合来源与公开证据范围见[CI20报告](ticket-30-ci20.md)。
 
 
 复现（仓库根目录、同一冻结源码；runner 自建 fresh Maven repository 和 Wrapper cache）：

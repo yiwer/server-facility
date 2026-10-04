@@ -259,3 +259,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 机器账本及原始证据记录19个child退出/PG会话归零、6精确kill、71个自有数据库DROP成功；最终语句取消5002ms对应5000ms服务端预算。原fast-stop/fsync/no-FORCE、正常HTTP与授权/事务政策不变。局部独立短审无产品阻断，完整PK保护是实际GREEN回归增强，不伪造RED；所有先前失败按来源保留。
 - 从干净`3f25c38a680be498ead77bf29fb7d5caf30537f6`以--no-ff合最终`16214eb8ef09888f65c2a2ff4dd7fcb5546757f8`为`57c5028fc757baca0ce60d2770c92a710fec7909`，无冲突。交接相对冻结仅本票/报告两Markdown差异；集成产品/测试/模板/runner/workflow/Wrapper等于交接树。中央删除报告中未观测的CI19内部108项对比措辞，不改实测130项或任何源码。
 - 登记ADR0053，共54条实际ADR，延续0052而不替换原事务协议；补CHANGELOG的维护/升级与不确定结果边界。30设verification-pending，Q08/Q10待CI20，closed仍30；31/33前置仍保留。用户已授权既有CI，推送一次新实现候选，不重复相同本地all。历史原始证据由root归档维护，中央未并发改其index。
+
+## CI20闭合30，释放31
+
+- `61094b53b23b5d00759df3e6837999bc63af0f44` / run37176585182于UTC2026-10-04T04:37:55Z completed/success。Ubuntu111360340295、Windows111360340365的完整all、独立platform和归档均success。主树`.verification-results/ci-20/`保存初始/阶段快照、最终run/jobs/artifacts及两个OS的annotations；[CI20报告](../../verification/ticket-30-ci20.md)列明artifact ID、归档digest和公开API的可见范围。
+- 30的Q08/Q10及共同完成项闭合，票设closed，正式累计31张。cd79a195的137命令、库1774/模板130、19个child/6次kill/71个数据库scope及三类jar SHA继续仅归本地冻结来源；没有把公开CI元数据补写成未读取的内部日志或跨OS jar同hash证明。历史失败/真实RED和各阶段修复证据继续保留。
+- 31的全部前置解除，保留ready-for-agent供正式领取；工作树外中立harness、升级稿与独立短复核仍属准备，尚未开始正式旧/新五类任务或历史升级验收。33仍等待31，并独立承担最终同一候选的全部接合、制品身份/可复现性及标准/规格双轴审查。
+- 此次仅更新票、报告和中央状态，实际ADR仍54条。产品/测试/模板/runner/消费者/workflow/Wrapper保持CI20被测内容，不重跑相同来源的本地门，不单独push纯文档提交；后续状态提交不冒称CI20已验证其SHA。旧actions通知及Ubuntu未来镜像迁移通知交33冻结时核对。
