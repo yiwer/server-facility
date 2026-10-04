@@ -1,0 +1,12 @@
+{
+  "scope": "immutable measured corpus; local synthetic fixtures; no caches/private signing keys copied",
+  "corpusRoot": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark",
+  "comparisonSha256": "df3a9a6113bbdc464133c9c664b41f28b80a030075899cc96ecd7ee379dcbce0",
+  "evidenceManifestSha256": "e006dde3bff6da6d7dbda7738c274900b0880fa758696707d7ce088d14f7d5a0",
+  "evidenceFiles": 1318,
+  "evidenceBytes": 306889855,
+  "finalNewSourceZipSha256": "55e6ff4183d72699c58f8b5312695d3f217c48cf9d6715b4a5e6912636229c0f",
+  "finalNewSourceManifestSha256": "514f54d581882e16479688cb722a03d04c2620efe08bfd1f311a7bc3686db98d",
+  "finalNewExecutableSha256": "ed06aedc07f9b305c8c7b556606affe395405c0571fb69552ad5122c9a69346e",
+  "postBenchmarkRoot": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-delivery-evidence"
+}

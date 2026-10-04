@@ -97,6 +97,8 @@ jobs:
             .verification-results/**/matrix/**
             .verification-results/**/template-inputs/**
             .verification-results/**/template/**
+            .verification-results/**/workflow/**
+            .verification-results/**/workflow-source-fixture/**
             .verification-results/**/json-golden/**
             .verification-results/**/surefire-reports/**
             .verification-results/**/jacoco/**

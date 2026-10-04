@@ -84,6 +84,7 @@ class Verify {
                     partnerConsumer();
                     workflowSourceFixture();
                     securedTemplate();
+                    workflowConsumer();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
                     // Each application gets a distinct bounded JVM and must close naturally within 45 seconds.
@@ -372,6 +373,82 @@ class Verify {
         summary.add("template-coverage-negative=clean independent copy without test execution rejected by required coverage gate");
         summary.add("template=tests " + tests + " failures=0 errors=0 skipped=0; fresh directory outside checkout; independent Wrapper; actual packaged HTTP platform/virtual");
         summary.add("sha256 secured-api.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
+    }
+
+    static void workflowConsumer() throws Exception {
+        Path application = Files.createTempDirectory("facility-workflow-").toRealPath().resolve("assembly api-示例-שלום");
+        Path evidence = Files.createDirectories(report.resolve("workflow"));
+        Path copier = evidence.resolve("Instantiate.java"), overlay = evidence.resolve("example"), client = evidence.resolve("WorkflowConsumer.java");
+        Files.copy(ROOT.resolve("templates/Instantiate.java"), copier);
+        copyDirectory(ROOT.resolve("examples/assembly-workflow"), overlay);
+        Files.copy(ROOT.resolve("verification/workflow-consumer/WorkflowConsumer.java"), client);
+        run(ROOT, Map.of(), "workflow-instantiate", List.of(java(), copier.toString(), ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
+        run(ROOT, Map.of(), "workflow-overlay", List.of(java(), overlay.resolve("Apply.java").toString(), overlay.toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
+        Path lineage=evidence.resolve("TemplateLineage.java");Files.copy(ROOT.resolve("verification/template-consumer/TemplateLineage.java"),lineage);
+        run(ROOT, Map.of(), "workflow-lineage", List.of(java(), lineage.toString(), application.toString()), 45, null);
+        Path inputs = evidence.resolve("inputs");copyDirectory(application, inputs);
+        run(ROOT, Map.of(), "workflow-overlay-refuse-reapply", List.of(java(), overlay.resolve("Apply.java").toString(), overlay.toUri().toASCIIString(), application.toUri().toASCIIString()), 45, "Template preimage mismatch");
+        try (var files = Files.walk(inputs)) {
+            for (Path input : files.filter(Files::isRegularFile).sorted().toList()) {
+                Path relative=inputs.relativize(input);
+                if (!Arrays.equals(Files.readAllBytes(input), Files.readAllBytes(application.resolve(relative))))
+                    throw new AssertionError("Rejected overlay changed " + relative);
+                summary.add("sha256 workflow/inputs/" + relative + "=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(input))));
+            }
+        }
+        summary.add("workflow-independent-directory=" + application);
+        try { maven(application, "workflow-build", "clean", "verify"); }
+        finally {
+            for (var item : Map.of("target/surefire-reports", "positive-surefire-reports", "target/site/jacoco", "jacoco").entrySet())
+                if (Files.isDirectory(application.resolve(item.getKey()))) copyDirectory(application.resolve(item.getKey()), evidence.resolve(item.getValue()));
+            for (String name : List.of("postgres-scope-cleanup.jsonl", "receipt-maintenance-metrics.jsonl"))
+                if (Files.isRegularFile(application.resolve("target/" + name))) Files.copy(application.resolve("target/" + name), evidence.resolve(name));
+        }
+        var factory = DocumentBuilderFactory.newInstance();factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        long tests=0;var discovered=new HashSet<String>();var base=new HashSet<String>();
+        try(var files=Files.list(report.resolve("template/surefire-reports"))) {
+            for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList())
+                base.add(factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement().getAttribute("name"));
+        }
+        try(var files=Files.list(evidence.resolve("positive-surefire-reports"))) {
+            for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList()) {
+                var suite=factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement();
+                tests+=Long.parseLong(suite.getAttribute("tests"));discovered.add(suite.getAttribute("name"));
+                for(String outcome:List.of("failures","errors","skipped"))
+                    if(Long.parseLong(suite.getAttribute(outcome))!=0)throw new AssertionError("Workflow "+outcome+": "+file);
+            }
+        }
+        base.addAll(Set.of("com.example.api.BenchmarkHttpTest", "com.example.api.BenchmarkQuotesHttpTest", "com.example.api.BenchmarkFailuresHttpTest",
+                "com.example.api.BenchmarkStockHttpTest", "com.example.api.BenchmarkImportHttpTest", "com.example.api.WorkflowAdmissionHttpTest",
+                "com.example.api.WorkflowOutboundHttpTest", "com.example.api.WorkflowImportInterruptionTest", "com.example.api.WorkflowTypeAwareUploadTest"));
+        if(!discovered.equals(base))throw new AssertionError("Workflow test discovery differs: expected="+base+" actual="+discovered);
+        maven(application, "workflow-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));
+        maven(application, "workflow-dependencies", "dependency:tree", "-DoutputFile=" + evidence.resolve("dependency-tree.txt"),
+                "dependency:build-classpath", "-Dmdep.outputFile=" + evidence.resolve("classpath.txt"));
+        installedClasspath(application, evidence.resolve("classpath.txt"));
+        Path jar=application.resolve("target/secured-api-1.0.0-SNAPSHOT.jar");byte[] runtime=Files.readAllBytes(ROOT.resolve("target/"+FACILITY_JAR));
+        try(var archive=new java.util.zip.ZipFile(jar.toFile())) {
+            var nested=archive.getEntry("BOOT-INF/lib/"+FACILITY_JAR);
+            if(nested==null)throw new AssertionError("Workflow ordinary runtime missing");
+            try(var stream=archive.getInputStream(nested)){if(!Arrays.equals(stream.readAllBytes(),runtime))throw new AssertionError("Workflow runtime identity differs");}
+            if(archive.stream().anyMatch(entry->entry.getName().contains("TestIssuer") || entry.getName().contains("LocalIssuer")
+                    || entry.getName().contains("CooperativeSource") || entry.getName().contains("WorkflowOutboundHttpTest")
+                    || entry.getName().contains("jacoco") || entry.getName().contains("tika-core")))
+                throw new AssertionError("Workflow test-only dependency/source leaked into executable");
+        }
+        Path archived=Files.createDirectories(evidence.resolve("artifacts")).resolve("workflow-application.jar");Files.copy(jar,archived);
+        String jarHash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar)));
+        String runtimeHash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(runtime));
+        Files.writeString(evidence.resolve("artifact-manifest.json"), """
+                {"role":"assembly-workflow", "applicationGav":"com.example:secured-api:1.0.0-SNAPSHOT",
+                 "artifact":"artifacts/workflow-application.jar", "sha256":"%s", "bytes":%d,
+                 "nestedRuntimeGav":"cn.code91:server-facility:%s", "nestedRuntimeSha256":"%s", "nestedRuntimeBytes":%d,
+                 "positiveSuites":"positive-surefire-reports", "positiveTests":%d, "coverage":"jacoco/jacoco.xml"}
+                """.formatted(jarHash,Files.size(jar),FACILITY_VERSION,runtimeHash,runtime.length,tests));
+        Path log=run(application,Map.of(),"workflow-packaged-http",List.of(java(),"-Xmx96m",client.toString(),application.toUri().toASCIIString(),evidence.toUri().toASCIIString()),180,null);
+        if(!Files.readString(log).contains("PACKAGED_WORKFLOW_PASS"))throw new AssertionError("Workflow packaged result missing");
+        summary.add("workflow=tests "+tests+" failures=0 errors=0 skipped=0; all original template suites retained;88/88/75 unchanged;actual executable platform/virtual;post-benchmark qualification");
+        summary.add("sha256 workflow-application.jar="+jarHash+" bytes="+Files.size(jar)+" nested-runtime="+runtimeHash+" manifest=workflow/artifact-manifest.json");
     }
 
     static void consumer(String scenario) throws Exception {
