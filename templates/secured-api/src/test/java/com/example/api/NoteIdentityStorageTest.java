@@ -1,5 +1,9 @@
 package com.example.api;
 
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import static com.example.api.NotesHttpTest.*;
@@ -30,10 +34,24 @@ class NoteIdentityStorageTest {
                 var signature = java.security.Signature.getInstance("SHA256withRSA"); signature.initSign(issuer.a.getPrivate());
                 signature.update(unsigned.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
                 String token = unsigned + "." + Base64.getUrlEncoder().withoutPadding().encodeToString(signature.sign());
-                var rejected = send(app, "POST", "/api/workspaces", token, "{\"name\":\"Rejected\"}");
-                assertThat(rejected.statusCode()).isEqualTo(400);
-                assertThat(JSON.readTree(rejected.body()).path("code").asString()).isEqualTo("invalid_actor");
-                assertThat(rejected.body()).doesNotContain("bad", "insert", "postgres");
+                for (String traceId : List.of("0123456789abcdef0123456789abcdef", "0123456789abcdef0123456789baddef")) {
+                    var request = HttpRequest.newBuilder(URI.create(app.base + "/api/workspaces"))
+                            .timeout(Duration.ofSeconds(10)).header("Content-Type", "application/json")
+                            .header("Authorization", "Bearer " + token)
+                            .header("traceparent", "00-" + traceId + "-1234567890abcdef-01")
+                            .POST(HttpRequest.BodyPublishers.ofString("{\"name\":\"Rejected\"}")).build();
+                    var rejected = app.client.send(request, HttpResponse.BodyHandlers.ofString());
+                    assertThat(rejected.statusCode()).isEqualTo(400);
+                    var problem = (tools.jackson.databind.node.ObjectNode) JSON.readTree(rejected.body());
+                    assertThat(problem.path("code").asString()).isEqualTo("invalid_actor");
+                    assertThat(problem.path("traceId").asString()).isEqualTo(traceId);
+                    assertThat(problem.path("instance").asString()).isEqualTo("urn:facility:error:" + traceId);
+                    // Correlation metadata may contain the input sentinel by coincidence.
+                    // Validate it exactly before checking every remaining public error field.
+                    problem.remove("traceId");
+                    problem.remove("instance");
+                    assertThat(problem.toString()).doesNotContain("bad", "insert", "postgres");
+                }
             }
         }
     }
