@@ -48,10 +48,11 @@ Result<User, MyErr> fromNul = Result.fromNullable(maybeNull, () -> new MyErr());
 - **排障指引**:`getFormattedMessage()` 面向用户,不含参数上下文(防路径泄漏,债 1 决议);排障用
   `getArgs()` 或 `toString()`(含 `args=[...]`)。
 
-## ID 生成:IdUtil
+## ID 生成：JDK UUID 与显式 SnowId
 
 ```java
-Long id            = IdUtil.snowId();              // 雪花 ID(long)
+UUID newBusinessId = UUID.randomUUID();           // 新业务默认
+Long id            = IdUtil.snowId();              // 旧协议：须显式配置/提供 generator
 UUID u             = IdUtil.uuid();
 String s1          = IdUtil.uuidStr();             // 带连字符
 String s2          = IdUtil.uuidSimpleStr();       // 无连字符
@@ -63,8 +64,7 @@ long worker        = IdUtil.parseWorkerId(id);
 String info        = IdUtil.parseInfo(id);         // 可读摘要
 ```
 
-worker/dataCenter 经 `facility.id.*` 配置(见开关全表)。范围校验在 `SnowIdGenerator` 构造器
-兜底(ADR-0013),越界配置在启动时失败而非绑定时。
+默认不装配 SnowId，IdUtil 已弃用且没有节点0回退。显式启用必须配置两项节点0–3；UUID由应用直接生成或注入应用自有Supplier。SnowId的节点分配、重启高水位、55位旧协议和有限等待见[标识迁移](building/identifier-policy.md)。
 
 ## JSON:JsonUtil
 
@@ -582,11 +582,12 @@ var writtenExcel = ExcelUtil.write(outputStream, rowIterable, excelLimits);
 ```yaml
 facility:
   id:
-    enabled: true
-    worker-id: 0                 # 0..3(2 bit,构造器守卫)
-    data-center-id: 0            # 0..3(2 bit,构造器守卫)
+    enabled: false              # 新应用使用 JDK UUID；选择 SnowId 时显式启用
+    worker-id: -1                # 缺配置；启用时须明确分配0..3
+    data-center-id: -1           # 缺配置；启用时须明确分配0..3
     clock-backwards-threshold-millis: 5
-    throw-on-clock-backwards-exceed-threshold: true   # false=回拨不抛,无界等待追上(阻塞,ADR-0023)
+    throw-on-clock-backwards-exceed-threshold: true   # false允许更大回拨，但仍受预算/中断限制
+    wait-timeout: 1s             # 正数且至多1分钟；准入/恢复/序列等待共用预算，ADR0033
     start-timestamp: 1735660800000  # 纪元起点(2025-01-01 00:00:00 UTC+8);投产后勿改,否则既有 ID 时间解析/排序错乱
   web:
     trace:

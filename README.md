@@ -88,9 +88,9 @@ Web / XSS / MIME 探测 / Excel / Caffeine 等重依赖声明为 Maven `optional
 Result<User, WrappedError> r = userService.findById(id);
 String name = r.map(User::getName).orElse("unknown");
 
-// 2) ID 生成：雪花 ID 与 UUID
-Long id = IdUtil.snowId();
-String uuid = IdUtil.uuidSimpleStr();
+// 2) 新业务 ID：JDK UUID；旧 SnowId 须显式节点和有限等待政策
+UUID id = UUID.randomUUID();
+String uuid = id.toString();
 
 // 3) JSON：序列化返回 Result，不抛异常
 Result<String, WrappedError> json = JsonUtil.serialize(user);
@@ -126,7 +126,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `structure` | `Tuple` / `Triple` | 轻量二/三元值容器 |
 | `common` | `NullSafe` / `Collects` | 空安全与集合便捷 |
 | `context` | 构造器注入；兼容 `SpringContextHolder` | 默认注入应用自己的服务；旧门面按实例归属发布/撤销 context |
-| `id` | `IdUtil` | 雪花 ID（可配 worker/dataCenter）+ UUID 多形态 |
+| `id` | JDK UUID / 显式 `SnowIdGenerator` | UUID 默认；旧55位协议、显式节点与有界等待，[迁移](docs/building/identifier-policy.md) |
 | `json` | `Jsons` / `JsonConfig` | 应用 mapper 注入、不可变 builder、安全 Result 错误通道；JsonUtil 保留 standalone 静态预设 |
 | `log` | 应用 SLF4J；旧 LogUtil | 新路径标准日志与字段白名单；旧二次分发只保留兼容，不是审计 |
 | `date` | `DateUtil` | 日期格式化/解析（返回 Result）、区间规范化 |
@@ -158,7 +158,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 
 | 前缀 | 作用 |
 |---|---|
-| `facility.id` | 雪花 ID：`worker-id` / `data-center-id` / `clock-backwards-threshold-millis` |
+| `facility.id` | 默认关闭；显式节点/epoch/回拨政策及 `wait-timeout` |
 | `facility.web.trace` | 旧 TraceId 过滤器，默认禁用；仅显式兼容 opt-in，新应用使用标准 Micrometer tracing |
 | `facility.web.repeatable-request` | 可重复读请求体：`max-body-bytes` / `include-content-types` / `exclude-paths` |
 | `facility.web.access-log` | 访问日志拦截器：`slow-threshold-millis`（超阈升 WARN 标记 slow；0=禁用） |

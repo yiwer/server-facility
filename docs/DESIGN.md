@@ -114,7 +114,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0020 | 日志脱敏——`LogUtil` 写前集成(`LogPostHandler` 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
 | 0021 | 保留裸列表、无表头ORM与POI optional；CSV政策由0038、Excel预算/公式/临时资源/实际引擎保证由0039部分替代 |
 | 0022 | `LogUtil` 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
-| 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
+| 0023 → 0033 | 旧无限等待被显式节点、共享单调预算与中断替代；新应用直接JDK UUID |
 | 0024 | Java 25、固定校验 Wrapper、独立普通 jar 与跨平台入口；Boot3中间版本由0045部分替代 |
 | 0025 | Context 注册归实例所有、刷新/关闭隔离；构造器注入为默认，ID/日志兼容入口不跨 context 缓存 Spring bean |
 | 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |

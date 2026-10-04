@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import java.time.Duration;
 
 /**
  * SnowIdGenerator configuration knobs.
@@ -23,24 +24,27 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "facility.id")
 public class FacilityIdProperties {
 
-    /** Enable SnowIdGenerator autoconfiguration. Default: true. */
-    private boolean enabled = true;
+    /** Explicitly enable coordinated SnowId generation. New applications use JDK UUID. */
+    private boolean enabled = false;
 
-    /** Worker node id (0–3, 2 bits). */
+    /** Explicit worker node id (0–3, 2 bits); -1 denotes missing configuration. */
     @Min(0) @Max(3)
-    private int workerId = 0;
+    private int workerId = -1;
 
-    /** Data center id (0–3, 2 bits). */
+    /** Explicit data center id (0–3, 2 bits); -1 denotes missing configuration. */
     @Min(0) @Max(3)
-    private int dataCenterId = 0;
+    private int dataCenterId = -1;
 
-    /** Clock-backwards ≤ this many ms is absorbed by bounded spin (cap = max(1s, threshold)). Above it, behavior follows throw-on-clock-backwards-exceed-threshold. Default 5. */
+    /** Nonnegative rollback threshold; recovery always shares the per-call waitTimeout. Default 5ms. */
     @Min(0)
     private long clockBackwardsThresholdMillis = 5L;
 
-    /** true: backwards above threshold throws ClockBackwardsException. false: NEVER throws — nextId() waits (unbounded, ~1ms park steps) until the clock catches up; ID generation blocks for the whole backwards span (ADR-0023). Default true. */
+    /** true rejects rollback above threshold immediately; false permits bounded recovery, not infinite waiting (ADR0033). */
     private boolean throwOnClockBackwardsExceedThreshold = true;
 
     /** Epoch start (2025-01-01 00:00:00 UTC+8 by default). */
     private long startTimestamp = 1_735_660_800_000L;
+
+    /** Total admission and clock wait per call; positive and at most one minute. */
+    private Duration waitTimeout = Duration.ofSeconds(1);
 }

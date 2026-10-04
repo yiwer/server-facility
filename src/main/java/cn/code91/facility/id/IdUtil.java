@@ -6,37 +6,13 @@ import cn.code91.facility.id.support.SnowIdGenerator;
 import java.util.UUID;
 
 /**
- * <b>ID生成工具类 - 重构版本</b>
- * <p>
- * 提供多种 ID 生成策略，包括雪花算法ID和UUID。
- * 雪花算法ID支持分布式环境，可通过Spring配置注入自定义的{@link SnowIdGenerator}。
- * </p>
- *
- * <h3>重构改进：</h3>
- * <ul>
- *     <li><b>修复DCL问题</b>：正确的双重检查锁定实现</li>
- *     <li><b>性能优化</b>：避免重复的Spring Bean查找</li>
- *     <li><b>逻辑清晰</b>：明确的初始化流程</li>
- * </ul>
- *
- * <h3>使用示例：</h3>
- * <pre>{@code
- * // 生成雪花ID
- * Long id = IdUtil.snowId();
- *
- * // 生成UUID
- * UUID uuid = IdUtil.uuid();
- * String uuidStr = IdUtil.uuidStr();
- *
- * // 解析雪花ID
- * long timestamp = IdUtil.parseTimestamp(id);
- * String info = IdUtil.parseInfo(id);
- * }</pre>
- *
- * @author yvvb
- * @since 2.0.0
- * @apiNote 重构版本，修复了双重检查锁定问题
+ * Legacy identifier facade. Prefer JDK UUID.randomUUID or an injected explicit-node SnowIdGenerator.
+ * Numeric generation/epoch parsing require an explicitly assigned provider; no node is invented.
+ * Manual set/reset remains process-scoped compatibility state. Application beans are resolved without
+ * retaining a closed context's generator. See docs/building/identifier-policy.md.
+ * @deprecated Use the JDK UUID API or constructor-injected SnowIdGenerator.
  */
+@Deprecated(since = "0.1.0", forRemoval = false)
 public final class IdUtil {
 
     private IdUtil() {
@@ -44,18 +20,8 @@ public final class IdUtil {
     }
 
     /**
-     * 默认的雪花ID生成器（dataCenterId=0, workerId=0）
-     */
-    private static final SnowIdGenerator DEFAULT_GENERATOR = new SnowIdGenerator(0, 0);
-
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(IdUtil.class);
-
-    /** 已对 DEFAULT 回退发过一次 WARN 的标志（避免日志刷屏；resetGenerator 清零）。 */
-    private static volatile boolean warnedDefaultFallback = false;
-
-    /**
      * 显式手工设置的ID生成器引用（不缓存 Spring bean）
-     * <p>仅 setGenerator 显式设置；resetGenerator 恢复 Spring/default 查找。</p>
+     * <p>仅 setGenerator 显式设置；resetGenerator 恢复 Spring 查找；缺席拒绝。</p>
      */
     private static volatile SnowIdGenerator cachedGenerator = null;
 
@@ -69,15 +35,7 @@ public final class IdUtil {
         if (springBean != null) {
             return springBean;
         }
-        if (!warnedDefaultFallback) {
-            synchronized (IdUtil.class) {
-                if (!warnedDefaultFallback) {
-                    log.warn("IdUtil: SnowIdGenerator Spring bean unavailable; using DEFAULT(dataCenterId=0/workerId=0)");
-                    warnedDefaultFallback = true;
-                }
-            }
-        }
-        return DEFAULT_GENERATOR;
+        throw new IllegalStateException("An explicit SnowIdGenerator is required; use UUID.randomUUID by default");
     }
 
     // ==================== ID 生成方法 ====================
@@ -88,9 +46,9 @@ public final class IdUtil {
      * 生成的ID具有以下特性：
      * </p>
      * <ul>
-     *     <li>全局唯一</li>
+     *     <li>唯一性依赖显式节点分配与跨重启高水位协议</li>
      *     <li>趋势递增</li>
-     *     <li>支持分布式环境</li>
+     *     <li>不会自行分配或检测其他实例的节点</li>
      * </ul>
      *
      * @return 雪花算法生成的唯一ID
@@ -214,11 +172,8 @@ public final class IdUtil {
      * @return 生成器类型描述
      */
     public static String getGeneratorType() {
-        SnowIdGenerator generator = getIdGenerator();
-        if (generator == DEFAULT_GENERATOR) {
-            return "DEFAULT (dataCenterId=0, workerId=0)";
-        }
-        return "SPRING_BEAN";
+        if (cachedGenerator != null) return "EXPLICIT";
+        return (SpringContextHolder.getBean(SnowIdGenerator.class).orElse(null) != null) ? "SPRING_BEAN" : "MISSING";
     }
 
     /**
@@ -227,7 +182,7 @@ public final class IdUtil {
      * @return true 如果使用Spring Bean
      */
     public static boolean isUsingSpringGenerator() {
-        return getIdGenerator() != DEFAULT_GENERATOR;
+        return cachedGenerator == null && (SpringContextHolder.getBean(SnowIdGenerator.class).orElse(null) != null);
     }
 
     /**
@@ -239,7 +194,6 @@ public final class IdUtil {
      */
     public static synchronized void resetGenerator() {
         cachedGenerator = null;
-        warnedDefaultFallback = false;
     }
 
     /**

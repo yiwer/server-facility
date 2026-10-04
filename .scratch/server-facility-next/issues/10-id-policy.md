@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-05、FR-09；AC-08、AC-12
 
@@ -26,3 +26,5 @@
 不建设分布式节点分配服务；该需求出现时另立后端扩展。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+实现分支codex/ticket-10，基于1d6377d。已批准验收入口：公开IdUtil/SnowIdGenerator、真实自动装配和普通jar应用；默认业务使用JDK UUID及应用自有Supplier，不增加通用ID框架。ADR0033先登记替代ADR0023的无限等待，保留ADR0008的实例epoch解析。

@@ -63,6 +63,7 @@ class Verify {
                     consumer("configured");
                     consumer("override");
                     consumer("invalid");
+                    idConsumer();
                     coreConsumer();
                     cryptoConsumer();
                     ioConsumer();
@@ -447,6 +448,26 @@ class Verify {
             throw new AssertionError("Rate-limit consumer did not complete: " + log);
         }
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
+    }
+
+    static void idConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path inputs = report.resolve("id-consumer/inputs");
+        copyDirectory(ROOT.resolve("verification/id-consumer"), inputs);
+        Files.copy(ROOT.resolve("verification/consumer/src/main/java/example/IdApplicationConsumer.java"), inputs.resolve("IdApplicationConsumer.java"));
+        Path classes = Files.createDirectories(report.resolve("id-consumer/classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "id-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8", "-cp", jar.toString(),
+                "-d", classes.toString(), inputs.resolve("LegacyIdSamples.java").toString(), inputs.resolve("IdConsumer.java").toString()), 45, null);
+        Path plain = run(ROOT, Map.of(), "id-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "IdConsumer"), 45, null);
+        if (!Files.readString(plain).contains("ID_CONSUMER_PASS")) throw new AssertionError("Identifier resource consumer incomplete");
+        Path consumer = ROOT.resolve("verification/consumer");
+        String graph = Files.readString(consumer.resolve("target/classpath.txt")).trim();
+        Path app = run(ROOT, Map.of(), "id-application-consumer", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", consumer.resolve("target/classes") + File.pathSeparator + graph, "example.IdApplicationConsumer"), 45, null);
+        if (!Files.readString(app).contains("ID_APPLICATION_CONSUMER_PASS")) throw new AssertionError("Identifier application consumer incomplete");
+        summary.add("id-consumer=ordinary jar/JDK-only; fixed historic55-bit samples; seed100025/2048; 8 workers/platform+virtual; 10000 successful/rejected/interrupted cycles;64MiB/2CPU/45s; independent UUID default/custom app operation and JSON128MiB/45s");
     }
 
     static void partnerConsumer() throws Exception {

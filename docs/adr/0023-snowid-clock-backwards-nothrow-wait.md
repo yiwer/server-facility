@@ -1,6 +1,6 @@
 # ADR-0023: SnowIdGenerator 回拨语义——false 无界等待绝不抛
 
-- **状态**:Accepted(2026-07-05)
+- **状态**:Superseded by [ADR0033](0033-explicit-id-policy.md), 2026-10-04；以下保留历史决策。
 - **源起**:全库评审 F2(P0);决策 a(用户确认,2026-07-05)
 
 ## 背景
