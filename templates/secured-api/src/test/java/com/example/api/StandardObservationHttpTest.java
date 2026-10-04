@@ -6,6 +6,31 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class StandardObservationHttpTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void concurrentDeferredRequestsKeepTheirIncomingTrace(boolean virtual) throws Exception {
+        try (var issuer = new TestIssuer(); var app = new RunningApp(issuer,
+                new Class<?>[]{com.example.fixtures.StandardTracingFixture.class}, "--spring.threads.virtual.enabled=" + virtual);
+             var clients = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            String token = issuer.token();
+            var jobs = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+            for (int worker = 0; worker < 8; worker++) jobs.add(clients.submit(() -> {
+                for (int attempt = 0; attempt < 200; attempt++) {
+                    try {
+                        var response = app.get("/api/greeting/span-deferred", token,
+                            "traceparent", "00-0123456789abcdef0123456789abcdef-1234567890abcdef-01");
+                        assertThat(response.statusCode()).as("worker attempt %s", attempt).isEqualTo(200);
+                        assertThat(JsonMapper.builder().build().readTree(response.body()).path("trace").asString())
+                            .isEqualTo("0123456789abcdef0123456789abcdef");
+                        assertThat(app.context.getBean(com.example.fixtures.StandardTracingFixture.RecordedSpans.class)
+                            .finished.poll(5, java.util.concurrent.TimeUnit.SECONDS)).isNotNull();
+                    } catch (Exception failure) { throw new RuntimeException(failure); }
+                }
+            }));
+            for (var job : jobs) job.get(90, java.util.concurrent.TimeUnit.SECONDS);
+        }
+    }
+
     @Test void applicationOwnsLocalizedGreetingAtTheHttpBoundary() throws Exception {
         try (var issuer = new TestIssuer(); var app = new RunningApp(issuer)) {
             for (var item : java.util.Map.of("fr", "Bonjour", "ja", "Hello").entrySet()) {
@@ -37,6 +62,7 @@ class StandardObservationHttpTest {
             try (var first = new RunningApp(issuer, new Class<?>[]{com.example.fixtures.StandardTracingFixture.class},
                     "--management.tracing.sampling.probability=1")) {
                 var firstResponse = first.get("/api/greeting/span-deferred", issuer.token());
+                assertThat(firstResponse.statusCode()).isEqualTo(200);
                 firstTrace = JsonMapper.builder().build().readTree(firstResponse.body()).path("trace").asString();
                 assertThat(firstTrace).matches("[0-9a-f]{32}");
                 var recorded = first.context.getBean(com.example.fixtures.StandardTracingFixture.RecordedSpans.class)
