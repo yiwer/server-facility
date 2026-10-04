@@ -1,0 +1,24 @@
+{
+  "scope": "durable local evidence after worktree cleanup; archive entries are original report-relative paths",
+  "directory": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-retained-local-evidence",
+  "archive": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-retained-local-evidence\\local-reports.zip",
+  "archiveBytes": 105276665,
+  "archiveSha256": "4218777312f7f1bb73d09af5dc28a4d2a6772877ae4cdc8ac52a749917ed42fd",
+  "manifest": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-retained-local-evidence\\manifest.json",
+  "manifestSha256": "72f69b97f36325f9994632a1b6154ac703a1e8131194993dbf61bdaeb1706dd0",
+  "files": 6745,
+  "uncompressedBytes": 198596568,
+  "reports": [
+    "20261004-150508-080-all",
+    "20261004-150836-886-all",
+    "20261004-152145-168-all",
+    "20261004-162103-964-all",
+    "20261004-172739-256-all",
+    "20261004-180102-369-platform"
+  ],
+  "validated": "retention runner reopened archive and checked every entry name,size,SHA256 against original manifest; archive excludes Maven/wrapper caches,native database trees,and raw startup JFR roots",
+  "finalAllEntryPrefix": "20261004-172739-256-all/",
+  "finalPlatformEntryPrefix": "20261004-180102-369-platform/",
+  "originalPaths": "paths in final-local-results.json identify execution-time origins; do not imply those paths survive worktree cleanup",
+  "otherEvidence": "frozen benchmark,historical upgrade,delivery logs,and bounded diagnoses already reside outside worktree under coordination; no bulk fixture environment/key copying"
+}

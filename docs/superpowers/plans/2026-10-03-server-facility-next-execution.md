@@ -269,10 +269,19 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 
 ## 31最终实现合入，完整本地门与CI21并行
 
-2026-10-04后续候选登记：审查后的`b2cbb0f368d7187c87fb90b0bd11741c9d71e0a7`合入本集成线，包含模板最小连接池2前置政策、两个公开回归和严格workflow继承/重复testcase校验。该政策修正源于独立最大值1控制，默认4/1000ms不变，未解释或抹去本地18/19失败。owner完整本地20 all与集成CI22独立验证新候选，当前仍verification-pending；先前CI21成功只属于其准确来源。中央历史归档index继续由root维护，本次不关闭31、不开始33、不发布制品。
+2026-10-04后续候选登记（此时状态，最终闭合见下一节）：审查后的`b2cbb0f368d7187c87fb90b0bd11741c9d71e0a7`合入本集成线，包含模板最小连接池2前置政策、两个公开回归和严格workflow继承/重复testcase校验。该政策修正源于独立最大值1控制，默认4/1000ms不变，未解释或抹去本地18/19失败。owner完整本地20 all与集成CI22独立验证新候选，此时仍verification-pending；先前CI21成功只属于其准确来源。中央历史归档index继续由root维护，此次不关闭31、不开始33、不发布制品。
 
 - 2026-10-04：owner确认`57dc707e39a0d4670d49a431bf78284e05af3a2f`为最终实现冻结且无已知产品/runner待改，已包含main`0edb5198d640b5d2575b94f7e60cc635c42ca96d`。root授权在冻结完整all16仍运行时并行启动现有CI；从干净main以--no-ff合为`f72cad58da0f2d7797e7d8b2a89dfdf5665ac5bd`，无冲突，产品/模板/测试/消费者/runner/workflow/Wrapper与交接源零差异。
 - 实际历史before78/after80、冻结旧/新五任务与后续独立workflow151项及打包两线程模式分别保留来源；10s请求回归和Apply拒绝已有局部证据。当前源码的完整all16及随后platform尚未完成，不写全门PASS，不把早期跳过测试构建或测量臂定向测试冒充最终门。详细来源见[31报告](../../verification/ticket-31-template-upgrade.md)。
 - 已有CHANGELOG、ADR0054及INDEX内容保持；中央补DESIGN0054、55条实际ADR与31 verification-pending，保留未闭合复选框。0054扩展0050–0053并分离runtime0.2/template2026.10.0身份，不重标历史jar。按root确认修复25票报告的单个相对链接；没有修改执行逻辑、质量/时间预算或其他扫描诊断。
 - 按既有授权推送一次实现候选启动CI21，公开run/jobs/artifacts/annotations与精确候选SHA另行登记。成功后仍须汇合owner最终证据才关闭31；累计closed仍31，33最终同一候选制品身份/接合矩阵/双轴审查未开始。历史证据归档由root维护，中央未改其index，也未发布制品或部署。
 - 推送前all16实际在template-lineage处失败：Windows源码启动器将Unicode路径字符串损坏为`?`，触发InvalidPathException；已执行120命令/523.6s不被写成整门PASS。初始合并保留，未推送或启动失败CI。修复`1dc2912`将模板/workflow两处参数统一为ASCII file URI并由lineage解析；原失败模板目录12个links及新workflow目录的20文件overlay实际四命令PASS。owner新冻结`d4ac86bf162d35b4ea1e7d9abdc5ac99a30fb5db`已合最新main，再以--no-ff合为`ff0d832135186766a58968536d0dc6af3be61d6c`，相对初始merge仅两个验证源码与失败说明报告变化。root重新授权推送该修复来源，owner从同一冻结完整重跑all/platform；首次失败及新回归分别保留。
+
+## CI22与本地20/21闭合31
+
+- 2026-10-04：审查后的实现冻结`b2cbb0f368d7187c87fb90b0bd11741c9d71e0a7`从干净c26dc2d合入为`4470870b0d8ad50888dba34d85e38d624987dc91`并推送既有集成线，CI源相对冻结仅四个中央注册文档差异。新增连接池下限2与两个公开回归、严格继承/重复testcase身份检查均已包含，默认4/minIdle0/1000ms不变。
+- 该冻结实际本地20 `all`为148命令、1988.219秒、RESULT=PASS；库1774/模板132/workflow153均0失败/错误/跳过，原coverage/架构/依赖门、真实打包双线程模式、资源与负控通过。21 `platform`为11命令、102.207秒、RESULT=PASS。两次均未带`--fresh`，私有依赖仓库与精确命令见[解析结果](../../verification/ticket31/final-local-results.json)，不写成空仓库运行。
+- [CI22 attempt1](../../verification/ticket-31-ci22.md) / run37192581803核定head4470870，Ubuntu111407707501与Windows111407707703的all、platform、归档全部success。Ubuntu对应947/50/7秒、job1022秒；Windows1641/83/15秒、job1774秒，于UTC10:03:50完成。原30分钟预算不变；归档metadata与摘要位于main `.verification-results/ci-22`，没有下载CI归档内容或推定内部精确计数、四类JAR跨OS同字节。
+- 最终clean交接`45d0809659cb547eadd862fff45638c3f294b8d0`已包含4470870，相对b2只有七个文档/报告文件变化。从干净4470870以--no-ff合入并登记本票closed、九项验收/场景完成，累计32票closed；33仍ready-for-agent，尚未实施，最终同一候选历史重验、四类制品身份、接合矩阵及双轴审查未预填通过。55条ADR计数不变。
+- 原18观测HTTP超时、19默认池4启动超时及有限诊断未复现的事实完整保留；独立池1控制与实际RED→GREEN契约修正不解释或抹去二者。六轮本地报告6745文件已由owner持久保留并重开ZIP逐项校验，路径与digest见[保留索引](../../verification/ticket31/local-evidence-retention.json)。root另从clean45d0809完成筛选历史映射4811文件的逐文件源/副本SHA核验，receipt为main `.verification-results/history/ticket-31-preservation.json`，共享index此时41465文件/1716646235字节；不与保留`.bin`等原始文件的完整ZIP混称。冻结五任务、历史升级和本地诊断身份不变，merger未改root历史index。
+- 此次最终关闭提交仅合入结果/保留报告和中央文档，不另跑相同产品的Java/Maven，不单独push触发重复CI；最后已推送/被CI22验证的是4470870，后续本地文档SHA不冒称已跑CI。33实施候选就绪后由root安排推送；无PR、release、master合并、制品发布或部署。
