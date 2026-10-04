@@ -27,7 +27,7 @@ class MigrationHttpTest {
                     "--spring.flyway.target=1", "--logging.level.root=OFF")) {} }).hasStackTraceContaining("Invalid application database policy");
             String future = Postgres.freshUrl();
             Flyway.configure().dataSource(future, "postgres", "").lockRetryCount(2).locations("classpath:db/migration", "classpath:schema-future").load().migrate();
-            assertThat(count(future, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(3);
+            assertThat(count(future, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(4);
             assertThatThrownBy(() -> { try (var ignored = new RunningApp(issuer, "--spring.datasource.url=" + future, "--logging.level.root=OFF")) {} })
                     .hasStackTraceContaining("Validate failed");
         }
@@ -59,7 +59,7 @@ class MigrationHttpTest {
             try (var a = first.get(30, java.util.concurrent.TimeUnit.SECONDS); var b = second.get(30, java.util.concurrent.TimeUnit.SECONDS)) {
                 assertThat(arrivals.getCount()).isZero();
                 assertThat(a.get("/health", null).statusCode()).isEqualTo(200); assertThat(b.get("/health", null).statusCode()).isEqualTo(200);
-                assertThat(count(database, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(2);
+                assertThat(count(database, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(3);
                 String token = issuer.token("a", Map.of("scope", "notes:read notes:write"), Set.of());
                 String workspace = JSON.readTree(send(a, "POST", "/api/workspaces", token, "{\"name\":\"Shared\"}").body()).path("id").asString();
                 assertThat(b.get("/api/workspaces/" + workspace + "/notes", token).statusCode()).isEqualTo(200);
@@ -83,7 +83,7 @@ class MigrationHttpTest {
             assertThat(note.path("slug").asString()).isEqualTo("prior-note");
             assertThat(note.path("title").asString()).isEqualTo("旧数据 🌱");
             assertThat(note.path("body").asString()).isEqualTo("first line\nsecond line");
-            assertThat(count(database, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(2);
+            assertThat(count(database, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(3);
             assertThatThrownBy(() -> Postgres.execute(database, "update note set title = repeat('x', 201)"))
                     .isInstanceOf(java.sql.SQLException.class);
             assertThat(JSON.readTree(app.get("/api/workspaces/00000000-0000-0000-0000-000000000028/notes", token).body()).path("total").asLong()).isEqualTo(1);
@@ -100,7 +100,7 @@ class MigrationHttpTest {
                         "--spring.flyway.locations=" + locations, "--spring.datasource.hikari.data-source-properties.ApplicationName=" + application,
                         "--logging.level.root=OFF")) {} }).as(locations).isInstanceOf(RuntimeException.class).hasStackTraceContaining(expected.get(locations));
                 awaitCount(database, "select count(*) from pg_stat_activity where application_name = '" + application + "'", 0);
-                assertThat(count(database, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(2);
+                assertThat(count(database, "select count(*) from flyway_schema_history where success and version is not null")).isEqualTo(3);
                 assertThat(count(database, "select count(*) from pg_tables where tablename = 'must_rollback_with_migration'")).isZero();
             }
             try (var recovered = new RunningApp(issuer, "--spring.datasource.url=" + database)) { assertThat(recovered.get("/health", null).statusCode()).isEqualTo(200); }

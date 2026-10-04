@@ -31,7 +31,8 @@ class TemplateConsumer {
             String token = Files.readString(state.resolve("token.txt")), denied = Files.readString(state.resolve("no-scope-token.txt"));
             Path jar = app.resolve("target/secured-api-1.0.0-SNAPSHOT.jar");
             check(Files.isRegularFile(jar), "packaged application jar missing");
-            String noteLocation = null, workspaceLocation = null;
+            String noteLocation = null, workspaceLocation = null, originalReceipt = null;
+            String noteCommand = "{\"slug\":\"restart-proof\",\"title\":\"Persistent 🌱\",\"body\":\"literal first\\nsecond\"}";
             for (boolean virtual : new boolean[]{false, true}) {
                 Path log = evidence.resolve("packaged-" + virtual + ".log");
                 Process running = launch(app, jar, log, "--spring.config.additional-location=" + state.resolve("local.properties").toUri().toASCIIString()
@@ -57,23 +58,34 @@ class TemplateConsumer {
                         var workspace = send(client, base, "POST", "/api/workspaces", token, "{\"name\":\"Persistent workspace\"}");
                         check(workspace.statusCode() == 201, "workspace creation failed: " + workspace.statusCode());
                         workspaceLocation = workspace.headers().firstValue("Location").orElseThrow();
-                        var created = send(client, base, "POST", workspaceLocation, token,
-                                "{\"slug\":\"restart-proof\",\"title\":\"Persistent 🌱\",\"body\":\"literal first\\nsecond\"}");
+                        var created = send(client, base, "POST", workspaceLocation, token, noteCommand, "packaged-create");
                         check(created.statusCode() == 201, "persistent note creation failed");
                         noteLocation = created.headers().firstValue("Location").orElseThrow();
+                        originalReceipt = created.body();
                     }
+                    check(send(client, base, "POST", workspaceLocation, token, noteCommand).statusCode() == 400, "missing request key accepted");
+                    var replay = send(client, base, "POST", workspaceLocation, token, noteCommand, "packaged-create");
+                    check(replay.statusCode() == 201 && replay.body().equals(originalReceipt)
+                            && replay.headers().firstValue("Location").orElseThrow().equals(noteLocation), "original receipt or Location changed across retry/restart");
+                    var conflict = send(client, base, "POST", workspaceLocation, token, noteCommand.replace("Persistent 🌱", "Different"), "packaged-create");
+                    check(conflict.statusCode() == 409 && conflict.body().contains("command_conflict"), "changed command reused a key");
                     var stored = get(client, base, noteLocation, token);
                     check(stored.statusCode() == 200 && stored.body().contains("Persistent 🌱") && stored.body().contains("literal first\\nsecond"), "literal persistent representation lost across process restart");
                     check(get(client, base, workspaceLocation + "?size=101", token).statusCode() == 400, "page budget not enforced");
                     check(get(client, base, workspaceLocation + "?sort=slug", token).body().contains("\"total\":1"), "persistent list missing");
                     if (virtual) {
-                        check(send(client, base, "PUT", noteLocation, token, "{\"title\":\"Updated\",\"body\":\"after restart\"}").statusCode() == 200, "update after restart failed");
+                        String edit = "{\"title\":\"Updated\",\"body\":\"after restart\"}";
+                        var updated = send(client, base, "PUT", noteLocation, token, edit, "packaged-update");
+                        check(updated.statusCode() == 200, "update after restart failed");
+                        check(send(client, base, "PUT", noteLocation, token, edit, "packaged-update").body().equals(updated.body()), "update receipt changed");
                         check(send(client, base, "DELETE", noteLocation, token, null).statusCode() == 204, "delete failed");
+                        var deletedReplay = send(client, base, "POST", workspaceLocation, token, noteCommand, "packaged-create");
+                        check(deletedReplay.statusCode() == 201 && deletedReplay.body().equals(originalReceipt), "deleted resource lost original receipt");
                         check(get(client, base, noteLocation, token).statusCode() == 404, "deleted note still readable");
                     }
                     Files.writeString(evidence.resolve("packaged-" + virtual + "-result.txt"),
                             "PASS actual executable jar; health 200; anonymous 401; signed actor 200; denied 403; query-only 401; unlisted 403\n"
-                                    + "PostgreSQL18.6 migrated; signed CRUD; literal persistence across process restart; bounded list; virtual=" + virtual + " sha256=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))) + "\n");
+                                    + "PostgreSQL18.6 migrated; signed CRUD; original command receipt across process restart; missing key/conflict rejected; bounded list; virtual=" + virtual + " sha256=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))) + "\n");
                 } finally { stop(running); }
             }
             Path failedLog = evidence.resolve("production-missing-trust.log");
@@ -139,9 +151,14 @@ class TemplateConsumer {
         return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
     private static HttpResponse<String> send(HttpClient client, String base, String method, String path, String token, String body) throws Exception {
-        return client.send(HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(5))
+        return send(client, base, method, path, token, body, null);
+    }
+    private static HttpResponse<String> send(HttpClient client, String base, String method, String path, String token, String body, String key) throws Exception {
+        var request = HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(5))
                 .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
-                .method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+                .method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
+        if (key != null) request.header("Idempotency-Key", key);
+        return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
     private static void awaitFile(Path file, Process process, Path log) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
