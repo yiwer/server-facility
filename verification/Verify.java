@@ -268,6 +268,9 @@ class Verify {
                 "com.example.api.JwkLifecycleHttpTest", "com.example.api.ConfigurationHttpTest", "com.example.api.DecoratorFailureTest",
                 "com.example.api.ExecutorOwnershipTest", "com.example.api.BusinessBoundaryTest",
                 "com.example.api.NotesHttpTest", "com.example.api.NotesModuleTest", "com.example.api.PersistenceFailureHttpTest",
+                "com.example.api.NoteCommandsHttpTest", "com.example.api.NoteCommandConcurrencyTest", "com.example.api.NoteCommandAtomicityTest",
+                "com.example.api.NoteCommandMigrationTest", "com.example.api.NoteCommandProtocolTest", "com.example.api.NoteIdentityStorageTest",
+                "com.example.api.NoteQuotaHttpTest", "com.example.api.TestHostLifecycleTest",
                 "com.example.api.DatabaseConfigurationTest", "com.example.api.MigrationHttpTest")))
             throw new AssertionError("Missing template contract tests: " + discovered);
         maven(application, "template-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));

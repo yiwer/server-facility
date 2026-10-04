@@ -10,6 +10,32 @@ import static org.assertj.core.api.Assertions.*;
 
 class NoteCommandConcurrencyTest {
     @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void unrelatedTableOrForeignKeyLocksAreUnavailableNotAProcessingCommand(boolean tableLock) throws Exception {
+        String database = Postgres.freshUrl();
+        try (var issuer = new TestIssuer(); var app = new RunningApp(issuer, "--spring.datasource.url=" + database)) {
+            String token = issuer.token("a", Map.of("scope", "notes:read notes:write"), Set.of());
+            String workspace = JSON.readTree(send(app, "POST", "/api/workspaces", token, "{\"name\":\"Unavailable\"}").body()).path("id").asString();
+            String path = "/api/workspaces/" + workspace + "/notes";
+            String body = "{\"slug\":\"new\",\"title\":\"Original\",\"body\":\"\"}";
+            try (var holder = Postgres.connect(database); var lock = holder.createStatement()) {
+                holder.setAutoCommit(false);
+                lock.execute(tableLock ? "lock table note_command in access exclusive mode"
+                        : "select id from workspace where id = '" + workspace + "' for update");
+                try {
+                    var refused = command(app, "POST", path, token, "no-owner", body);
+                    assertThat(refused.statusCode()).isEqualTo(503);
+                    assertThat(JSON.readTree(refused.body()).path("code").asString()).isEqualTo("persistence_unavailable");
+                    assertThat(refused.headers().firstValue("Retry-After")).isEmpty();
+                    assertThat(refused.body()).doesNotContain("no-owner", "note_command", "lock timeout");
+                } finally { holder.rollback(); }
+            }
+            assertThat(count(database, "select count(*) from note_command")).isZero();
+            assertThat(count(database, "select command_count from workspace")).isZero();
+            assertThat(command(app, "POST", path, token, "no-owner", body).statusCode()).isEqualTo(201);
+        }
+    }
+    @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"TRANSACTION_REPEATABLE_READ", "TRANSACTION_SERIALIZABLE"})
     void aCompetingCommandUsesReadCommittedEvenWhenTheConnectionDefaultIsStricter(String isolation) throws Exception {
         String database = Postgres.freshUrl();

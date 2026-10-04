@@ -14,8 +14,10 @@ class NoteQuotaHttpTest {
         String database = Postgres.freshUrl();
         try (var issuer = new TestIssuer();
              var writer = new RunningApp(issuer, "--spring.datasource.url=" + database,
+                     "--facility.ratelimit.enabled=false",
                      "--spring.datasource.hikari.data-source-properties.options=-c statement_timeout=8000 -c lock_timeout=5000");
              var limited = new RunningApp(issuer, new Class<?>[]{NoteQuotaFixture.class}, "--spring.datasource.url=" + database)) {
+            assertThat(writer.context.getBeansOfType(cn.code91.facility.ratelimit.RateLimiter.class)).isEmpty();
             String token = issuer.token("a", Map.of("scope", "notes:read notes:write"), Set.of());
             String workspace = JSON.readTree(send(writer, "POST", "/api/workspaces", token, "{\"name\":\"Quota\"}").body()).path("id").asString();
             String path = "/api/workspaces/" + workspace;

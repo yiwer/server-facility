@@ -19,16 +19,18 @@ class TestHostLifecycleTest {
             assertThat(home).isDirectory();
             // Closing the first server must not leave a JVM-global home pointing at
             // its deleted base. Real subsequent servers still initialize in parallel.
+            var opened = new ConcurrentLinkedQueue<RunningApp>();
             try (var executor = Executors.newFixedThreadPool(2)) {
-                var first = executor.submit(() -> new RunningApp(issuer));
-                var second = executor.submit(() -> new RunningApp(issuer));
+                Callable<RunningApp> start = () -> { var app = new RunningApp(issuer); opened.add(app); return app; };
+                var first = executor.submit(start);
+                var second = executor.submit(start);
                 try (var appA = first.get(45, TimeUnit.SECONDS);
                      var appB = second.get(45, TimeUnit.SECONDS)) {
                     assertThat(appA.get("/health", null).statusCode()).isEqualTo(200);
                     assertThat(appB.get("/health", null).statusCode()).isEqualTo(200);
                     assertThat(Path.of(System.getProperty("catalina.home"))).isEqualTo(home);
                 }
-            }
+            } finally { for (var app : opened) if (app.context.isActive()) app.close(); }
         }
     }
 }

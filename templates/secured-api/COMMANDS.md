@@ -22,9 +22,22 @@ Call public Notes operations outside an existing transaction. The Module rejects
 | Database/connection/statement unavailable | 503 `persistence_unavailable` | Treat outcome as uncertain; retry the same key after recovery. |
 | Unexpected persistence failure | 500 `persistence_failed` | Investigate safe server correlation; do not infer non-commit from a lost response. |
 
-The default database lock wait is500ms; other connection/statement/transaction stage budgets are listed in README. They are separate finite budgets, not a complete request deadline. The application never blindly retries a whole transaction in-process. SQL and underlying exception details are not exposed as error payloads or passed to the HTTP error logger.
+The default database lock wait is500ms; other connection/statement/transaction stage budgets are listed in README. They are separate finite budgets, not a complete request deadline. Before the unique claim, the transaction takes the INSERT's normal table and workspace foreign-key locks under those same budgets. Unrelated table/foreign-key contention remains503; only contention at the command identity claim produces the processing result. This classification belongs to the application-owned schema; adding other triggers or constraints requires reviewing their lock/error policy. The application never blindly retries a whole transaction in-process. SQL and underlying exception details are not exposed as error payloads or passed to the HTTP error logger.
 
-Each issuer and subject is limited to65536 UTF-8 bytes for Notes storage. NUL and unpaired UTF-16 surrogates are rejected before conversion or JDBC; legal text is neither normalized nor truncated. The trusted JWT configuration and its smaller HTTP credential/header budgets still apply. V3 preserves V1/V2 identity text while replacing the oversized membership text key with a bounded SHA-256 index and full tuple checks. A private trigger computes UTF-8 byte lengths on insert/update, including legacy three-column fixture inserts. Digest collisions reject and cannot authorize another identity.
+Each issuer and subject is limited to65536 UTF-8 bytes for Notes storage. NUL and unpaired UTF-16 surrogates are rejected before conversion or JDBC; legal text is neither normalized nor truncated. The trusted JWT configuration and its smaller HTTP credential/header budgets still apply. V3 preserves V1/V2 identity text within this new bound while replacing the oversized membership text key with a bounded SHA-256 index and full tuple checks. A private trigger computes UTF-8 byte lengths on insert/update, including legacy three-column fixture inserts. Digest collisions reject and cannot authorize another identity.
+
+V1/V2 did not enforce this storage ceiling. Long compressible identities could fit their old index. Before upgrading an existing database, the migration owner must run this read-only preflight; it reveals counts and lengths, not identity text:
+
+```sql
+select count(*) as unsupported_members,
+       max(octet_length(convert_to(issuer, 'UTF8'))) as maximum_issuer_bytes,
+       max(octet_length(convert_to(subject, 'UTF8'))) as maximum_subject_bytes
+from workspace_member
+where octet_length(convert_to(issuer, 'UTF8')) > 65536
+   or octet_length(convert_to(subject, 'UTF8')) > 65536;
+```
+
+Automatic V3 upgrade requires `unsupported_members = 0`. Otherwise stop the upgrade: the checked migration also refuses and rolls back, preserving the original membership values and previous migration history. Do not trim, hash-replace or silently rebind the stored issuer/subject. An owner-approved trusted-issuer migration must explicitly transition membership to the new verified identity. Alternatively the application owner can review and test a coordinated higher, still finite storage bound in Java and the not-yet-deployed V3 schema. That is an application fork and migration decision, not an existing configuration option. Never edit a V3 migration already applied elsewhere; evolve deployed schema with a new migration and reviewed rollout.
 
 The byte protocol uses a four-byte big-endian length before every UTF-8 field. Actor fields are `actor-v1`, issuer, subject. Create fingerprint fields are `note-create-v1`, slug, title, body. Update fields are `note-update-v1`, lowercase canonical UUID, title, body. Persisted fingerprint versions must continue to be understood when this application evolves; changing that protocol requires an explicit data/caller migration.
 

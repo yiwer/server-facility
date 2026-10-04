@@ -98,6 +98,11 @@ public final class Notes {
         if (key == null || key.length() > 128 || !key.matches("[A-Za-z0-9._:-]{1,128}")) throw new NotesFailure("invalid_command_key");
         return transaction.execute(status -> {
             authorize(actor, workspace);
+            // Acquire the INSERT's ordinary relation/FK locks separately: their timeouts mean
+            // infrastructure unavailable, not another owner of this command identity.
+            jdbc.sql("lock table note_command in row exclusive mode").update();
+            jdbc.sql("select id from workspace where id = :workspace for key share").param("workspace", workspace)
+                    .query(UUID.class).optional().orElseThrow(() -> new NotesFailure("workspace_forbidden"));
             byte[] actorHash = digest("actor-v1", actor.issuer(), actor.subject());
             final int claimed;
             try {
