@@ -14,8 +14,8 @@ class FacilityIdAutoConfigurationTest {
         .withConfiguration(AutoConfigurations.of(FacilityIdAutoConfiguration.class));
 
     @Test
-    void activatesByDefault() {
-        runner.run(ctx -> assertThat(ctx).hasSingleBean(SnowIdGenerator.class));
+    void uuidApplicationsDoNotGetAnImplicitSnowGenerator() {
+        runner.run(ctx -> assertThat(ctx).doesNotHaveBean(SnowIdGenerator.class));
     }
 
     @Test
@@ -28,7 +28,7 @@ class FacilityIdAutoConfigurationTest {
     @Test
     void honorsWorkerIdProperty() {
         runner
-            .withPropertyValues("facility.id.worker-id=2")
+            .withPropertyValues("facility.id.enabled=true", "facility.id.worker-id=2", "facility.id.data-center-id=1")
             .run(ctx -> assertThat(ctx.getBean(SnowIdGenerator.class).getWorkerId()).isEqualTo(2));
     }
 
@@ -37,13 +37,14 @@ class FacilityIdAutoConfigurationTest {
         // 消费方常态:classpath 无 Bean Validation provider(ADR-0013 回归守卫)
         runner
             .withClassLoader(new FilteredClassLoader("org.hibernate.validator"))
+            .withPropertyValues("facility.id.enabled=true", "facility.id.worker-id=0", "facility.id.data-center-id=0")
             .run(ctx -> assertThat(ctx).hasSingleBean(SnowIdGenerator.class));
     }
 
     @Test
     void outOfRangeWorkerId_failsStartupViaConstructorGuard() {
         runner
-            .withPropertyValues("facility.id.worker-id=4")
+            .withPropertyValues("facility.id.enabled=true", "facility.id.worker-id=4", "facility.id.data-center-id=0")
             .run(ctx -> {
                 assertThat(ctx).hasFailed();
                 assertThat(ctx.getStartupFailure()).getRootCause()

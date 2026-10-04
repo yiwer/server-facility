@@ -20,9 +20,9 @@ class ConfigurationPropertiesBindingTest {
     void facilityIdPropertiesUsesDefaults() {
         runner.run(ctx -> {
             FacilityIdProperties p = ctx.getBean(FacilityIdProperties.class);
-            assertThat(p.isEnabled()).isTrue();
-            assertThat(p.getWorkerId()).isEqualTo(0);
-            assertThat(p.getDataCenterId()).isEqualTo(0);
+            assertThat(p.isEnabled()).isFalse();
+            assertThat(p.getWorkerId()).isEqualTo(-1);
+            assertThat(p.getDataCenterId()).isEqualTo(-1);
             assertThat(p.getClockBackwardsThresholdMillis()).isEqualTo(5);
             assertThat(p.isThrowOnClockBackwardsExceedThreshold()).isTrue();
         });
@@ -34,12 +34,13 @@ class ConfigurationPropertiesBindingTest {
             .withPropertyValues(
                 "facility.id.worker-id=2",
                 "facility.id.data-center-id=3",
-                "facility.id.clock-backwards-threshold-millis=10")
+                "facility.id.clock-backwards-threshold-millis=10", "facility.id.wait-timeout=250ms")
             .run(ctx -> {
                 FacilityIdProperties p = ctx.getBean(FacilityIdProperties.class);
                 assertThat(p.getWorkerId()).isEqualTo(2);
                 assertThat(p.getDataCenterId()).isEqualTo(3);
                 assertThat(p.getClockBackwardsThresholdMillis()).isEqualTo(10);
+                assertThat(p.getWaitTimeout()).isEqualTo(java.time.Duration.ofMillis(250));
             });
     }
 

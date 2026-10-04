@@ -29,25 +29,19 @@ facility:
   # 雪花 ID(FacilityIdAutoConfiguration / id.FacilityIdProperties)
   # -------------------------------------------------------------------
   id:
-    # 是否装配 SnowIdGenerator bean。false 时 IdUtil 静态门面仍可用,但恒落
-    # 内置 DEFAULT 生成器(workerId=0 / dataCenterId=0,首次降级 WARN 一次)
-    # ——多节点部署会因节点位相同而产生重复 ID,分布式环境勿关。
-    enabled: true
+    # 新业务直接 JDK UUID。SnowId 默认不装配；旧 IdUtil 缺 provider 明确失败。
+    enabled: false
 
-    # 节点标识位:各 2 bit,取值 0..3,越界启动即失败(构造器守卫,ADR-0013)。
-    # 多节点部署必须为每个节点错开 (worker-id, data-center-id) 组合。
-    worker-id: 0
-    data-center-id: 0
+    # -1 表示缺配置；显式启用时必须分配两项0..3节点，不能同时复用。
+    # 重启还须严格晚于旧owner已发最大时间戳；本库不分配节点或持久化高水位。
+    worker-id: -1
+    data-center-id: -1
 
-    # 时钟回拨容忍阈值(毫秒):回拨幅度 ≤ 该值时以有界自旋吸收
-    # (自旋上限 = max(1s, 阈值),ADR-0023)。
+    # 每次观察超阈值回拨，true立即拒绝；false允许等待更大回拨。
+    # 两种模式均服从同一单调总预算和中断，不再无限等待（ADR0033）。
     clock-backwards-threshold-millis: 5
-
-    # 回拨幅度超过阈值时的行为:
-    #   true  = 抛 ClockBackwardsException(默认,快速暴露时钟故障);
-    #   false = 绝不抛——nextId() 无界等待(~1ms/步)直到时钟追上,
-    #           整个回拨期间 ID 生成阻塞(ADR-0023)。
     throw-on-clock-backwards-exceed-threshold: true
+    wait-timeout: 1s  # 正Duration，至多1分钟；含锁准入、恢复及序列耗尽
 
     # 纪元起点(epoch millis)。默认 1735660800000 = 2025-01-01 00:00:00 UTC+8。
     # 同一部署环境一经投产请勿更改——更改会打乱既有 ID 的时间解析与排序。

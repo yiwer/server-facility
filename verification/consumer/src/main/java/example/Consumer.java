@@ -70,7 +70,7 @@ public final class Consumer {
         var application = new SpringApplication(scenario.equals("override") ? OverrideApplication.class : Application.class);
         application.setWebApplicationType(WebApplicationType.NONE);
         if (scenario.equals("invalid")) {
-            try (var unexpected = application.run("--spring.main.banner-mode=off", "--facility.id.worker-id=4")) {
+            try (var unexpected = application.run("--spring.main.banner-mode=off", "--facility.id.enabled=true", "--facility.id.worker-id=4", "--facility.id.data-center-id=0")) {
                 throw new AssertionError("Invalid consumer configuration must prevent startup");
             } catch (RuntimeException failure) {
                 Throwable cause = failure;
@@ -81,7 +81,7 @@ public final class Consumer {
             System.out.println("CONSUMER_OK invalid");
             return;
         }
-        try (var context = application.run("--spring.main.banner-mode=off", "--facility.id.worker-id=3",
+        try (var context = application.run("--spring.main.banner-mode=off", "--facility.id.enabled=true", "--facility.id.worker-id=3",
                 "--facility.id.data-center-id=2")) {
             var ids = context.getBean(SnowIdGenerator.class);
             long id = ids.nextId();

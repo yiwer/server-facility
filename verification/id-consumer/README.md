@@ -1,0 +1,7 @@
+# Identifier ordinary-jar consumers
+
+`Verify.java all --fresh` compiles these sources against the installed ordinary facility jar. `IdConsumer` verifies that origin and excludes Spring/JUnit at runtime. The fixed legacy parsing corpus was executed against unchanged original commit `0ee9d547022371ad31f885605e999de17ec22777`, jar SHA256 `5ef94b3fc60274afd223070491b6d33dca39273df57d4923fd702eaf6ec6ca1f`; literal numeric/string JSON was separately checked using its actual JsonUtil. No generated expectations or finite uniqueness proof.
+
+The JDK-only process has 64 MiB heap, 2 active processors and a 45-second outer deadline. Seed100025 covers2048 node/time cases, 8 workers issue16384 IDs in each platform/virtual mode, then5 cycles each exercise2000 successful generators, rejected missing nodes and interrupted calls. Post-GC retained heap must stay below baseline+8MiB and48MiB absolute; these are measured process budgets, not exact object-size claims. Futures have15-second watchdogs.
+
+`IdApplicationConsumer` in the separate minimal consumer project uses3 real Boot contexts and an application-owned draft operation with direct JDK UUID defaults or a named user Supplier. It checks sibling close, custom policy, existing long JSON and explicit decimal/UUID strings with128MiB/2CPU/45seconds. Inputs and process logs are archived by the shared verification runner and CI. See `docs/verification/ticket-10-id-policy.md` for actual runs, preflight limits and Linux qualification.

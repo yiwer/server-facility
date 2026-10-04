@@ -26,7 +26,7 @@
 | [0020](0020-masking-log-pre-write-checksum-suppression.md) | Accepted; 新路径默认日志入口部分由 [0049](0049-application-owned-observability.md) 替代 | 日志脱敏——LogUtil 写前集成(LogPostHandler 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
 | [0021](0021-excel-csv-optional-poi-runtime-probe.md) | Accepted; 部分由 [0038](0038-bounded-csv-dialects.md) / [0039](0039-bounded-excel-formats.md) 替代 | 保留裸列表/无表头ORM和POI optional理由；0038替代手写CSV/用途政策，0039替代Excel无界读取/公式计算/临时清理与仅探针保证 |
 | [0022](0022-logutil-caller-gating-stackwalker.md) | Accepted; 新路径默认日志入口部分由 [0049](0049-application-owned-observability.md) 替代 | LogUtil 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
-| [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Accepted | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
+| [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Superseded by [0033](0033-explicit-id-policy.md) | 保留无限等待的历史决定；当前两种回拨模式均受共享单调预算及中断约束 |
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted; 平台版本部分由 [0045](0045-boot4-platform-toolchain.md) 替代 | 保留 Java 25、固定 Wrapper、普通 jar 与原质量门；Boot 3 中间平台由 0045 目标依赖替代 |
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
@@ -36,6 +36,7 @@
 | [0030](0030-local-keyed-mutex.md) | Accepted | 实例内线程owner互斥、原子活动键预算和等待者安全回收；关闭不强制释放，旧入口明确迁移 |
 | [0031](0031-explicit-local-cache.md) | Accepted | 显式Spring Cache能力、固定名字与真实TTL/容量/loading/关闭；缺依赖拒绝，标准SPI迁移 |
 | [0032](0032-local-rate-limit-contract.md) | Accepted | 正成本与精确余额、真实缺额等待、有界主体准入和满桶回收；required/Optional设施政策、可信主体及入口计费 |
+| [0033](0033-explicit-id-policy.md) | Accepted | UUID默认，显式节点SnowId与单调有界等待；替代0023无限等待 |
 | [0034](0034-qualified-legacy-claims.md) | Accepted; release的有效租约限制部分由 [0035](0035-authorized-bounded-http-replay.md) 替代 | 独立claim执行资格、owner/generation条件更新、结果保留与永久命令绑定；有界内存、旧SPI隔离与失败首因 |
 | [0035](0035-authorized-bounded-http-replay.md) | Accepted | 当前操作授权与规范化、可信身份/完整操作scope、有限同步HTTP目标、安全回执与失败终态；当前过期owner可终止但不可覆盖新generation |
 | [0036](0036-upload-integrity.md) | Accepted | 实际字节预算、内容探测流所有权、服务端存储键与同卷硬链接发布；保留0001的optional理由 |

@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
 @EnableConfigurationProperties(FacilityIdProperties.class)
-@ConditionalOnProperty(prefix = "facility.id", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "facility.id", name = "enabled", havingValue = "true")
 public class FacilityIdAutoConfiguration {
 
     @Bean

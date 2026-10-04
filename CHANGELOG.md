@@ -16,6 +16,12 @@
 - Patterns最多保留256项，超过4096UTF16的可信开发者模式不缓存；不再承诺跨逐出的对象身份，亦不承诺任意不可信regex的执行时限。NumberUnits弃用并保留原double/Math.round行为；应用直接选择BigDecimal舍入政策。
 - [迁移说明](docs/building/explicit-value-policies.md)区分旧金样和有意收紧；JDK-only导出输入示例与普通jar兼容/资源消费者随验证入口执行。
 
+### UUID默认与显式SnowId（票10，ADR0033）
+
+- 新业务直接JDK UUID；SnowId自动装配默认关闭，启用时两项节点必须显式配置。IdUtil保留签名并弃用，缺provider明确拒绝，移除隐式节点0。
+- SnowId保留旧55位布局、实例epoch解析及JSON long数字；每次发号的准入/恢复/序列耗尽共用正数有限预算。中断保留标志，失败不消费序列；false不再无限等待，取代ADR0023。
+- 每次观察回拨均执行阈值政策；检查生成时间差范围，保留旧负epoch及历史reader。节点分配、重启高水位和数字/字符串API迁移见[标识政策](docs/building/identifier-policy.md)。
+
 ### 显式DTO映射与有界旧复制（2026-10-04，ADR0042）
 
 - 新订单到发运DTO示例用具名record和显式构造，不依赖反射映射器；实际消费者验证字段完整性、顺序/重复行、独立容器和源码演进负控。
