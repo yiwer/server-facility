@@ -1,10 +1,10 @@
 # Ticket10 — explicit identifier policy
 
-2026-10-04 in-progress. Based on integration1d6377d, independent tree codex/ticket-10. Approved seams: public IdUtil/SnowIdGenerator, real Spring configuration, ordinary jar application operations. No new generic generator framework. ADR0033 replaces ADR0023 unbounded waits, preserves ADR0008 instance epoch parsing.
+2026-10-04 verification-pending: complete Windows gate passed; Linux awaits the next integrated CI. Based on integration1d6377d, independent tree codex/ticket-10. Approved seams: public IdUtil/SnowIdGenerator, real Spring configuration, ordinary jar application operations. No new generic generator framework. ADR0033 replaces ADR0023 unbounded waits, preserves ADR0008 instance epoch parsing.
 
 ## TDD evidence
 
-Raw logs `.verification-results/ticket-10`, shared dependency cache only, no changed SNAPSHOT installed there. Wrapper Maven3.10.0 and Oracle25.0.4.1 on Windows11/zh_CN/Asia-Shanghai. Each numbered RED precedes that contract implementation; final full gate has not run.
+Raw logs `.verification-results/ticket-10`, shared dependency cache only, no changed SNAPSHOT installed there. Wrapper Maven3.10.0 and Oracle25.0.4.1 on Windows11/zh_CN/Asia-Shanghai. Each numbered RED precedes that contract implementation; the frozen full gate is recorded below.
 
 | Slice | Observed result |
 |---|---|
@@ -37,15 +37,26 @@ Actual historical JsonUtil on the unchanged original jar also PASS literal numer
 |---|---|
 |Q01|FR05/09, AC08/12 map to IdPolicyContractTest, SnowIdBudgetContractTest, SnowIdRecoveryContractTest, real boot configuration and ordinary consumers. ADR0033 supersedes0023 and preserves0008.|
 |Q02|Explicit node0/3 and missing/-1/4, null properties/clock, zero/negative/huge wait, arbitrary epoch parsing versus generation range,1024sequence limit, rollback and forward jumps.|
-|Q03|Verify installs ordinary jar into isolated repository, compiles standalone JDK-only consumer and separate Boot draft-operation consumer; final run pending below.|
+|Q03|Verify installs ordinary jar into isolated repository, compiles standalone JDK-only consumer and separate Boot draft-operation consumer; frozen all run passed below.|
 |Q04|Barrier-owned admission and clock callback, live interruption, frozen clock, failing/reentrant supplier and failure-neutral literal sequences; no external nodes/database mocked.|
 |Q05|One per-call monotonic budget including admission, bounded per-instance state,64MiB/2CPU/45s resource process; callback must cooperate and OS/GC are not hard real-time.|
 |Q06|Unchanged0ee9d54 actual jar parsing and actual old JsonUtil literals; no stored-ID rewrite or silent long→string conversion.|
 |Q07|Seed100025/2048 representable timestamp/node cases; platform/virtual finite concurrency samples cannot establish unlimited uniqueness.|
 |Q08|Logs/environment/source/isolated graph and fixed diagnostic messages recorded; no caller ID or secret appears in refusal messages. Linux pending repository CI.|
-|Q09|Original88/88/75 coverage and5 architecture gates unchanged; no test removal/ignore. Full result pending.|
-|Q10|Policy, example/defaults, ADR, changelog and tests delivered together. Remains pending until ordinary jar/full gate and Linux close.|
+|Q09|Original88/88/75 coverage and5 architecture gates unchanged; no test removal/ignore. Frozen all passed1733/0/0/0 with all original gates.|
+|Q10|Policy, example/defaults, ADR, changelog and tests delivered together. Ordinary jar/full Windows gate passed; remains pending until integrated Linux closes.|
 
-## Pending qualification
+## Frozen complete Windows gate
 
-Frozen full Windows ordinary-jar/quality/consumer gate and Linux CI remain before closure. No finite sample is advertised as proof of unlimited uniqueness, and no cross-process node assignment is claimed.
+Command (JDK25/PG_BIN/VERIFY_WRONG_JAVA_HOME configured): `java verification/Verify.java all --fresh`.
+
+- Exact source `fa26fc3d2031ffce9470c41ff483fdeb33989699`, clean tree, includes integrated07/12/19/28 CI15 repair/32 at207c0cc. Implementation8e38835; full gate113 commands PASS in `.verification-results/20261004-084154-877-all/summary.txt`, outer log `ticket-10/16-all-fresh.log`. Wrapper3.10.0 and a fresh isolated repository.
+- Oracle25.0.4.1+1-LTS-5, Windows11/amd64, Asia/Shanghai, zh_CN; native PostgreSQL18.6. Library1733 tests,0 failures/errors/skips,5 architecture contracts, unchanged dependency rules. Coverage instruction26611/28597, line5161/5464, branch2906/3412; original88/88/75 thresholds pass. Compared with integrated1712,21 new ID contract tests were added; existing tests remain, with explicit opt-in setup and corrected bounded-wait descriptions.
+- Ordinary jar SHA256 `cc8c8a405a4e747b459c0d1eb850aa7794c90610c593d2c906b3431dc14ef312`. Actual12-id-consumer.log: retained baseline1933944/max1963184 bytes,64MiB/2CPU, same fixed corpus/seed2048/10000cycles and both thread modes. Source origin is asserted to be a jar; Spring/JUnit are absent.13-id-application-consumer.log PASS through3 real contexts and Drafts.create, current numeric/string/UUID literal JSON and sibling close.
+- Existing core/mapping/crypto/IO/CSV/Excel/rate/lock/claim/HTTP replay/JSON/optional-graph/partner consumers all pass. Template78/0/0/0 with original coverage; all3 PostgreSQL CLI contracts and packaged platform/virtual restart pass. Template jar SHA256 `564db14091b8b789d3257948f60f67a176b2bd7516fcf4a371391811ce9ab02e`. Five repeated application processes and all checksum/JAVA_HOME/real-JDK21 negative controls pass; no excluded or skipped gate.
+- Short independent review in coordination/ticket-10-premerge-review.md rechecked growing rollback fix and UUID application/ordinary-jar entrance; no open finding. Final independent Standards/Spec review remains required for the whole integration branch.
+
+## Remaining integrated qualification
+
+This frozen source precedes08 and20; their later merge is not retroactively included in these counts or artifact hashes. Linux ID qualification awaits the repository CI on the integrated source. Existing CI16 qualified207c0cc before10 and cannot close this ticket. No finite sample is advertised as proof of unlimited uniqueness, and no cross-process node assignment is claimed. Final33 owns one candidate across all modules.
+

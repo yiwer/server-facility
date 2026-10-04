@@ -26,7 +26,7 @@
 | [0020](0020-masking-log-pre-write-checksum-suppression.md) | Accepted; 新路径默认日志入口部分由 [0049](0049-application-owned-observability.md) 替代 | 日志脱敏——LogUtil 写前集成(LogPostHandler 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
 | [0021](0021-excel-csv-optional-poi-runtime-probe.md) | Accepted; 部分由 [0038](0038-bounded-csv-dialects.md) / [0039](0039-bounded-excel-formats.md) 替代 | 保留裸列表/无表头ORM和POI optional理由；0038替代手写CSV/用途政策，0039替代Excel无界读取/公式计算/临时清理与仅探针保证 |
 | [0022](0022-logutil-caller-gating-stackwalker.md) | Accepted; 新路径默认日志入口部分由 [0049](0049-application-owned-observability.md) 替代 | LogUtil 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
-| [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Accepted | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
+| [0023](0023-snowid-clock-backwards-nothrow-wait.md) | Superseded by [0033](0033-explicit-id-policy.md) | 保留无限等待的历史决定；当前两种回拨模式均受共享单调预算及中断约束 |
 | [0024](0024-java25-reproducible-consumer-baseline.md) | Accepted; 平台版本部分由 [0045](0045-boot4-platform-toolchain.md) 替代 | 保留 Java 25、固定 Wrapper、普通 jar 与原质量门；Boot 3 中间平台由 0045 目标依赖替代 |
 | [0025](0025-context-ownership.md) | Accepted | Context 实例注册归属、刷新/关闭隔离与构造器注入；兼容 ID/日志不跨 context 缓存 Spring bean |
 | [0026](0026-async-execution-contract.md) | Accepted | Async 声明执行器、整体 deadline、实际线程上下文作用域与协作取消；标准执行器生命周期、有界资源 |
