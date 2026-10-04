@@ -4,13 +4,15 @@
 
 **Blocked by:** 13 上传在探测、保存和失败时保持完整与有界；15 让 CSV 方言、流消费和电子表格导出策略可验证；25 隔离两个外部服务的配置、凭据和失败；26 让应用拥有本地化、日志与观测政策；30 在断连、进程丢失和结果清理后恢复同一命令
 
-**Status:** in-progress
+**Status:** verification-pending
 
 2026-10-04：30已由CI20候选`61094b53b23b5d00759df3e6837999bc63af0f44`的Windows/Ubuntu all、platform和归档成功闭合，本票所有前置现已完成，可正式领取。工作树外neutral harness、历史升级脚本及短审是准备证据，尚未执行本票实际新旧任务/升级验收。
 
 **Traceability:** FR-07、FR-08、FR-09、FR-10；AC-03、AC-11、AC-12、AC-14、AC-15
 
 2026-10-04阶段检查点：实际0.2.0-SNAPSHOT普通jar、模板2026.10.0标记与独立文档、29包/API迁移账本及历史自定义升级已实现。历史before78/after80项与真实打包持久重启通过；[报告](../../../docs/verification/ticket-31-template-upgrade.md)明确范围。新旧五任务、新臂可复用上传CSV接合、当前候选all/platform CI仍待闭合；本票未完成。
+
+2026-10-04实现合入：初始冻结`57dc707e39a0d4670d49a431bf78284e05af3a2f`已包含main0edb519，以--no-ff合为`f72cad58da0f2d7797e7d8b2a89dfdf5665ac5bd`。其完整all16实际在Unicode路径lineage检查失败，尚未推送时停止候选。修复`1dc2912`统一ASCII file URI传参与解析，在原失败模板及新workflow目录实际四命令通过后，最终实现`d4ac86bf162d35b4ea1e7d9abdc5ac99a30fb5db`再合为`ff0d832135186766a58968536d0dc6af3be61d6c`，均无冲突。历史升级、实际新旧五任务、独立workflow151项/打包两模式/Apply拒绝仍按各自来源保留；修复后的完整all/platform与CI21另行验证。本票verification-pending且未闭合复选框保持，不能将初次失败写为PASS或用局部证据替代全门；最终闭合等待root汇合owner和实际CI证据。
 
 ## Acceptance criteria
 
