@@ -88,7 +88,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 
 ## 5. ADR 索引
 
-49 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+50 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -122,6 +122,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0028 | 普通响应直通、显式有界捕获；repeatable 正预算、流所有权与真实 Servlet 生命周期 |
 | 0029 | 默认连接peer/显式可信代理；Servlet与Callable作用域清理身份、恢复宿主trace，部分替代0014来源假设 |
 | 0030 | LocalKeyedMutex实例内真实线程owner、严格活动键预算和安全回收；关闭/观察终止均不提前释放，旧SPI迁移 |
+| 0031 | 显式缓存能力/有限名字与后端TTL容量；缺依赖拒绝、标准loading和宿主关闭边界，部分替代0015 |
 | 0032 | 本地配额正成本/精确余额、有界主体回收、required/Optional政策和可信身份入口计费；部分替代0014 |
 | 0034 | 独立claim的可信scope/fingerprint、owner条件完成、结果到期不重授、共享硬预算与永久close；部分替代0017 |
 | 0035 | 当前授权的有限HTTP重放、可信scope/业务指纹、安全头回执和终态；过期当前owner仅可终止 |
@@ -135,7 +136,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
-| 0047 | 真实依赖图和普通jar/HTTP平台门；补全Servlet6.1重载与缺任一缓存依赖回退，OS证据分别登记 |
+| 0047 | 真实依赖图和普通jar/HTTP平台门；补全Servlet6.1重载与历史缓存依赖回退；缓存新选择政策见0031，OS证据分别登记 |
 | 0048 | 宿主builder/应用Adapter拥有外部HTTP配置，实际字节预算、有限重试与未知副作用结果；部分替代0018 |
 | 0049 | 应用MessageSource/SLF4J/Micrometer所有权；旧静态本地化/日志/trace兼容迁移，真实异步scope与两应用观测隔离 |
 | 0050 | 独立JWT保护MVC模板：应用信任/Actor、标准Security授权、安全401/403/503与上下文所有权；扩展0027/0029接合 |
@@ -147,11 +148,13 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 - **09/14/15跨平台闭合**：集成 `c2f0f6b` 的Windows/Ubuntu完整门、平台门和归档全部通过，[CI37147633803](verification/ticket-09-14-15-ci.md)登记同源证据，三票closed。
 - **前次本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过。Excel4种真实引擎依赖图、64MiB400,000行/200失败/恶意XML、独立样本和openpyxl导出oracle通过；原质量门、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](verification/ticket-16-bounded-excel.md)。同源CI12已通过Windows/Ubuntu完整门、平台门和归档，11/16/27 closed，详见[CI37156503739](verification/ticket-11-16-27-ci.md)。25后加Inventory `[null]` 修复已随[CI13](verification/ticket-25-26-ci.md)跨平台闭合；本段精确计数仅为原本地来源。
 - **前次本地完整门（26）**：冻结`72a37b6` Windows `all --fresh`为库1614/0/0/0、模板52/0/0/0、聚合应用14/0/0/0，92命令与原质量门/负控全部PASS，见[26报告](verification/ticket-26-host-observability.md)。含25库存null修复的联合候选已通过[CI13](verification/ticket-25-26-ci.md)，25/26 closed。
-- **持久业务本地门（28）**：冻结`4a5ad5d`完整92步为库1614/partner15/模板74均零失败；随后整秒JDBC预算修复在`e0fd5b3`完成模板76项、原质量门、真实PostgreSQL可执行包两线程模式CRUD/重启与coverage负控。两次来源和范围分别记录在[28报告](verification/ticket-28-persistent-business.md)。CI14同源Ubuntu通过、Windows打包数据库启动失败，见[CI记录](verification/ticket-28-ci.md)；28保持verification-pending；[原生进程修复](verification/ticket-28-ci14-fix.md)已合入，CI15 Ubuntu通过、Windows并发迁移测试失败；[并发测试宿主修复](verification/ticket-28-ci15-fix.md)已完成当前库1712与完整模板78项，等待CI16联合验证。
-- **本地互斥门（07）**：冻结`df7f788`的Windows完整97步通过，库1637/0/0/0；原SPI兼容、64MiB轮转与Async观察结束后仍持锁均已执行。之后与28合并的候选等待CI，精确范围见[07报告](verification/ticket-07-local-lock.md)。
-- **授权重放本地门（12）**：`3563d92`的Windows `all`通过，库1667/0/0/0、模板76/0/0/0及独立Security重放消费者、PostgreSQL打包重启、原质量门与负控全部通过。含07；精确来源见[12报告](verification/ticket-12-authorized-replay.md)。12仍待Linux，28的CI14失败独立保留。
-- **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选及Linux仍待CI，不能拼接计数冒充新来源通过。
-- **显式映射本地门（19）**：修复Map key与value回调间中断检查后的`4bcad87`完成Windows `all --fresh`110命令PASS，库1712/0/0/0、模板76/partner15及原门全部通过；具名DTO业务/编译负控、旧binary和64MiB资源消费者通过，见[19报告](verification/ticket-19-explicit-mapping.md)。Linux仍待CI，此本地结果不覆盖CI15 Windows模板并发迁移失败。
+- **CI16联合闭合（07/12/19/28/32）**：207c0cc / run37165514455 的Windows与Ubuntu完整all、platform和归档均success，五票closed、共26票closed；[原始metadata与范围](verification/ticket-07-12-19-28-32-ci.md)。08/10/20未包含于该来源，等待后续CI。
+- **持久业务本地门（28）**：冻结`4a5ad5d`完整92步为库1614/partner15/模板74均零失败；随后整秒JDBC预算修复在`e0fd5b3`完成模板76项、原质量门、真实PostgreSQL可执行包两线程模式CRUD/重启与coverage负控。两次来源和范围分别记录在[28报告](verification/ticket-28-persistent-business.md)。CI14同源Ubuntu通过、Windows打包数据库启动失败，见[CI记录](verification/ticket-28-ci.md)；当时28保持verification-pending；[原生进程修复](verification/ticket-28-ci14-fix.md)已合入，CI15 Ubuntu通过、Windows并发迁移测试失败；[并发测试宿主修复](verification/ticket-28-ci15-fix.md)已完成当前库1712与完整模板78项，现已由CI16双OS联合门闭合。
+- **本地互斥门（07）**：冻结`df7f788`的Windows完整97步通过，库1637/0/0/0；原SPI兼容、64MiB轮转与Async观察结束后仍持锁均已执行。随后联合候选已通过CI16，原本地精确范围见[07报告](verification/ticket-07-local-lock.md)。
+- **授权重放本地门（12）**：`3563d92`的Windows `all`通过，库1667/0/0/0、模板76/0/0/0及独立Security重放消费者、PostgreSQL打包重启、原质量门与负控全部通过。含07；精确来源见[12报告](verification/ticket-12-authorized-replay.md)。12已由CI16同源双OS门闭合，28的CI14失败独立保留。
+- **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选已通过CI16双OS门；本段本地计数仍仅属于所标来源。
+- **缓存本地组合门（08）**：6881088库1729/0/0/0及原质量门通过；原all因no-Jackson显式mapper消费者断言矛盾保留FAIL。修正后的d0afe97完整61步尾门以强制相同库源码和jar SHA通过5图24场景、模板78、PG/打包/资源/负控。两段证据分别见[08报告](verification/ticket-08-cache-guarantees.md)，不称原all PASS；Linux待新CI。
+- **显式映射本地门（19）**：修复Map key与value回调间中断检查后的`4bcad87`完成Windows `all --fresh`110命令PASS，库1712/0/0/0、模板76/partner15及原门全部通过；具名DTO业务/编译负控、旧binary和64MiB资源消费者通过，见[19报告](verification/ticket-19-explicit-mapping.md)。历史本地结果不覆盖CI15失败；现已由CI16同源双OS门闭合。
 - **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；同产品集成`80670fa`现已通过Windows/Ubuntu完整CI，详见[平台闭合](verification/ticket-24-ci.md)；各环境精确值以各自artifact为准。
 - **旧平台参照（Windows / Java25 / Boot3.5.16）**：`5a59d2f` 为1323项、0失败/错误/跳过，含5条ArchUnit及原覆盖率/依赖门；同产品的 `2304a57` 已通过 Windows/Ubuntu `all --fresh`，见 [票05 CI证据](verification/ticket-05-ci.md)。旧平台绿色不外推到当前Boot4；Servlet6.1新重载已由24在目标平台复验关闭。
 - **覆盖率**:JaCoCo check 绑 `verify`,BUNDLE 级 INSTRUCTION/LINE ≥0.88、BRANCH ≥0.75

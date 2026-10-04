@@ -89,6 +89,29 @@ class CacheUtilTest {
         assertThat(loaderCalls.get()).isEqualTo(1);
     }
 
+    @Test void cachedNullIsAHitForTheSelectedBackendsLoadingContract() {
+        registerCacheManager();
+        AtomicInteger loads = new AtomicInteger();
+        Supplier<String> loader = () -> { loads.incrementAndGet(); return null; };
+        assertThat(CacheUtil.getOrCompute("c1", "empty", String.class, loader)).isNull();
+        assertThat(CacheUtil.getOrCompute("c1", "empty", String.class, loader)).isNull();
+        assertThat(loads.get()).isEqualTo(1);
+    }
+
+    @Test void loadingFailureUsesTheSpringContractAndDoesNotPolluteTheLegacyFacade() {
+        registerCacheManager();
+        var failure = new IllegalArgumentException("business-loader-failure");
+        assertThatThrownBy(() -> CacheUtil.getOrCompute("c1", "failed", String.class, () -> { throw failure; }))
+                .isInstanceOf(org.springframework.cache.Cache.ValueRetrievalException.class).hasCause(failure);
+        assertThat(CacheUtil.get("c1", "failed", String.class)).isEmpty();
+        assertThat(CacheUtil.getOrCompute("c1", "failed", String.class, () -> "recovered")).isEqualTo("recovered");
+        assertThatThrownBy(() -> CacheUtil.getOrCompute("c1", "failed", Integer.class, () -> 7))
+                .isInstanceOf(ClassCastException.class);
+        assertThat(CacheUtil.get("c1", "failed", String.class)).contains("recovered");
+        assertThatThrownBy(() -> CacheUtil.getOrCompute("c1", "key", String.class, null))
+                .isInstanceOf(NullPointerException.class).hasMessage("loader");
+    }
+
     @Test
     @DisplayName("无 CacheManager bean → get 空、getOrCompute 直调 loader 并返回其值")
     void noCacheManager_getEmpty_getOrComputeCallsLoader() {

@@ -1,4 +1,6 @@
-# Ticket19: explicit mapping and bounded legacy copying (verification-pending)
+# Ticket19: explicit mapping and bounded legacy copying
+
+> 当前状态（2026-10-04）：本票已由207c0cc / CI16两OS完整门闭合，见[联合验收](ticket-07-12-19-28-32-ci.md)。下文保留各次冻结/交接时的本地证据和当时待验事项；其中pending描述不代表现在仍未关闭。
 
 Baseline integration418e26f, synchronized2b06f52 before implementation; branchcodex/ticket-19. Logs stay in`.verification-results/ticket-19`, outside target. ADR0042 is Accepted. Formal19 and Q01–Q10/J14 govern this work; no unexecuted scenario is marked passed.
 
