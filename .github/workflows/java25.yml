@@ -76,9 +76,11 @@ jobs:
             .verification-results/**/PlatformUploadConsumer.java
             .verification-results/**/core-consumer/CoreConsumer.java
             .verification-results/**/id-consumer/inputs/**
+            .verification-results/**/mapping-consumer/**
             .verification-results/**/crypto-consumer/CryptoConsumer.java
             .verification-results/**/io-consumer/IoConsumer.java
             .verification-results/**/rate-limit-consumer/RateLimitConsumer.java
+            .verification-results/**/html-consumer/**
             .verification-results/**/partner/**
             .verification-results/**/partner-inputs/**
             .verification-results/**/claim-consumer/inputs/**
