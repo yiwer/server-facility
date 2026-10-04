@@ -5,6 +5,7 @@
 ## 先决条件与命令
 
 JDK 25（含 java/javac）、Git、Central HTTPS 网络可用。Wrapper 固定 Maven 3.10.0，无需预装 Maven。
+`all` / `platform` 还需 Python3.11+；默认 Windows `python`、Linux `python3`，可用 `VERIFY_PYTHON` 指定完整路径。实际版本写入候选环境证据。`all` 的历史升级还需完整 Git 历史（CI checkout `fetch-depth: 0`），不能缺历史对象后静默跳过。
 Windows 使用系统 PowerShell，Linux 使用 sh、curl 或 wget，以及 unzip、sha256sum 或 shasum。
 CI 固定 Temurin `25.0.4+101.0.LTS`（供应商版本 `25.0.4.1+1-LTS`）；Windows 本地记录为 Oracle `25.0.4.1+1-LTS-5`。
 更改固定版本必须同时更新校验和、账本和构建证据，不能只改 URL。
@@ -41,7 +42,7 @@ java verification/Verify.java platform --fresh
 | fast | clean verify：所有库测试、JaCoCo、五条架构规则、依赖分析；归档 effective POM/依赖树 | 构建失败、测试为零、任意失败/跳过、既有五条架构规则任一未发现（允许新增规则） |
 | integration | clean install + 普通jar/可选依赖矩阵/独立HTTP及PostgreSQL模板消费者 + prerequisites | 普通 jar/69 字节码/无 preview/metadata/配置/覆盖/失败诊断任何断言不成立 |
 | resources | clean install + 独立消费者（含PostgreSQL模板），再重复五次配置应用启动/使用/关闭 | 每个独立 JVM 上限 256 MiB、45 秒；超时终止本次子进程树且失败 |
-| all | 合并上述入口；库质量门仅执行一次 | 任一子步骤失败 |
+| all | 合并上述入口；库质量门仅执行一次；当前普通库的历史模板 before78/after80及三次打包生命周期；四角色产物/正向质量身份 | 任一子步骤失败；历史/产物/报告缺失；CI源码不clean或不等于本次checkout |
 | prerequisites | 校验损坏下载、缺失 JAVA_HOME、真实错误 JDK 拒绝 | 负向用例意外成功、诊断不匹配或所需 JDK 缺失 |
 | platform | 独立工具链/双引擎/处理器/classfile/JaCoCo/依赖分析探针，解析根目标依赖 | 5 项发现不完整、正向失败、负向未精确失败、处理器/字节码/依赖解析异常；**仅子集，不代替 all** |
 
@@ -78,8 +79,12 @@ configuration metadata 存在，并通过真实 Boot 非 Web 启动验证配置�
 每次写入 `.verification-results/<时间>-<入口>/`（git ignored），含命令、Git SHA/工作区状态、JDK/OS/架构、
 时区/Locale、本地仓库是否 fresh、完整日志、Surefire XML、JaCoCo XML/HTML、effective POM、依赖树及 jar SHA-256。
 失败也保留日志和 summary，不用重跑覆盖失败记录。版本控制内的 `docs/verification/ticket-01-windows.md` 摘要
-引用这些证据；CI 以 `java25-<OS>-<SHA>` artifact 保存 30 天。CI 配置不是已执行证据。
+引用这些证据；CI 以 `java25-<OS>-<SHA>-<attempt>` artifact 保存 30 天。CI 配置不是已执行证据。
 原基线为 1196 个测试（含 5 条架构规则），**不把总数写死**；新增/删除/跳过按票解释。
+
+票33的 [候选证据约定](../adr/0056-same-candidate-release-evidence.md) 将正向报告固定到 runtime、partner、secured-api与workflow四角色，故意失败的coverage、cleanup、引擎控制独立保存。`all-identity.json`和`platform-identity.json`只在对应入口完整成功时生成；CI只在两入口均成功后合成`candidate-identity.json`，按本次source/run/attempt/OS精确上传和下载，再比较四只JAR实测GAV/size/SHA以及各自runtime绑定。普通partner通过实际isolated classpath绑定，只有两只Boot包有nested runtime。
+
+Windows/Linux原有完整门和always原始归档保留。CI22 Windows已实测29m34s；新增历史重验后使用有限45分钟job预算，单Maven1200秒、消费者堆/线程/时间与数据库预算不变。历史两个可执行包是验证fixture，单独归档，既不替代当前四角色也不改写原历史benchmark。公开annotation仅含受限、验证后的来源、环境、四角色和正向tests/coverage；完整日志仍在artifact。最终候选状态及局限见[票33报告](../verification/ticket-33-release-evidence.md)。
 
 ## 直接依赖、BOM 与 processor 账本
 

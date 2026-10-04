@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Element;
 
-/** JDK-only entry point. Run from the repository root: java verification/Verify.java all --fresh. */
+/** JDK 25 entry point; all/platform also require Python 3.11+. Run from the repository root. */
 class Verify {
     static final boolean WINDOWS = System.getProperty("os.name").startsWith("Windows");
     static final String FACILITY_VERSION = "0.2.0-SNAPSHOT";
@@ -47,6 +47,13 @@ class Verify {
         summary.add("repository=" + repository + " fresh=" + Arrays.asList(args).contains("--fresh"));
         summary.add("wrapper-home=" + wrapperHome);
         try {
+            if (mode.equals("all") || mode.equals("platform")) {
+                evidenceTool("candidate-start", "CandidateEvidence.py", "start", "--root", ROOT.toString(), "--report", report.toString());
+                Files.writeString(report.resolve("environment.json"), "{\"java\":" + json(System.getProperty("java.runtime.version"))
+                        + ",\"vendor\":" + json(System.getProperty("java.vendor")) + ",\"arch\":" + json(System.getProperty("os.arch"))
+                        + ",\"osVersion\":" + json(System.getProperty("os.version")) + ",\"timezone\":" + json(ZoneId.systemDefault().toString())
+                        + ",\"locale\":" + json(Locale.getDefault().toString()) + "}\n");
+            }
             run(ROOT, Map.of(), "revision", List.of("git", "rev-parse", "HEAD"), 30, null);
             run(ROOT, Map.of(), "working-tree", List.of("git", "status", "--short"), 30, null);
             maven(ROOT, "toolchain", "--version");
@@ -85,6 +92,7 @@ class Verify {
                     workflowSourceFixture();
                     securedTemplate();
                     workflowConsumer();
+                    if (mode.equals("all")) historicalCandidate();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
                     // Each application gets a distinct bounded JVM and must close naturally within 45 seconds.
@@ -92,6 +100,11 @@ class Verify {
                     summary.add("resources=5 repeated application startup/use/close cycles; -Xmx256m; 45s deadline per JVM");
                 }
                 if (mode.equals("integration") || mode.equals("all")) prerequisites();
+            }
+            if (mode.equals("all") || mode.equals("platform")) {
+                evidenceTool("candidate-finish", "CandidateEvidence.py", "finish", "--root", ROOT.toString(),
+                        "--report", report.toString(), "--mode", mode, "--javap",
+                        Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javap.exe" : "javap").toString());
             }
             summary.add("RESULT=PASS");
         } catch (Exception | AssertionError failure) {
@@ -101,6 +114,69 @@ class Verify {
             Files.write(report.resolve("summary.txt"), summary, StandardCharsets.UTF_8);
             System.out.println("Evidence: " + report);
         }
+    }
+
+    static String json(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\r", "\\r").replace("\n", "\\n") + "\"";
+    }
+
+    static String python() {
+        return System.getenv().getOrDefault("VERIFY_PYTHON", WINDOWS ? "python" : "python3");
+    }
+
+    static Path evidenceTool(String name, String script, String... args) throws Exception {
+        var command = new ArrayList<>(List.of(python(), "-B", "-X", "utf8", ROOT.resolve("verification/release-evidence/" + script).toString()));
+        command.addAll(List.of(args));
+        return run(ROOT, Map.of(), name, command, 90, null);
+    }
+
+    static void historicalCandidate() throws Exception {
+        Path owned = Files.createTempDirectory("facility-historical-candidate-").toRealPath();
+        Path application = owned.resolve("application"), fixture = owned.resolve("fixture"), packaged = owned.resolve("packaged");
+        Path evidence = Files.createDirectories(report.resolve("historical-candidate"));
+        Path jar = ROOT.resolve("target/" + FACILITY_JAR), manifest = evidence.resolve("runtime-manifest.json");
+        run(ROOT, Map.of(), "release-evidence-controls", List.of(python(), "-B", "-X", "utf8", "-m", "unittest", "discover",
+                "-s", "verification/release-evidence", "-p", "test_*.py", "-v"), 90, null);
+        run(ROOT, Map.of(), "historical-property-controls", List.of(python(), "-B", "-X", "utf8", "-m", "unittest", "discover",
+                "-s", "verification/template-upgrade", "-p", "test_historical_upgrade.py", "-v"), 90, null);
+        evidenceTool("historical-inputs", "HistoricalCandidate.py", "inputs", "--root", ROOT.toString(), "--jar", jar.toString(),
+                "--evidence", evidence.toString(), "--repository", repository.toString(), "--fixture", fixture.toString());
+        for (String operation : List.of("check-history", "prepare", "check", "refusals")) {
+            historicalOperation(operation, application, evidence, manifest, jar);
+        }
+        evidenceTool("historical-overlay", "HistoricalCandidate.py", "overlay", "--app", application.toString(), "--evidence", evidence.toString());
+        for (String phase : List.of("before", "after")) {
+            if (phase.equals("after")) historicalOperation("upgrade", application, evidence, manifest, jar);
+            try {
+                maven(application, "historical-" + phase + "-build", "clean", "verify", "-Dupgrade.phase=" + phase, "-Dfacility.version=" + FACILITY_VERSION);
+            } finally {
+                evidenceTool("historical-" + phase + "-archive", "HistoricalCandidate.py", "archive", "--app", application.toString(),
+                        "--evidence", evidence.toString(), "--phase", phase);
+            }
+            maven(application, "historical-" + phase + "-model", "help:effective-pom", "dependency:tree", "-Dfacility.version=" + FACILITY_VERSION,
+                    "-Doutput=" + evidence.resolve(phase + "/effective-pom.xml"), "-DoutputFile=" + evidence.resolve(phase + "/dependency-tree.txt"));
+            evidenceTool("historical-" + phase + "-quality", "HistoricalCandidate.py", "check_phase", "--evidence", evidence.toString(),
+                    "--phase", phase, "--jar", jar.toString());
+        }
+        Path log;
+        try {
+            log = run(ROOT, Map.of(), "historical-packaged", List.of(java(), "-Xmx96m",
+                    ROOT.resolve("verification/template-upgrade/HistoricalPackagedUpgrade.java").toString(), fixture.toString(),
+                    evidence.resolve("before/application.jar").toString(), evidence.resolve("after/application.jar").toString(), packaged.toString()), 300, null);
+        } finally {
+            evidenceTool("historical-packaged-archive", "HistoricalCandidate.py", "archive_packaged", "--evidence", evidence.toString(), "--packaged", packaged.toString());
+        }
+        evidenceTool("historical-complete", "HistoricalCandidate.py", "complete", "--root", ROOT.toString(), "--app", application.toString(),
+                "--evidence", evidence.toString(), "--jar", jar.toString(), "--packaged", packaged.toString(), "--packaged-log", log.toString());
+        summary.add("historical-candidate=78 before/80 after including4 custom tests each;unchanged88/88/75;5 guarded changed files;before-platform/after-platform/after-virtual;candidate runtime;reapply refused unchanged");
+        summary.add("historical-independent-directory=" + owned + "; private fixture state retained locally, excluded from archive");
+    }
+
+    static void historicalOperation(String operation, Path application, Path evidence, Path manifest, Path jar) throws Exception {
+        run(ROOT, Map.of(), "historical-" + operation, List.of(python(), "-B", "-X", "utf8",
+                ROOT.resolve("verification/template-upgrade/HistoricalUpgrade.py").toString(), operation, "--repo", ROOT.toString(),
+                "--app", application.toString(), "--runtime-manifest", manifest.toString(), "--runtime-jar", jar.toString(),
+                "--evidence", evidence.resolve(operation + ".json").toString()), 90, null);
     }
 
     static void maven(Path directory, String name, String... goals) throws Exception {
@@ -372,6 +448,8 @@ class Verify {
                 List.of("clean", "verify", "-DskipTests"));
         summary.add("template-coverage-negative=clean independent copy without test execution rejected by required coverage gate");
         summary.add("template=tests " + tests + " failures=0 errors=0 skipped=0; fresh directory outside checkout; independent Wrapper; actual packaged HTTP platform/virtual");
+        if (Files.mismatch(jar, evidence.resolve("artifacts").resolve(jar.getFileName())) != -1)
+            throw new AssertionError("Archived template is not the executable consumed by packaged tests");
         summary.add("sha256 secured-api.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
     }
 
@@ -460,6 +538,7 @@ class Verify {
                 """.formatted(jarHash,Files.size(jar),FACILITY_VERSION,runtimeHash,runtime.length,tests));
         Path log=run(application,Map.of(),"workflow-packaged-http",List.of(java(),"-Xmx96m",client.toString(),application.toUri().toASCIIString(),evidence.toUri().toASCIIString()),180,null);
         if(!Files.readString(log).contains("PACKAGED_WORKFLOW_PASS"))throw new AssertionError("Workflow packaged result missing");
+        if(Files.mismatch(jar,archived)!=-1)throw new AssertionError("Archived workflow is not the executable consumed by packaged tests");
         summary.add("workflow=tests "+tests+" failures=0 errors=0 skipped=0; all original template suites retained;88/88/75 unchanged;actual executable platform/virtual;post-benchmark qualification");
         summary.add("sha256 workflow-application.jar="+jarHash+" bytes="+Files.size(jar)+" nested-runtime="+runtimeHash+" manifest=workflow/artifact-manifest.json");
     }
@@ -1056,6 +1135,7 @@ class Verify {
         summary.add("command " + name + " cwd=" + cwd + " args=" + command);
         var builder = new ProcessBuilder(command).directory(cwd.toFile()).redirectErrorStream(true).redirectOutput(log.toFile());
         builder.environment().putAll(environment);
+        Instant started = Instant.now();
         var process = builder.start();
         if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
             process.descendants().forEach(ProcessHandle::destroyForcibly);
@@ -1064,7 +1144,8 @@ class Verify {
             throw new AssertionError(name + " exceeded " + timeoutSeconds + "s; process tree terminated; inspect " + log);
         }
         int exit = process.exitValue();
-        summary.add(name + " exit=" + exit + (expectedFailure == null ? "" : " expected failure=" + expectedFailure));
+        summary.add(name + " exit=" + exit + " durationMillis=" + Duration.between(started, Instant.now()).toMillis()
+                + (expectedFailure == null ? "" : " expected failure=" + expectedFailure));
         // Windows PowerShell can localize surrounding errors using the console code page.
         // Keep the raw log, and decode ASCII diagnostic markers without rejecting non-UTF-8 bytes.
         String output = new String(Files.readAllBytes(log), StandardCharsets.UTF_8);
@@ -1073,10 +1154,8 @@ class Verify {
         if (expectedFailure == null ? exit != 0 : exit == 0 || !diagnosticFound) {
             System.err.println(output);
             if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
-                // Public check annotations keep a bounded failure tail available alongside the archived full log.
-                String tail = output.substring(Math.max(0, output.length() - 3000));
-                System.err.println("::error title=Verification failure detail::" + tail.replace("%", "%25")
-                        .replace("\r", "%0D").replace("\n", "%0A"));
+                // Public annotations identify only this fixed gate and exit code; full diagnostics remain in logs.
+                System.err.println("::error title=Verification gate failed::step=" + name + " exit=" + exit);
             }
             try {
                 reportTestFailures(cwd.resolve("target/surefire-reports"));
@@ -1110,18 +1189,16 @@ class Verify {
                         for (int j = 0; j < failures.getLength(); j++) {
                             String detail = test.getAttribute("classname") + "." + test.getAttribute("name") + "\n"
                                     + failures.item(j).getTextContent();
-                            String cause = detail.substring(Math.max(0, detail.lastIndexOf("Caused by:")));
                             if (detail.length() > 6000) detail = detail.substring(0, 1500)
                                     + "\n[stack truncated; full report archived]\n" + detail.substring(detail.length() - 4500);
                             System.err.println("Test failure detail:\n" + detail);
                             if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
-                                // The public API truncates long annotations: retain the deepest cause's
-                                // first frames instead of losing them behind wrapper frames or a log tail.
-                                String annotation = detail.length() <= 2800 ? detail : detail.substring(0, 600)
-                                        + "\n[full report archived; deepest cause follows]\n"
-                                        + cause.substring(0, Math.min(2000, cause.length()));
-                                System.err.println("::error title=Test failure cause::" + annotation.replace("%", "%25")
-                                        .replace("\r", "%0D").replace("\n", "%0A"));
+                                // Arbitrary exception messages can contain requests or credentials. Publish identifiers only.
+                                var failure = (Element) failures.item(j);
+                                String type = failure.getAttribute("type"), suite = test.getAttribute("classname");
+                                String safeType = type.matches("[A-Za-z0-9_.$]{1,160}") ? type : "unavailable";
+                                String safeSuite = suite.matches("[A-Za-z0-9_.$]{1,160}") ? suite : "unavailable";
+                                System.err.println("::error title=Positive test failed::suite=" + safeSuite + " type=" + safeType + "; full report archived");
                             }
                             if (++emitted == 4) return;
                         }

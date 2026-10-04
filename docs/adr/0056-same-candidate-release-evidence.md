@@ -1,0 +1,9 @@
+# ADR 0056: Require measured identity for one release candidate
+
+Status: Accepted. Date: 2026-10-04. Extends ADR0024 and ADR0054; no earlier runtime contract is replaced.
+
+A candidate is the exact source commit plus four measured deliverables: the ordinary runtime, ordinary partner application, secured-api executable and assembly-workflow executable. Windows and Linux must each complete the full `all` gate and independent `platform` controls in the same workflow run and attempt, then compare the exact role, Maven coordinate, size and SHA-256. Both executable jars embed the same ordinary runtime; the partner binds it through the actual isolated runtime classpath. Matching source alone is insufficient. Missing, dirty, malformed, failed or partial evidence refuses the final identity gate.
+
+The historical template step is requalified against that ordinary runtime in a separate sample, retaining the original before/after tests, the declared identical host overlay, custom business and three real packaged generations. Those two transient executables are fixtures, not additional delivery roles. Original historical and benchmark evidence remains immutable. Positive report directories are explicit; deliberate negative controls never inflate positive test totals. Safe public annotations contain only validated bounded identity, environment and quality fields, while full diagnostics remain in the evidence archive.
+
+CI22 Windows measured 1774 seconds inside the former 1800-second job budget. Adding historical candidate qualification requires a finite expanded job budget measured against this added scope; individual command, test and resource budgets remain unchanged. Final documentation records the actually verified source and treats later documentation-only commits explicitly instead of recursively rewriting their own SHA.

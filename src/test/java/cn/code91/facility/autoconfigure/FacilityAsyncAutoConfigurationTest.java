@@ -1,15 +1,31 @@
 package cn.code91.facility.autoconfigure;
 
 import cn.code91.facility.async.DefaultAsync;
+import cn.code91.facility.async.Async;
+import cn.code91.facility.result.Result;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.time.Duration;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,17 +48,152 @@ class FacilityAsyncAutoConfigurationTest {
         }
     }
 
-    @Test
-    void closingOneApplicationDoesNotAffectAnotherApplicationExecutor() {
-        var first = new java.util.concurrent.atomic.AtomicReference<Executor>();
-        runner.run(ctx -> { first.set(ctx.getBean(Executor.class));
-            assertThat(cn.code91.facility.async.Async.supply(() -> "first", first.get()).awaitValue()).isEqualTo("first"); });
-        runner.run(ctx -> {
-            var second = ctx.getBean(Executor.class);
-            assertThat(cn.code91.facility.async.Async.supply(() -> "closed", first.get()).await().getErr())
-                    .isInstanceOf(java.util.concurrent.RejectedExecutionException.class);
-            assertThat(cn.code91.facility.async.Async.supply(() -> "second", second).awaitValue()).isEqualTo("second");
-        });
+    @ParameterizedTest(name = "{0} versus BOOT_VIRTUAL; close virtual first={1}")
+    @CsvSource({"FALLBACK,false", "FALLBACK,true", "BOOT_PLATFORM,false", "BOOT_PLATFORM,true"})
+    void closingOneApplicationDoesNotAffectAnotherApplicationExecutor(ExecutorPolicy firstPolicy,
+                                                                     boolean closeVirtualFirst) {
+        applicationRunner(firstPolicy).run(firstContext -> applicationRunner(ExecutorPolicy.BOOT_VIRTUAL).run(secondContext -> {
+            try (var first = new ExecutorApplication(firstContext, firstPolicy);
+                 var second = new ExecutorApplication(secondContext, ExecutorPolicy.BOOT_VIRTUAL);
+                 var inFlight = new InFlightTask(closeVirtualFirst ? first : second)) {
+                assertThat(firstContext.isActive()).isTrue();
+                assertThat(secondContext.isActive()).isTrue();
+                assertThat(first.executor).isNotSameAs(second.executor);
+                first.probe("first-1"); second.probe("second-1");
+                first.probe("first-2"); second.probe("second-2");
+
+                var closing = closeVirtualFirst ? second : first;
+                var survivor = closeVirtualFirst ? first : second;
+                inFlight.start();
+                assertThat(inFlight.entered.await(5, TimeUnit.SECONDS)).isTrue();
+                closing.close();
+                closing.assertRejected();
+                assertThat(survivor.context.isActive()).isTrue();
+                assertThat(inFlight.future.isDone()).isFalse();
+                assertThat(inFlight.worker.get().isAlive()).isTrue();
+                assertThat(inFlight.interrupted).isFalse();
+
+                inFlight.releaseAndVerify();
+                survivor.probe("survivor-after-close");
+                survivor.close();
+                survivor.assertRejected();
+            }
+        }));
+    }
+
+    private ApplicationContextRunner applicationRunner(ExecutorPolicy policy) {
+        if (policy == ExecutorPolicy.FALLBACK) return runner;
+        var boot = new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(
+                FacilityAsyncAutoConfiguration.class, TaskExecutionAutoConfiguration.class))
+                .withPropertyValues("spring.threads.virtual.enabled=" + policy.virtual,
+                        "spring.task.execution.thread-name-prefix=" + policy.prefix);
+        return policy.virtual ? boot : boot.withPropertyValues("spring.task.execution.pool.core-size=1",
+                "spring.task.execution.pool.max-size=1", "spring.task.execution.pool.queue-capacity=8");
+    }
+
+    private enum ExecutorPolicy {
+        FALLBACK(false, "facility-async-"), BOOT_PLATFORM(false, "j05-platform-"), BOOT_VIRTUAL(true, "j05-virtual-");
+        final boolean virtual;
+        final String prefix;
+        ExecutorPolicy(boolean virtual, String prefix) { this.virtual = virtual; this.prefix = prefix; }
+    }
+
+    /** Own direct worker references; virtual threads need not appear in global thread enumeration. */
+    private static final class ExecutorApplication implements AutoCloseable {
+        final ConfigurableApplicationContext context;
+        final Executor executor;
+        final ExecutorPolicy policy;
+        final Set<Thread> workers = ConcurrentHashMap.newKeySet();
+        final CountDownLatch closed = new CountDownLatch(1);
+        final AtomicReference<Throwable> closeFailure = new AtomicReference<>();
+        Thread closeThread;
+
+        ExecutorApplication(ConfigurableApplicationContext context, ExecutorPolicy policy) {
+            this.context = context; this.policy = policy;
+            String name = policy == ExecutorPolicy.FALLBACK ? "facilityAsyncExecutor"
+                    : TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
+            executor = context.getBean(name, Executor.class);
+            if (policy != ExecutorPolicy.FALLBACK) assertThat(context.containsBean("facilityAsyncExecutor")).isFalse();
+            if (!policy.virtual) {
+                assertThat(executor).isInstanceOf(ThreadPoolTaskExecutor.class);
+                var pool = (ThreadPoolTaskExecutor) executor;
+                assertThat(pool.getCorePoolSize()).isEqualTo(policy == ExecutorPolicy.FALLBACK ? 4 : 1);
+                assertThat(pool.getMaxPoolSize()).isEqualTo(policy == ExecutorPolicy.FALLBACK ? 4 : 1);
+                assertThat(pool.getQueueCapacity()).isEqualTo(policy == ExecutorPolicy.FALLBACK ? 256 : 8);
+            }
+        }
+
+        Thread capturePolicy() {
+            Thread worker = Thread.currentThread(); workers.add(worker);
+            assertThat(worker.isVirtual()).isEqualTo(policy.virtual);
+            assertThat(worker.getName()).startsWith(policy.prefix);
+            return worker;
+        }
+
+        void probe(String expected) throws Exception {
+            var result = Async.supply(() -> { capturePolicy(); return expected; }, executor)
+                    .map(value -> { capturePolicy(); return value; }).submit().get(5, TimeUnit.SECONDS);
+            assertThat(result.isOk()).as("probe %s: %s", expected, result).isTrue();
+            assertThat(result.get()).isEqualTo(expected);
+        }
+
+        void assertRejected() throws Exception {
+            var result = Async.supply(() -> "closed", executor).submit().get(5, TimeUnit.SECONDS);
+            assertThat(result.getErr()).isInstanceOf(RejectedExecutionException.class);
+        }
+
+        @Override public void close() throws Exception {
+            if (closeThread == null) {
+                closeThread = Thread.ofPlatform().daemon().name("j05-close-" + policy).start(() -> {
+                    try { context.close(); } catch (Throwable failure) { closeFailure.set(failure); }
+                    finally { closed.countDown(); }
+                });
+            }
+            assertThat(closed.await(5, TimeUnit.SECONDS)).as("context close %s", policy).isTrue();
+            assertThat(closeThread.join(Duration.ofSeconds(5))).as("close helper %s stopped", policy).isTrue();
+            assertThat(closeFailure.get()).isNull();
+            if (executor instanceof ThreadPoolTaskExecutor pool) {
+                assertThat(pool.getThreadPoolExecutor().awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+                assertThat(pool.getThreadPoolExecutor().isTerminated()).isTrue();
+            }
+            for (Thread worker : workers) {
+                assertThat(worker.join(Duration.ofSeconds(5))).as("owned worker %s stopped", worker.getName()).isTrue();
+                assertThat(worker.isAlive()).isFalse();
+            }
+        }
+    }
+
+    /** Registered before any probe; cleanup releases the task before either application is closed. */
+    private static final class InFlightTask implements AutoCloseable {
+        final ExecutorApplication owner;
+        final CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);
+        final AtomicBoolean interrupted = new AtomicBoolean();
+        final AtomicReference<Thread> worker = new AtomicReference<>();
+        CompletableFuture<Result<String, Throwable>> future;
+        InFlightTask(ExecutorApplication owner) { this.owner = owner; }
+
+        void start() {
+            future = Async.supply(() -> {
+                worker.set(owner.capturePolicy()); entered.countDown();
+                try {
+                    if (!release.await(15, TimeUnit.SECONDS)) throw new TimeoutException("test barrier was not released");
+                } catch (InterruptedException failure) { interrupted.set(true); throw failure; }
+                return "survivor-in-flight";
+            }, owner.executor).submit();
+        }
+
+        void releaseAndVerify() throws Exception {
+            release.countDown();
+            var result = future.get(5, TimeUnit.SECONDS);
+            assertThat(result.isOk()).as("in-flight result: %s", result).isTrue();
+            assertThat(result.get()).isEqualTo("survivor-in-flight");
+            assertThat(interrupted).isFalse();
+        }
+
+        @Override public void close() throws Exception {
+            release.countDown();
+            if (future != null) future.get(5, TimeUnit.SECONDS);
+        }
     }
 
     @Test

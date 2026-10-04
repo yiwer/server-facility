@@ -1,0 +1,2463 @@
+{
+  "schemaVersion": 1,
+  "mode": "preparation",
+  "status": "effective-model extraction; no new build or test run",
+  "extractorSha256": "defe1c489e8f15412cdf7eef4e41f3e118e29f577d2eef6bbdb94be9c1c29baf",
+  "stableProductionInputs": {
+    "runtimeSourceTree": "360ac68d2c48dfbd41543234601b80b12c4a8730",
+    "runtimePomSha256": "ace0835f59243ff48fa44f210748c3149c2f8c323d49e79a4d1e207d8970680c"
+  },
+  "sourceCommit": "b2cbb0f368d7187c87fb90b0bd11741c9d71e0a7",
+  "candidateBinding": null,
+  "allEvidence": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all",
+  "runtimeSha256": "18e2c02dcf783eecbaadf12e8cce7ddc16bef6df64832feea55e935b3bc69ae5",
+  "projects": [
+    {
+      "role": "runtime",
+      "sourcePom": "pom.xml",
+      "sourcePomSha256": "ace0835f59243ff48fa44f210748c3149c2f8c323d49e79a4d1e207d8970680c",
+      "effectivePom": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\effective-pom.xml",
+      "effectivePomSha256": "15d96296c813f97545e056632200d746960193e675f4eaf90024aa3085128c96",
+      "gav": "cn.code91:server-facility:0.2.0-SNAPSHOT",
+      "buildOutputTimestamp": "1980-02-01T00:00:00Z",
+      "dependencyGraph": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\dependency-tree.txt",
+      "dependencyGraphSha256": "b1991eed4ccf3658a75e752e67e8c5aec3954a54a18193cdfe2e9b874a9f7d12",
+      "directDependencies": [
+        {
+          "declaration": {
+            "group": "org.projectlombok",
+            "artifact": "lombok",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.projectlombok",
+            "artifact": "lombok",
+            "version": "1.18.46",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Compile-time generated boilerplate; optional runtime dependency, explicit annotation processor."
+        },
+        {
+          "declaration": {
+            "group": "jakarta.annotation",
+            "artifact": "jakarta.annotation-api",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "jakarta.annotation",
+            "artifact": "jakarta.annotation-api",
+            "version": "3.0.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Public lifecycle/nullability annotation types."
+        },
+        {
+          "declaration": {
+            "group": "org.slf4j",
+            "artifact": "slf4j-api",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.slf4j",
+            "artifact": "slf4j-api",
+            "version": "2.0.18",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Standard logging facade; host chooses its backend."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework",
+            "artifact": "spring-context",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework",
+            "artifact": "spring-context",
+            "version": "7.0.9",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Application context, events, standard cache/executor boundaries."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework",
+            "artifact": "spring-beans",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework",
+            "artifact": "spring-beans",
+            "version": "7.0.9",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Bean contracts and explicit application configuration."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework",
+            "artifact": "spring-core",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework",
+            "artifact": "spring-core",
+            "version": "7.0.9",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Spring foundational resource/type and bounded utility integration."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Boot properties and application integration contracts."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-autoconfigure",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-autoconfigure",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Conditional auto-configuration and host override semantics."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-jackson",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-jackson",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Boot4 technical Jackson module; auto-configuration no longer belongs to core."
+        },
+        {
+          "declaration": {
+            "group": "jakarta.validation",
+            "artifact": "jakarta.validation-api",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "jakarta.validation",
+            "artifact": "jakarta.validation-api",
+            "version": "3.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Declared validation annotations and HTTP validation translation."
+        },
+        {
+          "declaration": {
+            "group": "tools.jackson.core",
+            "artifact": "jackson-core",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "tools.jackson.core",
+            "artifact": "jackson-core",
+            "version": "3.1.5",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Jackson3 streaming/parser contracts; intentional public package migration."
+        },
+        {
+          "declaration": {
+            "group": "com.fasterxml.jackson.core",
+            "artifact": "jackson-annotations",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "com.fasterxml.jackson.core",
+            "artifact": "jackson-annotations",
+            "version": "2.21",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Jackson annotations retain the com.fasterxml package in Jackson3."
+        },
+        {
+          "declaration": {
+            "group": "tools.jackson.core",
+            "artifact": "jackson-databind",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "tools.jackson.core",
+            "artifact": "jackson-databind",
+            "version": "3.1.5",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Jackson3 application-owned mapping; JDK8/time/parameter support built in."
+        },
+        {
+          "declaration": {
+            "group": "org.apache.tika",
+            "artifact": "tika-core",
+            "version": "${tika.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.apache.tika",
+            "artifact": "tika-core",
+            "version": "4.1.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "project property ${tika.version}",
+          "rationale": "Optional bounded MIME detection; explicit non-BOM pin, required capability fails absent."
+        },
+        {
+          "declaration": {
+            "group": "jakarta.servlet",
+            "artifact": "jakarta.servlet-api",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "jakarta.servlet",
+            "artifact": "jakarta.servlet-api",
+            "version": "6.1.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Optional real Servlet contract; container selected by consuming application."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework",
+            "artifact": "spring-web",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.springframework",
+            "artifact": "spring-web",
+            "version": "7.0.9",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Optional standard HTTP and MVC-adjacent contracts."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework",
+            "artifact": "spring-webmvc",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.springframework",
+            "artifact": "spring-webmvc",
+            "version": "7.0.9",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Optional MVC interception/advice and bounded HTTP adapters."
+        },
+        {
+          "declaration": {
+            "group": "org.jsoup",
+            "artifact": "jsoup",
+            "version": "${jsoup.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.jsoup",
+            "artifact": "jsoup",
+            "version": "1.23.2",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "project property ${jsoup.version}",
+          "rationale": "Optional mature HTML parser/sanitizer; explicit non-BOM version."
+        },
+        {
+          "declaration": {
+            "group": "com.github.ben-manes.caffeine",
+            "artifact": "caffeine",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "com.github.ben-manes.caffeine",
+            "artifact": "caffeine",
+            "version": "3.2.4",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Optional finite local cache backend; pair with spring-context-support."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework",
+            "artifact": "spring-context-support",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.springframework",
+            "artifact": "spring-context-support",
+            "version": "7.0.9",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Optional CaffeineCacheManager integration; absent pair cannot silently fall back."
+        },
+        {
+          "declaration": {
+            "group": "org.apache.poi",
+            "artifact": "poi",
+            "version": "${poi.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.apache.poi",
+            "artifact": "poi",
+            "version": "5.5.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "project property ${poi.version}",
+          "rationale": "Optional XLS/core format engine; exact version aligned with OOXML."
+        },
+        {
+          "declaration": {
+            "group": "org.apache.poi",
+            "artifact": "poi-ooxml",
+            "version": "${poi.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.apache.poi",
+            "artifact": "poi-ooxml",
+            "version": "5.5.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "project property ${poi.version}",
+          "rationale": "Optional XLSX/SXSSF engine and format graph; paired pin with POI core."
+        },
+        {
+          "declaration": {
+            "group": "org.apache.commons",
+            "artifact": "commons-compress",
+            "version": "${commons-compress.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "effective": {
+            "group": "org.apache.commons",
+            "artifact": "commons-compress",
+            "version": "1.28.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": true
+          },
+          "versionSource": "project property ${commons-compress.version}",
+          "rationale": "Optional ZIP/Zip64 format preflight aligned with POI use, explicit pin."
+        },
+        {
+          "declaration": {
+            "group": "org.apache.commons",
+            "artifact": "commons-csv",
+            "version": "${commons-csv.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.apache.commons",
+            "artifact": "commons-csv",
+            "version": "1.14.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "project property ${commons-csv.version}",
+          "rationale": "Required mature CSV grammar engine for the always-available CSV facade; explicit pin."
+        },
+        {
+          "declaration": {
+            "group": "org.apache.tomcat.embed",
+            "artifact": "tomcat-embed-core",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.apache.tomcat.embed",
+            "artifact": "tomcat-embed-core",
+            "version": "11.0.24",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test-only real Servlet/ERROR/streaming integration; no runtime container choice."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test aggregation: JUnit/AssertJ/Mockito/Spring test dependencies."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-web-server",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-web-server",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test-only Boot4 moved web server abstractions for actual container fixtures."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-tomcat",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-tomcat",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test-only Boot4 Tomcat integration for actual container fixtures."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-webmvc",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-webmvc",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test-only Boot4 MVC integration for actual container fixtures."
+        },
+        {
+          "declaration": {
+            "group": "org.junit.jupiter",
+            "artifact": "junit-jupiter-params",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.junit.jupiter",
+            "artifact": "junit-jupiter-params",
+            "version": "6.0.3",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Parameterized boundary/platform contracts discovered by JUnit."
+        },
+        {
+          "declaration": {
+            "group": "ch.qos.logback",
+            "artifact": "logback-classic",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "ch.qos.logback",
+            "artifact": "logback-classic",
+            "version": "1.5.38",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test-only actual logging/MDC behavior; application remains backend owner."
+        },
+        {
+          "declaration": {
+            "group": "org.hibernate.validator",
+            "artifact": "hibernate-validator",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.hibernate.validator",
+            "artifact": "hibernate-validator",
+            "version": "9.1.3.Final",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test-only real validation and missing-provider combinations."
+        },
+        {
+          "declaration": {
+            "group": "com.tngtech.archunit",
+            "artifact": "archunit-junit6",
+            "version": "${archunit.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "com.tngtech.archunit",
+            "artifact": "archunit-junit6",
+            "version": "1.5.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "project property ${archunit.version}",
+          "rationale": "JUnit6 architecture engine; explicit platform-compatible version and discovery guard."
+        }
+      ],
+      "processors": [
+        {
+          "group": "org.projectlombok",
+          "artifact": "lombok",
+          "version": "1.18.46",
+          "versionSource": "effective dependency management; processor path has no version",
+          "rationale": "Explicit JDK25 processor admission; Lombok generation"
+        },
+        {
+          "group": "org.springframework.boot",
+          "artifact": "spring-boot-configuration-processor",
+          "version": "4.1.1",
+          "versionSource": "explicit processor path version",
+          "rationale": "Explicit JDK25 processor admission; Boot configuration metadata"
+        }
+      ],
+      "plugins": [
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-enforcer-plugin",
+          "version": "3.6.3",
+          "declarationVersion": "3.6.3",
+          "versionSource": "explicit source POM/property",
+          "rationale": "JDK25/Maven3.10.0 and required coverage input gates.",
+          "executions": [
+            {
+              "id": "required-toolchain",
+              "phase": "",
+              "goals": [
+                "enforce"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-clean-plugin",
+          "version": "3.4.1",
+          "declarationVersion": "3.4.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Reproducible removal of project-owned build output.",
+          "executions": [
+            {
+              "id": "default-clean",
+              "phase": "clean",
+              "goals": [
+                "clean"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-resources-plugin",
+          "version": "3.3.1",
+          "declarationVersion": "3.3.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Deterministic resource copying and declared encoding.",
+          "executions": [
+            {
+              "id": "default-testResources",
+              "phase": "process-test-resources",
+              "goals": [
+                "testResources"
+              ]
+            },
+            {
+              "id": "default-resources",
+              "phase": "process-resources",
+              "goals": [
+                "resources"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-install-plugin",
+          "version": "3.1.4",
+          "declarationVersion": "3.1.4",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Ordinary jar install into the verification-owned isolated repository; no publish.",
+          "executions": [
+            {
+              "id": "default-install",
+              "phase": "install",
+              "goals": [
+                "install"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-help-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "3.5.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual effective-model evidence, including inherited versions.",
+          "executions": []
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-compiler-plugin",
+          "version": "3.16.0",
+          "declarationVersion": "${maven-compiler-plugin.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Release25, parameter names and explicit annotation processor paths.",
+          "executions": [
+            {
+              "id": "default-compile",
+              "phase": "compile",
+              "goals": [
+                "compile"
+              ]
+            },
+            {
+              "id": "default-testCompile",
+              "phase": "test-compile",
+              "goals": [
+                "testCompile"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-surefire-plugin",
+          "version": "3.6.0",
+          "declarationVersion": "${maven-surefire-plugin.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual JUnit/ArchUnit discovery and positive/negative test reports.",
+          "executions": [
+            {
+              "id": "default-test",
+              "phase": "test",
+              "goals": [
+                "test"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.jacoco",
+          "artifact": "jacoco-maven-plugin",
+          "version": "0.8.15",
+          "declarationVersion": "${jacoco.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Executed coverage evidence and unchanged instruction/line88%, branch75% gates.",
+          "executions": [
+            {
+              "id": "prepare-agent",
+              "phase": "",
+              "goals": [
+                "prepare-agent"
+              ]
+            },
+            {
+              "id": "report",
+              "phase": "verify",
+              "goals": [
+                "report"
+              ]
+            },
+            {
+              "id": "check",
+              "phase": "verify",
+              "goals": [
+                "check"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-jar-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "${maven-jar-plugin.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Ordinary artifact packaging with inherited effective output timestamp.",
+          "executions": [
+            {
+              "id": "default-jar",
+              "phase": "package",
+              "goals": [
+                "jar"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-dependency-plugin",
+          "version": "3.11.0",
+          "declarationVersion": "${maven-dependency-plugin.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Dependency graph/classpath evidence and fail-on-warning declared usage guard.",
+          "executions": [
+            {
+              "id": "analyze",
+              "phase": "verify",
+              "goals": [
+                "analyze-only"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-deploy-plugin",
+          "version": "3.2.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried but deploy is not run or authorized.",
+          "executions": [
+            {
+              "id": "default-deploy",
+              "phase": "deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-site-plugin",
+          "version": "3.22.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried, not an all/platform execution.",
+          "executions": [
+            {
+              "id": "default-site",
+              "phase": "site",
+              "goals": [
+                "site"
+              ]
+            },
+            {
+              "id": "default-deploy",
+              "phase": "site-deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "partner",
+      "sourcePom": "examples/partner-aggregation/pom.xml",
+      "sourcePomSha256": "d65795726255bccc110bbc5949d9cc8f96bcbd495bdd43a7a3d1972e339140c1",
+      "effectivePom": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\partner\\effective-pom.xml",
+      "effectivePomSha256": "7ebc7df312a8808038ba1c67f4b8598e5c74d0d89e8eb7cd94b78ec3e000b596",
+      "gav": "cn.code91.examples:partner-aggregation:1.0-SNAPSHOT",
+      "buildOutputTimestamp": "1980-02-01T00:00:00Z",
+      "dependencyGraph": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\partner\\dependency-tree.txt",
+      "dependencyGraphSha256": "698e6d5e977614edcdff667ac66dbaea14ca29a8c506317d8d1370cb27f3ff81",
+      "directDependencies": [
+        {
+          "declaration": {
+            "group": "cn.code91",
+            "artifact": "server-facility",
+            "version": "0.2.0-SNAPSHOT",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "cn.code91",
+            "artifact": "server-facility",
+            "version": "0.2.0-SNAPSHOT",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "explicit literal",
+          "rationale": "This selected 0.2 Boot4/Jackson3 ordinary runtime; mutable coordinate must bind actual jar digest."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-restclient",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-restclient",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Application-owned standard RestClient builder and finite outbound HTTP policy."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test aggregation: JUnit/AssertJ/Mockito/Spring test dependencies."
+        },
+        {
+          "declaration": {
+            "group": "io.micrometer",
+            "artifact": "micrometer-tracing-bridge-brave",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "io.micrometer",
+            "artifact": "micrometer-tracing-bridge-brave",
+            "version": "1.7.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Partner test observation bridge for actual standard outbound spans."
+        },
+        {
+          "declaration": {
+            "group": "org.jacoco",
+            "artifact": "org.jacoco.agent",
+            "version": "0.8.15",
+            "type": "jar",
+            "classifier": "runtime",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.jacoco",
+            "artifact": "org.jacoco.agent",
+            "version": "0.8.15",
+            "type": "jar",
+            "classifier": "runtime",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "explicit literal",
+          "rationale": "Test-only offline instrumentation runtime; isolated child dumps do not substitute for parent coverage."
+        }
+      ],
+      "processors": [],
+      "plugins": [
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-clean-plugin",
+          "version": "3.4.1",
+          "declarationVersion": "3.4.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Reproducible removal of project-owned build output.",
+          "executions": [
+            {
+              "id": "default-clean",
+              "phase": "clean",
+              "goals": [
+                "clean"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-resources-plugin",
+          "version": "3.3.1",
+          "declarationVersion": "3.3.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Deterministic resource copying and declared encoding.",
+          "executions": [
+            {
+              "id": "default-testResources",
+              "phase": "process-test-resources",
+              "goals": [
+                "testResources"
+              ]
+            },
+            {
+              "id": "default-resources",
+              "phase": "process-resources",
+              "goals": [
+                "resources"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-compiler-plugin",
+          "version": "3.16.0",
+          "declarationVersion": "3.16.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Release25, parameter names and explicit annotation processor paths.",
+          "executions": [
+            {
+              "id": "default-compile",
+              "phase": "compile",
+              "goals": [
+                "compile"
+              ]
+            },
+            {
+              "id": "default-testCompile",
+              "phase": "test-compile",
+              "goals": [
+                "testCompile"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-surefire-plugin",
+          "version": "3.6.0",
+          "declarationVersion": "3.6.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual JUnit/ArchUnit discovery and positive/negative test reports.",
+          "executions": [
+            {
+              "id": "default-test",
+              "phase": "test",
+              "goals": [
+                "test"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.jacoco",
+          "artifact": "jacoco-maven-plugin",
+          "version": "0.8.15",
+          "declarationVersion": "0.8.15",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Executed coverage evidence and unchanged instruction/line88%, branch75% gates.",
+          "executions": [
+            {
+              "id": "offline-instrument",
+              "phase": "",
+              "goals": [
+                "instrument"
+              ]
+            },
+            {
+              "id": "restore-after-tests",
+              "phase": "test",
+              "goals": [
+                "restore-instrumented-classes"
+              ]
+            },
+            {
+              "id": "report",
+              "phase": "verify",
+              "goals": [
+                "report",
+                "check"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-jar-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "3.5.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Ordinary artifact packaging with inherited effective output timestamp.",
+          "executions": [
+            {
+              "id": "default-jar",
+              "phase": "package",
+              "goals": [
+                "jar"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-dependency-plugin",
+          "version": "3.11.0",
+          "declarationVersion": "3.11.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Dependency graph/classpath evidence and fail-on-warning declared usage guard.",
+          "executions": []
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-enforcer-plugin",
+          "version": "3.6.3",
+          "declarationVersion": "3.6.3",
+          "versionSource": "explicit source POM/property",
+          "rationale": "JDK25/Maven3.10.0 and required coverage input gates.",
+          "executions": [
+            {
+              "id": "toolchain",
+              "phase": "",
+              "goals": [
+                "enforce"
+              ]
+            },
+            {
+              "id": "coverage-required",
+              "phase": "verify",
+              "goals": [
+                "enforce"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-help-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "3.5.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual effective-model evidence, including inherited versions.",
+          "executions": []
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-install-plugin",
+          "version": "3.2.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Ordinary jar install into the verification-owned isolated repository; no publish.",
+          "executions": [
+            {
+              "id": "default-install",
+              "phase": "install",
+              "goals": [
+                "install"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-deploy-plugin",
+          "version": "3.2.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried but deploy is not run or authorized.",
+          "executions": [
+            {
+              "id": "default-deploy",
+              "phase": "deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-site-plugin",
+          "version": "3.22.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried, not an all/platform execution.",
+          "executions": [
+            {
+              "id": "default-site",
+              "phase": "site",
+              "goals": [
+                "site"
+              ]
+            },
+            {
+              "id": "default-deploy",
+              "phase": "site-deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "secured-api",
+      "sourcePom": "templates/secured-api/pom.xml",
+      "sourcePomSha256": "495c2d221f51c7c5f68b7ef68b9fd22ba7db49be41e7a091bb3b9853092afcc0",
+      "effectivePom": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\template\\effective-pom.xml",
+      "effectivePomSha256": "df8317b6c4e2514a38d4ccb20dd99a5c86e2590f0556bd181ad7c032ca95dbce",
+      "gav": "com.example:secured-api:1.0.0-SNAPSHOT",
+      "buildOutputTimestamp": "1980-02-01T00:00:00Z",
+      "dependencyGraph": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\template\\dependency-tree.txt",
+      "dependencyGraphSha256": "6099ce6e2a4f5b24900b95c098fce215c76311cf81b96987a17fa4fc7e9181a4",
+      "directDependencies": [
+        {
+          "declaration": {
+            "group": "cn.code91",
+            "artifact": "server-facility",
+            "version": "${facility.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "cn.code91",
+            "artifact": "server-facility",
+            "version": "0.2.0-SNAPSHOT",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "project property ${facility.version}",
+          "rationale": "This selected 0.2 Boot4/Jackson3 ordinary runtime; mutable coordinate must bind actual jar digest."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-webmvc",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-webmvc",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Executable application Servlet/MVC server ownership."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-security-oauth2-resource-server",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-security-oauth2-resource-server",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Standard verified JWT issuer/audience authentication and method authority."
+        },
+        {
+          "declaration": {
+            "group": "io.micrometer",
+            "artifact": "context-propagation",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "io.micrometer",
+            "artifact": "context-propagation",
+            "version": "1.2.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Standard context capture/restoration across application-owned async work."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-jdbc",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-jdbc",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Application-owned single DataSource/JdbcClient/transaction manager graph."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-flyway",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-flyway",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Single explicit database schema initializer with required migration history."
+        },
+        {
+          "declaration": {
+            "group": "org.flywaydb",
+            "artifact": "flyway-database-postgresql",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.flywaydb",
+            "artifact": "flyway-database-postgresql",
+            "version": "12.4.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Mature PostgreSQL Flyway engine rather than a second schema owner."
+        },
+        {
+          "declaration": {
+            "group": "org.postgresql",
+            "artifact": "postgresql",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "runtime",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.postgresql",
+            "artifact": "postgresql",
+            "version": "42.7.13",
+            "type": "jar",
+            "classifier": "",
+            "scope": "runtime",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Runtime PostgreSQL JDBC driver with finite connection/socket/cancel/statement budgets."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-actuator",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-actuator",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Host-owned observation and application lifecycle instrumentation."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-zipkin",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-zipkin",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Standard tracing integration; export remains explicitly application-controlled."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test aggregation: JUnit/AssertJ/Mockito/Spring test dependencies."
+        },
+        {
+          "declaration": {
+            "group": "org.jacoco",
+            "artifact": "org.jacoco.agent",
+            "version": "${jacoco.version}",
+            "type": "jar",
+            "classifier": "runtime",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.jacoco",
+            "artifact": "org.jacoco.agent",
+            "version": "0.8.15",
+            "type": "jar",
+            "classifier": "runtime",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "project property ${jacoco.version}",
+          "rationale": "Test-only offline instrumentation runtime; isolated child dumps do not substitute for parent coverage."
+        }
+      ],
+      "processors": [],
+      "plugins": [
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-clean-plugin",
+          "version": "3.4.1",
+          "declarationVersion": "3.4.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Reproducible removal of project-owned build output.",
+          "executions": [
+            {
+              "id": "default-clean",
+              "phase": "clean",
+              "goals": [
+                "clean"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-resources-plugin",
+          "version": "3.3.1",
+          "declarationVersion": "3.3.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Deterministic resource copying and declared encoding.",
+          "executions": [
+            {
+              "id": "default-testResources",
+              "phase": "process-test-resources",
+              "goals": [
+                "testResources"
+              ]
+            },
+            {
+              "id": "default-resources",
+              "phase": "process-resources",
+              "goals": [
+                "resources"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-compiler-plugin",
+          "version": "3.16.0",
+          "declarationVersion": "3.16.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Release25, parameter names and explicit annotation processor paths.",
+          "executions": [
+            {
+              "id": "default-compile",
+              "phase": "compile",
+              "goals": [
+                "compile"
+              ]
+            },
+            {
+              "id": "default-testCompile",
+              "phase": "test-compile",
+              "goals": [
+                "testCompile"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-surefire-plugin",
+          "version": "3.6.0",
+          "declarationVersion": "3.6.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual JUnit/ArchUnit discovery and positive/negative test reports.",
+          "executions": [
+            {
+              "id": "default-test",
+              "phase": "test",
+              "goals": [
+                "test"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-jar-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "3.5.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Ordinary artifact packaging with inherited effective output timestamp.",
+          "executions": [
+            {
+              "id": "default-jar",
+              "phase": "package",
+              "goals": [
+                "jar"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.springframework.boot",
+          "artifact": "spring-boot-maven-plugin",
+          "version": "4.1.1",
+          "declarationVersion": "${spring-boot.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Executable application repackage, separate from the ordinary runtime/partner jars.",
+          "executions": [
+            {
+              "id": "",
+              "phase": "",
+              "goals": [
+                "repackage"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.jacoco",
+          "artifact": "jacoco-maven-plugin",
+          "version": "0.8.15",
+          "declarationVersion": "${jacoco.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Executed coverage evidence and unchanged instruction/line88%, branch75% gates.",
+          "executions": [
+            {
+              "id": "offline-instrument",
+              "phase": "",
+              "goals": [
+                "instrument"
+              ]
+            },
+            {
+              "id": "restore-after-tests",
+              "phase": "test",
+              "goals": [
+                "restore-instrumented-classes"
+              ]
+            },
+            {
+              "id": "report",
+              "phase": "verify",
+              "goals": [
+                "report",
+                "check"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-enforcer-plugin",
+          "version": "3.6.3",
+          "declarationVersion": "3.6.3",
+          "versionSource": "explicit source POM/property",
+          "rationale": "JDK25/Maven3.10.0 and required coverage input gates.",
+          "executions": [
+            {
+              "id": "toolchain",
+              "phase": "",
+              "goals": [
+                "enforce"
+              ]
+            },
+            {
+              "id": "coverage-must-exist",
+              "phase": "verify",
+              "goals": [
+                "enforce"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-dependency-plugin",
+          "version": "3.11.0",
+          "declarationVersion": "3.11.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Dependency graph/classpath evidence and fail-on-warning declared usage guard.",
+          "executions": []
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-help-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "3.5.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual effective-model evidence, including inherited versions.",
+          "executions": []
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-install-plugin",
+          "version": "3.2.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Ordinary jar install into the verification-owned isolated repository; no publish.",
+          "executions": [
+            {
+              "id": "default-install",
+              "phase": "install",
+              "goals": [
+                "install"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-deploy-plugin",
+          "version": "3.2.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried but deploy is not run or authorized.",
+          "executions": [
+            {
+              "id": "default-deploy",
+              "phase": "deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-site-plugin",
+          "version": "3.22.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried, not an all/platform execution.",
+          "executions": [
+            {
+              "id": "default-site",
+              "phase": "site",
+              "goals": [
+                "site"
+              ]
+            },
+            {
+              "id": "default-deploy",
+              "phase": "site-deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "assembly-workflow",
+      "sourcePom": "examples/assembly-workflow/overlay/pom.xml",
+      "sourcePomSha256": "c97965c27beceec8f3b818cc88abe8893c7a87e920131e647af663c0d09c05b0",
+      "effectivePom": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\workflow\\effective-pom.xml",
+      "effectivePomSha256": "5054e7accac88730352ceadcc59cbc4c0c63a419b8f5e10c96aead1c95d49768",
+      "gav": "com.example:secured-api:1.0.0-SNAPSHOT",
+      "buildOutputTimestamp": "1980-02-01T00:00:00Z",
+      "dependencyGraph": "E:\\GenCode\\server-facility-worktrees\\ticket-31\\.verification-results\\20261004-172739-256-all\\workflow\\dependency-tree.txt",
+      "dependencyGraphSha256": "6b1b1509b4c9f2939e984b4738adbb75ec3546bbb0823b3bcde870c4e54f907e",
+      "directDependencies": [
+        {
+          "declaration": {
+            "group": "org.apache.tika",
+            "artifact": "tika-core",
+            "version": "4.1.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.apache.tika",
+            "artifact": "tika-core",
+            "version": "4.1.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "explicit literal",
+          "rationale": "Optional bounded MIME detection; explicit non-BOM pin, required capability fails absent."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-restclient",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-restclient",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Application-owned standard RestClient builder and finite outbound HTTP policy."
+        },
+        {
+          "declaration": {
+            "group": "cn.code91",
+            "artifact": "server-facility",
+            "version": "${facility.version}",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "cn.code91",
+            "artifact": "server-facility",
+            "version": "0.2.0-SNAPSHOT",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "project property ${facility.version}",
+          "rationale": "This selected 0.2 Boot4/Jackson3 ordinary runtime; mutable coordinate must bind actual jar digest."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-webmvc",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-webmvc",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Executable application Servlet/MVC server ownership."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-security-oauth2-resource-server",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-security-oauth2-resource-server",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Standard verified JWT issuer/audience authentication and method authority."
+        },
+        {
+          "declaration": {
+            "group": "io.micrometer",
+            "artifact": "context-propagation",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "io.micrometer",
+            "artifact": "context-propagation",
+            "version": "1.2.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Standard context capture/restoration across application-owned async work."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-jdbc",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-jdbc",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Application-owned single DataSource/JdbcClient/transaction manager graph."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-flyway",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-flyway",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Single explicit database schema initializer with required migration history."
+        },
+        {
+          "declaration": {
+            "group": "org.flywaydb",
+            "artifact": "flyway-database-postgresql",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.flywaydb",
+            "artifact": "flyway-database-postgresql",
+            "version": "12.4.0",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Mature PostgreSQL Flyway engine rather than a second schema owner."
+        },
+        {
+          "declaration": {
+            "group": "org.postgresql",
+            "artifact": "postgresql",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "runtime",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.postgresql",
+            "artifact": "postgresql",
+            "version": "42.7.13",
+            "type": "jar",
+            "classifier": "",
+            "scope": "runtime",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Runtime PostgreSQL JDBC driver with finite connection/socket/cancel/statement budgets."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-actuator",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-actuator",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Host-owned observation and application lifecycle instrumentation."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-zipkin",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-zipkin",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "compile",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Standard tracing integration; export remains explicitly application-controlled."
+        },
+        {
+          "declaration": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.springframework.boot",
+            "artifact": "spring-boot-starter-test",
+            "version": "4.1.1",
+            "type": "jar",
+            "classifier": "",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "imported Spring Boot dependency management",
+          "rationale": "Test aggregation: JUnit/AssertJ/Mockito/Spring test dependencies."
+        },
+        {
+          "declaration": {
+            "group": "org.jacoco",
+            "artifact": "org.jacoco.agent",
+            "version": "${jacoco.version}",
+            "type": "jar",
+            "classifier": "runtime",
+            "scope": "test",
+            "optional": false
+          },
+          "effective": {
+            "group": "org.jacoco",
+            "artifact": "org.jacoco.agent",
+            "version": "0.8.15",
+            "type": "jar",
+            "classifier": "runtime",
+            "scope": "test",
+            "optional": false
+          },
+          "versionSource": "project property ${jacoco.version}",
+          "rationale": "Test-only offline instrumentation runtime; isolated child dumps do not substitute for parent coverage."
+        }
+      ],
+      "processors": [],
+      "plugins": [
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-clean-plugin",
+          "version": "3.4.1",
+          "declarationVersion": "3.4.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Reproducible removal of project-owned build output.",
+          "executions": [
+            {
+              "id": "default-clean",
+              "phase": "clean",
+              "goals": [
+                "clean"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-resources-plugin",
+          "version": "3.3.1",
+          "declarationVersion": "3.3.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Deterministic resource copying and declared encoding.",
+          "executions": [
+            {
+              "id": "default-testResources",
+              "phase": "process-test-resources",
+              "goals": [
+                "testResources"
+              ]
+            },
+            {
+              "id": "default-resources",
+              "phase": "process-resources",
+              "goals": [
+                "resources"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-compiler-plugin",
+          "version": "3.16.0",
+          "declarationVersion": "3.16.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Release25, parameter names and explicit annotation processor paths.",
+          "executions": [
+            {
+              "id": "default-compile",
+              "phase": "compile",
+              "goals": [
+                "compile"
+              ]
+            },
+            {
+              "id": "default-testCompile",
+              "phase": "test-compile",
+              "goals": [
+                "testCompile"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-surefire-plugin",
+          "version": "3.6.0",
+          "declarationVersion": "3.6.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual JUnit/ArchUnit discovery and positive/negative test reports.",
+          "executions": [
+            {
+              "id": "default-test",
+              "phase": "test",
+              "goals": [
+                "test"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-jar-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "3.5.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Ordinary artifact packaging with inherited effective output timestamp.",
+          "executions": [
+            {
+              "id": "default-jar",
+              "phase": "package",
+              "goals": [
+                "jar"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.springframework.boot",
+          "artifact": "spring-boot-maven-plugin",
+          "version": "4.1.1",
+          "declarationVersion": "${spring-boot.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Executable application repackage, separate from the ordinary runtime/partner jars.",
+          "executions": [
+            {
+              "id": "",
+              "phase": "",
+              "goals": [
+                "repackage"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.jacoco",
+          "artifact": "jacoco-maven-plugin",
+          "version": "0.8.15",
+          "declarationVersion": "${jacoco.version}",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Executed coverage evidence and unchanged instruction/line88%, branch75% gates.",
+          "executions": [
+            {
+              "id": "offline-instrument",
+              "phase": "",
+              "goals": [
+                "instrument"
+              ]
+            },
+            {
+              "id": "restore-after-tests",
+              "phase": "test",
+              "goals": [
+                "restore-instrumented-classes"
+              ]
+            },
+            {
+              "id": "report",
+              "phase": "verify",
+              "goals": [
+                "report",
+                "check"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-enforcer-plugin",
+          "version": "3.6.3",
+          "declarationVersion": "3.6.3",
+          "versionSource": "explicit source POM/property",
+          "rationale": "JDK25/Maven3.10.0 and required coverage input gates.",
+          "executions": [
+            {
+              "id": "toolchain",
+              "phase": "",
+              "goals": [
+                "enforce"
+              ]
+            },
+            {
+              "id": "coverage-must-exist",
+              "phase": "verify",
+              "goals": [
+                "enforce"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-dependency-plugin",
+          "version": "3.11.0",
+          "declarationVersion": "3.11.0",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Dependency graph/classpath evidence and fail-on-warning declared usage guard.",
+          "executions": []
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-help-plugin",
+          "version": "3.5.1",
+          "declarationVersion": "3.5.1",
+          "versionSource": "explicit source POM/property",
+          "rationale": "Actual effective-model evidence, including inherited versions.",
+          "executions": []
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-install-plugin",
+          "version": "3.2.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Ordinary jar install into the verification-owned isolated repository; no publish.",
+          "executions": [
+            {
+              "id": "default-install",
+              "phase": "install",
+              "goals": [
+                "install"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-deploy-plugin",
+          "version": "3.2.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried but deploy is not run or authorized.",
+          "executions": [
+            {
+              "id": "default-deploy",
+              "phase": "deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "org.apache.maven.plugins",
+          "artifact": "maven-site-plugin",
+          "version": "3.22.0",
+          "declarationVersion": null,
+          "versionSource": "Maven3.10.0 Super POM default",
+          "rationale": "Maven3.10.0 Super POM default; inventoried, not an all/platform execution.",
+          "executions": [
+            {
+              "id": "default-site",
+              "phase": "site",
+              "goals": [
+                "site"
+              ]
+            },
+            {
+              "id": "default-deploy",
+              "phase": "site-deploy",
+              "goals": [
+                "deploy"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ciActions": "Separately verified/pinned by the CI owner; not Maven dependencies or plugins",
+  "transitiveGraphPolicy": "Full resolved graphs are retained at the exact paths/digests; no transitive upgrade inferred from declared versions"
+}

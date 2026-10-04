@@ -16,18 +16,23 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # CI22 Windows used 29m34s. Historical before/after candidate qualification is additional work.
+    # Per-command/test/resource limits in Verify remain unchanged; this finite total budget includes it.
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - name: Install negative-test JDK
         id: java21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '21.0.12+101.0.LTS'
           overwrite-settings: false
       - name: Install supported JDK
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '25.0.4+101.0.LTS'
@@ -43,22 +48,52 @@ jobs:
           New-Item -ItemType Directory -Force .verification-results/native-postgres | Out-Null
           Copy-Item -LiteralPath (Join-Path $databaseTools 'provenance.txt') -Destination .verification-results/native-postgres/provenance.txt
       - name: Clean build, independent consumer, resource and prerequisite checks
+        id: all
         env:
           VERIFY_WRONG_JAVA_HOME: ${{ steps.java21.outputs.path }}
         run: java verification/Verify.java all --fresh
       - name: Independent platform toolchain and engine controls
+        id: platform
         if: ${{ !cancelled() }}
         run: java verification/Verify.java platform --fresh
+      - name: Bind successful all and platform identities
+        id: candidate
+        if: ${{ steps.all.outcome == 'success' && steps.platform.outcome == 'success' }}
+        shell: pwsh
+        env:
+          ALL_MANIFEST: ${{ steps.all.outputs.manifest }}
+          PLATFORM_MANIFEST: ${{ steps.platform.outputs.manifest }}
+        run: >-
+          python verification/release-evidence/CandidateEvidence.py qualify
+          --candidate "$env:ALL_MANIFEST" --platform "$env:PLATFORM_MANIFEST"
+          --source "$env:GITHUB_SHA" --run-id "$env:GITHUB_RUN_ID"
+          --attempt "$env:GITHUB_RUN_ATTEMPT" --os "$env:RUNNER_OS"
+      - name: Upload exact successful candidate identity
+        if: ${{ steps.candidate.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidate-identity-${{ matrix.os }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ steps.candidate.outputs.manifest }}
+          archive: true
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
       - name: Archive evidence even on failure
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: java25-${{ matrix.os }}-${{ github.sha }}
+          name: java25-${{ matrix.os }}-${{ github.sha }}-${{ github.run_attempt }}
           include-hidden-files: true
+          archive: true
           if-no-files-found: error
           retention-days: 30
           path: |
             .verification-results/**/summary.txt
+            .verification-results/**/*-identity.json
+            .verification-results/**/source-start.json
+            .verification-results/**/environment.json
+            .verification-results/**/historical-candidate/**
+            .verification-results/**/release-inventory/**
             .verification-results/native-postgres/**
             .verification-results/**/*.log
             .verification-results/**/effective-pom.xml
@@ -106,3 +141,34 @@ jobs:
             .verification-results/**/platform-positive/platform-probe.jar
             .verification-results/**/platform-positive/spring-configuration-metadata.json
             target/*.jar
+
+  candidate-identity:
+    needs: verify
+    if: ${{ needs.verify.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download this attempt's Linux identity
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate-identity-ubuntu-latest-${{ github.sha }}-${{ github.run_attempt }}
+          path: candidate-identities/Linux
+          digest-mismatch: error
+      - name: Download this attempt's Windows identity
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate-identity-windows-latest-${{ github.sha }}-${{ github.run_attempt }}
+          path: candidate-identities/Windows
+          digest-mismatch: error
+      - name: Require exact four-artifact identity on both platforms
+        env:
+          EXPECTED_SOURCE: ${{ github.sha }}
+          EXPECTED_RUN: ${{ github.run_id }}
+          EXPECTED_ATTEMPT: ${{ github.run_attempt }}
+        run: >-
+          python3 verification/release-evidence/CandidateEvidence.py compare
+          --linux candidate-identities/Linux --windows candidate-identities/Windows
+          --source "$EXPECTED_SOURCE" --run-id "$EXPECTED_RUN" --attempt "$EXPECTED_ATTEMPT"

@@ -156,7 +156,7 @@
             <optional>true</optional>
         </dependency>
         <!-- CaffeineCacheManager 位于 spring-context-support(非 spring-context)——与 caffeine 成对 optional,
-             缺其一时 caffeineCacheManager 装配条件不满足,回退 concurrentMapCacheManager(ADR-0015) -->
+             显式选择本地缓存时缺其一即拒绝装配,不回退较低保证后端(ADR-0031) -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context-support</artifactId>
