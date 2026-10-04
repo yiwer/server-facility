@@ -22,7 +22,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（48 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（49 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -44,6 +44,7 @@
 - **本地互斥门（07）**：冻结`df7f788`的Windows完整97步通过，库1637/0/0/0；原SPI兼容、64MiB轮转与Async观察结束后仍持锁均已执行。之后与28合并的候选等待CI，精确范围见[07报告](docs/verification/ticket-07-local-lock.md)。
 - **授权重放本地门（12）**：`3563d92`的Windows `all`通过，库1667/0/0/0、模板76/0/0/0及独立Security重放消费者、PostgreSQL打包重启、原质量门与负控全部通过。含07；精确来源见[12报告](docs/verification/ticket-12-authorized-replay.md)。12仍待Linux，28的CI14失败独立保留。
 - **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](docs/verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选及Linux仍待CI，不能拼接计数冒充新来源通过。
+- **显式映射本地门（19）**：修复Map key与value回调间中断检查后的`4bcad87`完成Windows `all --fresh`110命令PASS，库1712/0/0/0、模板76/partner15及原门全部通过；具名DTO业务/编译负控、旧binary和64MiB资源消费者通过，见[19报告](docs/verification/ticket-19-explicit-mapping.md)。Linux仍待CI，此本地结果不覆盖CI15 Windows模板并发迁移失败。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 
 ## 仓库地图
@@ -58,7 +59,7 @@ src/main/resources/
 src/test/java/cn/code91/facility/         测试；architecture/ArchitectureTest.java 为 5 条 ArchUnit 红线
 docs/USAGE.md                             消费方 API 手册（用法权威）
 docs/DESIGN.md                            设计文档；§7 一致性宪法 = 修改本仓库的成文规则
-docs/adr/                                 48 条架构决策记录（INDEX.md 索引；0000 为模板）
+docs/adr/                                 49 条架构决策记录（INDEX.md 索引；0000 为模板）
 docs/superpowers/                         specs / plans / 评审 findings（SDD 过程档案）
 CHANGELOG.md                              行为与破坏性变更 + 消费方迁移指引
 CONTEXT.md                                域术语权威
