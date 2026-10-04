@@ -9,6 +9,12 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 命令恢复与有限回执清理（2026-10-04，ADR0053）
+
+- secured-api模板新增V4迁移与私有维护函数；启动要求完整V1–V4，原V1–V3内容不变。维护只清原回执的note ID/slug/title/body，永久保留完整命令身份、指纹、到期时间及终身额度；当前已授权且内容匹配的重试在清理后返回410，不重新执行业务。
+- 清理cutoff必须有限且不晚于数据库时钟，每批1–1000，SKIP LOCKED下返回0不代表全局已清空。函数绑定实际应用schema、采用调用者权限并撤销PUBLIC执行权；操作员须显式授权并在调用前分别设置有限statement/lock预算，无自动调度或HTTP维护入口。
+- 断连、超时、提交异常或进程终止本身不能证明未提交；调用方保留相同key和命令重试，并重新接受当前授权检查。保证限于同一PostgreSQL事务及保留身份，外部非事务副作用需要应用自己的协议。迁移、操作示例和边界见[命令协议](templates/secured-api/COMMANDS.md)与[实际恢复验证](docs/verification/ticket-30-command-recovery.md)。
+
 ### 显式时间、容量与模式政策（2026-10-04，ADR0043）
 
 - DateUtil退出动态formatter缓存；保留SMART与调用时默认FORMAT Locale，环境切换不再沿用首次Locale。新业务通过应用自有ExportRequests使用Clock/ZoneId/Locale、固定严格日期、显式DST政策及正数有限MiB预算。

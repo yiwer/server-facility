@@ -252,3 +252,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 29的Q08/Q10及共同完成项闭合，票设closed，正式累计30。全部本地分阶段原始失败/修复/通过记录继续保留；本次成功才补齐最后测试夹具修复后的双OS全组合。只读公开API不能给出未下载报告的精确测试计数或内部jar跨平台同hash，33仍负责单候选制品证明。
 - 30前置解除并置in-progress，基于CI19产品及此后纯文档状态提交开展真实进程丢失/双独立JVM/receipt清理恢复。31仍blocked30，33仍blocked剩余与31。31工具草稿的独立自测/短复核位于coordination，未成为正式31执行。
 - 此次仅状态与证据文档提交，主树产品/测试/runner/workflow/Wrapper保持CI19被测内容，不另起本地全门，也不单独push纯docs。
+
+## 30命令恢复与回执清理集成，启动CI20
+
+- 2026-10-04：核读clean`cd79a19540d1c4b1ce6ed26af3e14205bf1d79c3`的`.verification-results/20261004-115313-477-all/summary.txt`，137命令、RESULT=PASS；库1774/模板130均0失败/错误/跳过，原coverage/5架构/依赖门、全部消费者、真实PG工具/打包两模式与负控通过。ordinary jar SHA0ad7ca80…56b8b、partner2b501f28…c73e6、template19a2c9bc…b8fab，完整数值与资源/Q映射见[30报告](../../verification/ticket-30-command-recovery.md)。
+- 机器账本及原始证据记录19个child退出/PG会话归零、6精确kill、71个自有数据库DROP成功；最终语句取消5002ms对应5000ms服务端预算。原fast-stop/fsync/no-FORCE、正常HTTP与授权/事务政策不变。局部独立短审无产品阻断，完整PK保护是实际GREEN回归增强，不伪造RED；所有先前失败按来源保留。
+- 从干净`3f25c38a680be498ead77bf29fb7d5caf30537f6`以--no-ff合最终`16214eb8ef09888f65c2a2ff4dd7fcb5546757f8`为`57c5028fc757baca0ce60d2770c92a710fec7909`，无冲突。交接相对冻结仅本票/报告两Markdown差异；集成产品/测试/模板/runner/workflow/Wrapper等于交接树。中央删除报告中未观测的CI19内部108项对比措辞，不改实测130项或任何源码。
+- 登记ADR0053，共54条实际ADR，延续0052而不替换原事务协议；补CHANGELOG的维护/升级与不确定结果边界。30设verification-pending，Q08/Q10待CI20，closed仍30；31/33前置仍保留。用户已授权既有CI，推送一次新实现候选，不重复相同本地all。历史原始证据由root归档维护，中央未并发改其index。

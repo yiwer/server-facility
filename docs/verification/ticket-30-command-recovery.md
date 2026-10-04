@@ -38,7 +38,7 @@ V4 只新增应用私有 maintenance function 和仍含 receipt 的 partial expi
 原始结果：`E:/GenCode/server-facility-worktrees/ticket-30/.verification-results/20261004-115313-477-all/summary.txt`；外层 `ticket-30/17-all-frozen.log`；独立派生机器账本 `ticket-30-observations.json` 同目录。runner保存输入文件SHA、effective POM、依赖树、生产jar、测试XML、coverage、PG日志、process事件与清理记录。解释性账本从原始XML/事件/产物生成，不代替原始门结果。
 
 - 普通库1774项，0 failures/errors/skips；五项架构检查仍通过。JaCoCo指令26896/28899（93.07%）、行5204/5508（94.48%）、分支2966/3480（85.23%）。
-- 独立Unicode/空格目录模板130项，0 failures/errors/skips，较CI19的108项增加22项。JaCoCo指令2423/2479（97.74%）、行328/337（97.33%）、分支226/261（86.59%）。8个新增场景类强制发现。模板build总5分20秒，其中进程恢复8项93.03秒；子进程单独coverage不混入父覆盖率。
+- 独立Unicode/空格目录模板130项，0 failures/errors/skips。JaCoCo指令2423/2479（97.74%）、行328/337（97.33%）、分支226/261（86.59%）。8个新增场景类强制发现。模板build总5分20秒，其中进程恢复8项93.03秒；子进程单独coverage不混入父覆盖率。
 - ordinary-jar消费者、平台配置矩阵、partner应用质量/真实HTTP/5生命周期与200尾部失败、独立模板复制/拒绝覆盖、真实数据库工具diagnostics/lifecycle/cleanup、实际Boot打包jar的platform/virtual重启HTTP均通过。反例门检查清理首因保留（预期2项=1failure+1error、0skip）、缺失coverage、错误distribution checksum、missing JDK和真实JDK21均按规定拒绝。没有把预期负控标作正向测试通过数量。
 - 最终19个child实例、19次确认退出与独立PG会话归零，6次精确kill；实际两种SHOW预算为2s/500ms及显式8s/5s；清理交错观测2次unique-claim等待。启动最长5568ms、kill/close清理最长378ms，稳态会话采样最多2/pool4，无idle-in-transaction。每child保留证据最多5文件/82366字节，低于128files/16MiB。
 - 71个自有方法scope数据库DROP全成功，无FORCE，最长1160ms；最终PG shutdown checkpoint仅2个sync files、0.032秒，原fast-stop预算未变。语句取消最终实测5002ms；回滚后无半清理。数据总量测试1001成功命令按1000+1+0清理，仍保留全部身份和额度。
