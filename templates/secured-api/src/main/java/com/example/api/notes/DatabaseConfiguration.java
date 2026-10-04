@@ -56,7 +56,7 @@ class DatabaseConfiguration {
                     .filter(migration -> migration.getState().isApplied() && !migration.getState().isFailed())
                     .map(migration -> migration.getVersion() == null ? "" : migration.getVersion().getVersion())
                     .collect(java.util.stream.Collectors.toSet());
-            if (!applied.containsAll(java.util.Set.of("1", "2"))) throw invalid();
+            if (!applied.containsAll(java.util.Set.of("1", "2", "3"))) throw invalid();
         };
     }
     private static int number(Environment environment, String property, int minimum, int maximum) {

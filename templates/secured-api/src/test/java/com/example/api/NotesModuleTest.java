@@ -22,8 +22,8 @@ class NotesModuleTest {
             for (int i = 0; i < 60; i++) {
                 String slug = "item-" + random.nextInt(12);
                 var existing = expected.get(slug);
-                if (existing == null) expected.put(slug, notes.create(actor, workspace.id(), new Notes.NewNote(slug, "初始🌱", "body")));
-                else if (random.nextBoolean()) expected.put(slug, notes.update(actor, workspace.id(), existing.id(), new Notes.EditNote("changed-" + i, "body-" + i)));
+                if (existing == null) expected.put(slug, notes.create(actor, workspace.id(), UUID.randomUUID().toString(), new Notes.NewNote(slug, "初始🌱", "body")));
+                else if (random.nextBoolean()) expected.put(slug, notes.update(actor, workspace.id(), existing.id(), UUID.randomUUID().toString(), new Notes.EditNote("changed-" + i, "body-" + i)));
                 else { notes.delete(actor, workspace.id(), existing.id()); expected.remove(slug); }
                 var page = notes.list(actor, workspace.id(), new Notes.PageQuery(0, 7, "slug", "asc"));
                 assertThat(page.total()).isEqualTo(expected.size());

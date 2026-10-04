@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.UUID;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -18,8 +19,8 @@ class NotesController {
         var result = notes.createWorkspace(actor(jwt), input.name());
         return ResponseEntity.created(URI.create("/api/workspaces/" + result.id() + "/notes")).body(result);
     }
-    @PostMapping("/api/workspaces/{workspace}/notes") ResponseEntity<Notes.Note> create(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID workspace, @RequestBody Notes.NewNote input) {
-        var result = notes.create(actor(jwt), workspace, input);
+    @PostMapping("/api/workspaces/{workspace}/notes") ResponseEntity<Notes.Note> create(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID workspace, @RequestHeader HttpHeaders headers, @RequestBody Notes.NewNote input) {
+        var result = notes.create(actor(jwt), workspace, key(headers), input);
         return ResponseEntity.created(URI.create("/api/workspaces/" + workspace + "/notes/" + result.id())).body(result);
     }
     @GetMapping("/api/workspaces/{workspace}/notes/{id}") Notes.Note get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID workspace, @PathVariable UUID id) {
@@ -31,11 +32,16 @@ class NotesController {
         catch (NumberFormatException invalid) { throw new NotesFailure("invalid_page"); }
         return notes.list(actor(jwt), workspace, new Notes.PageQuery(page, size, input.getOrDefault("sort", "created"), input.getOrDefault("direction", "asc")));
     }
-    @PutMapping("/api/workspaces/{workspace}/notes/{id}") Notes.Note update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID workspace, @PathVariable UUID id, @RequestBody Notes.EditNote input) {
-        return notes.update(actor(jwt), workspace, id, input);
+    @PutMapping("/api/workspaces/{workspace}/notes/{id}") Notes.Note update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID workspace, @PathVariable UUID id, @RequestHeader HttpHeaders headers, @RequestBody Notes.EditNote input) {
+        return notes.update(actor(jwt), workspace, id, key(headers), input);
     }
     @DeleteMapping("/api/workspaces/{workspace}/notes/{id}") ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID workspace, @PathVariable UUID id) {
         notes.delete(actor(jwt), workspace, id); return ResponseEntity.noContent().build();
     }
     private static Actor actor(Jwt jwt) { return new Actor(jwt.getClaimAsString("iss"), jwt.getSubject()); }
+    private static String key(HttpHeaders headers) {
+        var values = headers.get("Idempotency-Key");
+        if (values == null || values.size() != 1) throw new NotesFailure("invalid_command_key");
+        return values.getFirst();
+    }
 }

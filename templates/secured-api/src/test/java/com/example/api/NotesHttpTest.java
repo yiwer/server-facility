@@ -19,6 +19,7 @@ class NotesHttpTest {
                 byte[] body = ("{\"slug\":\"bounded\",\"title\":\"Title\",\"body\":\"\",\"ignored\":" + ignored + "}").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 var request = HttpRequest.newBuilder(URI.create(app.base + path)).timeout(Duration.ofSeconds(10))
                         .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .POST(HttpRequest.BodyPublishers.ofInputStream(() -> new java.io.ByteArrayInputStream(body))).build();
                 var failed = app.client.send(request, HttpResponse.BodyHandlers.ofString());
                 assertThat(failed.statusCode()).isEqualTo(400);
@@ -177,6 +178,7 @@ class NotesHttpTest {
         var request = HttpRequest.newBuilder(URI.create(app.base + path)).timeout(Duration.ofSeconds(10))
                 .header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(body));
         if (token != null) request.header("Authorization", "Bearer " + token);
+        if (path.contains("/notes") && (method.equals("POST") || method.equals("PUT"))) request.header("Idempotency-Key", UUID.randomUUID().toString());
         return app.client.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 }

@@ -4,7 +4,9 @@
 
 **Blocked by:** 28 用一个受保护业务 Module 完成持久化 CRUD 与分页
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+2026-10-04: claimed from integration `0cbbfb9f555e42f1143059960736e04f528e33c5`, after ticket28 closed with CI16 dual-OS success. Independent `codex/ticket-29` worktree. Approved test seams remain signed real HTTP, the public Notes business Module and controlled real PostgreSQL transaction/constraint observations. No independent HTTP replay store or lease is added.
 
 **Traceability:** FR-04、FR-07；AC-03、AC-06
 

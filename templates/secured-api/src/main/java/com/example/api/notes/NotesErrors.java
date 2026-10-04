@@ -30,12 +30,16 @@ class NotesErrors {
     @ExceptionHandler(NotesFailure.class) ResponseEntity<Object> business(NotesFailure failure, WebRequest request) {
         var status = switch (failure.code()) {
             case "note_not_found" -> HttpStatus.NOT_FOUND;
-            case "invalid_page", "invalid_note" -> HttpStatus.BAD_REQUEST;
+            case "command_receipt_expired" -> HttpStatus.GONE;
+            case "invalid_page", "invalid_note", "invalid_actor", "invalid_command_key" -> HttpStatus.BAD_REQUEST;
             case "workspace_forbidden" -> HttpStatus.FORBIDDEN;
-            case "note_slug_conflict" -> HttpStatus.CONFLICT;
+            case "workspace_command_limit" -> HttpStatus.TOO_MANY_REQUESTS;
+            case "note_slug_conflict", "command_conflict", "command_processing" -> HttpStatus.CONFLICT;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
-        var result = errors.response(new ErrorResponseException(status), request);
+        var safe = new ErrorResponseException(status);
+        if (failure.code().equals("command_processing")) safe.getHeaders().set(HttpHeaders.RETRY_AFTER, "1");
+        var result = errors.response(safe, request);
         if (result != null && result.getBody() instanceof ProblemDetail problem) problem.setProperty("code", failure.code());
         return result;
     }
