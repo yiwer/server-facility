@@ -206,3 +206,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 
 - 207c0cc / run37165514455：Windows111327487229与Ubuntu111327487395的all、platform、归档均success，UTC更新00:49:22Z；原始公开run/jobs/artifacts JSON保存main .verification-results/ci-16。完整元数据与只读artifact metadata限制见[联合报告](../../verification/ticket-07-12-19-28-32-ci.md)。
 - 07/12/19/28/32 closed，正式累计26；历史CI14/15失败保留，29前置解除并以followup唤醒实施。08在该来源之后合入，不算此次通过；10/20仍独立验证，33负责最终单候选组合和双轴审查。仅文档闭合，不重复同源已过全门，不单独push。
+
+
+## 票20显式输入与有限保留集成
+
+- 冻结ff33c5d3f71be27a837940542cbc1c93f9f14e9b（含CI16源207c0cc）的Windows all --fresh116命令PASS：库1736/0/0/0、5架构/依赖/88/88/75原门通过，覆盖26541/28549指令、5147/5454行、2907/3418分支；jarSHA16d80a33f6e73ac077e55916b72e690680a32111f2760a4dd8848f5ed71b0410。普通jar64MiB的10000轮成功/语法失败保留5608112→5608112bytes、线程7→7；JDK-only应用三环境、模板78/partner15、PG三CLI/打包双模式重启与全部资源/负控通过。详见20报告。
+- final f6760067e5524a1e16b0bda648045edc2a80de14在通过后同步08/中央docs至e561bc4；20产品/测试/应用/Java消费者与冻结源零差异，组合Verify编译通过。从干净e561bc4以--no-ff合入，merge8f8f2ef5a783faf7879402f3f81766c0968d6beb，无冲突，合入所有产品/runner与handoff相同。中央登记0043、51条实际ADR并保留cache/value/mapping/HTML等消费者。
+- 20状态verification-pending，仅待下一同源Linux/联合CI；本地1736与jarSHA不冒作后来08组合已验证。08同待新CI，10正在交接，closed仍26。未重复无关合并导致的相同20门，下一CI17统一验证组合。
