@@ -2,7 +2,7 @@
  * <h2>cn.code91.facility.date</h2>
  *
  * <p><b>Purpose:</b> Result-style date parsing/formatting (never throws checked
- * exceptions), cached {@code DateTimeFormatter}s, legacy {@code java.util.Date}
+ * exceptions), uncached legacy SMART {@code DateTimeFormatter}s with call-time default FORMAT Locale, legacy {@code java.util.Date}
  * day-level helpers (truncate / same-day / adjacent-day), and epoch conversions.</p>
  *
  * <p><b>Entry classes:</b> {@code DateUtil}.</p>

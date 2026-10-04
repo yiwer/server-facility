@@ -115,7 +115,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 读写任何 facility API 前先掌握四条全局约定（成文依据：DESIGN §7 一致性宪法）：
 
 - **失败走 `Result`**：可预期失败（IO / 解析 / 序列化 / 外部交互）一律返回 `Result<T,E>`，不抛受检异常、不以 null 表示失败；`Result.empty()` 表达「成功但无值」（ADR-0007）。
-- **命名双家族（C4）**：`XxxUtil` = 静态门面（可能有状态、参与 Spring 装配交互）；复数名词类（`Numbers` / `Patterns` / `Filenames` / `Collects` / `Hashing` …）= 纯函数无状态工具。历史例外：`HttpClients` 复数名但按门面对待。
+- **命名双家族（C4）**：`XxxUtil` = 静态门面（可能有状态、参与 Spring 装配交互）；复数名词类（`Numbers` / `Patterns` / `Filenames` / `Collects` / `Hashing` …）= 以值操作为主的工具（Patterns保留明确有界的编译缓存）。历史例外：`HttpClients` 复数名但按门面对待。
 - **null 契约（C1）**：数据参数 null → null-safe 语义回退；函数型与必需依赖参数 null → `requireNonNull` fail-fast；公共 API 可空性以 `jakarta.annotation.Nullable` 标注（error 包例外，javadoc 散文表达，C5）。
 - **「≤0 = 不限制」（C2）**：表达「无限制」的统一拼法；ADR-0028/0036/0037/0038/0046 明确例外：启用 repeatable body、响应捕获、上传、ZIP/目录、CSV及显式 JSON InputStream 字段预算必须为正数，0/负数拒绝；上传便利入口固定10 MiB，JSON无参注解入口固定1 MiB。
 
@@ -133,13 +133,13 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `id` | `IdUtil` | 雪花 ID（可配 worker/dataCenter）+ UUID 多形态 |
 | `json` | `Jsons` / `JsonConfig` | 应用 mapper 注入、不可变 builder、安全 Result 错误通道；JsonUtil 保留 standalone 静态预设 |
 | `log` | 应用 SLF4J；旧 LogUtil | 新路径标准日志与字段白名单；旧二次分发只保留兼容，不是审计 |
-| `date` | `DateUtil` | 日期格式化/解析（返回 Result）、区间规范化 |
-| `number` | `Numbers` / `NumberFormat` / `NumberUnits` | 数值解析、大小格式化、单位换算 |
+| `date` | `DateUtil` | legacy SMART/调用时Locale、无动态缓存；[显式业务时间](examples/export-input/README.md) |
+| `number` | `Numbers` / `NumberFormat` / `NumberUnits` | 精确有界容量解析、legacy显示；NumberUnits弃用迁移 |
 | `hash` | `Hashing` | 文件/字节哈希 |
 | `io` | `PathIo` / `Zipping` | 有界完整目录统计/逐项删除；ZIP完整关闭后不覆盖发布，实际读写/条目/深度预算和清理失败可见 |
 | `path` | `Filenames` | 文件名清洗、路径穿越防御、危险扩展名拦截 |
 | `mime` | `MimeTyping` | 基于魔数的 MIME 探测（optional：tika-core） |
-| `pattern` | `Patterns` | 常用正则校验 |
+| `pattern` | `Patterns` | 有界开发者模式缓存与legacy形状判断；不保证任意regex时限 |
 | `copy` | `CopyUtil` | 有界旧复制；新路径见[显式DTO示例](examples/order-mapping/README.md) |
 | `locale` | 应用 MessageSource；旧 LocaleUtil | 宿主优先的明确 bundle 顺序，静态入口保留兼容并弃用 |
 | `async` | `Async<T>` | 惰性组合、整体 deadline 与协作取消；有界平台线程默认，应用显式注入 Executor |

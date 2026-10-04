@@ -6,8 +6,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * <b>单位换算</b>：毫米 ↔ 像素。
+ * <b>旧毫米/像素换算</b>：保留double和Math.round兼容行为，不作精密业务数值政策。
+ * <p>新业务直接使用BigDecimal与显式DPI、scale和RoundingMode；例如
+ * {@code mm.multiply(BigDecimal.valueOf(dpi)).divide(new BigDecimal("25.4"), 0, RoundingMode.HALF_UP)}。
+ * 这会改变负半数向正无穷的旧Math.round规则，迁移时须选择业务需要的规则。</p>
+ * @deprecated 直接使用显式精度和舍入的JDK BigDecimal计算；旧签名保留。
  */
+@Deprecated(since = "0.1.0", forRemoval = false)
 @UtilityClass
 public class NumberUnits {
 
