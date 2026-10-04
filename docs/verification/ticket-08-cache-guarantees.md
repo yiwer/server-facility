@@ -38,3 +38,32 @@ Checkpoint is ready for integration merge and full `Verify all`. Exact source, f
 
 
 Merged integration `c581dc6` (ticket19/32 and ticket28 Windows process fix) at `0d11ef5fed98b648f564ac72400a14760345aff4`; runner preserves mapping/html/cache/http/claim/partner/template consumers. Full gate will run the combined source.
+
+## Whole-run attempt and corrected consumer expectation
+
+Frozen source `6881088b7908a9f619e19b0fb4619f48fb6d7b11` ran `java verification/Verify.java all` with PG_BIN explicitly pointing to the installed PostgreSQL18.6 tools and VERIFY_WRONG_JAVA_HOME to the actual21.0.12.1+1 JDK. Raw report `.verification-results/20261004-082150-220-all/summary.txt` is **FAIL** and remains unchanged.
+
+The library gate passed **1729 tests/0 failures/0 errors/0 skips**,5 architecture tests, dependency analysis and unchanged88/88/75 thresholds. Exact counters: instruction26678/28695,line5168/5476,branch2911/3430. The1712 integration baseline grows by17 tests:6 explicit configuration +9 public local cache +2 legacy loading tests. The seven historical auto-configuration cases were migrated one-for-one; no cases were deleted or broadly skipped, and @Cacheable's two cases now explicitly select the facility capability.
+
+Library jar SHA256 is `ce9edfb7198d82eee5ab40007718881552dc72370d19ed033567dfefb9f6a608`. All preceding ordinary consumers, including core/mapping/crypto/IO/CSV/Excel/limits/HTML/lock/claim, the new64MiB cache consumer, authorized real HTTP replay, JSON/Web/upload graphs, completed successfully in this run. Cache consumer's exact marker and artifact hash are in `53-cache-consumer.log`.
+
+The run stopped at `83-matrix-no-jackson-module-override.log`: the expanded override scenario explicitly supplies a JsonMapper, but the old no-Jackson-module assertion still required zero mappers. This was a consumer assertion contradiction, not cache fallback or a product exception. Commit `82049ea` restricts the absence assertion to scenarios without that explicit override; `green-17-explicit-mapper-override.log` confirms the same actual graph now passes. No product source changed. The full matrix and every not-yet-executed tail gate are being rerun against the same library artifact; this report will identify their separate report rather than relabel the original all as PASS.
+
+## Contract and integration traceability
+
+| Standard | Public evidence / boundary |
+| --- | --- |
+| Q01 | FR02/05/08,AC02/08/09 map to explicit configuration, Spring Cache operations, selected policy and ordinary-jar consumers; seven reproduced defects have recorded RED/GREEN. ADR0031 and local-cache migration record input, exception and ownership changes. |
+| Q02 | Default absence; selected hit/miss/evict/reload/null;1ns TTL and capacity1; exact expiry before/equal/after; N−1/N/N+1 capacity after maintenance; nonpositive/overflow policy; finite names, duplicate/control/257-character rejection and256-character/Unicode success. No format/Locale-dependent parsing is owned here. |
+| Q03 | Actual independent Maven graphs with neither/either/both optional dependencies, host override and disabled cases; ordinary installed jar; standard Spring @Cacheable proxies; two application policies and close isolation. No cache correctness claim is derived from a mock call count. |
+| Q04 | Public Ticker time and backend-failure injection; actual first-loader/follower/different-key/eviction/close barriers; checked loader cause/no pollution/recovery; every cache cleanup attempted after one host clock failure, first exception retained. Arbitrary loader cancellation and hard close deadlines are deliberately outside ownership; no database/I/O side effect protocol is claimed. |
+| Q05 | Configured finite names × positive per-cache entry policy;4096 key and8192 unknown-name churn;256 retained closed managers formerly holding32768 entries plus1MiB values in a64MiB/2CPU JVM; real workers join and contexts close. Capacity is not an instantaneous or byte admission bound. Borrowed handles/host loaders require quiescence. |
+| Q06 | This local cache has no stored wire/file protocol requiring historical format goldens. Existing public method descriptors are retained; explicit breaking semantics and concrete-manager type migration are documented and covered by legacy public tests/ordinary source consumers. No precompiled historical binary compatibility test is claimed for08. |
+| Q07 | CacheConsumer seed80031,2048 deterministic public expiry/invalidation operations over32 keys, with independently maintained expected values/deadlines; targeted exact boundaries and separate capacity tests supplement the finite model. |
+| Q08 | Raw summaries record exact source/JDK/OS/Locale/timezone/dependency trees/artifacts and commands. Expected failure logs are retained. Facility introduces no key/value/message diagnostics; Caffeine/Spring/host logging is explicitly outside total sanitization. Current CI remains a separate platform gate. |
+| Q09 | Root1729 and original coverage/architecture/dependency gates passed above. Changed legacy expectations,17 added tests, failed exploratory assumptions and failed whole-run fixture are enumerated, not hidden or deleted. |
+| Q10 | Code, ADR0031, public migration, ordinary consumers and raw local logs are delivered together. Windows tail and Linux CI status remain explicit until their evidence arrives. Final33 batch review is separate and does not make future unrelated scenarios prerequisites for this cache ticket. |
+
+J01/J02: actual ordinary-jar dependency loading and selection/override matrix. J05: independent TTL/capacity/data and closing one application. J15: finite names, expiry/churn and repeated retained-manager cleanup. Other J03/04/06–14/16/17 scenarios belong to their owners; cache is not an execution permit, distributed receipt, parser, request identity source or lock. The combined runner retains those existing consumers without attributing their semantics to08.
+
+Limited independent review of6881088 by impl03 found no blocker; scope and exclusions are saved at `../coordination/ticket-08-premerge-review-impl03.md` relative to the worktree parent. It neither ran this full gate nor replaces final33 standards/spec review.
