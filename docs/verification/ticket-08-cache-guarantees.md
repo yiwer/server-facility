@@ -1,6 +1,6 @@
 # Ticket08 cache guarantees — incremental evidence
 
-In progress; no full gate or platform completion is claimed. Worktree ticket-08, branch codex/ticket-08, starting integration `1d6377dee64db3e8b072dd590a9f09c78df5b6df`. Raw RED/GREEN logs live in .verification-results/ticket-08 and survive clean. Public seams and decisions are in the ticket plan and ADR0031.
+Windows verification is complete through the original library/consumer run plus the explicitly recorded corrected whole-tail run below. The original `all` summary remains FAIL; it is not relabelled. Current Linux CI is pending, so ticket08 remains verification-pending. Worktree ticket-08, branch codex/ticket-08, starting integration `1d6377dee64db3e8b072dd590a9f09c78df5b6df`. Raw RED/GREEN logs live in .verification-results/ticket-08 and survive clean. Public seams and decisions are in the ticket plan and ADR0031.
 
 | Cycle | RED / prior behavior | GREEN / result |
 | --- | --- | --- |
@@ -33,7 +33,7 @@ Commands use the checked-in Maven Wrapper with `-Dtest=... test`. Actual filenam
 
 ## Remaining gate
 
-Checkpoint is ready for integration merge and full `Verify all`. Exact source, final raw report, coverage/architecture/dependency results and platform status will be recorded below. Linux closure requires current CI; historical ticket24/default-fallback evidence does not cover this changed policy.
+The Windows evidence is now complete as described below. Linux closure requires current CI; historical ticket24/default-fallback evidence does not cover this changed policy.
 
 
 Merged integration `c581dc6` (ticket19/32 and ticket28 Windows process fix) at `0d11ef5fed98b648f564ac72400a14760345aff4`; runner preserves mapping/html/cache/http/claim/partner/template consumers. Full gate will run the combined source.
@@ -46,7 +46,7 @@ The library gate passed **1729 tests/0 failures/0 errors/0 skips**,5 architectur
 
 Library jar SHA256 is `ce9edfb7198d82eee5ab40007718881552dc72370d19ed033567dfefb9f6a608`. All preceding ordinary consumers, including core/mapping/crypto/IO/CSV/Excel/limits/HTML/lock/claim, the new64MiB cache consumer, authorized real HTTP replay, JSON/Web/upload graphs, completed successfully in this run. Cache consumer's exact marker and artifact hash are in `53-cache-consumer.log`.
 
-The run stopped at `83-matrix-no-jackson-module-override.log`: the expanded override scenario explicitly supplies a JsonMapper, but the old no-Jackson-module assertion still required zero mappers. This was a consumer assertion contradiction, not cache fallback or a product exception. Commit `82049ea` restricts the absence assertion to scenarios without that explicit override; `green-17-explicit-mapper-override.log` confirms the same actual graph now passes. No product source changed. The full matrix and every not-yet-executed tail gate are being rerun against the same library artifact; this report will identify their separate report rather than relabel the original all as PASS.
+The run stopped at `83-matrix-no-jackson-module-override.log`: the expanded override scenario explicitly supplies a JsonMapper, but the old no-Jackson-module assertion still required zero mappers. This was a consumer assertion contradiction, not cache fallback or a product exception. Commit `82049ea` restricts the absence assertion to scenarios without that explicit override; `green-17-explicit-mapper-override.log` confirms the same actual graph now passes. No product source changed. The full matrix and every not-yet-executed tail gate passed against the same library artifact in the separate report below; the original all is not relabelled as PASS.
 
 ## Contract and integration traceability
 
@@ -61,8 +61,26 @@ The run stopped at `83-matrix-no-jackson-module-override.log`: the expanded over
 | Q07 | CacheConsumer seed80031,2048 deterministic public expiry/invalidation operations over32 keys, with independently maintained expected values/deadlines; targeted exact boundaries and separate capacity tests supplement the finite model. |
 | Q08 | Raw summaries record exact source/JDK/OS/Locale/timezone/dependency trees/artifacts and commands. Expected failure logs are retained. Facility introduces no key/value/message diagnostics; Caffeine/Spring/host logging is explicitly outside total sanitization. Current CI remains a separate platform gate. |
 | Q09 | Root1729 and original coverage/architecture/dependency gates passed above. Changed legacy expectations,17 added tests, failed exploratory assumptions and failed whole-run fixture are enumerated, not hidden or deleted. |
-| Q10 | Code, ADR0031, public migration, ordinary consumers and raw local logs are delivered together. Windows tail and Linux CI status remain explicit until their evidence arrives. Final33 batch review is separate and does not make future unrelated scenarios prerequisites for this cache ticket. |
+| Q10 | Code, ADR0031, public migration, ordinary consumers and raw local logs are delivered together. Windows combined evidence is complete below; current Linux CI remains pending. Final33 batch review is separate and does not make future unrelated scenarios prerequisites for this cache ticket. |
 
 J01/J02: actual ordinary-jar dependency loading and selection/override matrix. J05: independent TTL/capacity/data and closing one application. J15: finite names, expiry/churn and repeated retained-manager cleanup. Other J03/04/06–14/16/17 scenarios belong to their owners; cache is not an execution permit, distributed receipt, parser, request identity source or lock. The combined runner retains those existing consumers without attributing their semantics to08.
 
 Limited independent review of6881088 by impl03 found no blocker; scope and exclusions are saved at `../coordination/ticket-08-premerge-review-impl03.md` relative to the worktree parent. It neither ran this full gate nor replaces final33 standards/spec review.
+
+## Final Windows continuation and handoff
+
+After integrating the28 test-host logging fix (`9a8cd45`), the tail froze at `d0afe97`. It finished with exit0 and **RESULT=PASS (tail scope only)**: `.verification-results/20261004-083656-716-cache-tail/summary.txt`, outer log `.verification-results/ticket-08/tail-console.log`. The61 commands rerun the entire5-graph/24-scenario matrix, independent partner application and missing-coverage negative, template78 tests/0 failures/0 errors/0 skips,3 PostgreSQL CLI process controls, packaged platform/virtual HTTP with restart, template absent-coverage negative,5 independent resource application cycles, and checksum/missing-JDK/actual-JDK21 negatives.
+
+The continuation first required `git diff --exit-code 6881088 HEAD -- src pom.xml .mvn` to be empty, then required both the target and isolated-repository jar to match the original `ce9edfb7198d82eee5ab40007718881552dc72370d19ed033567dfefb9f6a608` SHA256. The only verification differences from the initial all are the corrected explicit-mapper assertion and28's tested logging fixture/bounded failure diagnostics. Template product/dev helpers are unchanged by that28 fix; its78 tests were freshly executed, not borrowed from another ticket. Partner jar SHA256 is `2b501f28ffec3916e1649ec7ab0eea1303d2394cefea043c008003bfa80c73e6`; template jar SHA256 is `b7eaa5946433676375b2b8e6e8573a147343ddd27881307718463bfceb6d6445`.
+
+Both runs use Oracle JDK25.0.4.1+1-LTS-5, Windows11/10.0 amd64, Asia/Shanghai and zh_CN, an isolated per-worktree Maven repository (`fresh=false`), checked-in Wrapper/settings, PostgreSQL18.6 and an actual JDK21 negative. The original full run stores root Surefire/JaCoCo/architecture/dependency/artifact evidence; the continuation stores the complete updated matrix, template, partner and process evidence. A local continuation harness and exact Verify.java are copied into the tail report, preserving replayable input. Normal CI still uses the unchanged public `java verification/Verify.java all --fresh` entry and will run everything in one invocation.
+
+The local continuation command was:
+
+```powershell
+javac --release 25 -encoding UTF-8 -d .verification-results/ticket-08/tail-classes verification/Verify.java .verification-results/ticket-08/CacheVerificationTail.java
+# PG_BIN and VERIFY_WRONG_JAVA_HOME are explicitly set as recorded above.
+java -cp .verification-results/ticket-08/tail-classes CacheVerificationTail
+```
+
+Afterward, central documentation tip `207c0cc` merged as `ac71681532c6ede625d6eb9a456ea4e7bf7a57f3`; `git diff d0afe97 HEAD -- src pom.xml .mvn verification templates` is empty. Final handoff documentation does not change tested product, test or consumer sources. No main checkout write or push was performed by this ticket. The sole ticket completion gap is current Linux CI; final33 same-candidate review remains its own batch responsibility.
