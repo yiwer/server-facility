@@ -249,6 +249,8 @@ class Verify {
                 Path log = application.resolve("target/decorator-failure-" + rollback + ".log");
                 if (Files.isRegularFile(log)) Files.copy(log, evidence.resolve(log.getFileName()));
             }
+            Path databaseCleanup = application.resolve("target/postgres-scope-cleanup.jsonl");
+            if (Files.isRegularFile(databaseCleanup)) Files.copy(databaseCleanup, evidence.resolve(databaseCleanup.getFileName()));
         }
         var factory = DocumentBuilderFactory.newInstance();
         factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
@@ -270,7 +272,7 @@ class Verify {
                 "com.example.api.NotesHttpTest", "com.example.api.NotesModuleTest", "com.example.api.PersistenceFailureHttpTest",
                 "com.example.api.NoteCommandsHttpTest", "com.example.api.NoteCommandConcurrencyTest", "com.example.api.NoteCommandAtomicityTest",
                 "com.example.api.NoteCommandMigrationTest", "com.example.api.NoteCommandProtocolTest", "com.example.api.NoteIdentityStorageTest",
-                "com.example.api.NoteQuotaHttpTest", "com.example.api.TestHostLifecycleTest",
+                "com.example.api.NoteQuotaHttpTest", "com.example.api.TestHostLifecycleTest", "com.example.api.PostgresScopeLifecycleTest",
                 "com.example.api.DatabaseConfigurationTest", "com.example.api.MigrationHttpTest")))
             throw new AssertionError("Missing template contract tests: " + discovered);
         maven(application, "template-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));
@@ -308,6 +310,25 @@ class Verify {
         Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
                 application.toUri().toASCIIString(), evidence.toUri().toASCIIString()), 180, null);
         if (!Files.readString(log).contains("PACKAGED_TEMPLATE_PASS")) throw new AssertionError("Missing packaged template result");
+        Path cleanupProbe = application.getParent().resolve("cleanup-negative");
+        run(ROOT, Map.of(), "template-cleanup-probe-instantiate", List.of(java(), copier.toString(),
+                ROOT.resolve("templates/secured-api").toUri().toASCIIString(), cleanupProbe.toUri().toASCIIString()), 45, null);
+        maven(cleanupProbe, "template-cleanup-leak-negative", "primary-assertion-sentinel",
+                List.of("clean", "test", "-Dtest=NativeDatabaseLeakProbe"));
+        Path cleanupEvidence = Files.createDirectories(evidence.resolve("cleanup-negative"));
+        copyDirectory(cleanupProbe.resolve("target/surefire-reports"), cleanupEvidence.resolve("surefire-reports"));
+        Files.copy(cleanupProbe.resolve("target/postgres-scope-cleanup.jsonl"), cleanupEvidence.resolve("postgres-scope-cleanup.jsonl"));
+        try (var files = Files.list(cleanupProbe.resolve("target"))) {
+            for (Path cluster : files.filter(p -> p.getFileName().toString().startsWith("secured-api-postgres-")).toList())
+                copyDirectory(cluster, cleanupEvidence.resolve(cluster.getFileName()));
+        }
+        var negative = factory.newDocumentBuilder().parse(cleanupEvidence.resolve("surefire-reports/TEST-com.example.api.NativeDatabaseLeakProbe.xml").toFile()).getDocumentElement();
+        if (!negative.getAttribute("tests").equals("2") || !negative.getAttribute("failures").equals("1")
+                || !negative.getAttribute("errors").equals("1") || !negative.getAttribute("skipped").equals("0")
+                || !negative.getElementsByTagName("failure").item(0).getTextContent().contains("primary-assertion-sentinel")
+                || !negative.getElementsByTagName("failure").item(0).getTextContent().contains("Suppressed: org.postgresql.util.PSQLException"))
+            throw new AssertionError("Cleanup failure must retain primary assertion and must not become an aborted/skipped test");
+        summary.add("template-cleanup-negative=deliberate borrowed connections reject no-FORCE drop; prior assertion preserved; assumption abort becomes error;2 expected unsuccessful tests,0 skipped");
         Path withoutCoverage = application.getParent().resolve("without-coverage");
         run(ROOT, Map.of(), "template-coverage-probe-instantiate", List.of(java(), copier.toString(),
                 ROOT.resolve("templates/secured-api").toUri().toASCIIString(), withoutCoverage.toUri().toASCIIString()), 45, null);
