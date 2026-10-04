@@ -1,6 +1,6 @@
-# Ticket19: explicit mapping and bounded legacy copying (in progress)
+# Ticket19: explicit mapping and bounded legacy copying (verification-pending)
 
-Baseline integration418e26f, synchronized2b06f52 before implementation; branchcodex/ticket-19. Logs stay in`.verification-results/ticket-19`, outside target. ADR0042 is Proposed. Formal19 and Q01–Q10/J14 govern this work; no unexecuted scenario is marked passed.
+Baseline integration418e26f, synchronized2b06f52 before implementation; branchcodex/ticket-19. Logs stay in`.verification-results/ticket-19`, outside target. ADR0042 is Accepted. Formal19 and Q01–Q10/J14 govern this work; no unexecuted scenario is marked passed.
 
 | Round | Public contract | RED | GREEN |
 |---|---|---|---|
@@ -34,7 +34,7 @@ Baseline integration418e26f, synchronized2b06f52 before implementation; branchco
 
 These tests call CopyUtil, not private guard methods. The cycle RED deliberately stops after32 calls rather than exhausting the host stack. Existing historical shallow-reference, null-default, array, generic collection and exception policies remain in the regressions.
 
-Remaining: final frozen integration/all gate, central merge and actual cross-platform CI. Current slices do not satisfy the complete ticket. The intermediate test+jar:jar commands are fixture preparation plus selected regressions, not full quality/consumer acceptance.
+Final corrected-source all now passed as recorded below; central merge and actual cross-platform CI remain. The ticket stays verification-pending. The intermediate test+jar:jar commands are fixture preparation plus selected regressions, not full quality/consumer acceptance.
 
 
 ## Contract and ownership map
@@ -55,8 +55,8 @@ The binary fixture is compiled now against ticket16's real pre19 jar (SHA25612c2
 | Q06 | Frozen pre-change ordinary jar ABI binary, historical null/default/shallow contract; explicit semantic migration where compatibility is intentionally tightened |
 | Q07 | Seed190042/512 properties plus literal complete business oracle; actual javac added/renamed controls and runtime same-type swap rejection |
 | Q08 | Raw logs and invalid fixture compile attempt preserved; final source/environment/OS belongs to full runner below; no private values in copy warnings |
-| Q09 | Original coverage/architecture/dependency/full runner still required; selected77/78 tests are not a replacement |
-| Q10 | Code/example/migration/ADR/evidence delivered together; final full/platform evidence remains outstanding until executed |
+| Q09 | Original coverage/architecture/dependency/full runner passed on4bcad87 below; selected tests remain separate evidence |
+| Q10 | Code/example/migration/ADR/evidence delivered together; corrected-source Windows full gate passed, Linux remains outstanding |
 
 J14 DTO evolution applies directly. No new persisted wire format, network request, transaction, TTL or filesystem publication is introduced; database/timezone/real backend fault scenarios from unrelated tickets are not fabricated here. Old ordinary-jar behavior and compiler/business mutation controls are the independent evolution evidence. Future33 owns final all-ticket candidate rechecks separately.
 
@@ -68,3 +68,14 @@ J14 DTO evolution applies directly. No new persisted wire format, network reques
 The four new mapping commands passed: actual application compilation/business result/evolution controls;64MiB ordinary-jar resource consumer(seed190042/512,2000 rounds,200 callback Errors,retained1650632→1658904bytes,threads7→7); identical pre-change consumer class bytes linked against the new ordinary jar. Other dependency/optional/Web consumers, partner15, template76 with PostgreSQL packaged platform/virtual CRUD/restart, coverage negatives, five repeated application lifecycles and three toolchain negatives all passed. This local result does not replace the Windows CI14 database failure investigation.
 
 Root's subsequent focused review found that a key.copy interruption was not checked before the same Map entry's value.copy. Round22 reproduced the external value callback twice through public helpers and reflected fields, then added a zero-work interruption check at both boundaries. The first full run above remains a historical pre-correction source, not the final ticket candidate. Final corrected-source integration evidence is still required below; no failed or unexecuted scenario is relabeled as passing.
+
+
+## Final corrected-source full run
+
+Clean source `4bcad8726e1b4379a0a56fe0804d1164086ae7e8` includes the Map callback correction and joint central CI15 candidatee3382ce (07/12/32 and28 native-process repair). On2026-10-04 it completed `java verification/Verify.java all --fresh`: **110 commands, RESULT=PASS, exit0**. Raw evidence is `.verification-results/20261004-075535-739-all`, outer log `.verification-results/ticket-19/final-corrected-all.log`. Oracle25.0.4.1+1-LTS-5, Windows11 amd64, zh_CN, Asia/Shanghai; WrapperMaven3.10.0, fresh isolated dependency repository, actual JDK21 negative control and pinned PostgreSQL18.6 tools.
+
+Root library **1712 tests,0 failures/errors/skips**,5 architecture tests, unchanged dependency and88/88/75 coverage gates pass. Exact counters: instruction26467/28471,line5136/5443,branch2879/3390. Ordinary jar SHA256 `5853fd0737501be5a63f0d0efbbb59823cf820c7dcd219d76c7e72d97100cef2`. Independent template76 and partner15 tests pass; actual PostgreSQL diagnostics/lifecycle/cleanup and platform/virtual executable-jar HTTP restart all pass. Template jar SHA256 `1413a76ede0f526b142c32b7bb53209a8d6fd9dd2ea058f7635aa0e5b077fb9d`.
+
+The new mapping commands13–16 consume that ordinary jar and independently compiled application. Literal DTO values, duplicate order, independent containers and actual compiler/business evolution controls pass. The64MiB legacy consumer records seed190042,512 properties,2000 successful/budget-rejected rounds and200 callback Errors; retained heap1651624→1659896bytes,threads7→7. The same pre-change class files run against the new jar successfully. Ordinary dependency graphs, optional/Web/HTML/Security replay consumers, five application lifecycle cycles, both missing-coverage controls and three toolchain controls also pass.
+
+This result is from a separate local execution. It does not erase CI15 Windows' ConcurrentModificationException in the template's concurrent migration scenario, nor establish that unrelated flaky path is fixed. That issue remains with28 and is recorded centrally. Ticket19's Linux/new joint source is still pending; future33's final all-ticket candidate review remains separately owned. No promised program callback CPU or arbitrary graph snapshot guarantee was added.
