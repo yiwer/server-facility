@@ -22,7 +22,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（50 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（52 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -40,15 +40,15 @@
 - **09/14/15跨平台闭合**：集成 `c2f0f6b` 已通过Windows/Ubuntu完整门、平台门与归档，见[同源CI37147633803](docs/verification/ticket-09-14-15-ci.md)。各环境精确数值以其artifact为准，三票已closed。
 - **前次本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过，含4种Excel实际依赖图、64MiB400,000行与恶意XML/200失败清理、独立格式样本及openpyxl导出oracle。原覆盖率/5架构/依赖、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](docs/verification/ticket-16-bounded-excel.md)。同源CI12已通过Windows/Ubuntu完整门、平台门和归档，11/16/27 closed，详见[CI37156503739](docs/verification/ticket-11-16-27-ci.md)。25后加Inventory `[null]` 修复已随[CI13](docs/verification/ticket-25-26-ci.md)跨平台闭合；本段精确计数仅为原本地来源。
 - **前次本地完整门（26）**：冻结`72a37b6` Windows `all --fresh`为库1614/0/0/0、模板52/0/0/0、聚合应用14/0/0/0，92命令与原质量门/负控全部PASS，见[26报告](docs/verification/ticket-26-host-observability.md)。含25库存null修复的联合候选已通过[CI13](docs/verification/ticket-25-26-ci.md)，25/26 closed。
-- **CI16联合闭合（07/12/19/28/32）**：207c0cc / run37165514455 的Windows与Ubuntu完整all、platform和归档均success，五票closed、共26票closed；[原始metadata与范围](docs/verification/ticket-07-12-19-28-32-ci.md)。08/10/20未包含于该来源，等待后续CI。
+- **CI16联合闭合（07/12/19/28/32）**：207c0cc / run37165514455 的Windows与Ubuntu完整all、platform和归档均success，五票closed、当时共26票closed；[原始metadata与范围](docs/verification/ticket-07-12-19-28-32-ci.md)。08/10/20未包含于该来源，已由后续CI18独立闭合。
 - **持久业务本地门（28）**：冻结`4a5ad5d`完整92步为库1614/partner15/模板74均零失败；随后整秒JDBC预算修复在`e0fd5b3`完成模板76项、原质量门、真实PostgreSQL可执行包两线程模式CRUD/重启与coverage负控。两次来源和范围分别记录在[28报告](docs/verification/ticket-28-persistent-business.md)。CI14同源Ubuntu通过、Windows打包数据库启动失败，见[CI记录](docs/verification/ticket-28-ci.md)；当时28保持verification-pending；[原生进程修复](docs/verification/ticket-28-ci14-fix.md)已合入，CI15 Ubuntu通过、Windows并发迁移测试失败；[并发测试宿主修复](docs/verification/ticket-28-ci15-fix.md)已完成当前库1712与完整模板78项，现已由CI16双OS联合门闭合。
 - **本地互斥门（07）**：冻结`df7f788`的Windows完整97步通过，库1637/0/0/0；原SPI兼容、64MiB轮转与Async观察结束后仍持锁均已执行。随后联合候选已通过CI16，原本地精确范围见[07报告](docs/verification/ticket-07-local-lock.md)。
 - **授权重放本地门（12）**：`3563d92`的Windows `all`通过，库1667/0/0/0、模板76/0/0/0及独立Security重放消费者、PostgreSQL打包重启、原质量门与负控全部通过。含07；精确来源见[12报告](docs/verification/ticket-12-authorized-replay.md)。12已由CI16同源双OS门闭合，28的CI14失败独立保留。
 - **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](docs/verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选已通过CI16双OS门；本段本地计数仍仅属于所标来源。
-- **CI17 联合候选**：08/10/20 的 f081f2d 在双 OS 完整门均遇到模板观测测试失败；独立平台门/归档通过。三票保持待验证，[标准context读取修复](docs/verification/ci17-observation-read-fix.md)已合入，待CI18验证最终组合；实际症状与原始元数据见[CI17 失败记录](docs/verification/ticket-08-10-20-ci.md)。
-- **标识政策本地门（10）**：fa26fc3 Windows all --fresh113命令PASS，库1733/0/0/0、模板78与原质量门通过；历史原jar样本、64MiB固定seed2048/10000轮及UUID应用三context通过。合入08/20的新组合待CI17，见[10报告](docs/verification/ticket-10-id-policy.md)。
-- **显式输入本地门（20）**：ff33c5d Windows all --fresh116命令PASS，库1736/0/0/0、模板78/partner15与原门通过；实际旧jar金样、普通jar64MiB/10000轮和JDK-only应用三时区Locale通过。合入08后的新组合待联合CI，见[20来源与限制](docs/verification/ticket-20-value-policies.md)。
-- **缓存本地组合门（08）**：6881088库1729/0/0/0及原质量门通过；原all因no-Jackson显式mapper消费者断言矛盾保留FAIL。修正后的d0afe97完整61步尾门以强制相同库源码和jar SHA通过5图24场景、模板78、PG/打包/资源/负控。两段证据分别见[08报告](docs/verification/ticket-08-cache-guarantees.md)，不称原all PASS；Linux待新CI。
+- **CI18联合闭合（08/10/20）**：250ce2d / run37168561735 的Windows与Ubuntu完整all、platform和归档均success，三票closed、共29票closed；[来源、metadata与限制](docs/verification/ticket-08-10-20-ci18.md)。[CI17失败](docs/verification/ticket-08-10-20-ci.md)及[标准context读取修复](docs/verification/ci17-observation-read-fix.md)保留；29/30/31/33尚未闭合。
+- **标识政策本地门（10）**：fa26fc3 Windows all --fresh113命令PASS，库1733/0/0/0、模板78与原质量门通过；历史原jar样本、64MiB固定seed2048/10000轮及UUID应用三context通过。合入08/20的新组合已由CI18双OS门闭合，见[10报告](docs/verification/ticket-10-id-policy.md)。
+- **显式输入本地门（20）**：ff33c5d Windows all --fresh116命令PASS，库1736/0/0/0、模板78/partner15与原门通过；实际旧jar金样、普通jar64MiB/10000轮和JDK-only应用三时区Locale通过。合入08后的新组合已由CI18双OS门闭合，见[20来源与限制](docs/verification/ticket-20-value-policies.md)。
+- **缓存本地组合门（08）**：6881088库1729/0/0/0及原质量门通过；原all因no-Jackson显式mapper消费者断言矛盾保留FAIL。修正后的d0afe97完整61步尾门以强制相同库源码和jar SHA通过5图24场景、模板78、PG/打包/资源/负控。两段证据分别见[08报告](docs/verification/ticket-08-cache-guarantees.md)，不称原all PASS；当前Linux与联合组合已由CI18闭合。
 - **显式映射本地门（19）**：修复Map key与value回调间中断检查后的`4bcad87`完成Windows `all --fresh`110命令PASS，库1712/0/0/0、模板76/partner15及原门全部通过；具名DTO业务/编译负控、旧binary和64MiB资源消费者通过，见[19报告](docs/verification/ticket-19-explicit-mapping.md)。历史本地结果不覆盖CI15失败；现已由CI16同源双OS门闭合。
 - **旧平台参照**：Boot3.5.16 的 `5a59d2f` 在Windows为1323项全绿、instruction92.9939% / line93.3940% / branch86.1614%；包含相同产品的 `2304a57` 已通过两OS `all --fresh`，见 [票05 CI证据](docs/verification/ticket-05-ci.md)。这些结果不能视为当前目标平台全绿。
 

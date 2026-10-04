@@ -1,5 +1,7 @@
 # Ticket10 — explicit identifier policy
 
+> 当前状态（2026-10-04）：本票已由250ce2d / CI18两OS完整门闭合，见[联合验收](ticket-08-10-20-ci18.md)。下文保留各次冻结来源的本地证据及当时待验事项；其中pending描述不代表当前状态。
+
 2026-10-04 verification-pending: complete Windows gate passed; Linux awaits the next integrated CI. Based on integration1d6377d, independent tree codex/ticket-10. Approved seams: public IdUtil/SnowIdGenerator, real Spring configuration, ordinary jar application operations. No new generic generator framework. ADR0033 replaces ADR0023 unbounded waits, preserves ADR0008 instance epoch parsing.
 
 ## TDD evidence

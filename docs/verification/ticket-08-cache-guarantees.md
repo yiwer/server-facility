@@ -1,5 +1,7 @@
 # Ticket08 cache guarantees — incremental evidence
 
+> 当前状态（2026-10-04）：本票已由250ce2d / CI18两OS完整门闭合，见[联合验收](ticket-08-10-20-ci18.md)。下文保留各次冻结来源的本地证据及当时待验事项；其中pending描述不代表当前状态。
+
 Windows verification is complete through the original library/consumer run plus the explicitly recorded corrected whole-tail run below. The original `all` summary remains FAIL; it is not relabelled. Current Linux CI is pending, so ticket08 remains verification-pending. Worktree ticket-08, branch codex/ticket-08, starting integration `1d6377dee64db3e8b072dd590a9f09c78df5b6df`. Raw RED/GREEN logs live in .verification-results/ticket-08 and survive clean. Public seams and decisions are in the ticket plan and ADR0031.
 
 | Cycle | RED / prior behavior | GREEN / result |

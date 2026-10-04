@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-05、FR-09；AC-08、AC-12
 
@@ -13,7 +13,7 @@
 - [x] 新推荐路径默认 UUID，用户 generator 可覆盖；无 context 或缺节点配置不静默使用 SnowId 节点 0。
 - [x] SnowId 节点范围、epoch、序列耗尽、回拨、等待预算与中断契约明确。
 - [x] 存量 ID 不改写，公开解析与 JSON 表示提供兼容样本；部署必须明确重复节点的责任。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -30,3 +30,5 @@
 实现分支codex/ticket-10，基于1d6377d。已批准验收入口：公开IdUtil/SnowIdGenerator、真实自动装配和普通jar应用；默认业务使用JDK UUID及应用自有Supplier，不增加通用ID框架。ADR0033先登记替代ADR0023的无限等待，保留ADR0008的实例epoch解析。
 
 2026-10-04 Windows frozenfa26fc3 all --fresh113步骤PASS：库1733/0/0/0、原覆盖率/5架构/依赖门、普通jar64MiB/旧ID样本/3context UUID业务、模板78/PG三CLI/打包重启/负控全部通过。逐项Q01–Q10与RED/GREEN见[报告](../../../docs/verification/ticket-10-id-policy.md)（仓库路径docs/verification/ticket-10-id-policy.md）。Linux待后续集成CI；07/12/19/28/32的CI16不包含10，不提前关闭共同完成标准。
+
+2026-10-04 CI闭合：精确源 `250ce2de2b38901c621318f8d871486c772fea34` / run37168561735 的 Windows、Ubuntu 全部 all/platform/归档均 success；Q08/Q10齐备，状态closed。[联合报告](../../../docs/verification/ticket-08-10-20-ci18.md)记录原始metadata与未下载归档内容的限制。此前本地数值和CI17失败按各自来源保留，33最终同候选组合仍独立执行。
