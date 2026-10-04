@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-05、FR-08、FR-09；AC-08、AC-11、AC-12
 
@@ -28,3 +28,8 @@
 范围限定为代表用例及已有工具契约；不创建通用规则引擎或声称任意 regex 可安全超时。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+
+## Implementation record
+
+2026-10-04，领取独立ticket-20/codex/ticket-20，基于集成1d6377d。19产品修复已完成，等待28修复接合后最终验证；本票在该等待窗口独立实施，不覆盖19的验收责任。按用户已批准的DateUtil/NumberFormat/NumberUnits/Patterns公开入口及独立应用Module做逐项RED→GREEN，公共边界不重复索取批准。代表流程为显式Clock/ZoneId/Locale的定时导出输入；严格固定日期和正数容量是业务政策，旧SMART/默认环境/显示语义单独保留金样。无界动态缓存退出，不将Java正则误称可中断的不可信输入引擎。ADR0043，原始证据从开始存.verification-results/ticket-20。

@@ -136,7 +136,9 @@ boolean same    = DateUtil.isSameDay(d1, d2);
 LocalDateTime t = DateUtil.longToLocalDateTime(epochMillis);
 ```
 
-解析支持多种常见格式(`SUPPORT_DATE_FORMAT`);非法输入返回 `Result.err(...)` 而非抛异常。
+解析支持多种常见格式(`SUPPORT_DATE_FORMAT`);非法输入返回 `Result.err(...)`，但legacy cause可能保留原始输入，不应公开返回。pattern采用SMART与每次调用的默认FORMAT Locale，不缓存动态formatter。严格业务输入请使用应用自有Clock/ZoneId/Locale与固定java.time formatter，参见[时间、容量与模式迁移](building/explicit-value-policies.md)及[JDK-only导出输入示例](../examples/export-input/README.md)。
+
+NumberFormat.parseSize是128UTF16/scale[-128,128]内的精确有符号ASCII容量解析，拒绝溢出但保留零/负值；业务预算必须另外要求正数和上限。NumberUnits已弃用，旧Math.round负半值语义保持。Patterns的256项/4096UTF16缓存政策只限制保留状态，外部请求不能任意提供regex；预定义DATE等仍是形状判断。
 
 ## i18n:LocaleUtil
 

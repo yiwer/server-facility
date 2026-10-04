@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -78,14 +77,17 @@ public final class Patterns {
 
     // ==================== 缓存 ====================
 
-    private static final Map<PatternKey, Pattern> PATTERN_CACHE = new ConcurrentHashMap<>();
+    private static final Map<PatternKey, Pattern> PATTERN_CACHE = new LinkedHashMap<>(256, 0.75f, true);
 
     private record PatternKey(String regex, int flags) {}
 
     private Patterns() { throw new UnsupportedOperationException(); }
 
     /**
-     * 获取/编译 Pattern。自动缓存。
+     * 获取/编译宿主信任的开发者 Pattern。全局最多保留256项、每个regex最多4096个UTF-16单元；
+     * 更长的合法模式仍编译但不保留。缓存身份只在条目仍驻留期间成立。
+     * <p>这是保留规模政策，不是编译或匹配时间限制。禁止直接传入任意外部请求模式；
+     * 宿主应选择有限的预定义模式并限制匹配内容和结果数量。</p>
      *
      * @throws PatternSyntaxException 正则语法错误
      */
@@ -95,10 +97,20 @@ public final class Patterns {
 
     public static Pattern compile(String regex, int flags) {
         Objects.requireNonNull(regex, "regex cannot be null");
-        return PATTERN_CACHE.computeIfAbsent(
-                new PatternKey(regex, flags),
-                k -> Pattern.compile(k.regex(), k.flags())
-        );
+        if (regex.length() > 4_096) return Pattern.compile(regex, flags);
+        PatternKey key = new PatternKey(regex, flags);
+        synchronized (PATTERN_CACHE) {
+            Pattern existing = PATTERN_CACHE.get(key);
+            if (existing != null) return existing;
+        }
+        Pattern compiled = Pattern.compile(regex, flags);
+        synchronized (PATTERN_CACHE) {
+            Pattern existing = PATTERN_CACHE.get(key);
+            if (existing != null) return existing;
+            if (PATTERN_CACHE.size() == 256) PATTERN_CACHE.remove(PATTERN_CACHE.keySet().iterator().next());
+            PATTERN_CACHE.put(key, compiled);
+            return compiled;
+        }
     }
 
     public static Optional<Pattern> tryCompile(String regex) {
@@ -124,8 +136,8 @@ public final class Patterns {
         }
     }
 
-    public static void clearCache() { PATTERN_CACHE.clear(); }
-    public static int cacheSize() { return PATTERN_CACHE.size(); }
+    public static void clearCache() { synchronized (PATTERN_CACHE) { PATTERN_CACHE.clear(); } }
+    public static int cacheSize() { synchronized (PATTERN_CACHE) { return PATTERN_CACHE.size(); } }
 
     // ==================== 校验 ====================
 

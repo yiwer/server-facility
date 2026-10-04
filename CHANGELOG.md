@@ -9,6 +9,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 显式时间、容量与模式政策（2026-10-04，ADR0043）
+
+- DateUtil退出动态formatter缓存；保留SMART与调用时默认FORMAT Locale，环境切换不再沿用首次Locale。新业务通过应用自有ExportRequests使用Clock/ZoneId/Locale、固定严格日期、显式DST政策及正数有限MiB预算。
+- NumberFormat.parseSize保留有符号向零截断，改用精确十进制；拒绝long溢出、非有限数及超出128UTF16/scale[-128,128]的输入。ASCII数字范围保留，旧hex浮点等扩展语法明确退出；零/负值仍不是资源预算。
+- Patterns最多保留256项，超过4096UTF16的可信开发者模式不缓存；不再承诺跨逐出的对象身份，亦不承诺任意不可信regex的执行时限。NumberUnits弃用并保留原double/Math.round行为；应用直接选择BigDecimal舍入政策。
+- [迁移说明](docs/building/explicit-value-policies.md)区分旧金样和有意收紧；JDK-only导出输入示例与普通jar兼容/资源消费者随验证入口执行。
+
 ### 已授权有界 HTTP 重放（2026-10-04，ADR-0035）
 
 - `@Idempotent` 整条 HTTP 路径迁至 qualified claim。新增必需 `IdempotencyAuthorization`：每次取得或重放前进行当前操作授权与命令规范化；可信 tenant/actor、具体方法与路由隔离结果。缺 Adapter/provider/capture 明确拒绝，不回落旧无 owner 执行。

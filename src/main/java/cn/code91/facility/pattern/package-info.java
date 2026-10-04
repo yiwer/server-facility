@@ -2,7 +2,7 @@
  * <h2>cn.code91.facility.pattern</h2>
  *
  * <p><b>Purpose:</b> Compiled-regex helper library with pre-built patterns for
- * common validation scenarios (email, phone, ID card, etc.).</p>
+ * legacy shape checks (email, phone, ID card, etc.). Developer-pattern retention is limited to256 entries with keys at most4096 UTF-16 units; this does not limit regex execution time or validate semantic identity.</p>
  *
  * <p><b>Entry classes:</b> {@link cn.code91.facility.pattern.Patterns}
  * (engine + regex string constants) and

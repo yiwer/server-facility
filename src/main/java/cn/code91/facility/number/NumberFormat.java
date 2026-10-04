@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.Optional;
+import java.util.Locale;
 
 /**
  * <b>数字格式化</b>：BigDecimal → 字符串、金额、百分比、字节大小可读形式。
@@ -90,11 +91,15 @@ public class NumberFormat {
 
     /**
      * 大小字符串（如 {@code "10MB"} / {@code "1.5GB"}）→ 字节数。
+     * <p>Legacy signed parser: B/KB/MB/GB/TB use powers of 1024; fractional bytes truncate
+     * toward zero. Exact decimal arithmetic rejects long overflow and nonfinite input.
+     * ASCII decimal input is limited to 128 UTF-16 units and decimal scale -128..128 before multiplication.
+     * Zero/negative values remain valid here; resource-budget callers must reject them explicitly.</p>
      */
     public static Optional<Long> parseSize(String sizeStr) {
-        if (sizeStr == null || sizeStr.isBlank()) return Optional.empty();
+        if (sizeStr == null || sizeStr.length() > 128 || sizeStr.isBlank()) return Optional.empty();
         try {
-            String str = sizeStr.trim().toUpperCase();
+            String str = sizeStr.trim().toUpperCase(Locale.ROOT);
             long multiplier = 1;
             if (str.endsWith("KB")) {
                 multiplier = 1024;
@@ -111,8 +116,18 @@ public class NumberFormat {
             } else if (str.endsWith("B")) {
                 str = str.substring(0, str.length() - 1);
             }
-            return Optional.of((long) (Double.parseDouble(str.trim()) * multiplier));
-        } catch (NumberFormatException e) {
+            str = str.trim();
+            for (int i = 0; i < str.length(); i++) {
+                char c = str.charAt(i);
+                if (!(c >= '0' && c <= '9') && c != '+' && c != '-' && c != '.' && c != 'E') {
+                    return Optional.empty();
+                }
+            }
+            BigDecimal value = new BigDecimal(str);
+            if (value.scale() < -128 || value.scale() > 128) return Optional.empty();
+            return Optional.of(value.multiply(BigDecimal.valueOf(multiplier))
+                    .setScale(0, RoundingMode.DOWN).longValueExact());
+        } catch (NumberFormatException | ArithmeticException e) {
             return Optional.empty();
         }
     }

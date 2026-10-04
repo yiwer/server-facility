@@ -4,7 +4,7 @@
  * <p><b>Purpose:</b> Numeric core utilities — safe parsing ({@code Optional}-returning),
  * null-safe comparison, scale setting ({@code Numbers}); formatting to plain / money /
  * percent / human-readable byte-size strings ({@code NumberFormat}); and mm ↔ px unit
- * conversion ({@code NumberUnits}).</p>
+ * conversion (deprecated {@code NumberUnits}). Signed capacity parsing uses exact finite decimal inputs; positive resource budgets remain application-owned.</p>
  *
  * <p><b>Entry classes:</b> {@code Numbers}, {@code NumberFormat}, {@code NumberUnits}.</p>
  *
