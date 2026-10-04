@@ -118,7 +118,7 @@ public final class Notes {
             // The unique-index wait may outlive membership. A new READ COMMITTED statement rechecks it.
             authorize(actor, workspace);
             // A separate statement sees the committed winner after a unique-index wait under READ COMMITTED.
-            if (claimed == 0) return jdbc.sql("select fingerprint, receipt_expires_at <= clock_timestamp() as expired, note_id, slug, title, body from note_command where workspace_id = :workspace and actor_hash = :actor and issuer = :issuer and subject = :subject and operation = :operation and command_key = :key")
+            if (claimed == 0) return jdbc.sql("select fingerprint, note_id is null or receipt_expires_at <= clock_timestamp() as expired, note_id, slug, title, body from note_command where workspace_id = :workspace and actor_hash = :actor and issuer = :issuer and subject = :subject and operation = :operation and command_key = :key")
                     .param("workspace", workspace).param("actor", actorHash).param("issuer", actor.issuer()).param("subject", actor.subject()).param("operation", operation).param("key", key)
                     .query((rs, row) -> {
                         if (!MessageDigest.isEqual(fingerprint, rs.getBytes("fingerprint"))) throw new NotesFailure("command_conflict");
