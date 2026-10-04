@@ -1,0 +1,1191 @@
+{
+  "scope": "actual recorded five-task sequence; explicit reads are not tokens; wall time includes coordinator queue and host delays",
+  "createdAt": "2026-10-04T14:37:56.075988+08:00",
+  "arms": {
+    "old": {
+      "inputManifestSha256": "d1e2b1fd77191c73763b486c472cd5a093074cf53c69c4bf8b41998a72c71cc4",
+      "runtime": {
+        "commit": "0ee9d547022371ad31f885605e999de17ec22777",
+        "coordinate": "cn.code91:server-facility:0.1.0-SNAPSHOT",
+        "jar": "E:\\GenCode\\server-facility\\.verification-results\\benchmark-preflight\\repository\\cn\\code91\\server-facility\\0.1.0-SNAPSHOT\\server-facility-0.1.0-SNAPSHOT.jar",
+        "sha256": "5ef94b3fc60274afd223070491b6d33dca39273df57d4923fd702eaf6ec6ca1f",
+        "sourceDocumentationRoot": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\supplied\\old-runtime"
+      },
+      "readCosts": {
+        "scope": "explicit emitted file input only; not model tokens or hidden context",
+        "byKind": {
+          "supplied": {
+            "uniqueFileVersions": 11,
+            "uniqueEmittedBytes": 91232,
+            "totalEmittedBytes": 91232,
+            "reads": 11
+          },
+          "fixture": {
+            "uniqueFileVersions": 19,
+            "uniqueEmittedBytes": 148757,
+            "totalEmittedBytes": 148757,
+            "reads": 20
+          }
+        },
+        "reads": 31,
+        "totalEmittedBytes": 239989
+      },
+      "readFirstAt": "2026-10-04T04:59:29.462590+00:00",
+      "readLastAt": "2026-10-04T05:57:37.206825+00:00",
+      "wallFirstReadToFinalRecordedInvocationSeconds": 3678.837331,
+      "tasks": [
+        {
+          "task": 1,
+          "invocations": [
+            {
+              "sequence": 1,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 37.958072999999786
+            },
+            {
+              "sequence": 2,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 15.513181099999201
+            },
+            {
+              "sequence": 3,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 9.593934200000149
+            },
+            {
+              "sequence": 4,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 27.124790199999552
+            },
+            {
+              "sequence": 5,
+              "mode": "development",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 4.904307599999811
+            },
+            {
+              "sequence": 6,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 9.827332000000752
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:01:27.364177+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T05:10:45.300881+00:00",
+          "recordedInvocationSeconds": 104.92161809999925,
+          "commandWindowSeconds": 557.936704,
+          "tddFailedInvocations": 2,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "development",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 7,
+              "elapsedSeconds": 0.9760506000002351,
+              "controllerSequence": 5,
+              "gateCommandId": 2
+            },
+            {
+              "stage": "packaged",
+              "attempt": 2,
+              "result": "PASS",
+              "cases": 7,
+              "elapsedSeconds": 1.0451613999994152,
+              "controllerSequence": 6,
+              "gateCommandId": 2,
+              "generation": 1
+            },
+            {
+              "stage": "packaged",
+              "attempt": 3,
+              "result": "PASS",
+              "cases": 7,
+              "elapsedSeconds": 1.2323211999992054,
+              "controllerSequence": 6,
+              "gateCommandId": 4,
+              "generation": 2
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 4,
+              "acceptanceSequence": 6,
+              "buildSourceManifestSha256": "9f92ded08af5682c0841660dbea912e5982d4c22ecac91c7262de73b82f79963",
+              "acceptanceSourceManifestSha256": "9f92ded08af5682c0841660dbea912e5982d4c22ecac91c7262de73b82f79963"
+            },
+            {
+              "buildSequence": 4,
+              "acceptanceSequence": 5,
+              "buildSourceManifestSha256": "9f92ded08af5682c0841660dbea912e5982d4c22ecac91c7262de73b82f79963",
+              "acceptanceSourceManifestSha256": "9f92ded08af5682c0841660dbea912e5982d4c22ecac91c7262de73b82f79963"
+            }
+          ],
+          "httpCases": 21
+        },
+        {
+          "task": 2,
+          "invocations": [
+            {
+              "sequence": 7,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 11.074001999999382
+            },
+            {
+              "sequence": 8,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 10.902488300000186
+            },
+            {
+              "sequence": 9,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 9.891414200001236
+            },
+            {
+              "sequence": 10,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 15.879442400000698
+            },
+            {
+              "sequence": 12,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 4.937648499999341
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:12:41.566291+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T05:21:26.874695+00:00",
+          "recordedInvocationSeconds": 52.684995400000844,
+          "commandWindowSeconds": 525.308404,
+          "tddFailedInvocations": 2,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 10,
+              "elapsedSeconds": 0.5857101999990846,
+              "controllerSequence": 12,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 10,
+              "acceptanceSequence": 12,
+              "buildSourceManifestSha256": "cf635d1171c8895dacd0650d742751e451200d5706fd5a9f6761a1feca572f61",
+              "acceptanceSourceManifestSha256": "cf635d1171c8895dacd0650d742751e451200d5706fd5a9f6761a1feca572f61"
+            }
+          ],
+          "httpCases": 10
+        },
+        {
+          "task": 3,
+          "invocations": [
+            {
+              "sequence": 14,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 12.484592799999518
+            },
+            {
+              "sequence": 16,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 12.614314799999192
+            },
+            {
+              "sequence": 19,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 4.467863200001375
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:23:17.236041+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T05:30:16.659791+00:00",
+          "recordedInvocationSeconds": 29.566770800000086,
+          "commandWindowSeconds": 419.42375,
+          "tddFailedInvocations": 1,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 2,
+              "elapsedSeconds": 0.3543528000009246,
+              "controllerSequence": 19,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 16,
+              "acceptanceSequence": 19,
+              "buildSourceManifestSha256": "c38797df9a3bd6ddc7c36644846315ac1a4a46b2b06258ab23316d7c514c7750",
+              "acceptanceSourceManifestSha256": "c38797df9a3bd6ddc7c36644846315ac1a4a46b2b06258ab23316d7c514c7750"
+            }
+          ],
+          "httpCases": 2
+        },
+        {
+          "task": 4,
+          "invocations": [
+            {
+              "sequence": 21,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 10.60369179999907
+            },
+            {
+              "sequence": 23,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 14.60205489999862
+            },
+            {
+              "sequence": 25,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 7.339930500000264
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:34:13.899209+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T05:41:54.535547+00:00",
+          "recordedInvocationSeconds": 32.545677199997954,
+          "commandWindowSeconds": 460.636338,
+          "tddFailedInvocations": 1,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 6,
+              "elapsedSeconds": 3.644569300000512,
+              "controllerSequence": 25,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 23,
+              "acceptanceSequence": 25,
+              "buildSourceManifestSha256": "1cc8024543cf46f15d4713707bb9a4d74b5448576907bb4bcf03760a79f492bb",
+              "acceptanceSourceManifestSha256": "1cc8024543cf46f15d4713707bb9a4d74b5448576907bb4bcf03760a79f492bb"
+            }
+          ],
+          "httpCases": 6
+        },
+        {
+          "task": 5,
+          "invocations": [
+            {
+              "sequence": 27,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 10.052041599999939
+            },
+            {
+              "sequence": 29,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 11.33895130000019
+            },
+            {
+              "sequence": 31,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 10.466308600000048
+            },
+            {
+              "sequence": 33,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 16.14478699999927
+            },
+            {
+              "sequence": 35,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 5.307768200000282
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:44:57.225927+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T06:00:48.299921+00:00",
+          "recordedInvocationSeconds": 53.30985669999973,
+          "commandWindowSeconds": 951.073994,
+          "tddFailedInvocations": 2,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 18,
+              "elapsedSeconds": 1.0437168999997084,
+              "controllerSequence": 35,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 33,
+              "acceptanceSequence": 35,
+              "buildSourceManifestSha256": "1d307d45398ffd2628159f4a92812be4d7dfe5de3753a2fd69d8c8f68c3ad038",
+              "acceptanceSourceManifestSha256": "1d307d45398ffd2628159f4a92812be4d7dfe5de3753a2fd69d8c8f68c3ad038"
+            }
+          ],
+          "httpCases": 18
+        }
+      ],
+      "finalExecutable": {
+        "path": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\evidence\\old\\035-task5-packaged\\artifacts\\application.jar",
+        "sha256": "4fda1f03dfccb3d534856c4392baa4ee1d5c70cc784612c19742581ae9464263",
+        "bytes": 26518633,
+        "nestedRuntime": "BOOT-INF/lib/server-facility-0.1.0-SNAPSHOT.jar",
+        "nestedRuntimeSha256": "5ef94b3fc60274afd223070491b6d33dca39273df57d4923fd702eaf6ec6ca1f"
+      },
+      "finalSourceManifest": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\evidence\\old\\035-task5-packaged\\source\\manifest.json",
+      "finalSourceManifestSha256": "1d307d45398ffd2628159f4a92812be4d7dfe5de3753a2fd69d8c8f68c3ad038",
+      "finalSourceArchive": {
+        "path": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\final-old-source.zip",
+        "sha256": "779c0b20bb583b239ca7da329f4e50a25a4906ffe1464473cc0d36bb2caf98bf",
+        "files": 16,
+        "sourceManifestSha256": "1d307d45398ffd2628159f4a92812be4d7dfe5de3753a2fd69d8c8f68c3ad038",
+        "recordSha256": "b0f0c65e0543c16d4111ac10b8c7a2c0f93dceb0ddc679161fa6a7a3c87b7491"
+      },
+      "finalSourceFiles": 16,
+      "finalSourceBytes": 54961
+    },
+    "new": {
+      "inputManifestSha256": "23effd22fd89233e179b4fdd7f814597c4dca467aa1ff9985f77a3e012422f94",
+      "runtime": {
+        "commit": "4a5025a8559df6390d4484d015031e6d08082fd1",
+        "coordinate": "cn.code91:server-facility:0.2.0-SNAPSHOT",
+        "jar": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\repository-new\\cn\\code91\\server-facility\\0.2.0-SNAPSHOT\\server-facility-0.2.0-SNAPSHOT.jar",
+        "sha256": "18e2c02dcf783eecbaadf12e8cce7ddc16bef6df64832feea55e935b3bc69ae5",
+        "sourceDocumentationRoot": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\supplied\\new-runtime"
+      },
+      "readCosts": {
+        "scope": "explicit emitted file input only; not model tokens or hidden context",
+        "byKind": {
+          "supplied": {
+            "uniqueFileVersions": 14,
+            "uniqueEmittedBytes": 78576,
+            "totalEmittedBytes": 85005,
+            "reads": 16
+          },
+          "application": {
+            "uniqueFileVersions": 21,
+            "uniqueEmittedBytes": 50017,
+            "totalEmittedBytes": 50017,
+            "reads": 21
+          },
+          "fixture": {
+            "uniqueFileVersions": 7,
+            "uniqueEmittedBytes": 114076,
+            "totalEmittedBytes": 115210,
+            "reads": 8
+          }
+        },
+        "reads": 45,
+        "totalEmittedBytes": 250232
+      },
+      "readFirstAt": "2026-10-04T05:17:23.832892+00:00",
+      "readLastAt": "2026-10-04T06:29:33.821627+00:00",
+      "wallFirstReadToFinalRecordedInvocationSeconds": 4527.606646,
+      "tasks": [
+        {
+          "task": 1,
+          "invocations": [
+            {
+              "sequence": 11,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 68.86851089999982
+            },
+            {
+              "sequence": 13,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 34.4699913000004
+            },
+            {
+              "sequence": 15,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 62.61797040000056
+            },
+            {
+              "sequence": 17,
+              "mode": "development",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 7.024075400000584
+            },
+            {
+              "sequence": 18,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 13.125957300000664
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:18:48.427675+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T05:29:15.166021+00:00",
+          "recordedInvocationSeconds": 186.10650530000203,
+          "commandWindowSeconds": 626.738346,
+          "tddFailedInvocations": 1,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "development",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 7,
+              "elapsedSeconds": 0.9573846000002959,
+              "controllerSequence": 17,
+              "gateCommandId": 2
+            },
+            {
+              "stage": "packaged",
+              "attempt": 2,
+              "result": "PASS",
+              "cases": 7,
+              "elapsedSeconds": 0.8742537000016455,
+              "controllerSequence": 18,
+              "gateCommandId": 2,
+              "generation": 1
+            },
+            {
+              "stage": "packaged",
+              "attempt": 3,
+              "result": "PASS",
+              "cases": 7,
+              "elapsedSeconds": 0.8424102000008133,
+              "controllerSequence": 18,
+              "gateCommandId": 4,
+              "generation": 2
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 15,
+              "acceptanceSequence": 18,
+              "buildSourceManifestSha256": "266f1f4e95b7ea6228ae96da742a62f9a745182f0a47a3842f372fb6086003ac",
+              "acceptanceSourceManifestSha256": "266f1f4e95b7ea6228ae96da742a62f9a745182f0a47a3842f372fb6086003ac"
+            },
+            {
+              "buildSequence": 15,
+              "acceptanceSequence": 17,
+              "buildSourceManifestSha256": "266f1f4e95b7ea6228ae96da742a62f9a745182f0a47a3842f372fb6086003ac",
+              "acceptanceSourceManifestSha256": "266f1f4e95b7ea6228ae96da742a62f9a745182f0a47a3842f372fb6086003ac"
+            }
+          ],
+          "httpCases": 21
+        },
+        {
+          "task": 2,
+          "invocations": [
+            {
+              "sequence": 20,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 30.3852394000005
+            },
+            {
+              "sequence": 22,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 32.939906300000075
+            },
+            {
+              "sequence": 24,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 33.57484429999931
+            },
+            {
+              "sequence": 26,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 35.971255599999495
+            },
+            {
+              "sequence": 28,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 7.647496300000057
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:32:22.137872+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T05:46:41.774655+00:00",
+          "recordedInvocationSeconds": 140.51874189999944,
+          "commandWindowSeconds": 859.636783,
+          "tddFailedInvocations": 2,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 10,
+              "elapsedSeconds": 0.5527648000006593,
+              "controllerSequence": 28,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 26,
+              "acceptanceSequence": 28,
+              "buildSourceManifestSha256": "fd5b36ed73632107773dbdd0cfe15859d5525dfa5081806b78aacd0f028e16b6",
+              "acceptanceSourceManifestSha256": "fd5b36ed73632107773dbdd0cfe15859d5525dfa5081806b78aacd0f028e16b6"
+            }
+          ],
+          "httpCases": 10
+        },
+        {
+          "task": 3,
+          "invocations": [
+            {
+              "sequence": 30,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 29.607540799999697
+            },
+            {
+              "sequence": 32,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 31.918811800000185
+            },
+            {
+              "sequence": 34,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 34.33311069999945
+            },
+            {
+              "sequence": 36,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 37.08997389999968
+            },
+            {
+              "sequence": 37,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 6.596459200000027
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T05:55:09.249060+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T06:04:41.980804+00:00",
+          "recordedInvocationSeconds": 139.54589639999904,
+          "commandWindowSeconds": 572.731744,
+          "tddFailedInvocations": 2,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 2,
+              "elapsedSeconds": 0.24715009999999893,
+              "controllerSequence": 37,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 36,
+              "acceptanceSequence": 37,
+              "buildSourceManifestSha256": "b849d600a8fd57864abd6529a5d631386ceab527bb4932df1dc52f794f622b7b",
+              "acceptanceSourceManifestSha256": "b849d600a8fd57864abd6529a5d631386ceab527bb4932df1dc52f794f622b7b"
+            }
+          ],
+          "httpCases": 2
+        },
+        {
+          "task": 4,
+          "invocations": [
+            {
+              "sequence": 38,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 33.982038699999976
+            },
+            {
+              "sequence": 39,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 31.590933200001018
+            },
+            {
+              "sequence": 40,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 40.81472829999984
+            },
+            {
+              "sequence": 41,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 54.220402099999774
+            },
+            {
+              "sequence": 42,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 11.411523599999782
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T06:07:17.860542+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T06:18:19.435190+00:00",
+          "recordedInvocationSeconds": 172.0196259000004,
+          "commandWindowSeconds": 661.574648,
+          "tddFailedInvocations": 2,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 6,
+              "elapsedSeconds": 3.5859460000028776,
+              "controllerSequence": 42,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 41,
+              "acceptanceSequence": 42,
+              "buildSourceManifestSha256": "62f8798c09fba65018e9ac018ab8ece908064a4851b103a0fb626fcc657ad993",
+              "acceptanceSourceManifestSha256": "62f8798c09fba65018e9ac018ab8ece908064a4851b103a0fb626fcc657ad993"
+            }
+          ],
+          "httpCases": 6
+        },
+        {
+          "task": 5,
+          "invocations": [
+            {
+              "sequence": 43,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 31.838502899998275
+            },
+            {
+              "sequence": 44,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "PASS",
+              "seconds": 31.746275200002856
+            },
+            {
+              "sequence": 45,
+              "mode": "command",
+              "purpose": "tdd",
+              "result": "FAIL",
+              "seconds": 33.410674099999596
+            },
+            {
+              "sequence": 46,
+              "mode": "command",
+              "purpose": "build",
+              "result": "PASS",
+              "seconds": 46.061444899998605
+            },
+            {
+              "sequence": 47,
+              "mode": "packaged",
+              "purpose": "acceptance",
+              "result": "PASS",
+              "seconds": 7.418467699997564
+            }
+          ],
+          "firstRecordedCommandAt": "2026-10-04T06:21:34.733836+00:00",
+          "lastRecordedInvocationAt": "2026-10-04T06:32:51.439538+00:00",
+          "recordedInvocationSeconds": 150.4753647999969,
+          "commandWindowSeconds": 676.705702,
+          "tddFailedInvocations": 2,
+          "buildFailedInvocations": 0,
+          "acceptanceFailedStages": 0,
+          "firstAcceptanceStageResult": "PASS",
+          "acceptanceStages": [
+            {
+              "stage": "packaged",
+              "attempt": 1,
+              "result": "PASS",
+              "cases": 18,
+              "elapsedSeconds": 1.001901600000565,
+              "controllerSequence": 47,
+              "gateCommandId": 2,
+              "generation": 1
+            }
+          ],
+          "buildSourceBindings": [
+            {
+              "buildSequence": 46,
+              "acceptanceSequence": 47,
+              "buildSourceManifestSha256": "514f54d581882e16479688cb722a03d04c2620efe08bfd1f311a7bc3686db98d",
+              "acceptanceSourceManifestSha256": "514f54d581882e16479688cb722a03d04c2620efe08bfd1f311a7bc3686db98d"
+            }
+          ],
+          "httpCases": 18
+        }
+      ],
+      "finalExecutable": {
+        "path": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\evidence\\new\\047-task5-packaged\\artifacts\\application.jar",
+        "sha256": "ed06aedc07f9b305c8c7b556606affe395405c0571fb69552ad5122c9a69346e",
+        "bytes": 33272681,
+        "nestedRuntime": "BOOT-INF/lib/server-facility-0.2.0-SNAPSHOT.jar",
+        "nestedRuntimeSha256": "18e2c02dcf783eecbaadf12e8cce7ddc16bef6df64832feea55e935b3bc69ae5"
+      },
+      "finalSourceManifest": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\evidence\\new\\047-task5-packaged\\source\\manifest.json",
+      "finalSourceManifestSha256": "514f54d581882e16479688cb722a03d04c2620efe08bfd1f311a7bc3686db98d",
+      "finalSourceArchive": {
+        "path": "E:\\GenCode\\server-facility-worktrees\\coordination\\ticket31-benchmark\\final-new-source.zip",
+        "sha256": "55e6ff4183d72699c58f8b5312695d3f217c48cf9d6715b4a5e6912636229c0f",
+        "files": 111,
+        "sourceManifestSha256": "514f54d581882e16479688cb722a03d04c2620efe08bfd1f311a7bc3686db98d",
+        "recordSha256": "3d3e077dafc1b525350326230e343fa237e69d995823cc43ee108bc695db46c3"
+      },
+      "finalSourceFiles": 111,
+      "finalSourceBytes": 456777
+    }
+  },
+  "rootMessages": {
+    "scope": "recorded bootstrap and root response text only; not full transcript, tool metadata, agent reasoning, or tokens; early files have no exact delivery time",
+    "records": [
+      {
+        "file": "000-bootstrap-old.json",
+        "arm": "old",
+        "utf8Bytes": 1617,
+        "recordedTime": null,
+        "sha256": "90e49903eb29b10720c93e3f07171c9a9a72b4bfec0cbc35f783146537aa4357"
+      },
+      {
+        "file": "001-old.json",
+        "arm": "old",
+        "utf8Bytes": 698,
+        "recordedTime": null,
+        "sha256": "c9f77fb63f8cc3aa8c7767c3c77f9cf001baa34b3f037958662887cf5f483249"
+      },
+      {
+        "file": "002-old.json",
+        "arm": "old",
+        "utf8Bytes": 309,
+        "recordedTime": null,
+        "sha256": "0990e9e4d9a43d66dddb11e5a5e15b90b96dcf6df554d161901b2fc5fe07de82"
+      },
+      {
+        "file": "003-old.json",
+        "arm": "old",
+        "utf8Bytes": 256,
+        "recordedTime": null,
+        "sha256": "54e2cc9db7f36f0bc7341fba72b3ba5129fbb8e305921d2ca32acedb42c0637f"
+      },
+      {
+        "file": "004-old.json",
+        "arm": "old",
+        "utf8Bytes": 360,
+        "recordedTime": null,
+        "sha256": "8b654ce19cd6f5f3c8fb5605dd0627ec3f519768c43d15a0fed3d3766fb779f3"
+      },
+      {
+        "file": "005-old-task1-release.json",
+        "arm": "old",
+        "utf8Bytes": 497,
+        "recordedTime": null,
+        "sha256": "f5b1a3b89880b984343ff4faf2327039bb2a852d8b8d092f3fdc223484abcc9d"
+      },
+      {
+        "file": "006-old.json",
+        "arm": "old",
+        "utf8Bytes": 262,
+        "recordedTime": null,
+        "sha256": "cd284b1a55fb9238553d929428cf72047292efeaf5e747ec548e38ab41d34aee"
+      },
+      {
+        "file": "007-old.json",
+        "arm": "old",
+        "utf8Bytes": 297,
+        "recordedTime": null,
+        "sha256": "6332fe125ffa3f5bb81652bebd78e8ba20b5dfa3f5764379db9756c92582c22d"
+      },
+      {
+        "file": "008-old.json",
+        "arm": "old",
+        "utf8Bytes": 269,
+        "recordedTime": null,
+        "sha256": "f4a9a33aeb41795682772ea65f9d53250564f2da423de7128a29aeb38466b733"
+      },
+      {
+        "file": "009-bootstrap-new.json",
+        "arm": "new",
+        "utf8Bytes": 1617,
+        "recordedTime": "2026-10-04T05:17:40.1435250+00:00",
+        "sha256": "7b10ce758743f055a47df32ffa7f6adb87edd54fcfdc5908a1fbd60abc42d0f0"
+      },
+      {
+        "file": "010-old.json",
+        "arm": "old",
+        "utf8Bytes": 298,
+        "recordedTime": null,
+        "sha256": "eb03a232d1961098dd935acefe297724028b9887b238d1039a7aea2d2d16c187"
+      },
+      {
+        "file": "011-new.json",
+        "arm": "new",
+        "utf8Bytes": 396,
+        "recordedTime": null,
+        "sha256": "0082ffa460e7d20c0d1d338a971fe85cdc9254b67b9b74eb8b597478b155b781"
+      },
+      {
+        "file": "012-old-task2-release.json",
+        "arm": "old",
+        "utf8Bytes": 322,
+        "recordedTime": null,
+        "sha256": "f0b74d57267d2e5539e74564a632f1b48c549e8d7c59f68ad2bd508409bf6679"
+      },
+      {
+        "file": "013-new.json",
+        "arm": "new",
+        "utf8Bytes": 328,
+        "recordedTime": null,
+        "sha256": "07e9452bacc23c6ca53033316baf561d95b704a234d7e7d0cbffe5c0fe9d4e44"
+      },
+      {
+        "file": "014-old.json",
+        "arm": "old",
+        "utf8Bytes": 289,
+        "recordedTime": "2026-10-04T05:25:11.651Z",
+        "sha256": "b32db2c3d1112f100ddcdbc57623c63286be9db2b804e2230f5886dff0691318"
+      },
+      {
+        "file": "015-new.json",
+        "arm": "new",
+        "utf8Bytes": 427,
+        "recordedTime": "2026-10-04T05:27:04.408Z",
+        "sha256": "33fad921b1fe2ef8a279a20bda625b4149b90aebbd4fa08bebcaac46aecb1b43"
+      },
+      {
+        "file": "016-old.json",
+        "arm": "old",
+        "utf8Bytes": 310,
+        "recordedTime": "2026-10-04T05:29:00.394Z",
+        "sha256": "e0b9aca93f10630e4dfb893c7bcdff1fdf2d1f4f146265b8998367e61df9b3c5"
+      },
+      {
+        "file": "017-new-task1-release.json",
+        "arm": "new",
+        "utf8Bytes": 500,
+        "recordedTime": "2026-10-04T05:31:22.774Z",
+        "sha256": "ab6eb99babf079852c6a518c64eb6b1a6ec4a94f6cbf96915e0f72e0e13c2c01"
+      },
+      {
+        "file": "018-old-task3-release.json",
+        "arm": "old",
+        "utf8Bytes": 314,
+        "recordedTime": "2026-10-04T05:31:23.468Z",
+        "sha256": "1de90fe9ac3addbe32300ef314fe710a6e4298b845995b26586053c5ccf6932e"
+      },
+      {
+        "file": "019-new.json",
+        "arm": "new",
+        "utf8Bytes": 288,
+        "recordedTime": "2026-10-04T05:34:51.857Z",
+        "sha256": "b894ba0781b01d1b9be072a0ff52cb567f188d758080fd357714a6fd3f200d25"
+      },
+      {
+        "file": "020-old.json",
+        "arm": "old",
+        "utf8Bytes": 632,
+        "recordedTime": "2026-10-04T05:35:12.490Z",
+        "sha256": "ced3fcbf2138f6d59f087018b39e0b8108ba94dd99da5b5a2fc9ae3062ac444a"
+      },
+      {
+        "file": "021-new.json",
+        "arm": "new",
+        "utf8Bytes": 318,
+        "recordedTime": "2026-10-04T05:38:22.881Z",
+        "sha256": "a35111c008351693b0aa1985e7d61520025f1c7b1cd38d99c0dbe5c2bf416ff7"
+      },
+      {
+        "file": "022-old.json",
+        "arm": "old",
+        "utf8Bytes": 326,
+        "recordedTime": "2026-10-04T05:39:11.054Z",
+        "sha256": "bd0c477c87b16457501416d037393db64fb91cb4a0f3c83c305d60c24e1d6000"
+      },
+      {
+        "file": "023-new.json",
+        "arm": "new",
+        "utf8Bytes": 289,
+        "recordedTime": "2026-10-04T05:41:54.911Z",
+        "sha256": "ebf906ebdf5d376794fae095f26702ce61ddaa205cc00624c993f3ade9dfcae0"
+      },
+      {
+        "file": "024-old-task4-release.json",
+        "arm": "old",
+        "utf8Bytes": 471,
+        "recordedTime": "2026-10-04T05:42:41.854Z",
+        "sha256": "122efbfedda7583154f56f3d795f404c4c69c47123fa4679e1df6c260fb46f92"
+      },
+      {
+        "file": "025-new.json",
+        "arm": "new",
+        "utf8Bytes": 309,
+        "recordedTime": "2026-10-04T05:45:24.737Z",
+        "sha256": "654e2891e94d9b18359d07fe472eb4966d76f2abed5471daf879b13c33d6795f"
+      },
+      {
+        "file": "026-old.json",
+        "arm": "old",
+        "utf8Bytes": 289,
+        "recordedTime": "2026-10-04T05:46:05.614Z",
+        "sha256": "202211e4a5be581bb46645b6a4e1eac7da995db154702ef9c96361968a7c59a1"
+      },
+      {
+        "file": "027-new-task2-release.json",
+        "arm": "new",
+        "utf8Bytes": 312,
+        "recordedTime": "2026-10-04T05:47:15.147Z",
+        "sha256": "1f9aeb13914b27ab507df4952f504c8ffb1a4be7b817e273115c519e4f94caab"
+      },
+      {
+        "file": "028-old-task5-green.json",
+        "arm": "old",
+        "utf8Bytes": 392,
+        "recordedTime": "2026-10-04T05:55:07.119Z",
+        "sha256": "f8910fd14557f9f1ccec9792d28014d65c10632c99fe103ed8d5bec74bc0cc69"
+      },
+      {
+        "file": "029-new-task3-red.json",
+        "arm": "new",
+        "utf8Bytes": 306,
+        "recordedTime": "2026-10-04T05:55:55.572Z",
+        "sha256": "8138b050ab8731812dcb211bd514d91d76026d5ef06012dd2dbf50de40738e54"
+      },
+      {
+        "file": "030-old-task5-bounds-red.json",
+        "arm": "old",
+        "utf8Bytes": 292,
+        "recordedTime": "2026-10-04T05:57:07.953Z",
+        "sha256": "659f56d3f2d4bfcb057d13ced9ab969aa3b786a5c4adea4502bf9715cf9f1204"
+      },
+      {
+        "file": "031-new-task3-green.json",
+        "arm": "new",
+        "utf8Bytes": 270,
+        "recordedTime": "2026-10-04T05:58:09.240Z",
+        "sha256": "75ec1bb37442a37aa174271a7da2e8cd0687d779001421c1551a378eefc30384"
+      },
+      {
+        "file": "032-old-task5-build-green.json",
+        "arm": "old",
+        "utf8Bytes": 315,
+        "recordedTime": "2026-10-04T05:59:34.474Z",
+        "sha256": "d3b6b949780104ff8f59429881a8cea5814a76d359cadea97f457a4f35226d26"
+      },
+      {
+        "file": "033-new-task3-internal-red.json",
+        "arm": "new",
+        "utf8Bytes": 310,
+        "recordedTime": "2026-10-04T06:00:41.645Z",
+        "sha256": "fcae89caa7c20ba3d8f0ab84f547374e2b20de0a218b1ab072eb3e22e0049c89"
+      },
+      {
+        "file": "034-old-final-acceptance.json",
+        "arm": "old",
+        "utf8Bytes": 516,
+        "recordedTime": "2026-10-04T06:01:28.723Z",
+        "sha256": "37c64198be84a0af110fc3cf9c5a62c6d94fac63b88eeedf549fdc4e5099e038"
+      },
+      {
+        "file": "035-new-task3-build-green.json",
+        "arm": "new",
+        "utf8Bytes": 307,
+        "recordedTime": "2026-10-04T06:03:55.515Z",
+        "sha256": "92e2ef22404cfa2074ee3aa571cea879fc309a6e642f7e8e793f30499a075918"
+      },
+      {
+        "file": "036-new-task3-release.json",
+        "arm": "new",
+        "utf8Bytes": 380,
+        "recordedTime": "2026-10-04T06:05:02.369Z",
+        "sha256": "6b4f91b8b92f576a8ffd12ced40bc6ab3f5f8e5c771628cb710ecfb7542b21bb"
+      },
+      {
+        "file": "037-new-task4-red.json",
+        "arm": "new",
+        "utf8Bytes": 277,
+        "recordedTime": "2026-10-04T06:08:30.493Z",
+        "sha256": "f924ae50486e46d56cd79e4e45cf1ea253df51fadcff03d6663f07d54bf1f32f"
+      },
+      {
+        "file": "038-new-task4-green.json",
+        "arm": "new",
+        "utf8Bytes": 292,
+        "recordedTime": "2026-10-04T06:11:14.284Z",
+        "sha256": "03769596200b17566bbfc45a7d4131fa940720fc2b53c4f70e1f2f4bf90a2fd9"
+      },
+      {
+        "file": "039-new-task4-bounds-red.json",
+        "arm": "new",
+        "utf8Bytes": 320,
+        "recordedTime": "2026-10-04T06:14:14.101Z",
+        "sha256": "fadc9ccd001a7449bf61f6354871e7f5688cdae407b22715c61d0bc23ebc084f"
+      },
+      {
+        "file": "040-new-task4-build-green.json",
+        "arm": "new",
+        "utf8Bytes": 308,
+        "recordedTime": "2026-10-04T06:17:18.350Z",
+        "sha256": "f7593371cec3ff0ff5b4d4c6801bb519f928a39ca40d70f4d9abba78715c4667"
+      },
+      {
+        "file": "041-new-task4-release.json",
+        "arm": "new",
+        "utf8Bytes": 450,
+        "recordedTime": "2026-10-04T06:19:11.117Z",
+        "sha256": "4bd39bdde3df003237956d724f8e4bbeed1bd5be32dacbb32c541cfd54769872"
+      },
+      {
+        "file": "042-new-task5-red.json",
+        "arm": "new",
+        "utf8Bytes": 277,
+        "recordedTime": "2026-10-04T06:22:29.692Z",
+        "sha256": "59941fcd58fd703a9f92de73e7133cd52bffc454afa2267e8a2a7657120f55a8"
+      },
+      {
+        "file": "043-new-task5-green.json",
+        "arm": "new",
+        "utf8Bytes": 292,
+        "recordedTime": "2026-10-04T06:25:12.474Z",
+        "sha256": "a1222e8777bbd5a22437cffd6f604ef16126ba828c4105050bf93e6fc86a25c4"
+      },
+      {
+        "file": "044-new-task5-bounds-red.json",
+        "arm": "new",
+        "utf8Bytes": 292,
+        "recordedTime": "2026-10-04T06:28:43.499Z",
+        "sha256": "9deeaa4e9fec1a89abbb47024d17ce72e10b7308c2a38ac919e3f19f23eec49a"
+      },
+      {
+        "file": "045-new-task5-build-green.json",
+        "arm": "new",
+        "utf8Bytes": 308,
+        "recordedTime": "2026-10-04T06:31:59.856Z",
+        "sha256": "0fe551da4f3a861cdc19d67db8598f9b8bd9643394611dc7ceb197c6de4e5192"
+      },
+      {
+        "file": "046-new-final-acceptance.json",
+        "arm": "new",
+        "utf8Bytes": 528,
+        "recordedTime": "2026-10-04T06:34:24.978Z",
+        "sha256": "a96b1048795ad6a72c5fe7c5fc200e39e636f91bb802baecc4e6fd3825016a99"
+      }
+    ],
+    "byArm": {
+      "old": {
+        "count": 22,
+        "utf8Bytes": 9331
+      },
+      "new": {
+        "count": 25,
+        "utf8Bytes": 9701
+      }
+    }
+  },
+  "limitations": [
+    "One independent implementer per arm, not a statistical sample.",
+    "Same host/JDK/Wrapper/task/oracles, different intentional runtime/template starting points.",
+    "Dependency caches differ and are disclosed in immutable origins.",
+    "Old started earlier and overlaps new; all root invocations serialized, wall time includes queue and coordinator pauses.",
+    "Targeted benchmark builds are not the final full-quality suite.",
+    "Explicit read bytes and recorded message bytes do not measure model tokens or hidden context.",
+    "Task1 has three required gate stages, not three independent task trials.",
+    "Extra new-example interruption and repository integration are outside common costs.",
+    "Upstream admission observation is finite; source inspection supplements it.",
+    "Windows owned-process termination is not evidence of graceful Spring shutdown."
+  ]
+}

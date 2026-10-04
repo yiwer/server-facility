@@ -1,0 +1,23 @@
+{
+  "historicalPatchSha256": "9fab9045ce45106fd0296bd68f1826f3bd3ce51961c877e1b3aaf6fb89d58a5e",
+  "testHostOverlay": {
+    "source": "0edb5198d640b5d2575b94f7e60cc635c42ca96d",
+    "purpose": "Identical test-host-only overlay for known logging/context race and scoped database lifecycle; original tests retained",
+    "sha256": "f16c58dcdca649f1092f4f7dbbccb470edab255b1fd6d553da8d766a1a66ffa9",
+    "files": {
+      "src/test/java/com/example/api/RunningApp.java": "ed361ee8d7412674a5cda4d7979ce24488ff73c6690503a83ad090337d65648b",
+      "src/test/java/com/example/api/Postgres.java": "bc24a91e9b897ce82bd5e3074ed4c28393462d89a8e97afa591527c208787c1d",
+      "src/test/java/com/example/api/PostgresLifecycle.java": "a2f8318261f5fe4583f495eecf8868c3911b13e47b17105b735ca0eb5ffb4bc8",
+      "src/test/java/com/example/fixtures/StandardTracingFixture.java": "793f8bec805c7c16243aa38bf85ca609e1faf33b1a9e1c3e8c8568d7486c7271"
+    },
+    "supersedes": "03 overlay omitted com/example prefix for tracing fixture; corrected before any test build"
+  },
+  "externalFixtures": {
+    "source": "4a5025a8559df6390d4484d015031e6d08082fd1",
+    "purpose": "external current fixture; historical dev helpers are not overwritten",
+    "files": {
+      "LocalDatabase.java": "3614c1521ddbcac690703e337458b10892a4459ee841714bd93136477e138d44",
+      "LocalIssuer.java": "ded8176c47655dc7275bb192c1ea95a1c1ab6165a233d0670980bef54ccb4985"
+    }
+  }
+}

@@ -12,6 +12,8 @@ import org.w3c.dom.Element;
 /** JDK-only entry point. Run from the repository root: java verification/Verify.java all --fresh. */
 class Verify {
     static final boolean WINDOWS = System.getProperty("os.name").startsWith("Windows");
+    static final String FACILITY_VERSION = "0.2.0-SNAPSHOT";
+    static final String FACILITY_JAR = "server-facility-" + FACILITY_VERSION + ".jar";
     static final Path ROOT = Path.of("").toAbsolutePath().normalize();
     static Path report;
     static Path repository;
@@ -80,7 +82,9 @@ class Verify {
                     jsonConsumer();
                     platformConsumers();
                     partnerConsumer();
+                    workflowSourceFixture();
                     securedTemplate();
+                    workflowConsumer();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
                     // Each application gets a distinct bounded JVM and must close naturally within 45 seconds.
@@ -213,19 +217,41 @@ class Verify {
                 "-Dmdep.outputFile=" + consumer.resolve("target/classpath.txt"));
     }
 
+    static void workflowSourceFixture() throws Exception {
+        Path evidence = Files.createDirectories(report.resolve("workflow-source-fixture"));
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        for (String name : List.of("CooperativeSource.java", "CooperativeSourceContract.java"))
+            Files.copy(ROOT.resolve("verification/workflow-consumer").resolve(name), evidence.resolve(name));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "workflow-source-fixture-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-d", classes.toString(), evidence.resolve("CooperativeSource.java").toString(),
+                evidence.resolve("CooperativeSourceContract.java").toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "workflow-source-fixture", List.of(java(), "-Xmx64m", "-cp", classes.toString(),
+                "CooperativeSourceContract"), 30, null);
+        String output = Files.readString(log);
+        for (boolean virtual : List.of(false, true))
+            if (!output.contains("COOPERATIVE_SOURCE_PASS virtual=" + virtual + " prefixBytes=22"))
+                throw new AssertionError("Missing blocking-source qualification for virtual=" + virtual);
+        summary.add("workflow-source-fixture=platform/virtual;22 actual prefix bytes;barrier-blocked read;interrupt preserved;source closed;worker exited;fixture qualification only");
+    }
+
     static void securedTemplate() throws Exception {
         Path application = Files.createTempDirectory("facility-template-").toRealPath().resolve("secured api-示例-שלום");
         Path inputs = report.resolve("template-inputs");
         Path evidence = Files.createDirectories(report.resolve("template"));
         Path copier = ROOT.resolve("templates/Instantiate.java");
         Path client = ROOT.resolve("verification/template-consumer/TemplateConsumer.java");
+        Path lineage = evidence.resolve("TemplateLineage.java");
         Files.copy(copier, evidence.resolve("Instantiate.java"));
         Files.copy(client, evidence.resolve("TemplateConsumer.java"));
+        Files.copy(ROOT.resolve("verification/template-consumer/TemplateLineage.java"), lineage);
         run(ROOT, Map.of(), "template-instantiate", List.of(java(), copier.toString(),
                 ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
         run(ROOT, Map.of(), "template-refuse-overwrite", List.of(java(), copier.toString(),
                 ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45,
                 "Destination must be new and outside the template directory");
+        run(ROOT, Map.of(), "template-lineage", List.of(java(), lineage.toString(),
+                application.toString()), 45, null);
         copyDirectory(application, inputs);
         try (var files = Files.walk(inputs)) {
             for (Path input : files.filter(Files::isRegularFile).sorted().toList()) {
@@ -288,10 +314,10 @@ class Verify {
         installedClasspath(application, evidence.resolve("classpath.txt"));
         Path jar = application.resolve("target/secured-api-1.0.0-SNAPSHOT.jar");
         try (var archive = new java.util.zip.ZipFile(jar.toFile())) {
-            var library = archive.getEntry("BOOT-INF/lib/server-facility-0.1.0-SNAPSHOT.jar");
+            var library = archive.getEntry("BOOT-INF/lib/" + FACILITY_JAR);
             if (library == null) throw new AssertionError("Template did not package the ordinary library jar");
             try (var packaged = archive.getInputStream(library)) {
-                if (!Arrays.equals(packaged.readAllBytes(), Files.readAllBytes(ROOT.resolve("target/server-facility-0.1.0-SNAPSHOT.jar"))))
+                if (!Arrays.equals(packaged.readAllBytes(), Files.readAllBytes(ROOT.resolve("target/" + FACILITY_JAR))))
                     throw new AssertionError("Packaged template consumed another build's library jar");
             }
             if (archive.stream().anyMatch(entry -> entry.getName().contains("LocalIssuer") || entry.getName().contains("TestIssuer")
@@ -349,6 +375,82 @@ class Verify {
         summary.add("sha256 secured-api.jar=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))));
     }
 
+    static void workflowConsumer() throws Exception {
+        Path application = Files.createTempDirectory("facility-workflow-").toRealPath().resolve("assembly api-示例-שלום");
+        Path evidence = Files.createDirectories(report.resolve("workflow"));
+        Path copier = evidence.resolve("Instantiate.java"), overlay = evidence.resolve("example"), client = evidence.resolve("WorkflowConsumer.java");
+        Files.copy(ROOT.resolve("templates/Instantiate.java"), copier);
+        copyDirectory(ROOT.resolve("examples/assembly-workflow"), overlay);
+        Files.copy(ROOT.resolve("verification/workflow-consumer/WorkflowConsumer.java"), client);
+        run(ROOT, Map.of(), "workflow-instantiate", List.of(java(), copier.toString(), ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
+        run(ROOT, Map.of(), "workflow-overlay", List.of(java(), overlay.resolve("Apply.java").toString(), overlay.toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
+        Path lineage=evidence.resolve("TemplateLineage.java");Files.copy(ROOT.resolve("verification/template-consumer/TemplateLineage.java"),lineage);
+        run(ROOT, Map.of(), "workflow-lineage", List.of(java(), lineage.toString(), application.toString()), 45, null);
+        Path inputs = evidence.resolve("inputs");copyDirectory(application, inputs);
+        run(ROOT, Map.of(), "workflow-overlay-refuse-reapply", List.of(java(), overlay.resolve("Apply.java").toString(), overlay.toUri().toASCIIString(), application.toUri().toASCIIString()), 45, "Template preimage mismatch");
+        try (var files = Files.walk(inputs)) {
+            for (Path input : files.filter(Files::isRegularFile).sorted().toList()) {
+                Path relative=inputs.relativize(input);
+                if (!Arrays.equals(Files.readAllBytes(input), Files.readAllBytes(application.resolve(relative))))
+                    throw new AssertionError("Rejected overlay changed " + relative);
+                summary.add("sha256 workflow/inputs/" + relative + "=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(input))));
+            }
+        }
+        summary.add("workflow-independent-directory=" + application);
+        try { maven(application, "workflow-build", "clean", "verify"); }
+        finally {
+            for (var item : Map.of("target/surefire-reports", "positive-surefire-reports", "target/site/jacoco", "jacoco").entrySet())
+                if (Files.isDirectory(application.resolve(item.getKey()))) copyDirectory(application.resolve(item.getKey()), evidence.resolve(item.getValue()));
+            for (String name : List.of("postgres-scope-cleanup.jsonl", "receipt-maintenance-metrics.jsonl"))
+                if (Files.isRegularFile(application.resolve("target/" + name))) Files.copy(application.resolve("target/" + name), evidence.resolve(name));
+        }
+        var factory = DocumentBuilderFactory.newInstance();factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        long tests=0;var discovered=new HashSet<String>();var base=new HashSet<String>();
+        try(var files=Files.list(report.resolve("template/surefire-reports"))) {
+            for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList())
+                base.add(factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement().getAttribute("name"));
+        }
+        try(var files=Files.list(evidence.resolve("positive-surefire-reports"))) {
+            for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList()) {
+                var suite=factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement();
+                tests+=Long.parseLong(suite.getAttribute("tests"));discovered.add(suite.getAttribute("name"));
+                for(String outcome:List.of("failures","errors","skipped"))
+                    if(Long.parseLong(suite.getAttribute(outcome))!=0)throw new AssertionError("Workflow "+outcome+": "+file);
+            }
+        }
+        base.addAll(Set.of("com.example.api.BenchmarkHttpTest", "com.example.api.BenchmarkQuotesHttpTest", "com.example.api.BenchmarkFailuresHttpTest",
+                "com.example.api.BenchmarkStockHttpTest", "com.example.api.BenchmarkImportHttpTest", "com.example.api.WorkflowAdmissionHttpTest",
+                "com.example.api.WorkflowOutboundHttpTest", "com.example.api.WorkflowImportInterruptionTest", "com.example.api.WorkflowTypeAwareUploadTest"));
+        if(!discovered.equals(base))throw new AssertionError("Workflow test discovery differs: expected="+base+" actual="+discovered);
+        maven(application, "workflow-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));
+        maven(application, "workflow-dependencies", "dependency:tree", "-DoutputFile=" + evidence.resolve("dependency-tree.txt"),
+                "dependency:build-classpath", "-Dmdep.outputFile=" + evidence.resolve("classpath.txt"));
+        installedClasspath(application, evidence.resolve("classpath.txt"));
+        Path jar=application.resolve("target/secured-api-1.0.0-SNAPSHOT.jar");byte[] runtime=Files.readAllBytes(ROOT.resolve("target/"+FACILITY_JAR));
+        try(var archive=new java.util.zip.ZipFile(jar.toFile())) {
+            var nested=archive.getEntry("BOOT-INF/lib/"+FACILITY_JAR);
+            if(nested==null)throw new AssertionError("Workflow ordinary runtime missing");
+            try(var stream=archive.getInputStream(nested)){if(!Arrays.equals(stream.readAllBytes(),runtime))throw new AssertionError("Workflow runtime identity differs");}
+            if(archive.stream().anyMatch(entry->entry.getName().contains("TestIssuer") || entry.getName().contains("LocalIssuer")
+                    || entry.getName().contains("CooperativeSource") || entry.getName().contains("WorkflowOutboundHttpTest")
+                    || entry.getName().contains("jacoco") || entry.getName().contains("tika-core")))
+                throw new AssertionError("Workflow test-only dependency/source leaked into executable");
+        }
+        Path archived=Files.createDirectories(evidence.resolve("artifacts")).resolve("workflow-application.jar");Files.copy(jar,archived);
+        String jarHash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar)));
+        String runtimeHash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(runtime));
+        Files.writeString(evidence.resolve("artifact-manifest.json"), """
+                {"role":"assembly-workflow", "applicationGav":"com.example:secured-api:1.0.0-SNAPSHOT",
+                 "artifact":"artifacts/workflow-application.jar", "sha256":"%s", "bytes":%d,
+                 "nestedRuntimeGav":"cn.code91:server-facility:%s", "nestedRuntimeSha256":"%s", "nestedRuntimeBytes":%d,
+                 "positiveSuites":"positive-surefire-reports", "positiveTests":%d, "coverage":"jacoco/jacoco.xml"}
+                """.formatted(jarHash,Files.size(jar),FACILITY_VERSION,runtimeHash,runtime.length,tests));
+        Path log=run(application,Map.of(),"workflow-packaged-http",List.of(java(),"-Xmx96m",client.toString(),application.toUri().toASCIIString(),evidence.toUri().toASCIIString()),180,null);
+        if(!Files.readString(log).contains("PACKAGED_WORKFLOW_PASS"))throw new AssertionError("Workflow packaged result missing");
+        summary.add("workflow=tests "+tests+" failures=0 errors=0 skipped=0; all original template suites retained;88/88/75 unchanged;actual executable platform/virtual;post-benchmark qualification");
+        summary.add("sha256 workflow-application.jar="+jarHash+" bytes="+Files.size(jar)+" nested-runtime="+runtimeHash+" manifest=workflow/artifact-manifest.json");
+    }
+
     static void consumer(String scenario) throws Exception {
         var consumer = ROOT.resolve("verification/consumer");
         String dependencies = Files.readString(consumer.resolve("target/classpath.txt")).trim();
@@ -370,7 +472,7 @@ class Verify {
     }
 
     static void coreConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/core-consumer/CoreConsumer.java");
         Path classes = Files.createDirectories(report.resolve("core-consumer/classes"));
         Files.copy(source, report.resolve("core-consumer/CoreConsumer.java"));
@@ -386,7 +488,7 @@ class Verify {
     }
 
     static void valueConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = report.resolve("value-consumer/inputs");
         copyDirectory(ROOT.resolve("verification/value-consumer"), inputs.resolve("consumer"));
         copyDirectory(ROOT.resolve("examples/export-input"), inputs.resolve("application"));
@@ -416,7 +518,7 @@ class Verify {
     }
 
     static void mappingConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path annotations = repository.resolve("jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar");
         Path evidence = Files.createDirectories(report.resolve("mapping-consumer"));
         Path inputs = Files.createDirectories(evidence.resolve("inputs"));
@@ -454,7 +556,7 @@ class Verify {
     }
 
     static void cryptoConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/crypto-consumer/CryptoConsumer.java");
         Path classes = Files.createDirectories(report.resolve("crypto-consumer/classes"));
         Files.copy(source, report.resolve("crypto-consumer/CryptoConsumer.java"));
@@ -470,7 +572,7 @@ class Verify {
     }
 
     static void ioConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/io-consumer/IoConsumer.java");
         Path classes = Files.createDirectories(report.resolve("io-consumer/classes"));
         Files.copy(source, report.resolve("io-consumer/IoConsumer.java"));
@@ -528,7 +630,7 @@ class Verify {
     }
 
     static void lockConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = report.resolve("lock-consumer/inputs");
         copyDirectory(ROOT.resolve("verification/lock-consumer"), inputs);
         Path classes = Files.createDirectories(report.resolve("lock-consumer/classes"));
@@ -553,7 +655,7 @@ class Verify {
     }
 
     static void rateLimitConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/rate-limit-consumer/RateLimitConsumer.java");
         Path classes = Files.createDirectories(report.resolve("rate-limit-consumer/classes"));
         Files.copy(source, report.resolve("rate-limit-consumer/RateLimitConsumer.java"));
@@ -569,7 +671,7 @@ class Verify {
     }
 
     static void idConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = report.resolve("id-consumer/inputs");
         copyDirectory(ROOT.resolve("verification/id-consumer"), inputs);
         Files.copy(ROOT.resolve("verification/consumer/src/main/java/example/IdApplicationConsumer.java"), inputs.resolve("IdApplicationConsumer.java"));
@@ -589,7 +691,7 @@ class Verify {
     }
 
     static void htmlConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path jsoup = repository.resolve("org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar");
         Path source = ROOT.resolve("verification/html-consumer");
         Path evidence = Files.createDirectories(report.resolve("html-consumer"));
@@ -669,7 +771,7 @@ class Verify {
     }
 
     static void claimConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = ROOT.resolve("verification/claim-consumer");
         Path saved = report.resolve("claim-consumer/inputs");
         copyDirectory(inputs, saved);

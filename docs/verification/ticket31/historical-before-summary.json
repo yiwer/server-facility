@@ -1,0 +1,35 @@
+{
+  "phase": "before",
+  "tests": 78,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "jarSha256": "8240309b89316b25334e757754abe606de60d7bf955cc5537ecb2791268356bf",
+  "runtimeSha256": "e97cedb5ab07ac9cabe638bf001ded6a5bb2f22ac521351fe09755d3ebc59595",
+  "coverage": {
+    "INSTRUCTION": {
+      "covered": 1986,
+      "missed": 39
+    },
+    "BRANCH": {
+      "covered": 180,
+      "missed": 33
+    },
+    "LINE": {
+      "covered": 274,
+      "missed": 8
+    },
+    "COMPLEXITY": {
+      "covered": 181,
+      "missed": 37
+    },
+    "METHOD": {
+      "covered": 106,
+      "missed": 4
+    },
+    "CLASS": {
+      "covered": 27,
+      "missed": 0
+    }
+  }
+}

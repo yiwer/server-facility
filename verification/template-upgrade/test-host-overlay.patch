@@ -1,0 +1,176 @@
+diff --git a/src/test/java/com/example/api/Postgres.java b/src/test/java/com/example/api/Postgres.java
+index 97bd3338f4bdc746601169962d1346f006e2020e..b69f89d791f0465e1bd663026720127e69440548 100644
+--- a/src/test/java/com/example/api/Postgres.java
++++ b/src/test/java/com/example/api/Postgres.java
+@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
+ 
+ /** One owned native PostgreSQL cluster per test JVM. A missing prerequisite is a failure, never a skip. */
+ final class Postgres {
++    private static final InheritableThreadLocal<DatabaseScope> TEST_DATABASES = new InheritableThreadLocal<>();
+     private static volatile Postgres started;
+     private static final class Holder { static final Postgres INSTANCE = new Postgres(); }
+     private final Path tools, root, data;
+@@ -39,8 +40,66 @@ final class Postgres {
+     static String sharedUrl() { return Holder.INSTANCE.url("app_shared"); }
+     static String adminUrl() { return Holder.INSTANCE.url("postgres"); }
+     static String freshUrl() throws SQLException {
++        var scope = TEST_DATABASES.get();
++        if (scope == null) throw new IllegalStateException("A test scope is required to create a native database");
+         var cluster = Holder.INSTANCE; String name = "app_" + UUID.randomUUID().toString().replace("-", "");
+-        execute(cluster.url("postgres"), "create database " + name); return cluster.url(name);
++        synchronized (scope) {
++            if (scope.closed) throw new IllegalStateException("Cannot create a database after its test scope closed");
++            // Own the name before attempting CREATE: a failed response does not prove non-creation.
++            scope.names.add(name);
++            executeAdmin("create database \"" + name + "\"");
++        }
++        return cluster.url(name);
++    }
++    static void beginTest() {
++        if (TEST_DATABASES.get() != null) throw new IllegalStateException("Native database test scope already active");
++        TEST_DATABASES.set(new DatabaseScope());
++    }
++    static void endTest() throws Exception {
++        var scope = TEST_DATABASES.get(); TEST_DATABASES.remove();
++        if (scope == null) return;
++        final List<String> names;
++        synchronized (scope) { scope.closed = true; names = List.copyOf(scope.names); }
++        Exception failures = null;
++        for (String name : names) {
++            long start = System.nanoTime(); boolean success = false;
++            try {
++                if (!name.matches("app_[0-9a-f]{32}")) throw new IllegalStateException("Unexpected owned database name");
++                // No FORCE: a still-open application connection must fail this test's cleanup.
++                executeAdmin("drop database if exists \"" + name + "\"");
++                success = true;
++            } catch (Exception failure) {
++                if (failures == null) failures = failure; else failures.addSuppressed(failure);
++            } finally {
++                try { recordDrop(name, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), success); }
++                catch (Exception diagnostic) {
++                    if (failures == null) failures = diagnostic; else failures.addSuppressed(diagnostic);
++                }
++            }
++        }
++        if (failures != null) throw failures;
++    }
++    private static void executeAdmin(String sql) throws SQLException {
++        var properties = new Properties();
++        properties.setProperty("user", "postgres"); properties.setProperty("password", "");
++        properties.setProperty("connectTimeout", "2"); properties.setProperty("socketTimeout", "15");
++        properties.setProperty("cancelSignalTimeout", "1");
++        try (var connection = DriverManager.getConnection(Holder.INSTANCE.url("postgres"), properties);
++             var statement = connection.createStatement()) {
++            statement.setQueryTimeout(10);
++            statement.execute("set lock_timeout = '2s'");
++            statement.execute(sql);
++        }
++    }
++    private static synchronized void recordDrop(String name, long millis, boolean success) throws java.io.IOException {
++        Path log = Path.of("target", "postgres-scope-cleanup.jsonl");
++        Files.createDirectories(log.getParent());
++        Files.writeString(log, "{\"database\":\"" + name + "\",\"milliseconds\":" + millis + ",\"success\":" + success + "}\n",
++                java.nio.charset.StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
++    }
++    private static final class DatabaseScope {
++        final Set<String> names = new LinkedHashSet<>();
++        boolean closed;
+     }
+     private String url(String database) { return "jdbc:postgresql://127.0.0.1:" + port + "/" + database; }
+     static Connection connect(String url) throws SQLException { return DriverManager.getConnection(url, "postgres", ""); }
+@@ -59,7 +118,8 @@ final class Postgres {
+     static void closeIfStarted() throws Exception { if (started != null) started.close(); }
+     private synchronized void close() throws Exception {
+             if (closed) return;
+-            // The full suite checkpoints many isolated databases; actual Windows fsync took 31s.
++            // Per-test drops avoid accumulating database files until this final durable checkpoint.
++            // Retain the original 60s fast-stop budget; do not mask leaks by disabling fsync or using FORCE.
+             if (Files.exists(data.resolve("postmaster.pid"))) run("pg_ctl", "-D", data.toString(), "-m", "fast", "-w", "-t", "60", "stop");
+             Path evidence = Files.createDirectories(Path.of("target", root.getFileName().toString()));
+             try (var files = Files.list(root)) { for (Path log : files.filter(Files::isRegularFile).toList()) Files.copy(log, evidence.resolve(log.getFileName()), StandardCopyOption.REPLACE_EXISTING); }
+diff --git a/src/test/java/com/example/api/PostgresLifecycle.java b/src/test/java/com/example/api/PostgresLifecycle.java
+index 80e4baa6ca90ea4557bea799989d8f22aa1173d3..9fab8dcdd8aef1c4263f0f67c2e937058315991e 100644
+--- a/src/test/java/com/example/api/PostgresLifecycle.java
++++ b/src/test/java/com/example/api/PostgresLifecycle.java
+@@ -1,12 +1,19 @@
+ package com.example.api;
+ 
+ import org.junit.jupiter.api.extension.BeforeAllCallback;
++import org.junit.jupiter.api.extension.BeforeEachCallback;
++import org.junit.jupiter.api.extension.AfterEachCallback;
+ import org.junit.jupiter.api.extension.ExtensionContext;
+ 
+ /** Root-store close makes failed native cleanup a failed test run; the JVM hook is only a fallback. */
+-public final class PostgresLifecycle implements BeforeAllCallback {
++public final class PostgresLifecycle implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
+     @Override public void beforeAll(ExtensionContext context) {
+         context.getRoot().getStore(ExtensionContext.Namespace.create(PostgresLifecycle.class))
+                 .computeIfAbsent("owned-cluster", key -> (AutoCloseable) Postgres::closeIfStarted);
+     }
++    @Override public void beforeEach(ExtensionContext context) { Postgres.beginTest(); }
++    @Override public void afterEach(ExtensionContext context) throws Exception {
++        // Jupiter combines teardown failures with prior assertions and does not hide them behind an aborted test.
++        Postgres.endTest();
++    }
+ }
+diff --git a/src/test/java/com/example/api/RunningApp.java b/src/test/java/com/example/api/RunningApp.java
+index dbb77df49db036792ce45230311ecd9516c767ff..91e7e14ee89a944c7e2688a61bee8f001c102bac 100644
+--- a/src/test/java/com/example/api/RunningApp.java
++++ b/src/test/java/com/example/api/RunningApp.java
+@@ -5,9 +5,14 @@ import java.net.http.*;
+ import java.time.Duration;
+ import java.util.*;
+ import org.springframework.boot.SpringApplication;
++import org.springframework.boot.context.logging.LoggingApplicationListener;
+ import org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext;
++import org.springframework.context.ApplicationEvent;
++import org.springframework.context.event.GenericApplicationListener;
++import org.springframework.core.ResolvableType;
+ 
+ final class RunningApp implements AutoCloseable {
++    private static final Object JVM_LOGGING_CONFIGURATION = new Object();
+     final ServletWebServerApplicationContext context;
+     final HttpClient client;
+     final String base;
+@@ -33,6 +38,11 @@ final class RunningApp implements AutoCloseable {
+         }
+         var types = new ArrayList<Class<?>>(); types.add(ApiApplication.class); types.addAll(Arrays.asList(sources));
+         var application = new SpringApplication(types.toArray(Class<?>[]::new)); configure.accept(application);
++        // These test applications share one SLF4J/Logback context. Coordinate only its Boot
++        // configuration events; context refresh, Flyway callbacks and HTTP remain concurrent.
++        application.setListeners(application.getListeners().stream().map(listener ->
++                listener instanceof LoggingApplicationListener logging
++                        ? new SharedLoggingListener(logging) : listener).toList());
+         context = (ServletWebServerApplicationContext) application.run(args.toArray(String[]::new));
+         client = HttpClient.newHttpClient();
+         base = "http://127.0.0.1:" + context.getWebServer().getPort();
+@@ -44,4 +54,13 @@ final class RunningApp implements AutoCloseable {
+         return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
+     }
+     @Override public void close() { client.close(); context.close(); }
++
++    private record SharedLoggingListener(LoggingApplicationListener delegate) implements GenericApplicationListener {
++        @Override public int getOrder() { return delegate.getOrder(); }
++        @Override public boolean supportsEventType(ResolvableType type) { return delegate.supportsEventType(type); }
++        @Override public boolean supportsSourceType(Class<?> type) { return delegate.supportsSourceType(type); }
++        @Override public void onApplicationEvent(ApplicationEvent event) {
++            synchronized (JVM_LOGGING_CONFIGURATION) { delegate.onApplicationEvent(event); }
++        }
++    }
+ }
+diff --git a/src/test/java/com/example/fixtures/StandardTracingFixture.java b/src/test/java/com/example/fixtures/StandardTracingFixture.java
+index 0869877852abae5c48a0634b3570c177803f1d31..7f4a4aba56911fbe45b4c21dc95f467c5b4e4467 100644
+--- a/src/test/java/com/example/fixtures/StandardTracingFixture.java
++++ b/src/test/java/com/example/fixtures/StandardTracingFixture.java
+@@ -34,8 +34,9 @@ public class StandardTracingFixture {
+             this.tracer = tracer; this.observations = observations; this.executor = executor;
+         }
+         Map<String, String> scope() {
+-            var span = tracer.currentSpan();
+-            return Map.of("trace", span == null ? "none" : span.context().traceId(),
++            // Read context without recreating a span that the servlet thread may be finishing.
++            var context = tracer.currentTraceContext().context();
++            return Map.of("trace", context == null ? "none" : context.traceId(),
+                     "observation", observations.getCurrentObservation() == null ? "none" : "active");
+         }
+         @GetMapping("/api/greeting/span") public Map<String, String> sync() { return scope(); }

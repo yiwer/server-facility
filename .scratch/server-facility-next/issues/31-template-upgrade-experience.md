@@ -4,11 +4,13 @@
 
 **Blocked by:** 13 上传在探测、保存和失败时保持完整与有界；15 让 CSV 方言、流消费和电子表格导出策略可验证；25 隔离两个外部服务的配置、凭据和失败；26 让应用拥有本地化、日志与观测政策；30 在断连、进程丢失和结果清理后恢复同一命令
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 2026-10-04：30已由CI20候选`61094b53b23b5d00759df3e6837999bc63af0f44`的Windows/Ubuntu all、platform和归档成功闭合，本票所有前置现已完成，可正式领取。工作树外neutral harness、历史升级脚本及短审是准备证据，尚未执行本票实际新旧任务/升级验收。
 
 **Traceability:** FR-07、FR-08、FR-09、FR-10；AC-03、AC-11、AC-12、AC-14、AC-15
+
+2026-10-04阶段检查点：实际0.2.0-SNAPSHOT普通jar、模板2026.10.0标记与独立文档、29包/API迁移账本及历史自定义升级已实现。历史before78/after80项与真实打包持久重启通过；[报告](../../../docs/verification/ticket-31-template-upgrade.md)明确范围。新旧五任务、新臂可复用上传CSV接合、当前候选all/platform CI仍待闭合；本票未完成。
 
 ## Acceptance criteria
 

@@ -57,4 +57,5 @@
 | [0051](0051-postgresql-business-module.md) | Accepted | 扩展0050：应用自有PostgreSQL/JdbcClient/Flyway，当前成员授权、事务/分页/独立迁移与有限数据库预算 |
 | [0052](0052-transactional-note-commands.md) | Accepted | 扩展0051：Notes事务原子提交命令身份、业务效果、容量计费和原始回执；当前授权、唯一键等待、过期保留与迁移字节预算 |
 | [0053](0053-command-recovery-and-receipt-cleanup.md) | Accepted | 延续0052：不确定提交后同身份恢复；有限批次只清回执表示，保留身份/指纹/额度与永久410，明确schema/权限/操作预算及真实独立JVM故障边界 |
+| [0054](0054-versioned-template-delivery.md) | Accepted | 独立模板修订、Boot4/Jackson3开发坐标、显式小差异升级与可追溯消费者边界 |
 | [0055](0055-explicit-cookie-html-policy.md) | Accepted | 标准ResponseCookie完整scope与发送前有限政策、同scope删除和重复拒绝；jsoup1.23.2显式有界HTML片段，保留0001 optional决定 |
