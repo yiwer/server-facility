@@ -245,3 +245,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 核读f6a3a9b完整all PASS135命令、库1774；4c3ba76最终产品/template门PASS106/0/0/0、原质量门/三CLI/真实打包双模式/cleanup与coverage负控，包SHA a3259e4d89a504f2e09cb2b59a8170a25f10055b5c08363ad868cd63b4fff58e。普通库src/POM未变、jar仍0ad7ca80df4b8a8ddf2f5def024d6ccf4dc9ca21a68b6850c70e03ac90456b8b。三段来源见[29报告](../../verification/ticket-29-transactional-commands.md)，不冒称最终all已运行。
 - 最后34c06cb仅Postgres测试夹具和scope测试变化。实际46日志18/0/0/0、47日志4/0/0/0；48 XML为预期2测试/1failure/1error/0skip，保留原primary-assertion-sentinel及suppressed PostgreSQL清理错误，abort不能掩盖cleanup失败。原40全模板门在fast shutdown的79.458s checkpoint失败保留；修复自有数据库生命周期，不增加60s预算或关闭fsync，未重复无变化产品完整门。
 - 29设verification-pending，Q10待本次既有CI19双OS最终组合。累计closed仍29；30/31/33分别保留依赖边界。按用户授权推送一次新实现候选，Linux结果未返回前不关闭29。31中立harness/升级稿预研位于工作树外coordination，未混入本次源码、验收或交付计数。
+
+## CI19闭合29，释放30
+
+- `ae7215eb6fea6c12aea9d4bb450aaf4ad21ab0fa` / run37172307215于UTC2026-10-04T03:08:36Z completed/success。Windows111347590655、Ubuntu111347590758的完整all、独立platform和归档均success。主树`.verification-results/ci-19/`保存初始/阶段与最终run/jobs/artifacts/annotations；[CI19报告](../../verification/ticket-29-ci19.md)列明artifact ID/digest和未下载归档内部内容的限制。
+- 29的Q08/Q10及共同完成项闭合，票设closed，正式累计30。全部本地分阶段原始失败/修复/通过记录继续保留；本次成功才补齐最后测试夹具修复后的双OS全组合。只读公开API不能给出未下载报告的精确测试计数或内部jar跨平台同hash，33仍负责单候选制品证明。
+- 30前置解除并置in-progress，基于CI19产品及此后纯文档状态提交开展真实进程丢失/双独立JVM/receipt清理恢复。31仍blocked30，33仍blocked剩余与31。31工具草稿的独立自测/短复核位于coordination，未成为正式31执行。
+- 此次仅状态与证据文档提交，主树产品/测试/runner/workflow/Wrapper保持CI19被测内容，不另起本地全门，也不单独push纯docs。

@@ -4,7 +4,7 @@
 
 **Blocked by:** 28 用一个受保护业务 Module 完成持久化 CRUD 与分页
 
-**Status:** verification-pending
+**Status:** closed
 
 2026-10-04: claimed from integration `0cbbfb9f555e42f1143059960736e04f528e33c5`, after ticket28 closed with CI16 dual-OS success. Independent `codex/ticket-29` worktree. Approved test seams remain signed real HTTP, the public Notes business Module and controlled real PostgreSQL transaction/constraint observations. No independent HTTP replay store or lease is added.
 
@@ -16,7 +16,7 @@
 - [x] 明确 tenant/actor/operation/key、规范化 fingerprint、当前授权、成功/拒绝/可重试失败保存政策。
 - [x] 同键竞争有限等待，冲突、处理中、不可用和完成可区分；201/Location 等由业务结果稳定生成。
 - [x] 定义业务键与 receipt 不同保留期、清理后的结果语义，为票 30 的进程恢复提供真实持久状态。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -38,3 +38,7 @@ ADR0052 records the application-owned transaction contract. Implementation and W
 Integration2bff4f2 is included. Required Linux/final-combination CI19 remains pending; Q10 and the combined completion checkbox stay open. Ticket30's exact commit-point process faults, dual independent JVMs and physical receipt cleanup have not been claimed by ticket29.
 
 Merger integrated final `bc7ce170a6114c3c430080f5458e26bc8932a7d4` from clean2bff4f2 with `--no-ff` as `edc4eaac1e8443a21f5da0c56a9736c222963bc7`. Product/test/runner/workflow/Wrapper equal the handoff tree; original consumers and the new explicit cleanup-negative guard remain. Required CI19 will validate this final combination before closure.
+
+## CI closure — 2026-10-04
+
+CI19 source `ae7215eb6fea6c12aea9d4bb450aaf4ad21ab0fa`, run37172307215, completed/success at03:08:36Z. Windows111347590655 and Ubuntu111347590758 passed all, platform and evidence archive. The Linux/final-combination requirement and Q08/Q10 are complete; ticket29 is closed. Public metadata, artifact identities and limits are in `docs/verification/ticket-29-ci19.md`. The preceding handoff's pending status is historical; its local counts still belong only to their named source stages. Ticket30 is now unblocked and owns the remaining process-loss/dual-JVM/physical-cleanup contract.

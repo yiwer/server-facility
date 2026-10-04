@@ -4,7 +4,9 @@
 
 **Blocked by:** 29 在业务事务中提交命令身份、结果与业务写入
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+2026-10-04：29已通过CI19同源Windows/Ubuntu完整门、平台门与归档并closed，前置解除。领取基于已验证集成 `ae7215eb6fea6c12aea9d4bb450aaf4ad21ab0fa` 及后续纯状态文档提交；独立实施与真实双JVM/提交点故障/清理恢复证据由本票继续完成，工作树外预研不计验收。
 
 **Traceability:** FR-04；AC-05、AC-06
 
