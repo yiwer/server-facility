@@ -9,7 +9,7 @@
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <facility.version>0.1.0-SNAPSHOT</facility.version>
+        <facility.version>0.2.0-SNAPSHOT</facility.version>
         <spring-boot.version>4.1.1</spring-boot.version>
     </properties>
     <dependencyManagement><dependencies><dependency>

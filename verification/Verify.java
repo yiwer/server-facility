@@ -12,6 +12,8 @@ import org.w3c.dom.Element;
 /** JDK-only entry point. Run from the repository root: java verification/Verify.java all --fresh. */
 class Verify {
     static final boolean WINDOWS = System.getProperty("os.name").startsWith("Windows");
+    static final String FACILITY_VERSION = "0.2.0-SNAPSHOT";
+    static final String FACILITY_JAR = "server-facility-" + FACILITY_VERSION + ".jar";
     static final Path ROOT = Path.of("").toAbsolutePath().normalize();
     static Path report;
     static Path repository;
@@ -226,6 +228,8 @@ class Verify {
         run(ROOT, Map.of(), "template-refuse-overwrite", List.of(java(), copier.toString(),
                 ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45,
                 "Destination must be new and outside the template directory");
+        run(ROOT, Map.of(), "template-lineage", List.of(java(), ROOT.resolve("verification/template-consumer/TemplateLineage.java").toString(),
+                application.toString()), 45, null);
         copyDirectory(application, inputs);
         try (var files = Files.walk(inputs)) {
             for (Path input : files.filter(Files::isRegularFile).sorted().toList()) {
@@ -288,10 +292,10 @@ class Verify {
         installedClasspath(application, evidence.resolve("classpath.txt"));
         Path jar = application.resolve("target/secured-api-1.0.0-SNAPSHOT.jar");
         try (var archive = new java.util.zip.ZipFile(jar.toFile())) {
-            var library = archive.getEntry("BOOT-INF/lib/server-facility-0.1.0-SNAPSHOT.jar");
+            var library = archive.getEntry("BOOT-INF/lib/" + FACILITY_JAR);
             if (library == null) throw new AssertionError("Template did not package the ordinary library jar");
             try (var packaged = archive.getInputStream(library)) {
-                if (!Arrays.equals(packaged.readAllBytes(), Files.readAllBytes(ROOT.resolve("target/server-facility-0.1.0-SNAPSHOT.jar"))))
+                if (!Arrays.equals(packaged.readAllBytes(), Files.readAllBytes(ROOT.resolve("target/" + FACILITY_JAR))))
                     throw new AssertionError("Packaged template consumed another build's library jar");
             }
             if (archive.stream().anyMatch(entry -> entry.getName().contains("LocalIssuer") || entry.getName().contains("TestIssuer")
@@ -370,7 +374,7 @@ class Verify {
     }
 
     static void coreConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/core-consumer/CoreConsumer.java");
         Path classes = Files.createDirectories(report.resolve("core-consumer/classes"));
         Files.copy(source, report.resolve("core-consumer/CoreConsumer.java"));
@@ -386,7 +390,7 @@ class Verify {
     }
 
     static void valueConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = report.resolve("value-consumer/inputs");
         copyDirectory(ROOT.resolve("verification/value-consumer"), inputs.resolve("consumer"));
         copyDirectory(ROOT.resolve("examples/export-input"), inputs.resolve("application"));
@@ -416,7 +420,7 @@ class Verify {
     }
 
     static void mappingConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path annotations = repository.resolve("jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar");
         Path evidence = Files.createDirectories(report.resolve("mapping-consumer"));
         Path inputs = Files.createDirectories(evidence.resolve("inputs"));
@@ -454,7 +458,7 @@ class Verify {
     }
 
     static void cryptoConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/crypto-consumer/CryptoConsumer.java");
         Path classes = Files.createDirectories(report.resolve("crypto-consumer/classes"));
         Files.copy(source, report.resolve("crypto-consumer/CryptoConsumer.java"));
@@ -470,7 +474,7 @@ class Verify {
     }
 
     static void ioConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/io-consumer/IoConsumer.java");
         Path classes = Files.createDirectories(report.resolve("io-consumer/classes"));
         Files.copy(source, report.resolve("io-consumer/IoConsumer.java"));
@@ -528,7 +532,7 @@ class Verify {
     }
 
     static void lockConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = report.resolve("lock-consumer/inputs");
         copyDirectory(ROOT.resolve("verification/lock-consumer"), inputs);
         Path classes = Files.createDirectories(report.resolve("lock-consumer/classes"));
@@ -553,7 +557,7 @@ class Verify {
     }
 
     static void rateLimitConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path source = ROOT.resolve("verification/rate-limit-consumer/RateLimitConsumer.java");
         Path classes = Files.createDirectories(report.resolve("rate-limit-consumer/classes"));
         Files.copy(source, report.resolve("rate-limit-consumer/RateLimitConsumer.java"));
@@ -569,7 +573,7 @@ class Verify {
     }
 
     static void idConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = report.resolve("id-consumer/inputs");
         copyDirectory(ROOT.resolve("verification/id-consumer"), inputs);
         Files.copy(ROOT.resolve("verification/consumer/src/main/java/example/IdApplicationConsumer.java"), inputs.resolve("IdApplicationConsumer.java"));
@@ -589,7 +593,7 @@ class Verify {
     }
 
     static void htmlConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path jsoup = repository.resolve("org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar");
         Path source = ROOT.resolve("verification/html-consumer");
         Path evidence = Files.createDirectories(report.resolve("html-consumer"));
@@ -669,7 +673,7 @@ class Verify {
     }
 
     static void claimConsumer() throws Exception {
-        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jar = repository.resolve("cn/code91/server-facility/" + FACILITY_VERSION + "/" + FACILITY_JAR);
         Path inputs = ROOT.resolve("verification/claim-consumer");
         Path saved = report.resolve("claim-consumer/inputs");
         copyDirectory(inputs, saved);

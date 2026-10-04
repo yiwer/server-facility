@@ -5,9 +5,17 @@
 新增明确实例范围的LocalKeyedMutex：严格活动key预算、包含等待者的安全引用回收、线程owner/重入和关闭政策。缺所需锁不执行业务；默认不再将单机实现注册为DistributedLock。保留旧公开签名并给出迁移，异常释放保留首因、诊断不复制key；真实Async observer终止不得提前解锁。
 
 面向消费方的破坏性变更与行为变更记录(含迁移指引)。格式取意 [Keep a Changelog](https://keepachangelog.com/);
-当前尚无已发布版本,以下均为 0.1.0-SNAPSHOT 发布前的演进记录。内部决策全史见 [ADR 索引](docs/adr/INDEX.md)。
+当前尚无已发布版本；原开发线为 0.1.0-SNAPSHOT，Boot4/Jackson3 新开发线明确使用 0.2.0-SNAPSHOT。内部决策全史见 [ADR 索引](docs/adr/INDEX.md)。
 
-## [Unreleased] — 0.1.0-SNAPSHOT
+## [Unreleased] — 0.2.0-SNAPSHOT
+
+### 独立模板与运行时版本（2026-10-04，ADR0054）
+
+- Boot4/Jackson3 开发坐标改为 `cn.code91:server-facility:0.2.0-SNAPSHOT`；历史 Boot3/Jackson2 二进制与证据仍保留原坐标，不覆盖或重标旧 jar。
+- 模板 `secured-api` 的 `2026.10.0` 修订号独立于应用版本；生成目录携带升级、运行及观测说明。精确 Git 来源和已解析 jar 的 SHA256 由每次交付记录保存。
+- 未发布、不设未经消费者盘点的旧线停止支持日期；公共 Jackson 类型与工厂方法有明确 ABI 变化，不承诺跨发布线二进制兼容。
+
+以下为原开发坐标下发生并保留在新线中的演进记录。
 
 ### 命令恢复与有限回执清理（2026-10-04，ADR0053）
 

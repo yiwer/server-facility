@@ -28,7 +28,7 @@
 
 ## 硬事实
 
-- **坐标**：`cn.code91:server-facility:0.1.0-SNAPSHOT`，单模块 jar。
+- **坐标**：`cn.code91:server-facility:0.2.0-SNAPSHOT`，单模块 jar。
 - **环境**：JDK25、Spring Boot4.1.1、Jackson3.1.5；Maven Wrapper固定3.10.0并校验下载。目标平台普通jar和跨平台消费者已通过票24，见[平台账本](docs/building/boot4-platform.md)。其他票继续在集成分支实施，尚未发布制品。
 - **命名**：包根 `cn.code91.facility.*`；类前缀 `Facility*`；配置前缀 `facility.*`；i18n bundle `i18n/facility-messages_*`。
 - **命令**：`./mvnw verify`（Windows `mvnw.cmd verify`）= 库质量门；`java verification/Verify.java all --fresh` = 干净依赖仓库、库质量门、独立消费者、资源及先决条件检查。integration/resources/all另需`PG_BIN`指向PostgreSQL18.6原生工具；库fast/verify不需数据库。完整准备命令和第二个测试 JDK 要求见 [Java 25 构建说明](docs/building/java25-baseline.md)。
@@ -80,7 +80,7 @@ CONTEXT.md                                域术语权威
 <dependency>
     <groupId>cn.code91</groupId>
     <artifactId>server-facility</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
 </dependency>
 ```
 

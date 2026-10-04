@@ -2,6 +2,8 @@
 
 This independent application verifies Bearer JWTs and passes the verified issuer/subject pair to application business operations. It uses Spring Boot 4.1.1, Spring Security 7.1.1 and the ordinary `server-facility` jar. The `notes` Module owns current workspace membership, CRUD invariants and transactions through PostgreSQL 18.6, Flyway 12.4.0 and Spring JdbcClient. It does not implement an identity provider.
 
+The copied [template marker](template-origin.properties) records template `secured-api` revision `2026.10.0` and runtime `cn.code91:server-facility:0.2.0-SNAPSHOT`. The application version remains independently owned. See [upgrade and delivery guidance](UPGRADING.md).
+
 ## Create and build
 
 Prerequisites: JDK 25 on `JAVA_HOME` and `PATH`, PostgreSQL 18.6 native tools on `PG_BIN`, network access to Maven Central for the first build, and the selected `cn.code91:server-facility` version in a reachable Maven repository. The checked-in Wrapper downloads Maven 3.10.0 and checks its SHA-256. JDK 21 and other Maven versions fail validation. Tests bind ephemeral loopback ports, create a private PostgreSQL cluster and generate disposable RSA keys; they need no external account, Docker or credentials. Missing PostgreSQL fails the tests, rather than skipping them.
@@ -143,4 +145,4 @@ The test JVM owns a stable Tomcat home; each server still owns and deletes its o
 
 Coverage uses JaCoCo offline instrumentation to support Windows directories outside the native code page. Successful tests restore original bytecode before packaging; the coverage runtime is test scoped. After a failed or interrupted test run, use `clean verify` to discard instrumented leftovers. Architecture checks inspect the compiler's original bytecode, and isolated test subprocesses contribute to the same coverage file through the test-only runtime.
 
-The application owns MessageSource (`i18n/application` before `i18n/facility-messages`) and translates at GreetingController, leaving the business module free of Spring. Boot Actuator and Brave/Zipkin provide standard tracing; export is disabled by default with `management.tracing.export.zipkin.enabled=false`. Enable a backend and choose sampling in deployment configuration. See [application observability](../../docs/building/application-observability.md) for safe logging, legacy migration and propagation boundaries.
+The application owns MessageSource (`i18n/application` before `i18n/facility-messages`) and translates at GreetingController, leaving the business module free of Spring. Boot Actuator and Brave/Zipkin provide standard tracing; export is disabled by default with `management.tracing.export.zipkin.enabled=false`. Enable a backend and choose sampling in deployment configuration. See [application observability](OBSERVABILITY.md) for safe logging, legacy migration and propagation boundaries.
