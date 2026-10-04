@@ -29,4 +29,4 @@
 
 实现分支codex/ticket-10，基于1d6377d。已批准验收入口：公开IdUtil/SnowIdGenerator、真实自动装配和普通jar应用；默认业务使用JDK UUID及应用自有Supplier，不增加通用ID框架。ADR0033先登记替代ADR0023的无限等待，保留ADR0008的实例epoch解析。
 
-2026-10-04 Windows frozenfa26fc3 all --fresh113步骤PASS：库1733/0/0/0、原覆盖率/5架构/依赖门、普通jar64MiB/旧ID样本/3context UUID业务、模板78/PG三CLI/打包重启/负控全部通过。逐项Q01–Q10与RED/GREEN见[报告](../../../../docs/verification/ticket-10-id-policy.md)（仓库路径docs/verification/ticket-10-id-policy.md）。Linux待后续集成CI；07/12/19/28/32的CI16不包含10，不提前关闭共同完成标准。
+2026-10-04 Windows frozenfa26fc3 all --fresh113步骤PASS：库1733/0/0/0、原覆盖率/5架构/依赖门、普通jar64MiB/旧ID样本/3context UUID业务、模板78/PG三CLI/打包重启/负控全部通过。逐项Q01–Q10与RED/GREEN见[报告](../../../docs/verification/ticket-10-id-policy.md)（仓库路径docs/verification/ticket-10-id-policy.md）。Linux待后续集成CI；07/12/19/28/32的CI16不包含10，不提前关闭共同完成标准。

@@ -60,3 +60,5 @@ Command (JDK25/PG_BIN/VERIFY_WRONG_JAVA_HOME configured): `java verification/Ver
 
 This frozen source precedes08 and20; their later merge is not retroactively included in these counts or artifact hashes. Linux ID qualification awaits the repository CI on the integrated source. Existing CI16 qualified207c0cc before10 and cannot close this ticket. No finite sample is advertised as proof of unlimited uniqueness, and no cross-process node assignment is claimed. Final33 owns one candidate across all modules.
 
+
+After the frozen run, integration e561bc4 (08 and CI16 closure documentation) was merged without conflict. ID implementation/tests/consumer inputs are unchanged;08 adds cache behavior and runner graph coverage and was not included in frozen10 totals. The next integrated CI qualifies this combined tree; no duplicate full local run is claimed.
