@@ -1,8 +1,7 @@
 package cn.code91.facility.copy;
 
-import cn.code91.facility.common.Collects;
 import cn.code91.facility.common.NullSafe;
-import cn.code91.facility.log.LogUtil;
+import org.slf4j.LoggerFactory;
 import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 
@@ -10,38 +9,19 @@ import java.util.*;
 import java.util.function.Function;
 
 /**
- * <b>对象拷贝工具类 - 重构版本</b>
- * <p>
- * 提供集合深拷贝功能，要求元素类型实现 {@link CopyTrait} 接口。
- * </p>
- *
- * <h3>重构改进：</h3>
- * <ul>
- *     <li><b>null 检查</b>：验证 copy() 返回值不为 null</li>
- *     <li><b>错误处理</b>：提供配置选项控制 null 处理行为</li>
- *     <li><b>性能优化</b>：预分配容器大小</li>
- *     <li><b>灵活性</b>：支持自定义拷贝函数</li>
- * </ul>
- *
- * <h3>使用示例：</h3>
- * <pre>{@code
- * // 基本用法
- * List<User> users = ...;
- * List<User> copied = CopyUtil.copyList(users);
- *
- * // 配置选项
- * List<User> copied = CopyUtil.copyList(users, CopyOptions.builder()
- *     .skipNullElements(true)
- *     .throwOnNullCopy(false)
- *     .build());
- *
- * // 自定义拷贝函数
- * List<User> copied = CopyUtil.copyList(users, User::deepClone);
- * }</pre>
- *
- * @author yvvb
- * @apiNote 重构版本，修复了 null 安全问题
- * @since 2.0.0
+ * Legacy collection-copy helpers. New DTO flows should construct named values explicitly.
+ * <p>Callbacks own their copy semantics. List output is ArrayList; set/map helpers normalize to
+ * HashSet/HashMap and do not retain input comparators or iteration order. List encounter order is retained;
+ * copied-key collisions use the last encountered entry. Mutable callback results are not made immutable.</p>
+ * <p>A synchronous operation, including nested library calls, has a fixed budget of10,000 work units
+ * (collection/map entries, array slots and eligible reflected fields, including null values), with at most32 active library calls.
+ * Actual traversal is counted even when size() under-reports. CopyException rejects limits and active-path
+ * cycles. Interruption is observed before library work and between callbacks without clearing the flag.
+ * Arbitrary callback/iterator/constructor code, allocations and time remain the caller's responsibility.
+ * Previously completed callback effects are not rolled back. Scopes are removed after success or failure.</p>
+ * <p>Null source containers produce fresh empty containers; required callbacks/options fail fast.
+ * Existing CopyOptions null behavior is retained. Optional warnings contain fixed metadata and backend
+ * RuntimeException cannot change the copy outcome.</p>
  */
 @UtilityClass
 public class CopyUtil {
@@ -84,11 +64,15 @@ public class CopyUtil {
             return new ArrayList<>();
         }
 
-        List<E> resultList = new ArrayList<>(originList.size());
-        for (E origin : originList) {
-            processElement(origin, resultList::add, options, "list");
+        try (CopyScope scope = CopyScope.open(originList)) {
+            scope.checkSize(originList.size());
+            List<E> resultList = new ArrayList<>();
+            for (E origin : originList) {
+                scope.take(1);
+                processElement(origin, resultList::add, options, "list");
+            }
+            return resultList;
         }
-        return resultList;
     }
 
     /**
@@ -124,11 +108,15 @@ public class CopyUtil {
             return new ArrayList<>();
         }
 
-        List<E> resultList = new ArrayList<>(originList.size());
-        for (E origin : originList) {
-            processElement(origin, copyFunction, resultList::add, options, "list");
+        try (CopyScope scope = CopyScope.open(originList)) {
+            scope.checkSize(originList.size());
+            List<E> resultList = new ArrayList<>();
+            for (E origin : originList) {
+                scope.take(1);
+                processElement(origin, copyFunction, resultList::add, options, "list");
+            }
+            return resultList;
         }
-        return resultList;
     }
 
     /**
@@ -162,11 +150,15 @@ public class CopyUtil {
             return new HashSet<>();
         }
 
-        Set<E> resultSet = new HashSet<>(Collects.calculateCapacity(originSet.size()));
-        for (E origin : originSet) {
-            processElement(origin, resultSet::add, options, "set");
+        try (CopyScope scope = CopyScope.open(originSet)) {
+            scope.checkSize(originSet.size());
+            Set<E> resultSet = new HashSet<>();
+            for (E origin : originSet) {
+                scope.take(1);
+                processElement(origin, resultSet::add, options, "set");
+            }
+            return resultSet;
         }
-        return resultSet;
     }
 
     /**
@@ -202,11 +194,15 @@ public class CopyUtil {
             return new HashSet<>();
         }
 
-        Set<E> resultSet = new HashSet<>(Collects.calculateCapacity(originSet.size()));
-        for (E origin : originSet) {
-            processElement(origin, copyFunction, resultSet::add, options, "set");
+        try (CopyScope scope = CopyScope.open(originSet)) {
+            scope.checkSize(originSet.size());
+            Set<E> resultSet = new HashSet<>();
+            for (E origin : originSet) {
+                scope.take(1);
+                processElement(origin, copyFunction, resultSet::add, options, "set");
+            }
+            return resultSet;
         }
-        return resultSet;
     }
 
     /**
@@ -243,11 +239,15 @@ public class CopyUtil {
             return new HashMap<>();
         }
 
-        Map<K, V> resultMap = new HashMap<>(Collects.calculateCapacity(originMap.size()));
-        originMap.forEach((key, value) -> {
-            processMapValue(key, value, resultMap, options);
-        });
-        return resultMap;
+        try (CopyScope scope = CopyScope.open(originMap)) {
+            scope.checkSize(originMap.size());
+            Map<K, V> resultMap = new HashMap<>();
+            originMap.forEach((key, value) -> {
+                scope.take(1);
+                processMapValue(key, value, resultMap, options);
+            });
+            return resultMap;
+        }
     }
 
     /**
@@ -293,54 +293,34 @@ public class CopyUtil {
             return new HashMap<>();
         }
 
-        Map<K, V> resultMap = new HashMap<>(Collects.calculateCapacity(originMap.size()));
-        originMap.forEach((key, value) -> {
-            processMapEntry(key, value, resultMap, options);
-        });
-        return resultMap;
+        try (CopyScope scope = CopyScope.open(originMap)) {
+            scope.checkSize(originMap.size());
+            Map<K, V> resultMap = new HashMap<>();
+            originMap.forEach((key, value) -> {
+                scope.take(1);
+                processMapEntry(key, value, resultMap, options, scope);
+            });
+            return resultMap;
+        }
     }
 
     /**
-     * 基于反射的自动深拷贝
-     * <p>
-     * 通过反射遍历对象的所有字段并自动选择拷贝策略：
-     * <ul>
-     *     <li>标注 {@code @CopyField(ignore = true)} 的字段将被跳过</li>
-     *     <li>实现 {@link CopyTrait} 的字段调用其 {@code copy()} 方法</li>
-     *     <li>数组类型字段进行 clone（元素为 CopyTrait 时逐元素深拷贝）</li>
-     *     <li>{@link Collection}&lt;CopyTrait&gt; 逐元素深拷贝</li>
-     *     <li>{@link Map} 值实现 CopyTrait 时逐值深拷贝（键不拷贝，须为不可变类型）；键与值均实现 CopyTrait 时键值都深拷贝；仅键实现 CopyTrait（值不实现）则不生效，整体引用拷贝</li>
-     *     <li>其他字段直接引用拷贝（不可变类型如 String、BigDecimal 安全；非 CopyTrait 的可变集合/Map 将与源共享同一实例，注意可变性）</li>
-     * </ul>
-     * </p>
-     * <p>
-     * 使用类缓存机制，反射元数据只在首次调用时解析，后续调用直接使用缓存。
-     * 要求目标类型具有无参构造函数。
-     * </p>
-     *
-     * <h3>使用示例：</h3>
-     * <pre>{@code
-     * public class UserData implements CopyTrait<UserData> {
-     *     private String name;
-     *     private List<Address> addresses; // Address implements CopyTrait
-     *
-     *     @CopyField(ignore = true)
-     *     private String cacheKey;
-     *
-     *     @Override
-     *     public UserData copy() {
-     *         return CopyUtil.autoCopy(this);
-     *     }
-     * }
-     * }</pre>
-     *
-     * @param source 源对象（可为 null）
-     * @param <T>    对象类型，必须具有无参构造函数
-     *
-     * @return 深拷贝后的新对象，source 为 null 时返回 null
-     *
-     * @throws CopyException 如果目标类型缺少无参构造函数或拷贝过程中发生异常
+     * Limited legacy field copying; this is not a general object-graph snapshot.
+     * <p>Requires an accessible no-arg constructor and accessible non-final fields. Static, transient,
+     * synthetic and explicitly ignored fields are skipped; ignored final fields keep constructor values.
+     * Null source fields keep target constructor defaults. Ordinary references (including plain/nested
+     * collections and maps with only CopyTrait keys) remain shared. Ordinary arrays clone only their slots.</p>
+     * <p>CopyTrait fields/elements invoke user copy methods. Deep collections normalize to ArrayList or
+     * LinkedHashSet; deep maps normalize to LinkedHashMap. Incompatible declared concrete containers and
+     * sorted deep containers are rejected. Repeated deep aliases are copied independently; active-path
+     * recursion is rejected. No comparator, graph identity or general immutable-value support is inferred.</p>
+     * @param source nullable source
+     * @return new legacy copy, or null for null input
+     * @throws CopyException unsupported reflection/container, cycle, depth/work limit or reflective failure
+     * @deprecated construct an application-owned DTO explicitly; see examples/order-mapping and ADR0042
      */
+    @Deprecated(forRemoval = false)
+    @Nullable
     public static <T> T autoCopy(@Nullable T source) {
         if (source == null) {
             return null;
@@ -425,14 +405,14 @@ public class CopyUtil {
             @Nullable K key,
             @Nullable V value,
             Map<K, V> resultMap,
-            CopyOptions options) {
+            CopyOptions options, CopyScope scope) {
 
         if (key == null) {
             if (options.throwOnNullCopy) {
                 throw new CopyException("Map key cannot be null");
             }
             // 决策 F5-a(2026-07-05):宽容模式保持丢弃语义(行为不变),但不再静默
-            LogUtil.warn("[CopyUtil] null map key entry dropped (throwOnNullCopy=false)");
+            safeWarn("CopyUtil null map key entry dropped (throwOnNullCopy=false)");
             return;
         }
 
@@ -448,6 +428,7 @@ public class CopyUtil {
         K copiedKey = key.copy();
         validateCopied(copiedKey, key, options, "map key");
 
+        scope.checkSize(0);
         V copiedValue = value.copy();
         validateCopied(copiedValue, value, options, "map value");
 
@@ -469,10 +450,16 @@ public class CopyUtil {
             }
             // 如果不抛异常，记录警告（可选）
             if (options.warnOnNullCopy) {
-                cn.code91.facility.log.LogUtil.warn(
-                        "CopyTrait.copy() returned null for {} of type {}",
-                        context, original.getClass().getName());
+                safeWarn("CopyTrait.copy() returned null; applying configured null policy");
             }
+        }
+    }
+
+    private static void safeWarn(String message) {
+        try {
+            LoggerFactory.getLogger(CopyUtil.class).warn(message);
+        } catch (RuntimeException ignored) {
+            // Optional diagnostics must not change the copy outcome.
         }
     }
 

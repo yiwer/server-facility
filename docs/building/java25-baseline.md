@@ -108,7 +108,7 @@ configuration metadata 存在，并通过真实 Boot 非 Web 启动验证配置�
 | jakarta.servlet:jakarta.servlet-api | 6.0.0 | BOM、optional |
 | org.springframework:spring-web | 6.2.19 | BOM、optional |
 | org.springframework:spring-webmvc | 6.2.19 | BOM、optional |
-| org.jsoup:jsoup | 1.18.3 | 显式、optional；行为升级归票 32 |
+| org.jsoup:jsoup | 1.23.2 | 显式、optional；票32保留1.18.3历史样本并记录HTML策略差异 |
 | com.github.ben-manes.caffeine:caffeine | 3.2.4 | BOM、optional |
 | org.springframework:spring-context-support | 6.2.19 | BOM、optional |
 | org.apache.poi:poi | 5.3.0 | 显式、optional；行为升级归票 16 |

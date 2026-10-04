@@ -2,8 +2,9 @@
  * <h2>cn.code91.facility.web.util</h2>
  *
  * <p><b>Purpose:</b> Request, response, cookie, and XSS helpers for servlet-stack
- * web applications. {@code XssUtil} uses a Jsoup Safelist and is structurally
- * immune to encoding-based bypass attacks.</p>
+ * web applications. {@code XssUtil} explicitly cleans bounded HTML body fragments
+ * with a jsoup Safelist; the application still owns output-context encoding.
+ * {@code CookieUtil} preserves explicit browser scope and rejects ambiguous request names.</p>
  *
  * <p><b>Entry classes:</b> {@code RequestUtil}, {@code ResponseUtil}, {@code CookieUtil},
  * {@code XssUtil}, {@code XssLevel}.</p>

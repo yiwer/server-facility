@@ -34,6 +34,7 @@
 | [0028](0028-bounded-web-streams.md) | Accepted; [0047](0047-boot4-consumer-integration.md) 补充目标重载 | 普通响应直通、显式有界捕获、repeatable正预算与流所有权；6.1新入口接合由0047登记 |
 | [0029](0029-request-boundaries.md) | Accepted; 应用身份与异步接合由 [0050](0050-secured-application-template.md) 补充; 默认trace生成政策部分由 [0049](0049-application-owned-observability.md) 替代 | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
 | [0030](0030-local-keyed-mutex.md) | Accepted | 实例内线程owner互斥、原子活动键预算和等待者安全回收；关闭不强制释放，旧入口明确迁移 |
+| [0055](0055-explicit-cookie-html-policy.md) | Accepted | 标准ResponseCookie完整作用域、有界头与明确删除；jsoup1.23.2显式HTML片段、历史差异和解析前预算 |
 | [0032](0032-local-rate-limit-contract.md) | Accepted | 正成本与精确余额、真实缺额等待、有界主体准入和满桶回收；required/Optional设施政策、可信主体及入口计费 |
 | [0034](0034-qualified-legacy-claims.md) | Accepted; release的有效租约限制部分由 [0035](0035-authorized-bounded-http-replay.md) 替代 | 独立claim执行资格、owner/generation条件更新、结果保留与永久命令绑定；有界内存、旧SPI隔离与失败首因 |
 | [0035](0035-authorized-bounded-http-replay.md) | Accepted | 当前操作授权与规范化、可信身份/完整操作scope、有限同步HTTP目标、安全回执与失败终态；当前过期owner可终止但不可覆盖新generation |
@@ -43,6 +44,7 @@
 | [0039](0039-bounded-excel-formats.md) | Accepted | POI5.5.1实际格式图、小XLS/HSSF与有界XLSX/SAX；Locale/公式缓存、借用流和SXSSF自有临时预算 |
 | [0040](0040-legacy-crypto-reader-policy.md) | Accepted | 保留历史AES-GCM/PBKDF2读取，全部Result失败不携原始cause；协议最小/最大长度前置拒绝，应用显式资源预算 |
 | [0041](0041-core-value-contracts.md) | Accepted | 保留核心 Result/领域错误语义，明确浅引用所有权、必需回调与集合算术边界；无框架普通 jar 消费 |
+| [0042](0042-explicit-dto-mapping.md) | Accepted | 应用具名DTO显式映射和字段演进控制；旧复制有限work/depth、final/具体深容器拒绝、协作中断及兼容二进制 |
 | [0044](0044-json-application-scope-expand.md) | Accepted; 旧兼容阶段由 [0046](0046-jackson3-application-ownership.md) 替代 | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |
 | [0046](0046-jackson3-application-ownership.md) | Accepted | Jackson3不可变配置、应用mapper/registry所有权、安全错误与正数字段流预算；保留旧金样和明确静态迁移 |
@@ -51,4 +53,4 @@
 | [0049](0049-application-owned-observability.md) | Accepted | 应用 MessageSource/SLF4J/Micrometer 所有权；退出默认静态日志与旧 trace，保留迁移入口 |
 | [0050](0050-secured-application-template.md) | Accepted; 业务持久接合由 [0051](0051-postgresql-business-module.md) 扩展 | 独立MVC模板的应用自有JWT信任、Actor与标准Security授权；安全401/403/503、JWK有限I/O、真实Servlet/执行器上下文及独立打包门 |
 | [0051](0051-postgresql-business-module.md) | Accepted | 扩展0050：应用自有PostgreSQL/JdbcClient/Flyway，当前成员授权、事务/分页/独立迁移与有限数据库预算 |
-
+| [0055](0055-explicit-cookie-html-policy.md) | Accepted | 标准ResponseCookie完整scope与发送前有限政策、同scope删除和重复拒绝；jsoup1.23.2显式有界HTML片段，保留0001 optional决定 |
