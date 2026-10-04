@@ -162,3 +162,34 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 2026-10-04：merger先对5c759b5产品进行标准/spec短审，无阻断，范围与局限记录在工作树外coordination/ticket-12-premerge-review.md。随后核读最终`.verification-results/20261004-071310-376-all/summary.txt`：精确源`3563d920f355db61c1fa9249efd8eefc1da5ac1a`（已含07/d28072f），Windows all/fresh=false完整PASS，库1667/0/0/0、模板76/0/0/0，原质量/5架构/依赖门、全部消费者与真实Security重放/32绑定512轮转/2应用、PG打包重启及资源/负控通过。库jar SHA256 `faa5383527384643f490496239d6d305f000eb6284804aa8b6cd5c62f770589f`。
 - 从干净d28072f以--no-ff合最终`2542365a677b60f73825a14a1e2c952df0d1dd1c`，merge`f9dfa782a65e889e50f13cd0ace23250fc408c37`，无冲突。相对被测源仅5文档/票变化；合并产品/测试/runner与交接分支完全相同。中央登记0035、0017/0034明确部分替代与47条实际ADR；CI归档补足07历史源码和12新consumer输入，不修改执行逻辑或原质量门。
 - 12维持verification-pending等待Linux，07/28仍按各自CI状态等待；正式closed仍21项。历史首轮12因旧disabled消费者断言失败的真实记录保留。28本机PG成功不能覆盖CI14 Windows失败；此次尚未push，等待28必要修复一起执行授权CI15。19 Map中断修复已定向GREEN，将同步本集成后执行最终必要门。
+
+
+## 票32 Cookie与HTML片段集成
+
+- 2026-10-04：merger核读冻结`1f307a3c14a77daa65d978586e64192f36c4895e`的`.verification-results/20261004-072426-683-all/summary.txt`：Windows all --fresh共100命令PASS，库1655/0/0/0、模板76/0/0/0，原质量门/5架构/依赖、两个HTML普通jar图、64MiB深度10000和10000次成功/拒绝及工具链负控通过。库jar SHA256 `0531defe321757dc46e913ca48c5be933622ec79219dca48a2c0372c89f1cd04`。该冻结来源未包含12与28后续CI修复，报告分别保留验证范围。
+- 从干净1d6377d以--no-ff合最终`3dda390fee86a1497d7c624169e7e282f2926a7b`，merge`e5e8f028310cdf07e009e7b0f95977e48ae1a6b1`，无冲突；src/POM/verification/workflow与32交接分支完全相同。对比冻结源，32自己的Cookie/HTML产品、测试、POM和消费者未变化，其余差异为已验证12的同步及输入归档。中央登记0055和48条实际ADR，0001的optional理由继续有效，无需标为替代。
+- 32保持verification-pending，07/12/28同样按各自未完成CI状态登记，closed仍21项。HTML、锁与重放consumer归档全部保留。未重跑已通过的相同源码全门；等待28必要修复一起push既有CI验证联合候选，不等待19的独立最终门。
+
+
+## CI15候选：07/12/28/32
+
+- 2026-10-04：merger核读28的CI14修复报告与final-template/final-process两份PASS summary；相同业务代码保留原76项与原质量门，开发进程清理后仅重验三项CLI和真实打包两模式。最后的非空properties目录反例证明删除失败不会跳过native stop。未声称后来32/POM合并后的库jar仍是先前1667来源。
+- 从干净2e79ee7以--no-ff合`c03f3b138d4632e360e7825235ba82d5f8ebdd03`，merge`baeed369d4cde9640ff006b139e3413a2c496df7`，无冲突，src/POM/templates/verification/workflow与交接树相同。保留全部HTML、重放、锁及现有消费者；组合Verify javac和diff-check通过。本次按用户授权直接push已有CI，不等待19的独立全门。
+- 07/12/28/32仍verification-pending，closed仍21项，CI14失败不擦除。下一同源CI15负责新组合双平台结果；19将同步本候选执行Map回调中断修复后的最终完整门，20独立实施不改此候选。
+
+
+- CI15最终更新：e3382ce/run37163228381为Ubuntu全部success、Windows all/template-build失败而platform/归档success；76模板中并发原生迁移场景出现ConcurrentModificationException，尚未执行新CLI，不足以判断原启动假说。原始API metadata与精确限制见[28 CI报告](../../verification/ticket-28-ci.md)。已用followup正式唤醒28实施代理修复；07/12/28/32不提前close，29继续等待。19冻结全门与20独立TDD继续，不改正在被测的源码。
+
+
+## 票19显式DTO映射集成
+
+- 2026-10-04：root短审的Map key.copy→value.copy中断缺口已通过两个公开路径真实RED，最小检查后80项回归GREEN。随后冻结`4bcad8726e1b4379a0a56fe0804d1164086ae7e8`（含07/12/32/28 CI14修复）执行Windows all --fresh110命令，`.verification-results/20261004-075535-739-all/summary.txt`为PASS。库1712/0/0/0、5架构/原依赖/覆盖门通过，指令26467/28471、行5136/5443、分支2879/3390；库jar SHA256 `5853fd0737501be5a63f0d0efbbb59823cf820c7dcd219d76c7e72d97100cef2`。
+- 显式具名DTO值和真实字段演进负控、旧普通jar编译的相同binary、新普通jar64MiB/512seed/2000轮/200Error资源门均通过（retained1651624→1659896bytes，threads7→7）；模板76/partner15、新PG三CLI/打包两模式及全部既有消费者/平台/负控通过。确切证据与支持范围见[19报告](../../verification/ticket-19-explicit-mapping.md)。此次本地模板通过不否认CI15已有Windows并发迁移CME。
+- 文档完成并同步最新main3e8e3aa后，19最终`2c50f9c18ac9c76676359d39440383fb35fc470a`与被测src/POM/examples/verification/templates/workflow/Wrapper零差异。从干净3e8e3aa以--no-ff合入，merge`97c55425302dbeec707edd0775fbacefbb8d0ca9`，无冲突，中央登记0042和49条实际ADR。
+- 19为verification-pending，Linux/新联合CI尚缺；closed仍21项。未重复已通过的相同源码全门，暂未push，等待28真实CME修复一起执行既有CI。20在独立树继续应用自有时间/容量与有界模式政策，未混入本候选。
+
+
+## CI16候选：同JVM测试宿主日志配置修复
+
+- 2026-10-04：合入28最终81ef972，merge9a8cd45。真实12轮原3 errors→同12轮GREEN定位并修复共享Logback property map配置竞争；原Flyway双应用屏障不变，测试宿主逐事件委托标准listener，不串行化应用刷新。当前3dfe963来源库1712与完整独立模板78/原质量门/三CLI/打包重启及负coverage通过，核读summary为PASS。仅诊断annotation随后压至实际encoded2737/1072/1072字符并保留最深首因，Verify javac与真实RED XML验证通过。
+- 中央产品/模板/runner与交接树相同；19、07、12、32既有消费者全部保留。按授权立即push CI16，不等待独立20或08；07/12/19/28/32保持pending、closed21，29继续等待实际双OS成功。完整来源和范围见[CI15修复报告](../../verification/ticket-28-ci15-fix.md)与[联合CI记录](../../verification/ticket-28-ci.md)。

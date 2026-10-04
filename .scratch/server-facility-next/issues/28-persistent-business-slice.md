@@ -6,6 +6,10 @@
 
 **Status:** verification-pending
 
+2026-10-04 CI15 repair: the original concurrent migration test reproduced a shared Logback reconfiguration race in the same-JVM RunningApp fixture. Only standard logging listener events are now coordinated; both applications must still reach the real BEFORE_MIGRATE barrier. The diagnostic 12 repetitions changed from 3 errors to zero, and the mandatory contract retains three complete lifecycles. Precise original/secondary causes and current-candidate subset evidence: [CI15 repair report](../../../docs/verification/ticket-28-ci15-fix.md). Replacement joint CI remains required; ticket29 has not started.
+
+2026-10-04 CI14 repair: native development startup now uses pg_ctl; primary startup failures and native logs survive cleanup, including independent database stop when readiness-file deletion fails. Frozen06881a9 passed root1667 and template76 complete quality gates; final baeb8c1 passed all three CLI failure/lifecycle regressions and real packaged HTTP in both thread modes. Exact distinct sources and logs: [CI14 repair report](../../../docs/verification/ticket-28-ci14-fix.md). Replacement joint CI remains required before closure.
+
 2026-10-04 frontier: root authorized implementation from b7b7ea46778972822c7a757cf593d441bc1cde3c. Ticket27 has its own same-source Windows all evidence and CI37152209100 Ubuntu all success; the combined Windows run failed in the separate ticket25 partner-build before template execution. Ticket27 remains verification-pending; this authorization does not close its joint CI or the final ticket33 candidate gate. Approved test seams are actual signed HTTP, the public business Module, and observable PostgreSQL effects. ADR0051 records this Module's ownership and migration path.
 
 **Traceability:** FR-07、FR-08；AC-03、AC-04、AC-11

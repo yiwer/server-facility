@@ -203,6 +203,8 @@ public <T> CompletableFuture<Result<T, Throwable>> intercept(AsyncContext ctx, A
 - **会话**:`SessionUtil` / `SessionUserHolder`(仅兼容 ThreadLocal 数据；请求边界负责 SYNC/ASYNC/ERROR 清理，`SessionUserClearInterceptor` 适配宿主 Principal)。
 - **工具**:`RequestUtil`(客户端 IP 等)、`ResponseUtil`(写 JSON / 下载头)、`CookieUtil`、`XssUtil`(jsoup allowlist)。
 
+Cookie完整scope/flags使用Spring `ResponseCookie`；默认HTTPS/HttpOnly/SameSite=Lax，显式host-only或Domain政策，删除复用原scope。发送头最多4096ASCII字节，请求同名歧义拒绝。XssUtil仅由应用显式调用于HTML body片段，解析前最多262144 UTF-16单元；其他输出上下文仍需编码。旧入口变化、jsoup1.23.2升级样本和可执行示例见[Cookie/HTML政策](building/cookie-html-policy.md)。
+
 ### 请求来源、身份与观测（ADR-0029）
 
 `RequestUtil.getClientIp(request)` / 无参入口默认只采用 Servlet 提供的数值 `remoteAddr`，未装配 Web 边界时也遵守该安全默认。X-Real-IP、Proxy-Client-IP 等旧厂商头不参与解析。要由 facility 负责代理链，显式配置可信 CIDR：
@@ -690,3 +692,10 @@ var size = PathIo.directorySize(inputDirectory, directoryLimits);
 输入/输出命名空间必须由应用可信拥有，拒绝符号链接、Windows junction、特殊节点和链接祖先；不提供抵抗恶意并发重命名的沙箱。ZIP 输出不得位于输入目录树，已有目标绝不覆盖。同目录私有 stage 在关闭成功后以 `Files.createLink` 发布，文件系统必须支持此能力；不支持时失败，不复制到可见目标作为回退。输入 provider 还须支持 NOFOLLOW_LINKS 打开；例如 JDK ZipFS 不能作为 ZIP 的直接输入流 provider。新建的父目录可保留；文件系统拒绝清理时 stage 或完整目标也可能残留，失败后不能以 Path 存在代替成功信号。检查 Result 及原始异常的 suppressed 诊断，由拥有该目录的应用按策略处理残留。
 
 所有打开的流和 stage 属于操作；成功返回的归档归调用方管理。中断在读写、遍历、删除及发布边界被观察并保留中断标志，阻塞 provider 是否及时响应取决于 provider；不创建后台任务。递归删除逐项生效，失败或预算耗尽可能已经删除部分条目，不会回滚。错误保留最初原因，关闭/清理异常不覆盖它。调用方应只记录受控诊断，不能把含路径的原始异常直接作为 HTTP detail。
+
+
+## 显式DTO映射与复制迁移
+
+新转换在业务Module中使用具名值和显式构造；可执行[订单到发运DTO示例](../examples/order-mapping/README.md)验证完整字段、重复商品行保序、容器快照与null备注。字段新增/改名有实际编译负控，同类型错位由字面业务结果测试识别。
+
+`CopyUtil.autoCopy`保留签名但已弃用；拒绝反射写final字段、不兼容具体容器和深排序容器。旧普通引用/嵌套泛型的浅共享、null保留目标构造默认值、集合helper规范化ArrayList/HashSet/HashMap和复制key冲突最后覆盖语义保留。一次同步嵌套调用最多10,000个遍历字段/数组槽/容器条目及32层活动调用，循环/越界/协作中断明确拒绝并清理作用域。用户回调/iterator的时间和分配由宿主负责，不回滚其已完成副作用。完整支持矩阵、异常、比较器、日志和迁移方法见[显式映射说明](building/explicit-mapping.md)。

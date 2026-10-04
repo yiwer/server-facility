@@ -15,7 +15,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("CopyUtil - copy() 返 null 时跳过 + 经 LogUtil 告警 (RV2-23 + RV2-12)")
+@DisplayName("CopyUtil - copy() 返 null 时跳过 + 经标准SLF4J告警 (RV2-23 + RV2-12)")
 class CopyUtilNullCopyTest {
 
     /** copy() 故意返回 null，模拟违约实现。 */
@@ -49,7 +49,7 @@ class CopyUtilNullCopyTest {
         assertThat(out).isEmpty();
     }
 
-    @Test @DisplayName("RV2-12: 告警经 LogUtil(SLF4J) 而非 System.err")
+    @Test @DisplayName("RV2-12: 告警经标准SLF4J 而非 System.err")
     void warnGoesThroughLogger() {
         Map<String, NullCopying> in = new HashMap<>();
         in.put("k", new NullCopying());

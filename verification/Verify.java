@@ -65,11 +65,13 @@ class Verify {
                     consumer("invalid");
                     coreConsumer();
                     valueConsumer();
+                    mappingConsumer();
                     cryptoConsumer();
                     ioConsumer();
                     csvConsumer();
                     excelConsumer();
                     rateLimitConsumer();
+                    htmlConsumer();
                     lockConsumer();
                     claimConsumer();
                     httpReplayConsumer();
@@ -285,6 +287,19 @@ class Verify {
                 throw new AssertionError("Coverage runtime leaked into production jar");
         }
         Files.copy(jar, Files.createDirectories(evidence.resolve("artifacts")).resolve(jar.getFileName()));
+        Path databaseContract = ROOT.resolve("verification/template-consumer/DatabaseProcessContract.java");
+        Files.copy(databaseContract, evidence.resolve("DatabaseProcessContract.java"));
+        for (String mode : List.of("diagnostics", "lifecycle", "cleanup")) {
+            Path contractLog = run(application, Map.of(), "template-database-" + mode, List.of(java(), "-Xmx96m",
+                    databaseContract.toString(), application.toUri().toASCIIString(), evidence.resolve("database-" + mode).toUri().toASCIIString(),
+                    mode, client.toString()), 220, null);
+            String marker = switch (mode) {
+                case "diagnostics" -> "DATABASE_FAILURE_DIAGNOSTICS_PASS";
+                case "lifecycle" -> "DATABASE_LIFECYCLE_PASS";
+                default -> "DATABASE_CLEANUP_FAILURE_PASS";
+            };
+            if (!Files.readString(contractLog).contains(marker)) throw new AssertionError("Missing database process contract: " + contractLog);
+        }
         Path log = run(application, Map.of(), "template-packaged-http", List.of(java(), "-Xmx96m", client.toString(),
                 application.toUri().toASCIIString(), evidence.toUri().toASCIIString()), 180, null);
         if (!Files.readString(log).contains("PACKAGED_TEMPLATE_PASS")) throw new AssertionError("Missing packaged template result");
@@ -363,6 +378,44 @@ class Verify {
             }
         }
         summary.add("value-consumer=ordinary jar/JDK only; legacy literals and explicit migrations; seed200043/512; 10000 rotations under64MiB/45s; application JDK-only32MiB in3 locale/timezone processes; strict/DST/clock/budget policies");
+    }
+
+    static void mappingConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path annotations = repository.resolve("jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar");
+        Path evidence = Files.createDirectories(report.resolve("mapping-consumer"));
+        Path inputs = Files.createDirectories(evidence.resolve("inputs"));
+        copyDirectory(ROOT.resolve("examples/order-mapping"), inputs.resolve("example"));
+        copyDirectory(ROOT.resolve("verification/mapping-consumer"), inputs.resolve("consumer"));
+        Path source = inputs.resolve("example/src/example/orders/OrderDispatch.java");
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "mapping-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8", "-cp",
+                jar + File.pathSeparator + annotations, "-d", classes.toString(), source.toString(),
+                inputs.resolve("consumer/OrderMappingConsumer.java").toString(),
+                inputs.resolve("consumer/LegacyCopyConsumer.java").toString()), 45, null);
+        Path business = run(ROOT, Map.of(), "order-mapping", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2",
+                "-cp", classes + File.pathSeparator + annotations, "OrderMappingConsumer", source.toUri().toASCIIString(),
+                evidence.resolve("evolution").toUri().toASCIIString()), 45, null);
+        String output = Files.readString(business);
+        if (!output.contains("ORDER_MAPPING_CONSUMER_PASS") || !output.contains("ORDER_EVOLUTION_CONTROLS_PASS"))
+            throw new AssertionError("Order mapping business/evolution controls did not complete");
+        Path legacy = run(ROOT, Map.of(), "legacy-copy-resource", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                "-cp", classes + File.pathSeparator + jar, "LegacyCopyConsumer"), 45, null);
+        if (!Files.readString(legacy).contains("LEGACY_COPY_RESOURCE_PASS"))
+            throw new AssertionError("Bounded ordinary-jar copy consumer did not complete");
+        Path binary = inputs.resolve("consumer/legacy-binary");
+        for (String line : Files.readAllLines(binary.resolve("SHA256SUMS"))) {
+            String[] parts = line.split("  ", 2);
+            String actual = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(binary.resolve(parts[1]))));
+            if (!parts[0].equals(actual)) throw new AssertionError("Legacy copy binary fixture hash differs: " + parts[1]);
+        }
+        Path compatibility = run(ROOT, Map.of(), "legacy-copy-binary", List.of(java(), "-Xmx64m",
+                "-cp", binary + File.pathSeparator + jar, "LegacyCopyConsumer", "legacy"), 45, null);
+        if (!Files.readString(compatibility).contains("LEGACY_COPY_COMPAT_PASS"))
+            throw new AssertionError("Pre-change copy consumer binary did not complete");
+        summary.add("mapping=application-owned named DTO; literal fields/order/null/duplicate lines; bounded inputs; added/renamed compile controls and swapped-field business control;128MiB/45s");
+        summary.add("legacy-copy=ordinary jar only non-warning subset; pre-change ABI fixture; seed190042/512;2000 bounded copies/rejections and200 callback Errors;64MiB/45s");
     }
 
     static void cryptoConsumer() throws Exception {
@@ -478,6 +531,30 @@ class Verify {
             throw new AssertionError("Rate-limit consumer did not complete: " + log);
         }
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
+    }
+
+    static void htmlConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path jsoup = repository.resolve("org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar");
+        Path source = ROOT.resolve("verification/html-consumer");
+        Path evidence = Files.createDirectories(report.resolve("html-consumer"));
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        copyDirectory(source, evidence.resolve("inputs"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        String runtime = classes + File.pathSeparator + jar;
+        run(ROOT, Map.of(), "html-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar + File.pathSeparator + jsoup, "-d", classes.toString(),
+                source.resolve("PolicySamples.java").toString(), source.resolve("HtmlConsumer.java").toString()), 45, null);
+        Path absent = run(ROOT, Map.of(), "html-consumer-absent", List.of(java(), "-Xmx64m", "-cp", runtime,
+                "HtmlConsumer", "absent"), 45, null);
+        if (!Files.readString(absent).contains("HTML_CONSUMER_ABSENT_PASS explicitDependency=true"))
+            throw new AssertionError("HTML missing-dependency consumer failed: " + absent);
+        Path log = run(ROOT, Map.of(), "html-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8",
+                "-cp", runtime + File.pathSeparator + jsoup, "HtmlConsumer"), 45, null);
+        if (!Files.readString(log).contains("HTML_CONSUMER_PASS samples=16 seed=320025 fuzz=512 depth=10000 cycles=5 successful=10000 rejected=10000"))
+            throw new AssertionError("HTML policy/resource consumer failed: " + log);
+        summary.add("html-consumer=ordinary jar/jsoup only; missing dependency refuses; 16 fixed samples/seed320025/512 URI variants/10000 nesting/10000 success+rejection cycles; -Xmx64m/2 processors/45s");
     }
 
     static void partnerConsumer() throws Exception {
@@ -814,8 +891,56 @@ class Verify {
                 System.err.println("::error title=Verification failure detail::" + tail.replace("%", "%25")
                         .replace("\r", "%0D").replace("\n", "%0A"));
             }
+            try {
+                reportTestFailures(cwd.resolve("target/surefire-reports"));
+            } catch (Exception diagnosticFailure) {
+                // Diagnostics must not replace the command failure (full reports are still archived).
+                System.err.println("Could not summarize test failures: " + diagnosticFailure);
+            }
             throw new AssertionError("Unexpected result for " + name + "; exit=" + exit + "; inspect " + log);
         }
         return log;
+    }
+
+    static void reportTestFailures(Path reports) throws Exception {
+        if (!Files.isDirectory(reports)) return;
+        var factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        int emitted = 0;
+        try (var files = Files.list(reports)) {
+            for (Path file : files.filter(p -> p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).sorted().toList()) {
+                // Read only bounded test reports, never system-out/system-err into a public annotation.
+                if (Files.size(file) > 16L * 1024 * 1024) continue;
+                var cases = factory.newDocumentBuilder().parse(file.toFile()).getElementsByTagName("testcase");
+                for (int i = 0; i < cases.getLength(); i++) {
+                    var test = (Element) cases.item(i);
+                    for (String tag : List.of("error", "failure")) {
+                        var failures = test.getElementsByTagName(tag);
+                        for (int j = 0; j < failures.getLength(); j++) {
+                            String detail = test.getAttribute("classname") + "." + test.getAttribute("name") + "\n"
+                                    + failures.item(j).getTextContent();
+                            String cause = detail.substring(Math.max(0, detail.lastIndexOf("Caused by:")));
+                            if (detail.length() > 6000) detail = detail.substring(0, 1500)
+                                    + "\n[stack truncated; full report archived]\n" + detail.substring(detail.length() - 4500);
+                            System.err.println("Test failure detail:\n" + detail);
+                            if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
+                                // The public API truncates long annotations: retain the deepest cause's
+                                // first frames instead of losing them behind wrapper frames or a log tail.
+                                String annotation = detail.length() <= 2800 ? detail : detail.substring(0, 600)
+                                        + "\n[full report archived; deepest cause follows]\n"
+                                        + cause.substring(0, Math.min(2000, cause.length()));
+                                System.err.println("::error title=Test failure cause::" + annotation.replace("%", "%25")
+                                        .replace("\r", "%0D").replace("\n", "%0A"));
+                            }
+                            if (++emitted == 4) return;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
