@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-05、FR-08、FR-09；AC-08、AC-11、AC-12
 
@@ -14,7 +14,7 @@
 - [x] Clock、ZoneId、Locale、严格/legacy 日期及舍入语义公开；无界格式/正则缓存退出。
 - [x] 预算数值拒绝溢出和非有限值，旧 ≤0 表示无限制的约定如有改变须显式迁移。
 - [x] 不把正则缓存有界等同于任意不可信正则有执行时限；不可信模式应限制或拒绝。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -40,3 +40,5 @@
 冻结ff33c5d3f71be27a837940542cbc1c93f9f14e9b（含central207c0cc）已完成Windows `all --fresh`116命令，1736/0/0/0、原88/88/75覆盖门/5架构/依赖门、普通jar64MiB/10000轮、JDK-only应用三时区Locale、partner15/模板78、实际PostgreSQL三CLI/可执行两模式重启、资源和全部负控PASS。库jarSHA16d80a33f6e73ac077e55916b72e690680a32111f2760a4dd8848f5ed71b0410。原始.verification-results/20261004-084233-261-all与TDD逐轮日志保留；[完整报告](../../../docs/verification/ticket-20-value-policies.md)列Q01–Q10/J14/J16适用/不适用及历史jar金样。
 
 代表流程是实际独立编译执行的应用定时导出输入，未虚构根库已有生产请求链；新政策和旧SMART/默认环境/Math.round分别公开。ADR0043 Accepted、迁移说明齐备。当前仅缺后续Linux/同源联合CI，故Q总项未勾、状态verification-pending；31升级业务与33最终候选各自负责，不反向创造本票循环依赖。
+
+2026-10-04 CI闭合：精确源 `250ce2de2b38901c621318f8d871486c772fea34` / run37168561735 的 Windows、Ubuntu 全部 all/platform/归档均 success；Q08/Q10齐备，状态closed。[联合报告](../../../docs/verification/ticket-08-10-20-ci18.md)记录原始metadata与未下载归档内容的限制。此前本地数值和CI17失败按各自来源保留，33最终同候选组合仍独立执行。

@@ -231,3 +231,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 从干净0816c7a以--no-ff合入7080ec82f6ce7c4396ccd8e5d5ac6ec3f40a5c90，merge87fc4b1aedcb067291445a85a5560762e4155a97。相对中央仅2测试文件和诊断报告；src/POM/生产模板/runner/workflow均无变化，最终测试源码与4dfd4c2相同。原CI17双平台失败保留，不改成通过。
 - 核读实际日志：e9328d5完整模板clean verify为80/0/0/0、原覆盖率门通过；之后4dfd4c2仅加共用90s join deadline/finally取消其他worker，最终2CPU观测7/0/0/0通过，平台/虚拟各1600请求。两次来源分别记录，不声称80项完整门包含后续清理补丁。真实RED说明currentSpan读取会在Servlet结束竞争中重建Brave span；夹具改为标准currentTraceContext只读关联，原SERVER span/parent/采样/assertions保留。详见[修复报告](../../verification/ci17-observation-read-fix.md)。
 - 按用户既有授权推送CI18，最终双OS完整门负责新组合，08/10/20继续verification-pending、closed26。此候选包含fb1bdee推荐文档/YAML修正；31升级与30进程预研在coordination，不冒充正式验收。
+
+## CI18双平台闭合
+
+- 250ce2de2b38901c621318f8d871486c772fea34 / run37168561735 在UTC2026-10-04T01:52:05Z完成success。Ubuntu111336599366、Windows111336599415的all、platform、artifact归档均success；公开原始run/jobs/artifacts/annotations保存main .verification-results/ci-18。完整artifact ID/digest及未下载内部内容的限制见[联合验收](../../verification/ticket-08-10-20-ci18.md)。
+- 08/10/20共同完成标准闭合，三票closed，累计29。CI17失败及真实trace读取竞争RED/GREEN完整保留；本次来源含推荐示例与最终观测清理修复。每票本地测试数/覆盖率/jar SHA按原冻结来源保留，未冒作本次Linux内部日志。
+- 29工作树已在此前领取并实施，中央状态同步为in-progress；其冻结f6a3a9b的完整门正在独立执行，不计CI18验收。30仍受29阻塞，31受30阻塞，33受剩余票与31阻塞。正式31/33未开始；候选artifact身份与模板升级预研不算验收。
+- 本次仅中央状态与证据文档更新，实际ADR仍52条；没有改产品、降低门槛或重跑相同源码已过全门，纯docs暂不单独push。后续docs提交不是CI18被测SHA。

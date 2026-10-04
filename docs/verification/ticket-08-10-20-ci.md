@@ -23,3 +23,7 @@
 |---|---|---:|---|
 | 11290680264 | java25-ubuntu-latest-f081f2db7ecc14783e81f667b18586ba98d3a316 | 5228152 | sha256:bb2f09c2d539ccc4961309577a74e28c337c4e028e7471988897d71ac43105a3 |
 | 11289796484 | java25-windows-latest-f081f2db7ecc14783e81f667b18586ba98d3a316 | 5426151 | sha256:8b7b4b3319bc56063f8275e4efe79eff0f78d6a6a65f8bdcd57edcfba18f8c84 |
+
+## 后续同源修复闭合
+
+2026-10-04：修复后的250ce2d / CI18已完成Windows与Ubuntu全部all/platform/归档，08/10/20 closed，累计29票。精确来源与元数据见[CI18验收](ticket-08-10-20-ci18.md)。本报告保留CI17当时的失败和待验状态，不用后来成功重标旧run。

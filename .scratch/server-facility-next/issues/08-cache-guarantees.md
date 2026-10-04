@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-02、FR-05、FR-08；AC-02、AC-08、AC-09
 
@@ -13,7 +13,7 @@
 - [x] 采用注入的 Spring CacheManager 与明确后端，选中能力带齐依赖，未启用不强行注册。
 - [x] null、loader 失败、同键加载、失效与容量政策按选定实现明确，不增设隐藏全局缓存。
 - [x] 用公共行为证明 TTL/容量；两个应用的管理器与数据独立。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -36,6 +36,8 @@
 - [x] Q01–Q07：公开契约、输入/边界、实际依赖图/双应用、故障/并发、64MiB资源、兼容边界与seed80031证据完整，详见报告矩阵。
 - [x] Q08/Q09 Windows：原冻结6881088库1729/0/0/0、5架构与原88/88/75/依赖门通过。普通jar SHA256 `ce9edfb7198d82eee5ab40007718881552dc72370d19ed033567dfefb9f6a608`。
 - [x] 完整Windows组合证据：`.verification-results/20261004-082150-220-all`保留FAIL（扩展no-Jackson override后旧fixture错误期望无mapper），82049ea修断言；同一库源码和SHA的`.verification-results/20261004-083656-716-cache-tail`61步全PASS（尾门范围），5图24场景、partner、模板78、实际PG/packaged两模式/重启、5生命周期和全部先决负控均完成。没有重标原all或借用他票测试数。
-- [ ] Q08/Q10当前Linux CI闭合；因此保持verification-pending。旧24默认回退的CI不能代替本票新政策。最终33候选同源复验独立登记。
+- [x] Q08/Q10当前Linux与联合CI：250ce2d / CI18两OS完整all、platform和归档全部success。旧24默认回退的CI未被用于本票新政策验收；最终33候选同源复验独立登记。
 
 最新中央207c0cc已合入为ac716815；相对尾门来源d0afe97仅中央文档，无产品/测试/runner差异。限定关闭语义：宿主先quiesce loader/借用Cache；容量为maintenance后条目政策，不是瞬时字节上界；后端清理失败仅保证detach和逐cache尝试。impl03有限两轴短审无阻断，记录coordination/ticket-08-premerge-review-impl03.md，不替代33。
+
+2026-10-04 CI闭合：精确源 `250ce2de2b38901c621318f8d871486c772fea34` / run37168561735 的 Windows、Ubuntu 全部 all/platform/归档均 success；Q08/Q10齐备，状态closed。[联合报告](../../../docs/verification/ticket-08-10-20-ci18.md)记录原始metadata与未下载归档内容的限制。此前本地数值和CI17失败按各自来源保留，33最终同候选组合仍独立执行。

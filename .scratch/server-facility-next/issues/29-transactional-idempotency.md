@@ -4,7 +4,7 @@
 
 **Blocked by:** 28 用一个受保护业务 Module 完成持久化 CRUD 与分页
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 **Traceability:** FR-04、FR-07；AC-03、AC-06
 

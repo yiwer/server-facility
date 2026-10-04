@@ -30,3 +30,7 @@
 - 冻结 `4dfd4c230df62505b5dd2c49df8beade3bfae34d` 后执行最终 `StandardObservationHttpTest`：`10-final-observation-green.log`，7 项、失败/错误/跳过均为 0，2 CPU，包含共用 deadline 和取消清理；再次完成两线程模式各 1600 次请求。
 
 本地环境为 Windows、Oracle JDK 25.0.4.1、Wrapper Maven 3.10.0、真实原生 PostgreSQL 18.6。所有后续集成闭合仍以最终提交的 Windows/Ubuntu CI 为准；这份诊断报告本身不关闭 08/10/20。
+
+## 后续双平台结果
+
+最终集成源250ce2d的CI18已完成Windows/Ubuntu全部all、platform和归档，含本修复最终测试源；08/10/20据此闭合，见[CI18验收](ticket-08-10-20-ci18.md)。该结果不改变上述每次本地验证的精确范围，也不把CI17失败改为通过。

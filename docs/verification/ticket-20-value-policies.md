@@ -1,5 +1,7 @@
 # 20 — Explicit date, capacity and pattern policies
 
+> 当前状态（2026-10-04）：本票已由250ce2d / CI18两OS完整门闭合，见[联合验收](ticket-08-10-20-ci18.md)。下文保留各次冻结来源的本地证据及当时待验事项；其中pending描述不代表当前状态。
+
 2026-10-04, Windows complete; verification-pending for current Linux CI. Worktree ticket20/codex/ticket-20 begins at central `1d6377dee64db3e8b072dd590a9f09c78df5b6df`. The Q01–Q10/J14/J16 traceability and final Windows gate are recorded below; Linux and final candidate combinations retain their own evidence scope. Planning is in the outside-worktree coordination/ticket-20-implementation-plan.md; this report records actual evidence only.
 
 Public seams: DateUtil, NumberFormat, NumberUnits and Patterns, plus the independently compiled application-owned export-input Module. These are covered by the user's prior approval of utility and application seams. No private cache field inspection or fake regex-cancellation proof is used.
