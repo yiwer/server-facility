@@ -1,4 +1,5 @@
 import java.nio.file.*;
+import java.net.URI;
 import java.util.*;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -6,7 +7,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 /** Checks the delivered application copy, without repository-relative documentation dependencies. */
 class TemplateLineage {
     public static void main(String[] args) throws Exception {
-        Path application = Path.of(args[0]).toAbsolutePath().normalize();
+        Path application = (args[0].startsWith("file:") ? Path.of(URI.create(args[0])) : Path.of(args[0])).toAbsolutePath().normalize();
         var origin = new Properties();
         try (var input = Files.newInputStream(application.resolve("template-origin.properties"))) {
             origin.load(input);
