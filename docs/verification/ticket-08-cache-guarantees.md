@@ -11,7 +11,6 @@ In progress; no full gate or platform completion is claimed. Worktree ticket-08,
 | 05 policy validation | red-05-policy-inputs.log: selected zero TTL starts successfully | green-05-policy-inputs.log:6/0/0/0; nonpositive/overflow TTL, nonpositive capacity, missing/duplicate/overlong/control names reject before cache publication |
 | 06 expiration clock | red-06-expiration-clock.log: at10s fake time the old manager still returned the value | green-06-expiration-clock.log:7/0/0/0; supplied public Caffeine Ticker drives exact write expiry, read does not extend it; optional signatures moved behind class-level dependency guards |
 | 07 capacity/maintenance | Existing selected backend passed; no artificial RED | contract-07-capacity-maintenance.log:8/0/0/0; N−1/N/N+1 at two entries, public Caffeine cleanUp observation point,4096key churn, clear and reload; no instantaneous strict-size claim |
-
 | 08 legacy null loading | red-08-null-loading.log: legacy check/load/put calls the null loader twice | green-08-null-loading.log:17/0/0/0; delegates Cache.get loading contract |
 | 09 actual workers | Existing backend passed | contract-09-concurrent-loading.log:3/0/0/0; first loader barrier, six followers, different-key completion before release |
 | 10 null/failure/invalidation | Existing selected backend passed | contract-10-loader-failures.log:4/0/0/0; cached null, checked loader failure cause, no pollution, recovery and eviction |
