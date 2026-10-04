@@ -193,3 +193,10 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 
 - 2026-10-04：合入28最终81ef972，merge9a8cd45。真实12轮原3 errors→同12轮GREEN定位并修复共享Logback property map配置竞争；原Flyway双应用屏障不变，测试宿主逐事件委托标准listener，不串行化应用刷新。当前3dfe963来源库1712与完整独立模板78/原质量门/三CLI/打包重启及负coverage通过，核读summary为PASS。仅诊断annotation随后压至实际encoded2737/1072/1072字符并保留最深首因，Verify javac与真实RED XML验证通过。
 - 中央产品/模板/runner与交接树相同；19、07、12、32既有消费者全部保留。按授权立即push CI16，不等待独立20或08；07/12/19/28/32保持pending、closed21，29继续等待实际双OS成功。完整来源和范围见[CI15修复报告](../../verification/ticket-28-ci15-fix.md)与[联合CI记录](../../verification/ticket-28-ci.md)。
+
+
+## 票08显式本地缓存集成
+
+- 2026-10-04：核读6881088的原all与d0afe97完整尾门。库1729/0/0/0、5架构/原88/88/75/依赖门及先前消费者通过，jarSHA256 ce9edfb7198d82eee5ab40007718881552dc72370d19ed033567dfefb9f6a608；原all在no-Jackson显式mapper场景的旧消费者断言冲突处FAIL，原记录保留。修正fixture后，尾门先强制库src/POM/.mvn不变及target/repository jar同SHA，再完成61步5图24场景、partner、完整模板78、PG三CLI、两模式打包重启、5资源与工具链负控，summary为PASS(tail scope only)。不把组合证据改称某次all全绿。
+- 从干净207c0cc以--no-ff合最终f71c7daf318d7e1ed5cc09bab6d54987897a8bdf，merge e6341b73af30d1947285633745806d55383467e1，无冲突；合入src/POM/verification/templates/workflow与交接分支同源。中央登记0031/0015与0047限定更新、50条实际ADR。仅短审无阻断，完整33双轴审仍独立进行。
+- 08保持verification-pending待新Linux CI；运行中的CI16源码207c0cc不含08，不能用于08闭合。20与10在各自冻结来源全门，不因本次合入重复未改源码；下一联合CI验证组合。此次不单独push，待后续批次。
