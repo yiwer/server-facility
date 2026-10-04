@@ -1,0 +1,369 @@
+{
+  "scope": "Post-benchmark bounded startup diagnosis and independent minimum-pool contract correction; not original18/19 repair",
+  "rawEvidenceRoot": "E:/GenCode/server-facility-worktrees/coordination/ticket31-startup-diagnosis",
+  "originalFailure": {
+    "sourceCommit": "0eca54d53e573be55d0dd5f0b6520e024bc0325c",
+    "failingCases": [
+      {
+        "name": "unrelatedTableOrForeignKeyLocksAreUnavailableNotAProcessingCommand(boolean)[2]",
+        "classname": "com.example.api.NoteCommandConcurrencyTest",
+        "time": "8.264"
+      }
+    ],
+    "parameterMeaning": "tableLock=false; default application thread mode; failure before entering lock body",
+    "failureXmlSha256": "3e3e6764bdcf53b2d24bbe63bfc5241fc5c76f566fd890f89ab853cde4640dcc",
+    "sources": {
+      "pom.xml": "495c2d221f51c7c5f68b7ef68b9fd22ba7db49be41e7a091bb3b9853092afcc0",
+      "src/test/java/com/example/api/NoteCommandConcurrencyTest.java": "519e03a71955433ca64c8a8d4e451ca45e50895af6f243d483d639ec1b63d67f",
+      "src/test/java/com/example/api/RunningApp.java": "ed361ee8d7412674a5cda4d7979ce24488ff73c6690503a83ad090337d65648b",
+      "src/main/resources/application.properties": "a42b5e0e2e3508f31d7304bfd45e798bc97e2422720be172eb80cf883e5fc64a"
+    }
+  },
+  "originalMethodRepetitions": [
+    {
+      "label": "01-original-method",
+      "exit": 0,
+      "outerSeconds": 40.64037109999845,
+      "counts": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlSha256": "d1baf7c7411484b50f2760164159c6a7d18683c71f397aa265f661a9f85336bc"
+    },
+    {
+      "label": "02-original-method",
+      "exit": 0,
+      "outerSeconds": 40.88738209999792,
+      "counts": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlSha256": "129e68bb793b93fa51f092e99bc54618823a98e9a9bd44210760de39d529a1a4"
+    },
+    {
+      "label": "03-original-method",
+      "exit": 0,
+      "outerSeconds": 36.476168100001814,
+      "counts": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlSha256": "50c37b8e0373320acda43e51f76e981aeab6f143f7608c731c48e5d4bcf1f4b1"
+    },
+    {
+      "label": "04-original-method",
+      "exit": 0,
+      "outerSeconds": 33.26040049999938,
+      "counts": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlSha256": "39b7d31eeffe898b258a45eacc7b218e54990821b31d6bce66921df6250c75fe"
+    },
+    {
+      "label": "05-original-method",
+      "exit": 0,
+      "outerSeconds": 32.523531200000434,
+      "counts": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlSha256": "31714ff7abd46bab202587101930e89e9facf5887a263932aa4e44f67a372900"
+    }
+  ],
+  "observerSetup06": {
+    "mavenExit": 0,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "observerExit": 1,
+    "qualificationPassed": false,
+    "reason": "No JFR file/startup trace; CLI argLine system property did not set late-expanded empty project argLine. Kept as observation setup failure, not behavioral RED."
+  },
+  "observerRejected07": {
+    "mavenExit": 0,
+    "counts": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "qualificationPassed": false,
+    "recordingBytes": 605635,
+    "recordingSha256": "69dab114a4768edbc787c02d707736447e982b8f1dd1b366db45718c7a210b8c",
+    "jfcSha256": "d42578b40bdcc5fafd762256a77fc94767307479c8e629d9b9b85a7f4fb0ebd8",
+    "jfrEventCounts": {
+      "jdk.NativeMethodSample": 942,
+      "jdk.ThreadPark": 338,
+      "jdk.ExecutionSample": 230,
+      "jdk.Checkpoint": 197,
+      "jdk.ThreadStart": 94,
+      "jdk.ThreadEnd": 88,
+      "jdk.SocketRead": 24,
+      "jdk.SafepointBegin": 21,
+      "jdk.SafepointStateSynchronization": 21,
+      "jdk.GCPhasePause": 20,
+      "jdk.GarbageCollection": 17,
+      "jdk.JavaMonitorWait": 16,
+      "org.junit.TestExecution": 5,
+      "org.junit.EngineDiscovery": 2,
+      "org.junit.LauncherDiscovery": 2,
+      "jdk.Metadata": 1,
+      "org.junit.TestPlanExecution": 1
+    },
+    "unexpectedEvents": {
+      "jdk.Checkpoint": 197,
+      "org.junit.TestExecution": 5,
+      "org.junit.EngineDiscovery": 2,
+      "org.junit.LauncherDiscovery": 2,
+      "org.junit.TestPlanExecution": 1
+    },
+    "postprocessingError": "First jfr summary CLI used Unicode source path and failed; original error retained. This retry reads already-copied identical recording from ASCII evidence path, without rerunning test. Original outer runner elapsed unavailable, not inferred."
+  },
+  "qualifiedObservedRuns": [
+    {
+      "exit": 0,
+      "outerSeconds": 41.077164600003016,
+      "originalPomSha256": "495c2d221f51c7c5f68b7ef68b9fd22ba7db49be41e7a091bb3b9853092afcc0",
+      "observedPomSha256": "482fe0fbaffb90f8ef37124ddf638a06b72e65dcdc80bab4e8bd5dabdb2ee4ba",
+      "recordingSha256": "96429efdd38ba2a6ee749c233cf868960b28774f325238dc3ec7c721e56bf60f",
+      "recordingBytes": 693111,
+      "jfcSha256": "3cdd4d714262e8f625556afc3b6b45a765b2bc52994d0ce0d9018b64562f9140",
+      "actualClasses": [
+        "NoteCommandConcurrencyTest"
+      ],
+      "jfrEventCounts": {
+        "jdk.NativeMethodSample": 1066,
+        "jdk.ThreadPark": 377,
+        "jdk.ExecutionSample": 274,
+        "jdk.Checkpoint": 206,
+        "jdk.ThreadStart": 95,
+        "jdk.ThreadEnd": 90,
+        "jdk.SocketRead": 24,
+        "jdk.SafepointBegin": 21,
+        "jdk.SafepointStateSynchronization": 21,
+        "jdk.GCPhasePause": 20,
+        "jdk.GarbageCollection": 17,
+        "jdk.JavaMonitorWait": 16,
+        "jdk.Metadata": 1
+      },
+      "unexpectedEvents": {},
+      "recordingLimit": "JFR maxsize16MiB; duration is finite selected test entry; no whole-host/negative/consumer capture",
+      "nativeChannelWarning": false,
+      "qualificationPassed": true,
+      "label": "08-observed-method"
+    },
+    {
+      "exit": 0,
+      "outerSeconds": 194.03075479999825,
+      "originalPomSha256": "495c2d221f51c7c5f68b7ef68b9fd22ba7db49be41e7a091bb3b9853092afcc0",
+      "observedPomSha256": "238bd465741f8b5e7ffa0a62b7b262579a6de0b7d7e3f005106828b6d21b8c14",
+      "recordingSha256": "4bad89649005c63c72944ffad97b7eefc65b5e0695b588b52b5e55e06124908d",
+      "recordingBytes": 2389970,
+      "jfcSha256": "3cdd4d714262e8f625556afc3b6b45a765b2bc52994d0ce0d9018b64562f9140",
+      "actualClasses": [
+        "AuthenticationHttpTest",
+        "BusinessBoundaryTest",
+        "ConfigurationHttpTest",
+        "DatabaseConfigurationTest",
+        "DecoratorFailureTest",
+        "ExecutorOwnershipTest",
+        "FailureLifecycleHttpTest",
+        "JwkBoundaryHttpTest",
+        "JwkLifecycleHttpTest",
+        "LifecycleHttpTest",
+        "MigrationHttpTest",
+        "NoteCommandAtomicityTest",
+        "NoteCommandConcurrencyTest"
+      ],
+      "jfrEventCounts": {
+        "jdk.NativeMethodSample": 5914,
+        "jdk.ThreadPark": 3012,
+        "jdk.ExecutionSample": 2254,
+        "jdk.Checkpoint": 1869,
+        "jdk.ThreadStart": 1303,
+        "jdk.ThreadEnd": 1292,
+        "jdk.SocketRead": 346,
+        "jdk.JavaMonitorWait": 204,
+        "jdk.SafepointBegin": 106,
+        "jdk.SafepointStateSynchronization": 106,
+        "jdk.GCPhasePause": 104,
+        "jdk.GarbageCollection": 87,
+        "jdk.ExecuteVMOperation": 6,
+        "jdk.Metadata": 1
+      },
+      "unexpectedEvents": {},
+      "recordingLimit": "JFR maxsize16MiB; duration is finite selected test entry; no whole-host/negative/consumer capture",
+      "sameClassOrder": true,
+      "nativeChannelWarning": false,
+      "qualificationPassed": true,
+      "label": "09-observed-prefix"
+    }
+  ],
+  "independentPoolBoundary": [
+    {
+      "exit": 1,
+      "outerSeconds": 39.4041019000033,
+      "purpose": "different-configuration control: sole setting maximum-pool-size=1; unchanged original failed template compiled classes,1000ms connection budget;not an original max4 reproduction",
+      "originalPomSha256": "495c2d221f51c7c5f68b7ef68b9fd22ba7db49be41e7a091bb3b9853092afcc0",
+      "suite": {
+        "tests": "2",
+        "failures": "0",
+        "errors": "2",
+        "skipped": "0",
+        "time": "28.969"
+      },
+      "effectiveSystemProperty": "1",
+      "errorClasses": [
+        "org.springframework.beans.factory.UnsatisfiedDependencyException",
+        "org.springframework.beans.factory.UnsatisfiedDependencyException"
+      ],
+      "label": "10-max1-control",
+      "recordSha256": "d2985aa2cfbe6c54ea5667a0b3c7edf308d10a291d93d9d0c2f837d4cf54952d"
+    },
+    {
+      "exit": 1,
+      "outerSeconds": 31.595331800002896,
+      "purpose": "different-configuration control: sole setting maximum-pool-size=1; unchanged original failed template compiled classes,1000ms connection budget;not an original max4 reproduction",
+      "originalPomSha256": "495c2d221f51c7c5f68b7ef68b9fd22ba7db49be41e7a091bb3b9853092afcc0",
+      "suite": {
+        "tests": "2",
+        "failures": "0",
+        "errors": "2",
+        "skipped": "0",
+        "time": "24.735"
+      },
+      "effectiveSystemProperty": "1",
+      "errorClasses": [
+        "org.springframework.beans.factory.UnsatisfiedDependencyException",
+        "org.springframework.beans.factory.UnsatisfiedDependencyException"
+      ],
+      "label": "11-max1-control-repeat",
+      "recordSha256": "4341b1304903f591583327faae177fc1de790edd838825e02fb331fb7509bdad"
+    },
+    {
+      "exit": 0,
+      "outerSeconds": 45.93855729999996,
+      "purpose": "different-configuration control: sole setting maximum-pool-size=2; unchanged original failed template compiled classes,1000ms connection budget;not an original max4 reproduction",
+      "originalPomSha256": "495c2d221f51c7c5f68b7ef68b9fd22ba7db49be41e7a091bb3b9853092afcc0",
+      "suite": {
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "38.329"
+      },
+      "effectiveSystemProperty": "2",
+      "errorClasses": [],
+      "label": "12-max2-control",
+      "recordSha256": "950fa45da1495b789e4a81b3bac56cea8a32ec1d9f9b621a2526ce108ce69f7c"
+    },
+    {
+      "exit": 1,
+      "outerSeconds": 59.30386159999762,
+      "purpose": "test-first minimum pool contract on independent generated application;not original18/19 reproductions",
+      "suites": [
+        {
+          "name": "com.example.api.DatabaseConfigurationTest",
+          "tests": "6",
+          "failures": "2",
+          "errors": "0",
+          "skipped": "0",
+          "time": "40.713"
+        }
+      ],
+      "label": "13-minimum-policy-red",
+      "recordSha256": "863ab247c95f9d25c422620dffed2f8315d0986f2c8d92f9d354a4896b708951"
+    },
+    {
+      "exit": 1,
+      "outerSeconds": 58.40207870000086,
+      "purpose": "test-first minimum pool contract on independent generated application;not original18/19 reproductions",
+      "suites": [
+        {
+          "name": "com.example.api.DatabaseConfigurationTest",
+          "tests": "6",
+          "failures": "1",
+          "errors": "0",
+          "skipped": "0",
+          "time": "40.403"
+        }
+      ],
+      "label": "14-minimum-policy-red",
+      "recordSha256": "7d7d327cdd7d217ecb90c10ecad5a85f34a644b7acaf283b8bb691220f161a41"
+    },
+    {
+      "exit": 0,
+      "outerSeconds": 102.89744520000022,
+      "purpose": "test-first minimum pool contract on independent generated application;not original18/19 reproductions",
+      "suites": [
+        {
+          "name": "com.example.api.DatabaseConfigurationTest",
+          "tests": "6",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "time": "56.748"
+        },
+        {
+          "name": "com.example.api.NoteCommandConcurrencyTest",
+          "tests": "6",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "time": "20.795"
+        }
+      ],
+      "label": "15-minimum-policy-green",
+      "recordSha256": "d119b96e6d37dab64be3bb8c947e1326e31f4ff052872dfde3292ed45cfa6115"
+    }
+  ],
+  "overlayQualification": {
+    "records": [
+      {
+        "label": "16-policy-instantiate",
+        "exit": 0,
+        "outputSha256": "68ee5a50ff412c4c6b19e67229013a729c9c48132380ef797860ec881b6f406f"
+      },
+      {
+        "label": "16-policy-overlay",
+        "exit": 0,
+        "outputSha256": "a998eda22fe848a2f6e92097aaad4d261f393014483b6a994329b8f4d13e62ed"
+      },
+      {
+        "label": "16-policy-lineage",
+        "exit": 0,
+        "outputSha256": "9890031685473720e613a3b69ebcdc5bdc751b81d102da31b93e4f41dedaf547"
+      },
+      {
+        "label": "16-policy-overlay-refuse",
+        "exit": 1,
+        "outputSha256": "b8864eca3f80cf6fba312129df99fa59c29341e87d3351b76e22e414c057358e"
+      }
+    ],
+    "reapplyRefusedWithoutMutation": true,
+    "newPolicyAndTestsInheritedByteExactly": true,
+    "fileCount": 117
+  },
+  "limits": [
+    "Original19 max4/minIdle0/1000ms failure did not recur in the bounded narrow loops; no cause or repair of19 is claimed.",
+    "Original18 HTTP timeout is separate and remains unexplained.",
+    "07 raw JFR is retained locally only; dynamically registered JUnit fields can carry exception text. Published evidence contains only hashes and aggregate event counts.",
+    "198 explicit configured event types include4 late JUnit types;14 enabled184 disabled. Each final observed recording was checked for unexpected actual events and <=16MiB. This does not promise future dynamic types are disabled.",
+    "JFR is an observer intervention on successful positive Surefire executions only;20ms wait/socket thresholds and20ms sampling omit shorter events. Concurrent GC duration is not all stop-the-world time. Adder-thread parks can include normal idle executor waits.",
+    "First aggregate parser encountered a native thread with null Java name; null-safe grouping reparsed the existing09 recording, without rerunning tests.",
+    "13 has one intended max1 policy failure and one positive-fixture wrong-key-id401 failure. Corrected test-only kid at14 leaves exactly the intended policy failure before production correction.",
+    "The corrected application range2\u201316 is specific to the pinned template migration path, not a general Hikari restriction; default4/1000ms unchanged."
+  ]
+}

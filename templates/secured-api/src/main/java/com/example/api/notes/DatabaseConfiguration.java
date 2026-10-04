@@ -14,7 +14,7 @@ import org.springframework.core.env.Environment;
 class DatabaseConfiguration {
     DatabaseConfiguration(Environment environment) {
         try {
-            int maximum = number(environment, "spring.datasource.hikari.maximum-pool-size", 1, 16);
+            int maximum = number(environment, "spring.datasource.hikari.maximum-pool-size", 2, 16);
             number(environment, "spring.datasource.hikari.minimum-idle", 0, maximum);
             number(environment, "spring.datasource.hikari.connection-timeout", 250, 5000);
             number(environment, "spring.datasource.hikari.validation-timeout", 250, 1000);

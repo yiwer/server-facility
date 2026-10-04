@@ -405,10 +405,15 @@ class Verify {
                 if (Files.isRegularFile(application.resolve("target/" + name))) Files.copy(application.resolve("target/" + name), evidence.resolve(name));
         }
         var factory = DocumentBuilderFactory.newInstance();factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-        long tests=0;var discovered=new HashSet<String>();var base=new HashSet<String>();
+        long tests=0;var discovered=new HashSet<String>();var base=new HashSet<String>();var inheritedCases=new HashSet<String>();
         try(var files=Files.list(report.resolve("template/surefire-reports"))) {
-            for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList())
-                base.add(factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement().getAttribute("name"));
+            for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList()) {
+                var suite=factory.newDocumentBuilder().parse(file.toFile()).getDocumentElement();base.add(suite.getAttribute("name"));
+                var cases=suite.getElementsByTagName("testcase");
+                for(int i=0;i<cases.getLength();i++) {
+                    var testcase=(Element)cases.item(i);inheritedCases.add(testcase.getAttribute("classname")+"#"+testcase.getAttribute("name"));
+                }
+            }
         }
         try(var files=Files.list(evidence.resolve("positive-surefire-reports"))) {
             for(Path file:files.filter(p->p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).toList()) {
@@ -416,12 +421,17 @@ class Verify {
                 tests+=Long.parseLong(suite.getAttribute("tests"));discovered.add(suite.getAttribute("name"));
                 for(String outcome:List.of("failures","errors","skipped"))
                     if(Long.parseLong(suite.getAttribute(outcome))!=0)throw new AssertionError("Workflow "+outcome+": "+file);
+                var cases=suite.getElementsByTagName("testcase");
+                for(int i=0;i<cases.getLength();i++) {
+                    var testcase=(Element)cases.item(i);inheritedCases.remove(testcase.getAttribute("classname")+"#"+testcase.getAttribute("name"));
+                }
             }
         }
         base.addAll(Set.of("com.example.api.BenchmarkHttpTest", "com.example.api.BenchmarkQuotesHttpTest", "com.example.api.BenchmarkFailuresHttpTest",
                 "com.example.api.BenchmarkStockHttpTest", "com.example.api.BenchmarkImportHttpTest", "com.example.api.WorkflowAdmissionHttpTest",
                 "com.example.api.WorkflowOutboundHttpTest", "com.example.api.WorkflowImportInterruptionTest", "com.example.api.WorkflowTypeAwareUploadTest"));
         if(!discovered.equals(base))throw new AssertionError("Workflow test discovery differs: expected="+base+" actual="+discovered);
+        if(!inheritedCases.isEmpty())throw new AssertionError("Workflow omitted inherited test cases: "+inheritedCases);
         maven(application, "workflow-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));
         maven(application, "workflow-dependencies", "dependency:tree", "-DoutputFile=" + evidence.resolve("dependency-tree.txt"),
                 "dependency:build-classpath", "-Dmdep.outputFile=" + evidence.resolve("classpath.txt"));

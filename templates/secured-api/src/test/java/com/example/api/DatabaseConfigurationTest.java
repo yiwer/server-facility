@@ -4,6 +4,25 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class DatabaseConfigurationTest {
+    @Test void aSingleConnectionPoolIsRejectedBeforeMigrationAcquiresConnections() throws Exception {
+        try (var issuer = new TestIssuer()) {
+            assertThatThrownBy(() -> { try (var ignored = new RunningApp(issuer,
+                    "--spring.datasource.hikari.maximum-pool-size=1", "--logging.level.root=OFF")) {} })
+                    .hasRootCauseInstanceOf(IllegalStateException.class)
+                    .hasStackTraceContaining("Invalid application database policy");
+        }
+    }
+    @Test void theMinimumTwoConnectionPoolMigratesAndServesBusinessHttp() throws Exception {
+        String database = Postgres.freshUrl();
+        try (var issuer = new TestIssuer(); var app = new RunningApp(issuer,
+                "--spring.datasource.url=" + database, "--spring.datasource.hikari.maximum-pool-size=2")) {
+            String token = issuer.token("a", java.util.Map.of("scope", "notes:read notes:write"), java.util.Set.of());
+            var created = NotesHttpTest.send(app, "POST", "/api/workspaces", token, "{\"name\":\"Minimum pool\"}");
+            assertThat(created.statusCode()).isEqualTo(201);
+            String workspace = NotesHttpTest.JSON.readTree(created.body()).path("id").asString();
+            assertThat(app.get("/api/workspaces/" + workspace + "/notes", token).statusCode()).isEqualTo(200);
+        }
+    }
     @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings = {"100ms", "1500ms"})
     void fractionalJdbcTimeoutsCannotBeSilentlyTruncatedToSeconds(String duration) throws Exception {
         try (var issuer = new TestIssuer()) {

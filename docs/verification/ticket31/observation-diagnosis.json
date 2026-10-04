@@ -1,0 +1,188 @@
+{
+  "scope": "finite post-benchmark diagnosis; no reproduced narrow failure, no causal finding or fix claimed",
+  "originalFailure": {
+    "sourceCommit": "d4ac86bf162d35b4ea1e7d9abdc5ac99a30fb5db",
+    "allEvidence": ".verification-results/20261004-152145-168-all",
+    "workflowCounts": {
+      "tests": 151,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0
+    },
+    "failureXmlSha256": "98a41e347b332b26b135def9a66139a73dd5d1f61b9d182c87ada912572fa947",
+    "symptom": "concurrentDeferredRequestsKeepTheirIncomingTrace(false), real HTTP10s timeout"
+  },
+  "methodRepetitions": [
+    {
+      "label": "01",
+      "exit": 0,
+      "outerSeconds": 30.78812570000082,
+      "mavenTotalTimeAsReported": "28.334 s",
+      "testClassSeconds": 20.15,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "844fb0e900e85074fc64d9b0b2b5d9cb4142fe5d5f938b141d102643684f505e"
+    },
+    {
+      "label": "02",
+      "exit": 0,
+      "outerSeconds": 52.030475899999146,
+      "mavenTotalTimeAsReported": "49.193 s",
+      "testClassSeconds": 35.54,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "1cdbdd97291f1b7221ebe8d3f8f9c76583921a81a6ddd4995a4b74bc12ef491f"
+    },
+    {
+      "label": "03",
+      "exit": 0,
+      "outerSeconds": 50.36738229999901,
+      "mavenTotalTimeAsReported": "46.876 s",
+      "testClassSeconds": 35.53,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "491a43f092fb9e307ee5ed1f9f525018cf43eb05f89f350d90eafc3a255520b4"
+    },
+    {
+      "label": "04",
+      "exit": 0,
+      "outerSeconds": 42.16017640000064,
+      "mavenTotalTimeAsReported": "39.883 s",
+      "testClassSeconds": 30.05,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "c8293947be86c3d0406b62d698c2e0d4b51be1496addebf9bd12e7b3acf027ec"
+    },
+    {
+      "label": "05",
+      "exit": 0,
+      "outerSeconds": 43.28464840000015,
+      "mavenTotalTimeAsReported": "41.164 s",
+      "testClassSeconds": 32.45,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "95b79161661c9994be8a0ef67a3a2dfabe711866c310dd720761bab1d4c5eb09"
+    },
+    {
+      "label": "06",
+      "exit": 0,
+      "outerSeconds": 42.698935899999924,
+      "mavenTotalTimeAsReported": "39.640 s",
+      "testClassSeconds": 30.21,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "4f8b32c36fe0bb58837820151e924fe6c7fe3f0ca1c45daf04591e2abf3004fa"
+    },
+    {
+      "label": "07",
+      "exit": 0,
+      "outerSeconds": 46.39132930000051,
+      "mavenTotalTimeAsReported": "43.465 s",
+      "testClassSeconds": 34.57,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "5b9f80a6fe158707ca2abd849641155590646fba78638f3d4c28daf4e3caf5f2"
+    },
+    {
+      "label": "08",
+      "exit": 0,
+      "outerSeconds": 51.25749700000233,
+      "mavenTotalTimeAsReported": "48.449 s",
+      "testClassSeconds": 37.41,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "4359f50d11a83f945eafc951fc4fe34f6166b62303c83e08d0e691f71eaf92d4"
+    },
+    {
+      "label": "09",
+      "exit": 0,
+      "outerSeconds": 53.88985749999847,
+      "mavenTotalTimeAsReported": "47.406 s",
+      "testClassSeconds": 34.77,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "17e5506dab36f6347a096227e2b6b8c1c31dc989f7a9f19a378a60b3a839ed0c"
+    },
+    {
+      "label": "10",
+      "exit": 0,
+      "outerSeconds": 54.10334380000131,
+      "mavenTotalTimeAsReported": "49.196 s",
+      "testClassSeconds": 36.85,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "commandLogSha256": "4a004fb33a033feb42a6c8634b3c02d06505ab96dffe0c0bfb80320cd647350e"
+    }
+  ],
+  "unchangedTrigger": {
+    "clients": 8,
+    "requestsPerClient": 200,
+    "threadModes": [
+      "platform",
+      "virtual"
+    ],
+    "requestTimeoutSeconds": 10,
+    "methodDeadlineSeconds": 90,
+    "successfulMethodRepetitionHttpRequests": 32000
+  },
+  "classProbe": {
+    "label": "11-instrumented-class",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "outerSeconds": 42.621339099998295
+  },
+  "prefixProbe": {
+    "label": "12-instrumented-preceding",
+    "tests": 129,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "outerSeconds": 576.536720600001,
+    "actualOrderEqualsOriginal37ClassPrefix": true,
+    "laterTestsExcluded": 22,
+    "no3sSnapshotOrWatchdogGap": true
+  },
+  "probeQualification": {
+    "changedOriginalSources": [
+      "src/test/java/com/example/api/RunningApp.java",
+      "src/test/java/com/example/api/StandardObservationHttpTest.java",
+      "src/test/java/com/example/fixtures/StandardTracingFixture.java"
+    ],
+    "newSource": "src/test/java/com/example/fixtures/DeferredProbe.java",
+    "v1Source": {
+      "sha256": "6d167c16f2ae8c1795510c644f5273120cfe8dd93fe9601f6de7f4a1e5b4a48c",
+      "provenance": "reconstructed after11 from tool edit record; not a pre-execution frozen hash"
+    },
+    "v2SourceSha256": "ef6a64127d52521f9885e2b0c67b80090fa058e42f59c60721809dc41c421d7d",
+    "selfcheck": "probe-v2-selfcheck.log deliberate3.4s virtual latch, not original bug reproduction"
+  },
+  "limits": [
+    "Copied Surefire directories contain older reports; only actual console class discoveries are counted.",
+    "Controlled3.4s latch verifies first snapshot and owner cleanup, not original timeout reproduction or8s threshold.",
+    "Client-return removes probe state; late lifecycle events are not a complete balance.",
+    "Probe v1 source reconstructed after replacement; its digest is not a pre-execution freeze.",
+    "One original complete-gate failure remains real; later success cannot establish repair."
+  ]
+}
