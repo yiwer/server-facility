@@ -18,6 +18,7 @@ Call public Notes operations outside an existing transaction. The Module rejects
 | Current membership denied | 403 `workspace_forbidden` | Regain permission through application policy. |
 | Same identity, different command | 409 `command_conflict` | Use the intended original command or a new key for a new operation. |
 | Unique claim still waiting when its finite lock budget expires | 409 `command_processing`, `Retry-After: 1` | Retry the same key and command later with a bounded client policy. This does not cancel the owner. |
+| Matching command's original receipt is expired or permanently cleared | 410 `command_receipt_expired` | Keep the identity reserved; recover current business state through authorized reads. Do not use a new key to blindly repeat an uncertain side effect. |
 | Workspace lifetime identity capacity reached | 429 `workspace_command_limit`, no `Retry-After` | A new key cannot regain capacity. Existing identities remain replayable; do not retry forever. |
 | Database/connection/statement unavailable | 503 `persistence_unavailable` | Treat outcome as uncertain; retry the same key after recovery. |
 | Unexpected persistence failure | 500 `persistence_failed` | Investigate safe server correlation; do not infer non-commit from a lost response. |
@@ -43,4 +44,36 @@ The byte protocol uses a four-byte big-endian length before every UTF-8 field. A
 
 The workspace lifetime limit is10000 successful command identities. Replay does not spend another unit. Capacity is per workspace, not a bound on the whole database: workspace creation and tenant admission require deployment-owned policy. Full capacity still permits reads, replay and membership revocation, and rejects new successful command identities. Ingress admission is separate: if the application selects the optional rate-limit annotation/provider, each request attempt can spend that allowance even when it replays or conflicts. The core Notes command works when the optional rate-limit provider is disabled.
 
-Receipts are available for24 hours from their successful result write. Their identity remains permanently reserved after expiry, including after physical response cleanup. An expired receipt returns410 `command_receipt_expired`; it never executes again. Do not delete identities to regain quota. Ticket30 owns the executable cleanup and exact commit-boundary process-loss/dual-process recovery evidence. This protocol document alone is not that evidence.
+Receipts are available for24 hours from their successful result write. Their identity remains permanently reserved after expiry, including after physical response cleanup. An expired or cleared receipt returns410 `command_receipt_expired`; it never executes again, even if the database clock later moves backward. Do not delete identities to regain quota. A replay reads a coherent committed row and checks its availability at that observation; a response started before expiry may arrive later. Current authorization and then fingerprint conflict are checked before expiry.
+
+## Receipt maintenance
+
+V4 adds the application-owned `cleanup_note_receipts(cutoff timestamptz, batch_size integer)` function. Cutoff must be non-null, finite and no later than the database clock when validated; batch must be1–1000. It atomically clears only note ID/slug/title/body for eligible receipts and returns the number changed. Complete identity, fingerprint, deadline and lifetime charge remain. Logical removal does not promise immediate disk-space reclamation; ordinary PostgreSQL vacuum/storage policy still applies.
+
+Run maintenance as the migration owner or an explicitly authorized operations role, on a dedicated connection with finite connect/read/cancellation budgets (for example2s/10s/1s). Complete each statement below separately before sending the next. Replace `public` with the quoted, deployed application schema; V4 binds to that schema at migration time.
+
+```sql
+SET SESSION statement_timeout = '5s';
+SET SESSION lock_timeout = '500ms';
+SELECT public.cleanup_note_receipts(clock_timestamp(), 100);
+```
+
+Use autocommit for the SELECT and close the connection after it. Repeat independently committed batches as needed; do not retain one transaction across a maintenance loop. The statement and lock settings must precede the call: putting `SET statement_timeout` inside a PostgreSQL function does not reliably start the current statement's timer. Finite batches limit changed rows, while the server and client deadlines limit waiting/work; they are not one exact end-to-end deadline. A lost connection may follow a committed cleanup. Retrying is safe because already-cleared rows do not count again.
+
+Concurrent workers use SKIP LOCKED. A zero result may mean every eligible row is locked, so it does not prove the database is drained. Unrelated relation locks can still wait and hit the lock timeout. Cancellation rolls back that statement's changes. Receipt expiry already applies without maintenance; scheduling affects stored representation size, not permission to execute a command again.
+
+PUBLIC has no execution grant. The function runs with the invoker's privileges. For a dedicated role already created by the deployment owner, grants are explicit; substitute the deployed schema/role names:
+
+```sql
+GRANT USAGE ON SCHEMA public TO note_maintenance;
+GRANT SELECT, UPDATE ON TABLE public.note_command TO note_maintenance;
+GRANT EXECUTE ON FUNCTION public.cleanup_note_receipts(timestamptz, integer) TO note_maintenance;
+```
+
+These table privileges also allow direct SQL; the function is not a privilege sandbox. This template does not create roles, an elevated SECURITY DEFINER function, scheduler or HTTP maintenance route. Never grant an untrusted actor database access as a substitute for the application's authorization checks. Applied V1–V3 migrations remain unchanged; deploy V4 with the new application, which requires it before serving business requests.
+
+## Unknown outcomes
+
+Retain the same key and command after a connection failure, timeout or process restart. Such failures alone cannot establish whether commit occurred. Retry after recovery with a finite client budget, handling current permission, mismatched content, processing, infrastructure unavailability and permanent receipt expiry explicitly. A successful retry restores the original status/Location/result, even after another command later edits or deletes the resource. A new key expresses a new intended operation.
+
+The guarantee covers the effects committed in this PostgreSQL transaction. An email, external payment or other effect outside it needs its own application protocol. Executed fault/dual-process evidence is recorded with ticket30; this protocol document alone is not evidence of those executions.
