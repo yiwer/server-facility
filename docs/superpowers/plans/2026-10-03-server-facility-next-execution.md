@@ -176,3 +176,6 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 2026-10-04：merger核读28的CI14修复报告与final-template/final-process两份PASS summary；相同业务代码保留原76项与原质量门，开发进程清理后仅重验三项CLI和真实打包两模式。最后的非空properties目录反例证明删除失败不会跳过native stop。未声称后来32/POM合并后的库jar仍是先前1667来源。
 - 从干净2e79ee7以--no-ff合`c03f3b138d4632e360e7825235ba82d5f8ebdd03`，merge`baeed369d4cde9640ff006b139e3413a2c496df7`，无冲突，src/POM/templates/verification/workflow与交接树相同。保留全部HTML、重放、锁及现有消费者；组合Verify javac和diff-check通过。本次按用户授权直接push已有CI，不等待19的独立全门。
 - 07/12/28/32仍verification-pending，closed仍21项，CI14失败不擦除。下一同源CI15负责新组合双平台结果；19将同步本候选执行Map回调中断修复后的最终完整门，20独立实施不改此候选。
+
+
+- CI15最终更新：e3382ce/run37163228381为Ubuntu全部success、Windows all/template-build失败而platform/归档success；76模板中并发原生迁移场景出现ConcurrentModificationException，尚未执行新CLI，不足以判断原启动假说。原始API metadata与精确限制见[28 CI报告](../../verification/ticket-28-ci.md)。已用followup正式唤醒28实施代理修复；07/12/28/32不提前close，29继续等待。19冻结全门与20独立TDD继续，不改正在被测的源码。
