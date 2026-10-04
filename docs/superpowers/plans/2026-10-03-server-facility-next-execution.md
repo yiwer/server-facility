@@ -187,3 +187,9 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 显式具名DTO值和真实字段演进负控、旧普通jar编译的相同binary、新普通jar64MiB/512seed/2000轮/200Error资源门均通过（retained1651624→1659896bytes，threads7→7）；模板76/partner15、新PG三CLI/打包两模式及全部既有消费者/平台/负控通过。确切证据与支持范围见[19报告](../../verification/ticket-19-explicit-mapping.md)。此次本地模板通过不否认CI15已有Windows并发迁移CME。
 - 文档完成并同步最新main3e8e3aa后，19最终`2c50f9c18ac9c76676359d39440383fb35fc470a`与被测src/POM/examples/verification/templates/workflow/Wrapper零差异。从干净3e8e3aa以--no-ff合入，merge`97c55425302dbeec707edd0775fbacefbb8d0ca9`，无冲突，中央登记0042和49条实际ADR。
 - 19为verification-pending，Linux/新联合CI尚缺；closed仍21项。未重复已通过的相同源码全门，暂未push，等待28真实CME修复一起执行既有CI。20在独立树继续应用自有时间/容量与有界模式政策，未混入本候选。
+
+
+## CI16候选：同JVM测试宿主日志配置修复
+
+- 2026-10-04：合入28最终81ef972，merge9a8cd45。真实12轮原3 errors→同12轮GREEN定位并修复共享Logback property map配置竞争；原Flyway双应用屏障不变，测试宿主逐事件委托标准listener，不串行化应用刷新。当前3dfe963来源库1712与完整独立模板78/原质量门/三CLI/打包重启及负coverage通过，核读summary为PASS。仅诊断annotation随后压至实际encoded2737/1072/1072字符并保留最深首因，Verify javac与真实RED XML验证通过。
+- 中央产品/模板/runner与交接树相同；19、07、12、32既有消费者全部保留。按授权立即push CI16，不等待独立20或08；07/12/19/28/32保持pending、closed21，29继续等待实际双OS成功。完整来源和范围见[CI15修复报告](../../verification/ticket-28-ci15-fix.md)与[联合CI记录](../../verification/ticket-28-ci.md)。

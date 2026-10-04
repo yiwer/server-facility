@@ -37,3 +37,12 @@ Windows公开annotation明确给出新的失败：`90-template-build.log`中模�
 - Artifact `java25-ubuntu-latest-e3382ce6556d30b35d8b7e1084a210d8ef938d5e`：ID `11288950707`，34953940bytes，API digest `sha256:e95e519fe341b73de29631688bbcc99b9ec78c0793dd233f7f8be21421caa597`。
 
 - Artifact `java25-windows-latest-e3382ce6556d30b35d8b7e1084a210d8ef938d5e`：ID `11288551903`，5224110bytes，API digest `sha256:d9a41d51dba8c6cf67c4792c3a604d91533dd16c5eaef716ddfc4f4d1452f200`。
+
+
+## CI15修复候选（尚待CI16）
+
+2026-10-04：从干净中央360df3e以--no-ff合入最终`81ef972aa2e3c415620ffaa834189d92d99a3677`，merge `9a8cd45f0815f78264543c0df55c07a598bf16f5`。核读真实12轮RED（3 errors）与相同12轮GREEN：首因定位到同JVM两应用共享Logback property map并发配置。测试宿主仅逐事件协调原标准logging listener，保留其顺序和支持类型，不锁application.run、refresh或原生Flyway屏障。生产代码未改。
+
+冻结`3dfe963`包含19：当前库clean install1712/0/0/0及原门通过；完整独立模板78/0/0/0、原覆盖率、三项真实PG CLI、两模式可执行包持久化重启及缺coverage负控PASS。证据[修复报告](ticket-28-ci15-fix.md)区分窄复现、当前库安装与完整模板子集，不把子集写成aggregate all。公开failure annotation另经原RED XML实际验证为2737/1072/1072字符，保留最深CME及ContextBase首帧；仅此runner诊断后续调整，未无意义重跑模板78项。
+
+合入src/POM/templates/verification/workflow与交接分支相同，保留全部现有消费者。CI14、CI15原失败不改写；07/12/19/28/32继续verification-pending，closed仍21项，29未释放。本次授权push的CI16验证联合来源双OS，尚无成功结论。
