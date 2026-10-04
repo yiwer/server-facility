@@ -101,7 +101,7 @@ public final class PlatformConsumer {
                     require(cache.getNativeCache().getClass().getName().startsWith("com.github.benmanes.caffeine.cache."), "selected local provider");
                 }
             }
-            if (graph.equals("no-jackson-module")) {
+            if (graph.equals("no-jackson-module") && !scenario.equals("override")) {
                 require(context.getBeansOfType(JsonMapper.class).isEmpty(), "no implicit mapper without technology module");
                 require(context.getBeansOfType(Jsons.class).isEmpty(), "JSON capability must back off without mapper");
             } else {
