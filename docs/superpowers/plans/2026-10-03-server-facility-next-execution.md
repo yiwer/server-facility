@@ -225,3 +225,9 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 
 - f081f2db7ecc14783e81f667b18586ba98d3a316 / run37166952423 已 completed/failure，UTC 更新 01:18:19Z。Ubuntu111331738095 和 Windows111331738274 的 all 均在 template-build 失败，独立 platform 与归档均 success。前者 deferred HTTP 503，后者 trace 为空，两个模板摘要均为 78/1/0/0；具体注解与 artifact metadata 限制见 [CI17 报告](../../verification/ticket-08-10-20-ci.md)。
 - 08/10/20 仍 verification-pending，closed 保持26。根代理在独立 fix-ci17 树诊断标准观测生命周期，不凭 503 扩大 deadline；后续同源 CI 才能完成联合验收。fb1bdee 推荐文档/YAML修正晚于本次来源，尚未 push，不计 CI17 覆盖。正式31/33与30预研的范围均不混入本次结论。
+
+## CI18 候选：标准 trace context 只读夹具修复
+
+- 从干净0816c7a以--no-ff合入7080ec82f6ce7c4396ccd8e5d5ac6ec3f40a5c90，merge87fc4b1aedcb067291445a85a5560762e4155a97。相对中央仅2测试文件和诊断报告；src/POM/生产模板/runner/workflow均无变化，最终测试源码与4dfd4c2相同。原CI17双平台失败保留，不改成通过。
+- 核读实际日志：e9328d5完整模板clean verify为80/0/0/0、原覆盖率门通过；之后4dfd4c2仅加共用90s join deadline/finally取消其他worker，最终2CPU观测7/0/0/0通过，平台/虚拟各1600请求。两次来源分别记录，不声称80项完整门包含后续清理补丁。真实RED说明currentSpan读取会在Servlet结束竞争中重建Brave span；夹具改为标准currentTraceContext只读关联，原SERVER span/parent/采样/assertions保留。详见[修复报告](../../verification/ci17-observation-read-fix.md)。
+- 按用户既有授权推送CI18，最终双OS完整门负责新组合，08/10/20继续verification-pending、closed26。此候选包含fb1bdee推荐文档/YAML修正；31升级与30进程预研在coordination，不冒充正式验收。
