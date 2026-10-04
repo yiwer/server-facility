@@ -266,3 +266,11 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 30的Q08/Q10及共同完成项闭合，票设closed，正式累计31张。cd79a195的137命令、库1774/模板130、19个child/6次kill/71个数据库scope及三类jar SHA继续仅归本地冻结来源；没有把公开CI元数据补写成未读取的内部日志或跨OS jar同hash证明。历史失败/真实RED和各阶段修复证据继续保留。
 - 31的全部前置解除，保留ready-for-agent供正式领取；工作树外中立harness、升级稿与独立短复核仍属准备，尚未开始正式旧/新五类任务或历史升级验收。33仍等待31，并独立承担最终同一候选的全部接合、制品身份/可复现性及标准/规格双轴审查。
 - 此次仅更新票、报告和中央状态，实际ADR仍54条。产品/测试/模板/runner/消费者/workflow/Wrapper保持CI20被测内容，不重跑相同来源的本地门，不单独push纯文档提交；后续状态提交不冒称CI20已验证其SHA。旧actions通知及Ubuntu未来镜像迁移通知交33冻结时核对。
+
+## 31最终实现合入，完整本地门与CI21并行
+
+- 2026-10-04：owner确认`57dc707e39a0d4670d49a431bf78284e05af3a2f`为最终实现冻结且无已知产品/runner待改，已包含main`0edb5198d640b5d2575b94f7e60cc635c42ca96d`。root授权在冻结完整all16仍运行时并行启动现有CI；从干净main以--no-ff合为`f72cad58da0f2d7797e7d8b2a89dfdf5665ac5bd`，无冲突，产品/模板/测试/消费者/runner/workflow/Wrapper与交接源零差异。
+- 实际历史before78/after80、冻结旧/新五任务与后续独立workflow151项及打包两线程模式分别保留来源；10s请求回归和Apply拒绝已有局部证据。当前源码的完整all16及随后platform尚未完成，不写全门PASS，不把早期跳过测试构建或测量臂定向测试冒充最终门。详细来源见[31报告](../../verification/ticket-31-template-upgrade.md)。
+- 已有CHANGELOG、ADR0054及INDEX内容保持；中央补DESIGN0054、55条实际ADR与31 verification-pending，保留未闭合复选框。0054扩展0050–0053并分离runtime0.2/template2026.10.0身份，不重标历史jar。按root确认修复25票报告的单个相对链接；没有修改执行逻辑、质量/时间预算或其他扫描诊断。
+- 按既有授权推送一次实现候选启动CI21，公开run/jobs/artifacts/annotations与精确候选SHA另行登记。成功后仍须汇合owner最终证据才关闭31；累计closed仍31，33最终同一候选制品身份/接合矩阵/双轴审查未开始。历史证据归档由root维护，中央未改其index，也未发布制品或部署。
+- 推送前all16实际在template-lineage处失败：Windows源码启动器将Unicode路径字符串损坏为`?`，触发InvalidPathException；已执行120命令/523.6s不被写成整门PASS。初始合并保留，未推送或启动失败CI。修复`1dc2912`将模板/workflow两处参数统一为ASCII file URI并由lineage解析；原失败模板目录12个links及新workflow目录的20文件overlay实际四命令PASS。owner新冻结`d4ac86bf162d35b4ea1e7d9abdc5ac99a30fb5db`已合最新main，再以--no-ff合为`ff0d832135186766a58968536d0dc6af3be61d6c`，相对初始merge仅两个验证源码与失败说明报告变化。root重新授权推送该修复来源，owner从同一冻结完整重跑all/platform；首次失败及新回归分别保留。

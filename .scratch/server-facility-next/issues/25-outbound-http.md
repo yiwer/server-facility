@@ -33,6 +33,6 @@
 
 2026-10-04：root从integration c32e72e建立codex/ticket-25独立worktree。24已由真实Windows/Linux CI闭合。公开seam为宿主管理的RestClient.Builder及两个类型化聚合Adapter，沿实际HTTP请求验证；标准RestClient承担传输/转换/观测，只为重复的响应预算添加小型设施能力。先复现宿主builder配置被默认装配绕过，再逐项TDD。替代ADR0018的私有builder默认推荐与静态默认路径，兼容API先弃用并提供真实消费替代。
 
-2026-10-04：Windows完整 all --fresh 已通过；详见 [ticket-25验证报告](../../../..//docs/verification/ticket-25-outbound-http.md)。与27合并后的同源Windows/Linux CI尚待执行，Q10未关闭。
+2026-10-04：Windows完整 all --fresh 已通过；详见 [ticket-25验证报告](../../../docs/verification/ticket-25-outbound-http.md)。与27合并后的同源Windows/Linux CI尚待执行，Q10未关闭。
 
 2026-10-04：集成90098104ec8bb0edcc3eb93db848d4f2f0f51207已通过CI13 run37157891623的Windows/Ubuntu完整门、独立平台门与归档，闭合Q08/Q10，票closed。精确OS/job/artifact与证据边界见 `docs/verification/ticket-25-26-ci.md`。此前pending文字为实施历史，不代表当前状态。

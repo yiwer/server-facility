@@ -82,7 +82,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 
 ## 5. ADR 索引
 
-54 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+55 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前0001–0055已齐。
 
 | ADR | 决策 |
 |---|---|
@@ -139,6 +139,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0051 | 受保护应用的PostgreSQL notes Module：当前成员授权、JdbcClient事务、唯一约束/有限分页、Flyway同数据源及失败关闭 |
 | 0052 | Notes事务拥有命令身份、业务效果、容量计费与原始回执；唯一键等待和当前授权、过期保留、有限身份与历史迁移 |
 | 0053 | 不确定提交/独立JVM恢复，清理仅移除receipt表示；完整身份/指纹/计费保留，永久410，明确操作预算、schema绑定与权限 |
+| 0054 | 独立runtime/template来源、Boot4/Jackson3开发坐标、精确小补丁与自定义业务保留；历史升级、冻结五任务与复用workflow分别验证 |
 | 0055 | 标准ResponseCookie完整作用域、有限头与组合政策；jsoup1.23.2显式有限HTML片段、独立样本与资源边界 |
 
 ## 6. 质量门
@@ -153,7 +154,8 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 - **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选已通过CI16双OS门；本段本地计数仍仅属于所标来源。
 - **CI18联合闭合（08/10/20）**：250ce2d / run37168561735 的Windows与Ubuntu完整all、platform和归档均success，三票closed、当时共29票closed；[来源、metadata与限制](verification/ticket-08-10-20-ci18.md)。[CI17失败](verification/ticket-08-10-20-ci.md)及[标准context读取修复](verification/ci17-observation-read-fix.md)保留；29随后由CI19闭合。
 - **CI19事务命令闭合（29）**：ae7215e / run37172307215的Windows与Ubuntu all、platform和归档均success，[同源CI与artifact metadata](verification/ticket-29-ci19.md)闭合29，当时累计30票closed；30随后由CI20闭合。
-- **CI20命令恢复闭合（30）**：61094b53 / run37176585182的Windows与Ubuntu完整all、独立platform和归档均success，[同源证据与限制](verification/ticket-30-ci20.md)闭合30，累计31票closed。31的前置已解除，可正式领取模板升级与五类任务验证；33的最终候选组合与双轴审查仍待完成。
+- **CI20命令恢复闭合（30）**：61094b53 / run37176585182的Windows与Ubuntu完整all、独立platform和归档均success，[同源证据与限制](verification/ticket-30-ci20.md)闭合30，累计31票closed；31后续实现已合入，最终门仍待验证。
+- **模板交付实现候选（31）**：实现d4ac86已合入，包含首次all的Unicode路径失败修复；runtime0.2.0-SNAPSHOT、模板2026.10.0、历史自定义升级、新旧五任务与复用workflow分别保留[来源和证据边界](verification/ticket-31-template-upgrade.md)。独立workflow151项及打包两模式是局部资格，修复后候选完整all/platform与CI21未据此标为PASS；31 verification-pending，33最终制品身份、接合矩阵和双轴审查仍待完成。
 - **命令恢复本地完整门（30）**：clean cd79a195的Windows all --fresh为137命令、库1774/模板130均0失败/错误/跳过；原质量门、全部消费者、真实打包两模式与负控通过。19个独立child确认退出/PG会话归零、6次精确kill、71个自有数据库正常清理；[冻结来源与资源证据](verification/ticket-30-command-recovery.md)。这些数量与资源观测仅属于该本地冻结来源；最终16214eb8实现已合入并由CI20补齐同源双OS，不据此推定CI内部计数。
 - **事务命令本地门（29）**：f6a3a9b的Windows完整all为135命令、库1774项通过；两项产品短审修复后的4c3ba76完成完整模板106项、原质量门、真实打包两模式/三CLI与cleanup/coverage负控。34c06cb仅测试数据库ownership尾修完成18项/4项定向回归和预期2项失败的cleanup负控；[三段精确来源](verification/ticket-29-transactional-commands.md)分别保留。最终bc7ce170实现由CI19双OS组合闭合，本地三段仍不拼称某次最终all已通过。
 - **标识政策本地门（10）**：fa26fc3 Windows all --fresh113命令PASS，库1733/0/0/0、模板78与原质量门通过；历史原jar样本、64MiB固定seed2048/10000轮及UUID应用三context通过。合入08/20的新组合已由CI18双OS门闭合，见[10报告](verification/ticket-10-id-policy.md)。

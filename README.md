@@ -22,7 +22,7 @@
 | 排查「配置不生效 / bean 不是我的 / 意外降级」 | 本文[消费方陷阱速查](#消费方陷阱速查) → USAGE「消费方须知」 |
 | 消费方升级 facility 版本 | [CHANGELOG](CHANGELOG.md)（破坏性 / 行为变更的迁移指引） |
 | 修改本仓库代码 | 本文[维护须知](#维护须知) → [DESIGN §7 一致性宪法](docs/DESIGN.md) |
-| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（54 条） |
+| 理解设计动机、包依赖结构、翻历史决策 | [DESIGN](docs/DESIGN.md) → [ADR 索引](docs/adr/INDEX.md)（55 条） |
 | 查术语定义（deep module / Seam / Result-style …） | [CONTEXT](CONTEXT.md) |
 | 追溯某特性的需求与实施过程 | `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（过程档案，只读） |
 
@@ -47,7 +47,8 @@
 - **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](docs/verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选已通过CI16双OS门；本段本地计数仍仅属于所标来源。
 - **CI18联合闭合（08/10/20）**：250ce2d / run37168561735 的Windows与Ubuntu完整all、platform和归档均success，三票closed、当时共29票closed；[来源、metadata与限制](docs/verification/ticket-08-10-20-ci18.md)。[CI17失败](docs/verification/ticket-08-10-20-ci.md)及[标准context读取修复](docs/verification/ci17-observation-read-fix.md)保留；29随后由CI19闭合。
 - **CI19事务命令闭合（29）**：ae7215e / run37172307215的Windows与Ubuntu all、platform和归档均success，[同源CI与artifact metadata](docs/verification/ticket-29-ci19.md)闭合29，当时累计30票closed；30随后由CI20闭合。
-- **CI20命令恢复闭合（30）**：61094b53 / run37176585182的Windows与Ubuntu完整all、独立platform和归档均success，[同源证据与限制](docs/verification/ticket-30-ci20.md)闭合30，累计31票closed。31的前置已解除，可正式领取模板升级与五类任务验证；33的最终候选组合与双轴审查仍待完成。
+- **CI20命令恢复闭合（30）**：61094b53 / run37176585182的Windows与Ubuntu完整all、独立platform和归档均success，[同源证据与限制](docs/verification/ticket-30-ci20.md)闭合30，累计31票closed；31后续实现已合入，最终门仍待验证。
+- **模板交付实现候选（31）**：实现d4ac86已合入，包含首次all的Unicode路径失败修复；runtime0.2.0-SNAPSHOT、模板2026.10.0、历史自定义升级、新旧五任务与复用workflow分别保留[来源和证据边界](docs/verification/ticket-31-template-upgrade.md)。独立workflow151项及打包两模式是局部资格，修复后候选完整all/platform与CI21未据此标为PASS；31 verification-pending，33最终制品身份、接合矩阵和双轴审查仍待完成。
 - **命令恢复本地完整门（30）**：clean cd79a195的Windows all --fresh为137命令、库1774/模板130均0失败/错误/跳过；原质量门、全部消费者、真实打包两模式与负控通过。19个独立child确认退出/PG会话归零、6次精确kill、71个自有数据库正常清理；[冻结来源与资源证据](docs/verification/ticket-30-command-recovery.md)。这些数量与资源观测仅属于该本地冻结来源；最终16214eb8实现已合入并由CI20补齐同源双OS，不据此推定CI内部计数。
 - **事务命令本地门（29）**：f6a3a9b的Windows完整all为135命令、库1774项通过；两项产品短审修复后的4c3ba76完成完整模板106项、原质量门、真实打包两模式/三CLI与cleanup/coverage负控。34c06cb仅测试数据库ownership尾修完成18项/4项定向回归和预期2项失败的cleanup负控；[三段精确来源](docs/verification/ticket-29-transactional-commands.md)分别保留。最终bc7ce170实现由CI19双OS组合闭合，本地三段仍不拼称某次最终all已通过。
 - **标识政策本地门（10）**：fa26fc3 Windows all --fresh113命令PASS，库1733/0/0/0、模板78与原质量门通过；历史原jar样本、64MiB固定seed2048/10000轮及UUID应用三context通过。合入08/20的新组合已由CI18双OS门闭合，见[10报告](docs/verification/ticket-10-id-policy.md)。
