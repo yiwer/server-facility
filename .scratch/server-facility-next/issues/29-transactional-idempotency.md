@@ -12,21 +12,27 @@
 
 ## Acceptance criteria
 
-- [ ] 同一事务提交唯一命令键、业务记录与 receipt；默认不叠独立 lease，不依赖旧 HTTP 重放票。
-- [ ] 明确 tenant/actor/operation/key、规范化 fingerprint、当前授权、成功/拒绝/可重试失败保存政策。
-- [ ] 同键竞争有限等待，冲突、处理中、不可用和完成可区分；201/Location 等由业务结果稳定生成。
-- [ ] 定义业务键与 receipt 不同保留期、清理后的结果语义，为票 30 的进程恢复提供真实持久状态。
+- [x] 同一事务提交唯一命令键、业务记录与 receipt；默认不叠独立 lease，不依赖旧 HTTP 重放票。
+- [x] 明确 tenant/actor/operation/key、规范化 fingerprint、当前授权、成功/拒绝/可重试失败保存政策。
+- [x] 同键竞争有限等待，冲突、处理中、不可用和完成可区分；201/Location 等由业务结果稳定生成。
+- [x] 定义业务键与 receipt 不同保留期、清理后的结果语义，为票 30 的进程恢复提供真实持久状态。
 - [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
-- [ ] 正常/隔离：首次/重复、同 key 异内容、双身份/租户/操作、授权撤销后重放被拒。
-- [ ] 事务/并发：屏障控制唯一键竞争、等待预算、业务与 receipt 之间失败原子回滚、回滚后重试。
-- [ ] 接合：真实 HTTP/真实 PostgreSQL/标准错误链路，不通过内部 begin/complete 协议驱动消费者。
-- [ ] 配额：与票 09 同时具备后验证防滥用与业务计费顺序；本票逻辑不因配额能力缺席而阻塞。
+- [x] 正常/隔离：首次/重复、同 key 异内容、双身份/租户/操作、授权撤销后重放被拒。
+- [x] 事务/并发：屏障控制唯一键竞争、等待预算、业务与 receipt 之间失败原子回滚、回滚后重试。
+- [x] 接合：真实 HTTP/真实 PostgreSQL/标准错误链路，不通过内部 begin/complete 协议驱动消费者。
+- [x] 配额：与票 09 同时具备后验证防滥用与业务计费顺序；本票逻辑不因配额能力缺席而阻塞。
 
 ## Scope boundary
 
 本票先兑现正常、回滚与竞争；真实进程丢失/双实例/保留清理恢复由票 30 完成后才具备首版承诺。
 
 本票引用 server-facility 下一代脚手架 PRD v0.2，以及同批任务的测试策略与接合矩阵。用户已于 2026-10-03 确认任务拆分及依赖，本票已发布为本地任务；实际开始前须满足 Blocked by，实现与测试验收仍待完成。
+
+## Implementation handoff — 2026-10-04
+
+ADR0052 records the application-owned transaction contract. Implementation and Windows evidence are in [ticket29 verification](../../../docs/verification/ticket-29-transactional-commands.md) (repository path `docs/verification/ticket-29-transactional-commands.md`). Source stages remain separate: full `all` at f6a3a9b passed135 commands with1774 library tests; the final product/template at4c3ba76 passed106 tests, independent packaging, quality and explicit negatives; final fixture-only34c06cb passed affected lifecycle/concurrency regressions and its deliberate cleanup negative. Run40's checkpoint timeout remains a recorded failure, repaired by owned per-test database cleanup without relaxing budgets or durability.
+
+Integration2bff4f2 is included. Required Linux/final-combination CI19 remains pending; Q10 and the combined completion checkbox stay open. Ticket30's exact commit-point process faults, dual independent JVMs and physical receipt cleanup have not been claimed by ticket29.
