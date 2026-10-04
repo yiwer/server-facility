@@ -82,6 +82,7 @@ class Verify {
                     jsonConsumer();
                     platformConsumers();
                     partnerConsumer();
+                    workflowSourceFixture();
                     securedTemplate();
                 }
                 if (mode.equals("resources") || mode.equals("all")) {
@@ -215,20 +216,40 @@ class Verify {
                 "-Dmdep.outputFile=" + consumer.resolve("target/classpath.txt"));
     }
 
+    static void workflowSourceFixture() throws Exception {
+        Path evidence = Files.createDirectories(report.resolve("workflow-source-fixture"));
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        for (String name : List.of("CooperativeSource.java", "CooperativeSourceContract.java"))
+            Files.copy(ROOT.resolve("verification/workflow-consumer").resolve(name), evidence.resolve(name));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "workflow-source-fixture-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-d", classes.toString(), evidence.resolve("CooperativeSource.java").toString(),
+                evidence.resolve("CooperativeSourceContract.java").toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "workflow-source-fixture", List.of(java(), "-Xmx64m", "-cp", classes.toString(),
+                "CooperativeSourceContract"), 30, null);
+        String output = Files.readString(log);
+        for (boolean virtual : List.of(false, true))
+            if (!output.contains("COOPERATIVE_SOURCE_PASS virtual=" + virtual + " prefixBytes=22"))
+                throw new AssertionError("Missing blocking-source qualification for virtual=" + virtual);
+        summary.add("workflow-source-fixture=platform/virtual;22 actual prefix bytes;barrier-blocked read;interrupt preserved;source closed;worker exited;fixture qualification only");
+    }
+
     static void securedTemplate() throws Exception {
         Path application = Files.createTempDirectory("facility-template-").toRealPath().resolve("secured api-示例-שלום");
         Path inputs = report.resolve("template-inputs");
         Path evidence = Files.createDirectories(report.resolve("template"));
         Path copier = ROOT.resolve("templates/Instantiate.java");
         Path client = ROOT.resolve("verification/template-consumer/TemplateConsumer.java");
+        Path lineage = evidence.resolve("TemplateLineage.java");
         Files.copy(copier, evidence.resolve("Instantiate.java"));
         Files.copy(client, evidence.resolve("TemplateConsumer.java"));
+        Files.copy(ROOT.resolve("verification/template-consumer/TemplateLineage.java"), lineage);
         run(ROOT, Map.of(), "template-instantiate", List.of(java(), copier.toString(),
                 ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
         run(ROOT, Map.of(), "template-refuse-overwrite", List.of(java(), copier.toString(),
                 ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45,
                 "Destination must be new and outside the template directory");
-        run(ROOT, Map.of(), "template-lineage", List.of(java(), ROOT.resolve("verification/template-consumer/TemplateLineage.java").toString(),
+        run(ROOT, Map.of(), "template-lineage", List.of(java(), lineage.toString(),
                 application.toString()), 45, null);
         copyDirectory(application, inputs);
         try (var files = Files.walk(inputs)) {
