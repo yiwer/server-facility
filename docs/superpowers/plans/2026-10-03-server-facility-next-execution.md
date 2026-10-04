@@ -206,3 +206,28 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 
 - 207c0cc / run37165514455：Windows111327487229与Ubuntu111327487395的all、platform、归档均success，UTC更新00:49:22Z；原始公开run/jobs/artifacts JSON保存main .verification-results/ci-16。完整元数据与只读artifact metadata限制见[联合报告](../../verification/ticket-07-12-19-28-32-ci.md)。
 - 07/12/19/28/32 closed，正式累计26；历史CI14/15失败保留，29前置解除并以followup唤醒实施。08在该来源之后合入，不算此次通过；10/20仍独立验证，33负责最终单候选组合和双轴审查。仅文档闭合，不重复同源已过全门，不单独push。
+
+
+## 票20显式输入与有限保留集成
+
+- 冻结ff33c5d3f71be27a837940542cbc1c93f9f14e9b（含CI16源207c0cc）的Windows all --fresh116命令PASS：库1736/0/0/0、5架构/依赖/88/88/75原门通过，覆盖26541/28549指令、5147/5454行、2907/3418分支；jarSHA16d80a33f6e73ac077e55916b72e690680a32111f2760a4dd8848f5ed71b0410。普通jar64MiB的10000轮成功/语法失败保留5608112→5608112bytes、线程7→7；JDK-only应用三环境、模板78/partner15、PG三CLI/打包双模式重启与全部资源/负控通过。详见20报告。
+- final f6760067e5524a1e16b0bda648045edc2a80de14在通过后同步08/中央docs至e561bc4；20产品/测试/应用/Java消费者与冻结源零差异，组合Verify编译通过。从干净e561bc4以--no-ff合入，merge8f8f2ef5a783faf7879402f3f81766c0968d6beb，无冲突，合入所有产品/runner与handoff相同。中央登记0043、51条实际ADR并保留cache/value/mapping/HTML等消费者。
+- 20状态verification-pending，仅待下一同源Linux/联合CI；本地1736与jarSHA不冒作后来08组合已验证。08同待新CI，10正在交接，closed仍26。未重复无关合并导致的相同20门，下一CI17统一验证组合。
+
+
+## 票10标识政策集成与CI17候选
+
+- 核读fa26fc3d2031ffce9470c41ff483fdeb33989699的Windows all --fresh113命令PASS，库1733/0/0/0、5架构/原88/88/75/依赖、全部ordinary消费者/模板78/PG三CLI/打包两模式/资源与负控通过。jarSHA cc8c8a405a4e747b459c0d1eb850aa7794c90610c593d2c906b3431dc14ef312；ID64MiB固定seed2048/10000轮/平台和虚拟模式，保留1933944→1963184bytes；UUID实际3context及原0ee9d54普通jar历史样本均登记。
+- 最终35179046f2d0b1c0a1156bd38c0c59ee1585fe94已同步e561bc4，ID源码/测试/消费者不变。20中央登记1af4f1f后--no-ff合10，merge cc24fe9fb312ba6ad2c481880432710652d5922c；仅CHANGELOG与workflow相邻插入冲突，双方内容保留。组合Verify javac、全树冲突标记与diff-check通过，保留id/value/cache/mapping/HTML/HTTP/PG全部消费者和归档。
+- ADR0033与0023 Superseded理由保留，实际52条ADR。08/10/20仍verification-pending，源各自清晰；按授权push既有CI17验证新组合，未把多个本地来源拼成新来源已过。CI16已闭合的26票状态不变。
+
+## CI17 双平台观测失败保留
+
+- f081f2db7ecc14783e81f667b18586ba98d3a316 / run37166952423 已 completed/failure，UTC 更新 01:18:19Z。Ubuntu111331738095 和 Windows111331738274 的 all 均在 template-build 失败，独立 platform 与归档均 success。前者 deferred HTTP 503，后者 trace 为空，两个模板摘要均为 78/1/0/0；具体注解与 artifact metadata 限制见 [CI17 报告](../../verification/ticket-08-10-20-ci.md)。
+- 08/10/20 仍 verification-pending，closed 保持26。根代理在独立 fix-ci17 树诊断标准观测生命周期，不凭 503 扩大 deadline；后续同源 CI 才能完成联合验收。fb1bdee 推荐文档/YAML修正晚于本次来源，尚未 push，不计 CI17 覆盖。正式31/33与30预研的范围均不混入本次结论。
+
+## CI18 候选：标准 trace context 只读夹具修复
+
+- 从干净0816c7a以--no-ff合入7080ec82f6ce7c4396ccd8e5d5ac6ec3f40a5c90，merge87fc4b1aedcb067291445a85a5560762e4155a97。相对中央仅2测试文件和诊断报告；src/POM/生产模板/runner/workflow均无变化，最终测试源码与4dfd4c2相同。原CI17双平台失败保留，不改成通过。
+- 核读实际日志：e9328d5完整模板clean verify为80/0/0/0、原覆盖率门通过；之后4dfd4c2仅加共用90s join deadline/finally取消其他worker，最终2CPU观测7/0/0/0通过，平台/虚拟各1600请求。两次来源分别记录，不声称80项完整门包含后续清理补丁。真实RED说明currentSpan读取会在Servlet结束竞争中重建Brave span；夹具改为标准currentTraceContext只读关联，原SERVER span/parent/采样/assertions保留。详见[修复报告](../../verification/ci17-observation-read-fix.md)。
+- 按用户既有授权推送CI18，最终双OS完整门负责新组合，08/10/20继续verification-pending、closed26。此候选包含fb1bdee推荐文档/YAML修正；31升级与30进程预研在coordination，不冒充正式验收。

@@ -5,17 +5,16 @@ Boot4.1.1/Jackson3.1.5目标平台已在`80670fa`通过Windows/Ubuntu完整构�
 ## 1. Deep module 哲学
 
 server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现宽。消费方看到的是
-少量易记的入口 —— 静态门面(`IdUtil`、`JsonUtil`、`LogUtil`、`DateUtil`、`LocaleUtil`、
-`CopyUtil` …)、值类型(`Result<T,E>`、`Tuple`、`Triple`)与一组自动装配 bean —— 背后
+少量明确的入口：应用构造注入的 `Jsons`、`MessageSource`、`Executor`、`CacheManager`、
+具名业务 Adapter，纯函数工具与值类型(`Result<T,E>`、`Tuple`、`Triple`)。
+旧静态查容器入口和 `CopyUtil.autoCopy` 保留迁移兼容，不作为新业务的推荐边界。背后
 是被反复打磨、覆盖边界的实现。设计目标是让"引一个依赖就少写一大片样板",而不是暴露
 可配置旋钮的大工具箱。
 
 三条一以贯之的取向:
 
-- **错误显式化**:可预期失败一律走 `Result<T,E>` 的错误通道,不用 `null`、不靠受检异常
-  穿透。序列化、日期解析、文件 IO 等失败点全部返回 `Result`。
-- **降级安全**:自动装配的每个 bean 都 `@ConditionalOnMissingBean` 兜底,消费方声明同类
-  bean 即覆盖;配置属性不用 `@Validated`(ADR-0013),消费方即便没有校验 provider 也能启动。
+- **错误显式化**:Result 型入口通过 `Result<T,E>` 表达预期失败；Spring 标准 SPI、claim 和 HTTP 使用各自公开协议。必需参数错误与程序故障不伪装成业务失败。
+- **应用所有权与明确选择**:默认服务按声明的类型/名称条件让位；接线覆盖与开关范围逐项记录。显式选择能力后不能静默降低其保证。属性不用 `@Validated`(ADR-0013)，范围由组件守卫，不依赖校验 provider。
 - **窄依赖**:主源码不依赖 logback(ADR-0011)、error 包纯 JDK(ADR-0010),Web/XSS/MIME
   等重依赖一律 optional,按需引入。
 
@@ -63,15 +62,13 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 11 个 `@AutoConfiguration` 经 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
 注册:`Core`、`Id`、`Json`、`Locale`、`Async`、`Web`、`RateLimit`、`Cache`、`Lock`、`Http`、`Idempotency`。共同约定:
 
-- **兜底不抢占**:每个 bean `@ConditionalOnMissingBean`(按类型或名称),消费方声明的同名/
-  同类型 bean 永远优先。
+- **兜底条件明确**:可替换服务按类型或名称 `@ConditionalOnMissingBean`；接线以其具体条件为准。AccessLogInterceptor 先关闭开关再替换，不能把同类型优先概括为所有 bean 的统一规则。
 - **按类型让位 Boot**:`FacilityAsyncAutoConfiguration` 的 `facilityAsyncExecutor` 条件为
   `@ConditionalOnMissingBean(Executor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
   —— 让 Boot 的 `applicationTaskExecutor` 先注册；facility 仅缺席时提供有界平台线程池。
   消费方显式向 Async 传入 Executor；静态默认不查容器；执行段上下文、整体预算和取消见 ADR-0026（部分替代 ADR-0002）。
 - **应用拥有 i18n**:`FacilityLocaleAutoConfiguration` 在 Boot `MessageSourceAutoConfiguration` 之后提供缺席兜底；Boot basename 或用户具名 `messageSource` 优先。设施 bundle `i18n/facility-messages` 由应用明确排在 basename 之后；独立 `facilityMessageSource` 不是默认注入候选，不会引起构造注入歧义。新路径不扫描或聚合其他消息源，显式旧聚合调用者负责无环委托，见 ADR0049。
-- **Web 条件门**:`FacilityWebAutoConfiguration` 整体 `@ConditionalOnWebApplication(SERVLET)`,
-  各组件再由 `facility.web.*.enabled` 单独 `@ConditionalOnProperty` 开关。
+- **Web 条件门**:`FacilityWebAutoConfiguration` 仅适用于 Servlet 应用。旧 trace 与重复读须显式启用；请求上下文/安全错误边界没有对应 enabled 开关。Trace/Repeatable/Idempotency filter 按类型让位，已选实例只入链一次；注册覆盖与 MVC 接线见 USAGE。
 - **并非所有能力簇都装配**:11 是「需要 bean/配置属性」的子集数,不是能力簇总数——无状态、无可
   替换策略的静态门面型能力(`hash`/`crypto`/`masking`/`csv`/`excel`)不注册 `@AutoConfiguration`、
   无 `facility.*` properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020、
@@ -81,14 +78,11 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
   `log → masking`,由 `MaskUtil` 零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit
   `packages_are_cycle_free` 守护的是未来出现反向边时立即报警,而非断言方向本身),`masking`
   自身零依赖、零装配、零 bean。`csv`/`excel` 同属这一类:`CsvUtil` 以 Commons CSV required 依赖提供有界逐行消费与明确方言（ADR-0038）;
-  `ExcelUtil` 依赖 POI(optional),但装配开关的角色由**运行时探测**(而非
-  `@ConditionalOnClass`)承担——静态门面无 bean 无从条件化,改为缓存的双类 `Class.forName`
-  探针,POI 缺失时四个 API 全返 `err(EXCEL_LIB_MISSING)` 而非崩溃(ADR-0021);两包均零
-  properties、零 `@AutoConfiguration`。
+  `ExcelUtil` 以运行时成对引擎探针隔离 optional POI 类型；无 POI、仅 core、OOXML 排除 core 的实际图返回 `EXCEL_LIB_MISSING`。完整消费图使用 POI5.5.1 及所需传递依赖；逐行读取和临时预算见 ADR0039，不能将任意人为排除传递类也称为已支持回退。两包均零 properties、零 `@AutoConfiguration`。
 
 ## 5. ADR 索引
 
-50 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
+52 条架构决策记录(`docs/adr/`);0001-0008 为源仓继承决策,0009 起为本工程决策。并行票按预留编号登记，当前编号不连续。
 
 | ADR | 决策 |
 |---|---|
@@ -114,7 +108,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0020 | 日志脱敏——`LogUtil` 写前集成(`LogPostHandler` 证伪)+ 校验位误伤抑制 + SECRET substring 语义 |
 | 0021 | 保留裸列表、无表头ORM与POI optional；CSV政策由0038、Excel预算/公式/临时资源/实际引擎保证由0039部分替代 |
 | 0022 | `LogUtil` 门控基于调用方 logger(per-package 生效)+ StackWalker 惰性解析 |
-| 0023 | SnowId 回拨:false 无界等待绝不抛;spin 上限随阈值放宽 |
+| 0023 → 0033 | 旧无限等待被显式节点、共享单调预算与中断替代；新应用直接JDK UUID |
 | 0024 | Java 25、固定校验 Wrapper、独立普通 jar 与跨平台入口；Boot3中间版本由0045部分替代 |
 | 0025 | Context 注册归实例所有、刷新/关闭隔离；构造器注入为默认，ID/日志兼容入口不跨 context 缓存 Spring bean |
 | 0026 | Async：显式执行器、整体 deadline、同步上下文作用域与协作取消；部分替代 0002 |
@@ -124,6 +118,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0030 | LocalKeyedMutex实例内真实线程owner、严格活动键预算和安全回收；关闭/观察终止均不提前释放，旧SPI迁移 |
 | 0031 | 显式缓存能力/有限名字与后端TTL容量；缺依赖拒绝、标准loading和宿主关闭边界，部分替代0015 |
 | 0032 | 本地配额正成本/精确余额、有界主体回收、required/Optional政策和可信身份入口计费；部分替代0014 |
+| 0033 | UUID默认与显式节点SnowId；准入/回拨/序列共享单调有限预算，中断保留、失败不消费状态，替代0023 |
 | 0034 | 独立claim的可信scope/fingerprint、owner条件完成、结果到期不重授、共享硬预算与永久close；部分替代0017 |
 | 0035 | 当前授权的有限HTTP重放、可信scope/业务指纹、安全头回执和终态；过期当前owner仅可终止 |
 | 0036 | 正数实际字节预算、借用MIME流不关闭、生成存储键与同卷hardlink不覆盖发布；保留0001 optional边界 |
@@ -133,6 +128,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 | 0040 | 保留旧AES-GCM/PBKDF2协议；安全Result失败、应用输入/并发预算与独立普通jar历史回执消费者 |
 | 0041 | 保留Result/领域错误语义；浅引用所有权、必需回调与集合算术边界，纯Java普通jar消费者 |
 | 0042 | 显式订单到发运DTO与字段演进检查；旧autoCopy有限支持、32活动层/10000工作单元、final拒绝与标准安全日志 |
+| 0043 | 应用Clock/Zone/Locale、严格日期/DST与正数容量；精确parseSize、无动态日期缓存和有限模式保留 |
 | 0044 | JSON 应用 Jsons 注入、构建期回调和显式流预算；保留旧入口，冻结消费者金样并登记 22–24 非发布集成门 |
 | 0045 | Boot4目标依赖、按技术拆分模块、JUnit6/ArchUnit与独立工具链探针；23关闭Jackson编译、24恢复完整门 |
 | 0046 | Jackson3应用mapper/registry所有权、不可变builder、安全错误和正数字段预算；替代0044旧兼容阶段 |
@@ -149,10 +145,13 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 - **前次本地完整门（含16与11/25/27）**：被测`99ae71a` Windows `all --fresh`为库1600/0/0/0、模板47/0/0/0、聚合应用14/0/0/0，共92命令全部通过。Excel4种真实引擎依赖图、64MiB400,000行/200失败/恶意XML、独立样本和openpyxl导出oracle通过；原质量门、既有消费者/平台矩阵/资源/负控均PASS，详见[16报告](verification/ticket-16-bounded-excel.md)。同源CI12已通过Windows/Ubuntu完整门、平台门和归档，11/16/27 closed，详见[CI37156503739](verification/ticket-11-16-27-ci.md)。25后加Inventory `[null]` 修复已随[CI13](verification/ticket-25-26-ci.md)跨平台闭合；本段精确计数仅为原本地来源。
 - **前次本地完整门（26）**：冻结`72a37b6` Windows `all --fresh`为库1614/0/0/0、模板52/0/0/0、聚合应用14/0/0/0，92命令与原质量门/负控全部PASS，见[26报告](verification/ticket-26-host-observability.md)。含25库存null修复的联合候选已通过[CI13](verification/ticket-25-26-ci.md)，25/26 closed。
 - **CI16联合闭合（07/12/19/28/32）**：207c0cc / run37165514455 的Windows与Ubuntu完整all、platform和归档均success，五票closed、共26票closed；[原始metadata与范围](verification/ticket-07-12-19-28-32-ci.md)。08/10/20未包含于该来源，等待后续CI。
-- **持久业务本地门（28）**：冻结`4a5ad5d`完整92步为库1614/partner15/模板74均零失败；随后整秒JDBC预算修复在`e0fd5b3`完成模板76项、原质量门、真实PostgreSQL可执行包两线程模式CRUD/重启与coverage负控。两次来源和范围分别记录在[28报告](verification/ticket-28-persistent-business.md)。CI14同源Ubuntu通过、Windows打包数据库启动失败，见[CI记录](verification/ticket-28-ci.md)；28保持verification-pending；[原生进程修复](verification/ticket-28-ci14-fix.md)已合入，CI15 Ubuntu通过、Windows并发迁移测试失败；[并发测试宿主修复](verification/ticket-28-ci15-fix.md)已完成当前库1712与完整模板78项，现已由CI16双OS联合门闭合。
-- **本地互斥门（07）**：冻结`df7f788`的Windows完整97步通过，库1637/0/0/0；原SPI兼容、64MiB轮转与Async观察结束后仍持锁均已执行。之后与28合并的候选等待CI，精确范围见[07报告](verification/ticket-07-local-lock.md)。
-- **授权重放本地门（12）**：`3563d92`的Windows `all`通过，库1667/0/0/0、模板76/0/0/0及独立Security重放消费者、PostgreSQL打包重启、原质量门与负控全部通过。含07；精确来源见[12报告](verification/ticket-12-authorized-replay.md)。12仍待Linux，28的CI14失败独立保留。
-- **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选及Linux仍待CI，不能拼接计数冒充新来源通过。
+- **持久业务本地门（28）**：冻结`4a5ad5d`完整92步为库1614/partner15/模板74均零失败；随后整秒JDBC预算修复在`e0fd5b3`完成模板76项、原质量门、真实PostgreSQL可执行包两线程模式CRUD/重启与coverage负控。两次来源和范围分别记录在[28报告](verification/ticket-28-persistent-business.md)。CI14同源Ubuntu通过、Windows打包数据库启动失败，见[CI记录](verification/ticket-28-ci.md)；当时28保持verification-pending；[原生进程修复](verification/ticket-28-ci14-fix.md)已合入，CI15 Ubuntu通过、Windows并发迁移测试失败；[并发测试宿主修复](verification/ticket-28-ci15-fix.md)已完成当前库1712与完整模板78项，现已由CI16双OS联合门闭合。
+- **本地互斥门（07）**：冻结`df7f788`的Windows完整97步通过，库1637/0/0/0；原SPI兼容、64MiB轮转与Async观察结束后仍持锁均已执行。随后联合候选已通过CI16，原本地精确范围见[07报告](verification/ticket-07-local-lock.md)。
+- **授权重放本地门（12）**：`3563d92`的Windows `all`通过，库1667/0/0/0、模板76/0/0/0及独立Security重放消费者、PostgreSQL打包重启、原质量门与负控全部通过。含07；精确来源见[12报告](verification/ticket-12-authorized-replay.md)。12已由CI16同源双OS门闭合，28的CI14失败独立保留。
+- **Cookie/HTML本地门（32）**：`1f307a3`的Windows `all --fresh`100命令PASS，库1655/0/0/0、模板76/0/0/0；jsoup有/无两个普通jar图、64MiB深度10000与10000次成功/拒绝及原质量门/负控通过，见[32报告](verification/ticket-32-cookie-html.md)。该冻结来源不含12或28 CI修复；合并后联合候选已通过CI16双OS门；本段本地计数仍仅属于所标来源。
+- **CI17 联合候选**：08/10/20 的 f081f2d 在双 OS 完整门均遇到模板观测测试失败；独立平台门/归档通过。三票保持待验证，[标准context读取修复](verification/ci17-observation-read-fix.md)已合入，待CI18验证最终组合；实际症状与原始元数据见[CI17 失败记录](verification/ticket-08-10-20-ci.md)。
+- **标识政策本地门（10）**：fa26fc3 Windows all --fresh113命令PASS，库1733/0/0/0、模板78与原质量门通过；历史原jar样本、64MiB固定seed2048/10000轮及UUID应用三context通过。合入08/20的新组合待CI17，见[10报告](verification/ticket-10-id-policy.md)。
+- **显式输入本地门（20）**：ff33c5d Windows all --fresh116命令PASS，库1736/0/0/0、模板78/partner15与原门通过；实际旧jar金样、普通jar64MiB/10000轮和JDK-only应用三时区Locale通过。合入08后的新组合待联合CI，见[20来源与限制](verification/ticket-20-value-policies.md)。
 - **缓存本地组合门（08）**：6881088库1729/0/0/0及原质量门通过；原all因no-Jackson显式mapper消费者断言矛盾保留FAIL。修正后的d0afe97完整61步尾门以强制相同库源码和jar SHA通过5图24场景、模板78、PG/打包/资源/负控。两段证据分别见[08报告](verification/ticket-08-cache-guarantees.md)，不称原all PASS；Linux待新CI。
 - **显式映射本地门（19）**：修复Map key与value回调间中断检查后的`4bcad87`完成Windows `all --fresh`110命令PASS，库1712/0/0/0、模板76/partner15及原门全部通过；具名DTO业务/编译负控、旧binary和64MiB资源消费者通过，见[19报告](verification/ticket-19-explicit-mapping.md)。历史本地结果不覆盖CI15失败；现已由CI16同源双OS门闭合。
 - **当前目标平台（2026-10-04）**：票24的 `31e7765` Windows空仓库 `all --fresh` 为1449/0/0/0；instruction92.8076%、line93.3576%、branch85.2258%，原5架构及依赖门通过，见 [票24证据](verification/ticket-24-platform-integration.md)。普通jar/core/crypto、JSON双应用、3Web、5依赖图11JVM、Tika有无上传、5次资源周期及3工具链负控PASS。Servlet6.1新重载在本机实际通过；同产品集成`80670fa`现已通过Windows/Ubuntu完整CI，详见[平台闭合](verification/ticket-24-ci.md)；各环境精确值以各自artifact为准。
@@ -171,7 +170,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 函数型与必需依赖参数 null → fail-fast(`requireNonNull`);IO/解析/外部世界交互 → `Result`
 通道。存量差异已被测试锁定、不改行为,各类级 javadoc 如实自述(`Numbers` setScale(null)→null、
 `NumberFormat` format(null)→""、`MimeTyping` detect(byte[]) 仅 null/空数组前置回退
-FALLBACK；其旧 detect(InputStream,String) 的IO失败现抛UncheckedIOException，不再静默回退（ADR0036）、`Patterns` 全员 null-safe 且
+FALLBACK；其旧 detect(InputStream,String) 的IO失败现抛UncheckedIOException，不再静默回退（ADR0036）、`Patterns` 内容处理入口按各自返回类型 null-safe，
 `compile` 底层原语刻意 fail-fast)。
 
 **C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
@@ -179,16 +178,16 @@ ADR-0046 的 JSON InputStream 字段是正预算例外：显式 ≤0 拒绝，�
 ADR-0036 的上传预算也必须为正数，≤0 经Result拒绝，便利入口固定10MiB；无无界上传路径。
 ADR-0037 的ZIP/目录与ADR-0038的CSV预算也全部正数，旧便利入口采用已登记有限默认；显式增大预算不等于宿主并发准入。
 ADR-0032 的限流capacity/rate/cost/maxBuckets均必须正且rate有限；注解capacity/rate=0仅表示继承默认，绝不表示无限制。
+ADR0043的应用导出预算为显式正数且最多64MiB；通用parseSize保留零/负数仅表示数值，绝不解释为无限预算。
+ADR0030 的本地活动键、0031 的选定缓存 TTL/条目容量、0034/0035 的 claim/HTTP 字节与时长、0039 的 Excel 预算均为显式正预算，按各公开契约拒绝无效值。
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
-高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。历史审计(2026-07-06)中的锁降级已由ADR0030替代：缺实现拒绝、容量拒绝直接返回结果，不打印业务key。其余历史WARN项包括
-cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
-CopyUtil null key drop;静默侧——旧LockUtil缺bean时tryLock返回false/unlock为no-op，execute拒绝；CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。历史审计(2026-07-06)中的锁降级已由ADR0030替代：缺实现拒绝、容量拒绝直接返回结果，不打印业务key。旧 cache ConcurrentMap 回退已由ADR0031取消；选中能力缺依赖明确失败。旧幂等响应与复制诊断由ADR0035/0042的有限安全事件替代；新路径使用标准 SLF4J 白名单，不打印业务key/任意cause。兼容门面仍需分别迁移：LockUtil缺bean时tryLock返回false/unlock为no-op，execute拒绝；CacheUtil 无 manager 的未缓存回退与 HttpClients 的未配置 client 回退不代表新应用所需能力可用。
 ADR-0032已替代限流clear-all与默认无Bean放行：新key只回收补满桶或拒绝；普通门面不可用抛异常，Optional显式降级仍不逐请求记日志。
 
 **C4 门面命名双家族**:`XxxUtil` = 静态门面(可能有状态/参与 Spring 边缘/装配交互);
-复数名词 = 纯函数无状态工具。新组件按此归家族,存量零改名。历史例外:`HttpClients`
+复数名词 = 以值操作为主的工具；Patterns保留明确有界的编译缓存（ADR0043）。新组件按此归家族,存量零改名。历史例外:`HttpClients`
 复数名但依赖 `RestClient` bean,按门面对待(如实记载,不粉饰)。
 
 **C5 可空性标注**:公共 API 可空参数/返回值用 `jakarta.annotation.Nullable`;首批已补

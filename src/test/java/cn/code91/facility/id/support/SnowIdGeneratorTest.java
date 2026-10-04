@@ -43,18 +43,18 @@ class SnowIdGeneratorTest {
     }
 
     @Test
-    void sequenceExhaustionRollsToNextMillis() {
+    void advancingClockStartsTheNextMillis() {
         AtomicLong fakeMs = new AtomicLong(BASE_MS);
         SnowIdGenerator gen = new SnowIdGenerator(defaultProps(), fakeMs::get);
 
-        // Exhaust all 1024 sequences in this millisecond
+        // Issue 1023 values before an ordinary clock advance; true exhaustion is covered separately.
         for (int i = 0; i < 1023; i++) {
             gen.nextId();
         }
-        // Advance clock so waitForNextMillis can exit
+        // Advance the supplied wall clock.
         fakeMs.set(BASE_MS + 1L);
         long id = gen.nextId();
-        // The parsed timestamp should be epoch + BASE_MS + 1
+        // Literal epoch-relative timestamp is preserved.
         assertThat(gen.parseTimestamp(id)).isGreaterThanOrEqualTo(BASE_MS + 1L);
     }
 
@@ -133,13 +133,13 @@ class SnowIdGeneratorTest {
     }
 
     @Test
-    @DisplayName("F2:throwOnExceedThreshold=false + 大幅回拨 2s → 无界等待追上,绝不抛(决策 a)")
-    void falseConfig_largeBackwards_waitsUntilCaughtUp_neverThrows() {
+    @DisplayName("F2:throwOnExceedThreshold=false + 大幅回拨 2s → 在单调预算内追上")
+    void falseConfig_largeBackwards_recoversWithinBudget() {
         FacilityIdProperties props = defaultProps();
         props.setThrowOnClockBackwardsExceedThreshold(false);
 
         // 步进时钟:首读 BASE_MS 建立 lastTimestamp;此后从回拨 2000ms 起每读前进 400ms,封顶 BASE_MS。
-        // 旧实现 spinUntil 以注入时钟测流逝,>1000ms 即抛——本测试在旧代码上必红。
+        // 步进的是wall time，不是本次调用的单调预算。
         AtomicLong reads = new AtomicLong();
         SnowIdGenerator gen = new SnowIdGenerator(props, () -> {
             long n = reads.getAndIncrement();
@@ -178,8 +178,8 @@ class SnowIdGeneratorTest {
     }
 
     @Test
-    @DisplayName("F2 连带:true + 阈值 3s,阈内回拨 2.5s 的 spin 须越过旧 1s 硬上限追上(cap 随阈值放宽)")
-    void trueConfig_withinLargeThreshold_spinOutlastsLegacyOneSecondCap() {
+    @DisplayName("F2 连带:true + 阈值 3s,阈内回拨2.5s在单调预算内恢复")
+    void trueConfig_withinLargeThreshold_recoversWithinBudget() {
         FacilityIdProperties props = defaultProps();
         props.setClockBackwardsThresholdMillis(3_000L);
         props.setThrowOnClockBackwardsExceedThreshold(true);
@@ -194,7 +194,7 @@ class SnowIdGeneratorTest {
         });
 
         long first = gen.nextId();
-        long second = gen.nextId();  // 旧实现:spin 流逝 1200ms>1000 抛;新实现 cap=max(1000,3000) 追上
+        long second = gen.nextId();  // Wall time恢复不改变本次单调预算。
 
         assertThat(second).isGreaterThan(first);
     }

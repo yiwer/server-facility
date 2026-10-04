@@ -13,16 +13,15 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * <b>日期时间工具类</b>
  * <p>
  * 提供日期时间的格式化、解析、比较、转换等常用操作。
- * 内置DateTimeFormatter缓存以提高性能。
+ * Legacy入口使用调用时的默认FORMAT Locale与SMART解析；不持有动态formatter缓存。
+ * 新业务直接拥有显式Locale、ResolverStyle、ZoneId和Clock的java.time政策。
  * </p>
  *
  * <h3>使用示例：</h3>
@@ -56,22 +55,9 @@ public final class DateUtil {
     public static final LocalDate MIN_DATE = LocalDate.of(1000, 1, 1);
 
     /**
-     * DateTimeFormatter缓存，避免重复创建
-     */
-    private static final Map<String, DateTimeFormatter> FORMATTER_MAP = new ConcurrentHashMap<>();
-    /**
      * 支持的日期格式列表，用于自动解析多种格式的日期字符串
      */
     public static final String[] SUPPORT_DATE_FORMAT = {"yyyy-MM-dd", "yyyy-M-dd", "yyyy/MM/dd", "yyyy/MM/d", "yyyy/M/d", "yyyy/M/dd", "yyyy年MM月dd日", "yyyyMMdd"};
-
-    static {
-        FORMATTER_MAP.put("yyyy-MM-dd", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        FORMATTER_MAP.put("yyyy-M-dd", DateTimeFormatter.ofPattern("yyyy-M-dd"));
-        FORMATTER_MAP.put("yyyy/MM/dd", DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        FORMATTER_MAP.put("yyyy/M/dd", DateTimeFormatter.ofPattern("yyyy/M/dd"));
-        FORMATTER_MAP.put("yyyy年MM月dd日", DateTimeFormatter.ofPattern("yyyy年MM月dd日"));
-        FORMATTER_MAP.put("yyyyMMdd", DateTimeFormatter.ofPattern("yyyyMMdd"));
-    }
 
     /**
      * 私有构造函数，防止实例化
@@ -184,7 +170,7 @@ public final class DateUtil {
             return Result.err(WrappedError.of(FacilityErrorType.FORMAT_TEMPORAL_ERROR));
         }
         try {
-            DateTimeFormatter dateTimeFormatter = FORMATTER_MAP.computeIfAbsent(pattern, DateTimeFormatter::ofPattern);
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
             return Result.ok(dateTimeFormatter.format(temporal));
         } catch (DateTimeException | IllegalArgumentException exception) {
             return Result.err(WrappedError.of(FacilityErrorType.FORMAT_TEMPORAL_ERROR, exception));
@@ -226,7 +212,7 @@ public final class DateUtil {
             return Result.err(WrappedError.of(FacilityErrorType.PARSE_STR_TO_TEMPORAL_ERROR));
         }
         try {
-            DateTimeFormatter dateTimeFormatter = FORMATTER_MAP.computeIfAbsent(pattern, DateTimeFormatter::ofPattern);
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
             return Result.ok(LocalDateTime.parse(localDateTimeStr, dateTimeFormatter));
         } catch (DateTimeParseException | IllegalArgumentException exception) {
             return Result.err(WrappedError.of(FacilityErrorType.PARSE_STR_TO_TEMPORAL_ERROR, exception));
@@ -246,7 +232,7 @@ public final class DateUtil {
             return Result.err(WrappedError.of(FacilityErrorType.PARSE_STR_TO_TEMPORAL_ERROR));
         }
         try {
-            DateTimeFormatter dateTimeFormatter = FORMATTER_MAP.computeIfAbsent(pattern, DateTimeFormatter::ofPattern);
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
             return Result.ok(LocalDate.parse(localDateStr, dateTimeFormatter));
         } catch (DateTimeParseException | IllegalArgumentException exception) {
             return Result.err(WrappedError.of(FacilityErrorType.PARSE_STR_TO_TEMPORAL_ERROR, exception));

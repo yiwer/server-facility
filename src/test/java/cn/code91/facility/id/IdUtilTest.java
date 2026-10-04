@@ -20,6 +20,9 @@ class IdUtilTest {
     @Nested
     @DisplayName("snowId 雪花算法 ID")
     class SnowIdTests {
+        @org.junit.jupiter.api.BeforeEach void explicitProvider() { IdUtil.setGenerator(new SnowIdGenerator(0, 0)); }
+        @AfterEach void releaseProvider() { IdUtil.resetGenerator(); }
+
 
         @Test
         @DisplayName("生成的 ID 非 null")

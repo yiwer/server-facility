@@ -1,19 +1,9 @@
 /**
- * <h2>cn.code91.facility.id</h2>
- *
- * <p><b>Purpose:</b> Snowflake ID generation — static facade {@code IdUtil} (snow id +
- * UUID variants + id parsing), {@code SnowIdGenerator} (41+2+2+10 bit layout, clock-backwards
- * handling, test clock seam), and its configuration knobs {@code FacilityIdProperties}
- * (prefix {@code facility.id}; re-homed here from autoconfigure — C3 cycle break, spec §4.4).</p>
- *
- * <p><b>Entry classes:</b> {@code IdUtil}, {@code SnowIdGenerator}, {@code FacilityIdProperties}.</p>
- *
- * <p><b>Depends on:</b> {@code context} ({@code IdUtil} resolves the Spring-managed
- * generator via {@code SpringContextHolder}, with non-latching DEFAULT fallback — RV2-06),
- * Spring Boot configuration-properties annotations, Jakarta validation annotations,
- * and SLF4J ({@code IdUtil} RV2-06 fallback warning).</p>
- *
- * <p><b>Depended on by:</b> {@code autoconfigure} ({@code FacilityIdAutoConfiguration}
- * wires {@code SnowIdGenerator} from {@code FacilityIdProperties}), downstream application code.</p>
+ * Explicit-node SnowId compatibility and identifier migration. New business code uses JDK UUID.
+ * SnowId preserves its55-bit layout/instance epoch parser while bounding state admission and clock waits.
+ * Auto-configuration is opt-in and requires both node components. IdUtil remains a deprecated facade,
+ * with an explicit process provider or current Spring provider; it has no default node or retained Spring bean.
+ * Properties use Boot configuration metadata/validation annotations; generator logic uses JDK concurrency.
+ * UUID and explicit-node construction can be consumed without Spring at runtime.
  */
 package cn.code91.facility.id;

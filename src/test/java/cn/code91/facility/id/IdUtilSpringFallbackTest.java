@@ -9,8 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class IdUtilSpringFallbackTest {
     @Test
-    void doesNotLatchDefaultThenPicksUpBean() {
-        assertThat(IdUtil.getGeneratorType()).startsWith("DEFAULT");
+    void doesNotLatchMissingThenPicksUpBean() {
+        assertThat(IdUtil.getGeneratorType()).isEqualTo("MISSING");
         try (var context = application()) {
             assertThat(IdUtil.isUsingSpringGenerator()).isTrue();
         }

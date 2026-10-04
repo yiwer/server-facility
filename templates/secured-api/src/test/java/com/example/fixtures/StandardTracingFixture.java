@@ -34,8 +34,9 @@ public class StandardTracingFixture {
             this.tracer = tracer; this.observations = observations; this.executor = executor;
         }
         Map<String, String> scope() {
-            var span = tracer.currentSpan();
-            return Map.of("trace", span == null ? "none" : span.context().traceId(),
+            // Read context without recreating a span that the servlet thread may be finishing.
+            var context = tracer.currentTraceContext().context();
+            return Map.of("trace", context == null ? "none" : context.traceId(),
                     "observation", observations.getCurrentObservation() == null ? "none" : "active");
         }
         @GetMapping("/api/greeting/span") public Map<String, String> sync() { return scope(); }

@@ -63,7 +63,9 @@ class Verify {
                     consumer("configured");
                     consumer("override");
                     consumer("invalid");
+                    idConsumer();
                     coreConsumer();
+                    valueConsumer();
                     mappingConsumer();
                     cryptoConsumer();
                     ioConsumer();
@@ -350,6 +352,36 @@ class Verify {
         summary.add("core-consumer=ordinary jar only; no framework/annotation/third-party runtime; domain business and compatibility; seed180041/512; -Xmx64m/45s");
     }
 
+    static void valueConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path inputs = report.resolve("value-consumer/inputs");
+        copyDirectory(ROOT.resolve("verification/value-consumer"), inputs.resolve("consumer"));
+        copyDirectory(ROOT.resolve("examples/export-input"), inputs.resolve("application"));
+        Path classes = Files.createDirectories(report.resolve("value-consumer/classes"));
+        Path appClasses = Files.createDirectories(report.resolve("value-consumer/application-classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "value-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-cp", jar.toString(), "-d", classes.toString(), inputs.resolve("consumer/ValuePolicyConsumer.java").toString()), 45, null);
+        Path log = run(ROOT, Map.of(), "value-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                "-Dfile.encoding=UTF-8", "-cp", classes + File.pathSeparator + jar, "ValuePolicyConsumer"), 45, null);
+        if (!Files.readString(log).contains("VALUE_RESOURCE_PASS seed=200043 properties=512 rounds=10000")) {
+            throw new AssertionError("Value policy resource consumer incomplete: " + log);
+        }
+        run(ROOT, Map.of(), "export-input-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8",
+                "-d", appClasses.toString(), inputs.resolve("application/src/example/exports/ExportRequests.java").toString(),
+                inputs.resolve("consumer/ExportInputConsumer.java").toString()), 45, null);
+        for (String[] environment : List.of(new String[]{"UTC", "en", "US"},
+                new String[]{"Asia/Shanghai", "zh", "CN"}, new String[]{"America/New_York", "fr", "FR"})) {
+            Path appLog = run(ROOT, Map.of(), "export-input-" + environment[1], List.of(java(), "-Xmx32m",
+                    "-Dfile.encoding=UTF-8", "-Duser.timezone=" + environment[0], "-Duser.language=" + environment[1],
+                    "-Duser.country=" + environment[2], "-cp", appClasses.toString(), "ExportInputConsumer"), 30, null);
+            if (!Files.readString(appLog).contains("Export input contract PASS")) {
+                throw new AssertionError("Export application consumer incomplete: " + appLog);
+            }
+        }
+        summary.add("value-consumer=ordinary jar/JDK only; legacy literals and explicit migrations; seed200043/512; 10000 rotations under64MiB/45s; application JDK-only32MiB in3 locale/timezone processes; strict/DST/clock/budget policies");
+    }
+
     static void mappingConsumer() throws Exception {
         Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
         Path annotations = repository.resolve("jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar");
@@ -501,6 +533,26 @@ class Verify {
             throw new AssertionError("Rate-limit consumer did not complete: " + log);
         }
         summary.add("rate-limit-consumer=ordinary jar only; no framework runtime; 1024 slots/512-char keys/32768 churn+illegal-cost attempts/16 workers; -Xmx64m/2 processors/45s");
+    }
+
+    static void idConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path inputs = report.resolve("id-consumer/inputs");
+        copyDirectory(ROOT.resolve("verification/id-consumer"), inputs);
+        Files.copy(ROOT.resolve("verification/consumer/src/main/java/example/IdApplicationConsumer.java"), inputs.resolve("IdApplicationConsumer.java"));
+        Path classes = Files.createDirectories(report.resolve("id-consumer/classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "id-consumer-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8", "-cp", jar.toString(),
+                "-d", classes.toString(), inputs.resolve("LegacyIdSamples.java").toString(), inputs.resolve("IdConsumer.java").toString()), 45, null);
+        Path plain = run(ROOT, Map.of(), "id-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", classes + File.pathSeparator + jar, "IdConsumer"), 45, null);
+        if (!Files.readString(plain).contains("ID_CONSUMER_PASS")) throw new AssertionError("Identifier resource consumer incomplete");
+        Path consumer = ROOT.resolve("verification/consumer");
+        String graph = Files.readString(consumer.resolve("target/classpath.txt")).trim();
+        Path app = run(ROOT, Map.of(), "id-application-consumer", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                "-cp", consumer.resolve("target/classes") + File.pathSeparator + graph, "example.IdApplicationConsumer"), 45, null);
+        if (!Files.readString(app).contains("ID_APPLICATION_CONSUMER_PASS")) throw new AssertionError("Identifier application consumer incomplete");
+        summary.add("id-consumer=ordinary jar/JDK-only; fixed historic55-bit samples; seed100025/2048; 8 workers/platform+virtual; 10000 successful/rejected/interrupted cycles;64MiB/2CPU/45s; independent UUID default/custom app operation and JSON128MiB/45s");
     }
 
     static void htmlConsumer() throws Exception {

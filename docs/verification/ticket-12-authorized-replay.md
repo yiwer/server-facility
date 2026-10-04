@@ -1,5 +1,7 @@
 # Ticket 12 verification — authorized bounded HTTP replay
 
+> 当前状态（2026-10-04）：本票已由207c0cc / CI16两OS完整门闭合，见[联合验收](ticket-07-12-19-28-32-ci.md)。下文保留各次冻结/交接时的本地证据和当时待验事项；其中pending描述不代表现在仍未关闭。
+
 Windows final all passed; verification-pending only for Linux CI. This report distinguishes the retained first-run migration failure from the final successful candidate. Worktree `ticket-12`, branch `codex/ticket-12`; initial source `6a6667269551eae3d46b7c6bf626fe5f9fd101b3`, implementation baseline advanced to `b7b7ea46778972822c7a757cf593d441bc1cde3c` (runner diagnostics only). The coordinator authorized implementation after ticket 11's actual Ubuntu all completed; the unrelated combined Windows consumer build remained under separate diagnosis.
 
 Public seams: actual loopback Tomcat HTTP via `EmbeddedServletApplication`, fixture business effects exposed through HTTP, qualified store public operations, fake clock and real worker barriers. ADR-0035 and the ticket-specific plan describe the interface and migration. Raw logs are in `.verification-results/ticket-12` and survive Maven clean.
