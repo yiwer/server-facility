@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — ticket08 vertical implementation and verification in progress.
+Accepted — implementation decisions accepted; platform verification status is tracked separately in the ticket report.
 
 日期：2026-10-04。
 
@@ -28,7 +28,11 @@ A real initial-load barrier also demonstrated that invalidateAll can return whil
 
 ## Consequences
 
-Applications must enable local caching deliberately and declare both optional dependencies, fixed names and their domain invalidation policy. User backends remain possible through Spring SPI with their own guarantees. No remote backend, business-authority cache, custom scheduler or new cache DSL is introduced.
+**Positive**: standard Spring injection and explicit local policy replace unbounded implicit fallback; no extra global cache or scheduler.
+
+**Negative**: applications must enable local caching deliberately and declare both optional dependencies, fixed names and their domain invalidation policy. User backends remain possible through Spring SPI with their own guarantees. No remote backend, business-authority cache, custom scheduler or new cache DSL is introduced.
+
+**Carry-forward**: Linux CI and final batch review retain their own evidence gates. Business invalidation and host loader lifetime remain application responsibilities.
 
 Legacy callers relying on default registration/dynamic names/no-expiry fallback must migrate rather than silently receive weaker semantics. Old signatures should be retained or explicitly refused with migration notes; consumers and historical expectations are updated alongside behavior tests.
 
