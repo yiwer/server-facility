@@ -168,7 +168,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 函数型与必需依赖参数 null → fail-fast(`requireNonNull`);IO/解析/外部世界交互 → `Result`
 通道。存量差异已被测试锁定、不改行为,各类级 javadoc 如实自述(`Numbers` setScale(null)→null、
 `NumberFormat` format(null)→""、`MimeTyping` detect(byte[]) 仅 null/空数组前置回退
-FALLBACK；其旧 detect(InputStream,String) 的IO失败现抛UncheckedIOException，不再静默回退（ADR0036）、`Patterns` 全员 null-safe 且
+FALLBACK；其旧 detect(InputStream,String) 的IO失败现抛UncheckedIOException，不再静默回退（ADR0036）、`Patterns` 内容处理入口按各自返回类型 null-safe，
 `compile` 底层原语刻意 fail-fast)。
 
 **C2 「无限制」拼法**:统一为「**≤0 = 不限制**」(properties javadoc/USAGE/注释同一拼法);
@@ -176,6 +176,7 @@ ADR-0046 的 JSON InputStream 字段是正预算例外：显式 ≤0 拒绝，�
 ADR-0036 的上传预算也必须为正数，≤0 经Result拒绝，便利入口固定10MiB；无无界上传路径。
 ADR-0037 的ZIP/目录与ADR-0038的CSV预算也全部正数，旧便利入口采用已登记有限默认；显式增大预算不等于宿主并发准入。
 ADR-0032 的限流capacity/rate/cost/maxBuckets均必须正且rate有限；注解capacity/rate=0仅表示继承默认，绝不表示无限制。
+ADR0043的应用导出预算为显式正数且最多64MiB；通用parseSize保留零/负数仅表示数值，绝不解释为无限预算。
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
@@ -185,7 +186,7 @@ CopyUtil null key drop;静默侧——旧LockUtil缺bean时tryLock返回false/un
 ADR-0032已替代限流clear-all与默认无Bean放行：新key只回收补满桶或拒绝；普通门面不可用抛异常，Optional显式降级仍不逐请求记日志。
 
 **C4 门面命名双家族**:`XxxUtil` = 静态门面(可能有状态/参与 Spring 边缘/装配交互);
-复数名词 = 纯函数无状态工具。新组件按此归家族,存量零改名。历史例外:`HttpClients`
+复数名词 = 以值操作为主的工具；Patterns保留明确有界的编译缓存（ADR0043）。新组件按此归家族,存量零改名。历史例外:`HttpClients`
 复数名但依赖 `RestClient` bean,按门面对待(如实记载,不粉饰)。
 
 **C5 可空性标注**:公共 API 可空参数/返回值用 `jakarta.annotation.Nullable`;首批已补

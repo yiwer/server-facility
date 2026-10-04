@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed，2026-10-04。票20实施中，实际完成范围见[验证报告](../verification/ticket-20-value-policies.md)。
+Accepted，2026-10-04。设计已落实；票20本地完整门已通过、跨平台验收待CI，实际完成范围见[验证报告](../verification/ticket-20-value-policies.md)。
 
 ## Context
 
@@ -24,7 +24,7 @@ Patterns只保留最多256个regex/flags，键长度超过4096UTF16的宿主可�
 
 **Negative**：严格输入、拒绝溢出及有限缓存可能拒绝旧入口曾接受的值；迁移说明与兼容样本必须逐项区分。Java正则仍仅接受宿主信任的开发者模式，不承诺任意不可信模式的执行时限。
 
-**Carry-forward**：本票Q01–Q10/J14/J16与最终完整门仍在实施；33负责最后候选组合，不反向替代本票证据。
+**Carry-forward**：本票Q01–Q10/J14/J16的Windows完整门通过，Linux待同源CI；33负责最后候选组合，不反向替代本票证据。
 
 ## References
 

@@ -4,24 +4,24 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** in-progress
+**Status:** verification-pending
 
 **Traceability:** FR-05、FR-08、FR-09；AC-08、AC-11、AC-12
 
 ## Acceptance criteria
 
-- [ ] 选择真实业务输入流程迁移到 JDK 或有价值的有限策略，停止浅包装扩张。
-- [ ] Clock、ZoneId、Locale、严格/legacy 日期及舍入语义公开；无界格式/正则缓存退出。
-- [ ] 预算数值拒绝溢出和非有限值，旧 ≤0 表示无限制的约定如有改变须显式迁移。
-- [ ] 不把正则缓存有界等同于任意不可信正则有执行时限；不可信模式应限制或拒绝。
+- [x] 选择真实业务输入流程迁移到 JDK 或有价值的有限策略，停止浅包装扩张。
+- [x] Clock、ZoneId、Locale、严格/legacy 日期及舍入语义公开；无界格式/正则缓存退出。
+- [x] 预算数值拒绝溢出和非有限值，旧 ≤0 表示无限制的约定如有改变须显式迁移。
+- [x] 不把正则缓存有界等同于任意不可信正则有执行时限；不可信模式应限制或拒绝。
 - [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
-- [ ] 正常/边界：闰年/月末/无效日期、边界年、UTC/上海/DST 跳变重叠；精确小数、单位及舍入边界。
-- [ ] 非法输入：NaN/Infinity、溢出、零/负值、非法模式与组号、形状合法但语义无效日期。
-- [ ] 性质/资源：固定时钟和固定种子数值/格式输入；格式与模式键轮转后保留规模有界。
-- [ ] 兼容：Locale、旧宽松日期、集合/显示约定与新明确入口分别有金样。
+- [x] 正常/边界：闰年/月末/无效日期、边界年、UTC/上海/DST 跳变重叠；精确小数、单位及舍入边界。
+- [x] 非法输入：NaN/Infinity、溢出、零/负值、非法模式与组号、形状合法但语义无效日期。
+- [x] 性质/资源：固定时钟和固定种子数值/格式输入；格式与模式键轮转后保留规模有界。
+- [x] 兼容：Locale、旧宽松日期、集合/显示约定与新明确入口分别有金样。
 
 ## Scope boundary
 
@@ -33,3 +33,10 @@
 ## Implementation record
 
 2026-10-04，领取独立ticket-20/codex/ticket-20，基于集成1d6377d。19产品修复已完成，等待28修复接合后最终验证；本票在该等待窗口独立实施，不覆盖19的验收责任。按用户已批准的DateUtil/NumberFormat/NumberUnits/Patterns公开入口及独立应用Module做逐项RED→GREEN，公共边界不重复索取批准。代表流程为显式Clock/ZoneId/Locale的定时导出输入；严格固定日期和正数容量是业务政策，旧SMART/默认环境/显示语义单独保留金样。无界动态缓存退出，不将Java正则误称可中断的不可信输入引擎。ADR0043，原始证据从开始存.verification-results/ticket-20。
+
+
+## Windows验收与待项
+
+冻结ff33c5d3f71be27a837940542cbc1c93f9f14e9b（含central207c0cc）已完成Windows `all --fresh`116命令，1736/0/0/0、原88/88/75覆盖门/5架构/依赖门、普通jar64MiB/10000轮、JDK-only应用三时区Locale、partner15/模板78、实际PostgreSQL三CLI/可执行两模式重启、资源和全部负控PASS。库jarSHA16d80a33f6e73ac077e55916b72e690680a32111f2760a4dd8848f5ed71b0410。原始.verification-results/20261004-084233-261-all与TDD逐轮日志保留；[完整报告](../../../docs/verification/ticket-20-value-policies.md)列Q01–Q10/J14/J16适用/不适用及历史jar金样。
+
+代表流程是实际独立编译执行的应用定时导出输入，未虚构根库已有生产请求链；新政策和旧SMART/默认环境/Math.round分别公开。ADR0043 Accepted、迁移说明齐备。当前仅缺后续Linux/同源联合CI，故Q总项未勾、状态verification-pending；31升级业务与33最终候选各自负责，不反向创造本票循环依赖。

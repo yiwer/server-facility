@@ -1,6 +1,6 @@
 # 20 — Explicit date, capacity and pattern policies
 
-2026-10-04, in-progress. Worktree ticket20/codex/ticket-20 begins at central `1d6377dee64db3e8b072dd590a9f09c78df5b6df`. The formal ticket and all Q01–Q10/J14/J16 obligations remain open until the recorded scenarios and final gates complete. Planning is in the outside-worktree coordination/ticket-20-implementation-plan.md; this report records actual evidence only.
+2026-10-04, Windows complete; verification-pending for current Linux CI. Worktree ticket20/codex/ticket-20 begins at central `1d6377dee64db3e8b072dd590a9f09c78df5b6df`. The Q01–Q10/J14/J16 traceability and final Windows gate are recorded below; Linux and final candidate combinations retain their own evidence scope. Planning is in the outside-worktree coordination/ticket-20-implementation-plan.md; this report records actual evidence only.
 
 Public seams: DateUtil, NumberFormat, NumberUnits and Patterns, plus the independently compiled application-owned export-input Module. These are covered by the user's prior approval of utility and application seams. No private cache field inspection or fake regex-cancellation proof is used.
 
@@ -32,7 +32,7 @@ Raw logs live in ignored `.verification-results/ticket-20`, outside Maven clean 
 - [JDK25 DateTimeFormatter](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/time/format/DateTimeFormatter.html): explicit formatting policy; strict parsing and legacy behavior must be distinguished.
 - [JDK25 ZoneRules](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/time/zone/ZoneRules.html): valid local offsets form the basis for explicit gap/overlap handling.
 
-These references support the design; they do not replace actual public-boundary tests or cross-platform evidence. No final all or CI result is claimed yet.
+These references support the design; they do not replace actual public-boundary tests or cross-platform evidence. At that incremental point no final all or CI result was claimed; the final source and results are recorded below.
 
 
 ## Later regressions and compatibility (not invented RED)
@@ -52,13 +52,26 @@ Cycle18 (`red-18-capacity-ascii.log`) demonstrates two Unicode-digit cases accep
 |---|---|
 |Q01 / FR05,FR08,FR09 / AC08,AC11,AC12|ADR0043, migration table and this vertical RED/GREEN ledger; application-owned ExportRequests.plan replaces implicit environment in a representative executable input flow, without claiming a nonexistent production chain was migrated.|
 |Q02|CapacityParsingContractTest signed bounds/128/scale/Unicode, DateUtilTest legacy null/date/ranges, independent ExportInputConsumer year0001/9999, DST gap/overlap, strict calendar, input32, six decimals, positive64MiB and30-day horizon; PatternRetentionContractTest syntax/flags/groups/4096.|
-|Q03|Runner compiles the application separately with JDK alone; ValuePolicyConsumer consumes only ordinary jar+own classes with Spring/JUnit/SLF4J absent. Final artifact execution remains pending below.|
+|Q03|Runner compiles the application separately with JDK alone; ValuePolicyConsumer consumes only ordinary jar+own classes with Spring/JUnit/SLF4J absent. Final artifact execution passes below.|
 |Q04|Four-worker CountDownLatch release verifies concurrent pattern churn/public bound; fixed Clock controls time and repeated refusal/reuse. These paths do not own external I/O, transactions, worker queues or cancelable activities, so injected network failures/process recovery are not applicable. Arbitrary regex interruption is explicitly unsupported.|
 |Q05|Application32UTF16/6decimals/64MiB and fixed16-unit timestamp; genericcapacity128UTF16/scale[-128,128]; pattern256entries/4096-unit retained keys; DateUtil no dynamic formatter retention. Separate64MiB process warms2000 then rotates10000 successes plus10000 syntax failures with registered heap/thread thresholds. Host-owned display values, regex/content/output bounds remain caller responsibilities.|
 |Q06 / J14|Actual pre20 ordinary jar5853fd...cef2 from4bcad87, same compiled consumer with literal SMART/Locale/zone/money/Math.round/list and explicitly different precision/overflow/cache expectations. No public signature removed; NumberUnits is deprecated.31 owns the overall upgrade rehearsal.|
 |Q07|Seed200043:512 signed exact-byte values and512 quarter-MiB values with independent integer oracles. Fixed literal instants and declared128/32/256/4096 boundaries; no new fuzz framework.|
 |Q08|Logs retain command failures and label source-class preflight separately; default Locale/TimeZone changes occur only in child JVMs. New input errors omit raw value/cause; legacy Result causes remain documented, not falsely declared safe. Final runner records environment/artifact/source below.|
-|Q09|Existing thresholds88/88/75, architecture/dependency rules and tests unchanged; final all pending. Added public tests and independent consumers are not coverage substitutes.|
+|Q09|Existing thresholds88/88/75, architecture/dependency rules and tests unchanged; final all passes below. Added public tests and independent consumers are not coverage substitutes.|
 |Q10 / J16|This report, ADR, migration guide and reproducible sources ship together. Local complete gate and subsequent Linux CI must be recorded before closure.33 owns final candidate combinations, not a prerequisite cycle blocking this ticket's own evidence.|
 
 Windows/Linux path/device/link and byte-decoder semantics are not new capabilities here: inputs are Java Strings and the application opens no files. J16's applicable Unicode, Locale, DST and extreme numeric values run through these actual entrances. The runner still executes in Unicode/space paths and the final CI must prove supported OS invocation. No blanket arbitrary-BigDecimal output-size or regex CPU safety promise is made.
+
+
+## Final frozen Windows gate
+
+Source `ff33c5d3f71be27a837940542cbc1c93f9f14e9b` includes central `207c0cce7f67acf09bc29f40a1fbbfed4c01ac61`, including the28 same-JVM logging fixture repair. `java verification/Verify.java all --fresh` completed **116 commands, exit0, RESULT=PASS**. Raw directory `.verification-results/20261004-084233-261-all/`; outer log `.verification-results/ticket-20/final-all.log`. Entry revision and empty worktree were recorded by the runner. Environment: Windows11/amd64, Oracle25.0.4.1+1-LTS-5, Wrapper Maven3.10.0, Asia/Shanghai, zh_CN; an isolated fresh Maven repository and real JDK21 negative toolchain. PG_BIN was the checksum-pinned native PostgreSQL18.6 tool directory from the template's PreparePostgres.
+
+The root suite has **1736 tests/0 failures/0 errors/0 skips**, a24-test increase over1712:19 capacity cases,1 isolated-locale test and4 public-pattern contracts. No old tests were removed or skipped. The original5 architecture rules and dependency analysis pass. JaCoCo counters are instruction26541/28549 (92.9665%), line5147/5454 (94.3711%), branch2907/3418 (85.0497%); original88/88/75 thresholds remain. The ordinary jar SHA256 is `16d80a33f6e73ac077e55916b72e690680a32111f2760a4dd8848f5ed71b0410`.
+
+Commands13–18 compile and execute the new consumers from copied inputs. `14-value-consumer.log` proves current ordinary-jar/JDK-only semantics and64MiB/2CPU resource limits:seed200043/512 numeric samples,10000 measured rotations plus syntax failures, retained5608112→5608112bytes,threads7→7. The application compiles without any facility jar and then passes under UTC/en-US, Asia/Shanghai/zh-CN and America/New_York/fr-FR defaults in three32MiB processes. These replace the earlier compiled-class preflight as final consumer evidence; historical pre20 jar evidence remains a separate compatibility observation.
+
+All retained ordinary consumers, DTO evolution controls, file-format/resource/negative graphs, real Security HTTP replay, JSON two-application and actual dependency matrices pass. Partner15/0/0/0 and template78/0/0/0 pass their original quality gates. Three real PostgreSQL process contracts, independent Unicode-path executable platform/virtual authentication and persistence across restarts, required-coverage negatives, five application resource cycles and checksum/missing-JDK/real-wrong-JDK refusals all pass. Secured template jarSHA256 `6b42d4c84fe5f0f2946d207dd5078406da0597e5494f66a261d66714c245e993`.
+
+Root's focused read-only review of this frozen source found no blocker; the outside-worktree note is coordination/ticket-20-root-short-review.md. This does not replace final33 independent Standards/Spec review. Source synchronization after this run is explicitly recorded below and does not relabel the above jar/counts as a later combined candidate. Current Linux CI remains the only ticket20 completion gap; no arbitrary-regex deadline or unbounded display-input guarantee has been added.
