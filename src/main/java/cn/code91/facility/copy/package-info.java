@@ -1,16 +1,8 @@
 /**
- * <h2>cn.code91.facility.copy</h2>
- *
- * <p><b>Purpose:</b> Deep-copy infrastructure — the {@code CopyTrait} contract,
- * {@code CopyUtil} collection deep-copy API (list / set / map, with
- * {@code CopyOptions} null-handling policy) and reflection-based
- * {@code autoCopy} with per-class metadata caching ({@code @CopyField} opt-out).</p>
- *
- * <p><b>Entry classes:</b> {@code CopyUtil}, {@code CopyTrait}, {@code CopyField}.</p>
- *
- * <p><b>Depends on:</b> {@code common} ({@code Collects} capacity math,
- * {@code NullSafe} emptiness checks), {@code log} (null-copy warnings).</p>
- *
- * <p><b>Depended on by:</b> downstream application entities requiring deep copies.</p>
+ * Legacy copying with explicit compatibility limits. New application DTOs use named values and explicit
+ * constructors (see examples/order-mapping). CopyUtil collection helpers delegate element semantics to
+ * CopyTrait/Function; deprecated autoCopy has documented shallow references, null defaults and finite work.
+ * No object-graph mapper, container factory or immutable-field mutation is provided.
+ * Dependencies: common NullSafe and standard SLF4J only; optional diagnostics do not dispatch via LogUtil.
  */
 package cn.code91.facility.copy;

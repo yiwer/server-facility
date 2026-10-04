@@ -9,6 +9,13 @@
 
 ## [Unreleased] — 0.1.0-SNAPSHOT
 
+### 显式DTO映射与有界旧复制（2026-10-04，ADR0042）
+
+- 新订单到发运DTO示例用具名record和显式构造，不依赖反射映射器；实际消费者验证字段完整性、顺序/重复行、独立容器和源码演进负控。
+- `autoCopy`弃用但不删签名；未忽略的final字段、不可访问字段、不兼容具体深容器及深排序容器明确拒绝。原null默认值、浅引用和独立复制深别名政策保持并列明。
+- 所有旧复制入口同步嵌套调用共用10,000工作单元和32活动层限制；实际遍历计数，循环/超限/协作中断用CopyException拒绝，异常后清理作用域。依赖无界输入或final反射的调用方必须迁移。
+- 可选警告改标准SLF4J固定安全消息，backend RuntimeException不改变复制结果；不再经LogUtil二次分发。见[完整迁移](docs/building/explicit-mapping.md)。
+
 ### Cookie与HTML政策（2026-10-04，ADR0055）
 
 - Cookie使用标准ResponseCookie，完整写入/删除保留scope；旧默认增加SameSite=Lax，删除发送空协议值及同默认flags。写入需Spring Web；最大4096ASCII头、整秒-1..400天、明确路径/安全组合，重复请求名字不再首值/末值任选。

@@ -64,6 +64,7 @@ class Verify {
                     consumer("override");
                     consumer("invalid");
                     coreConsumer();
+                    mappingConsumer();
                     cryptoConsumer();
                     ioConsumer();
                     csvConsumer();
@@ -346,6 +347,44 @@ class Verify {
             throw new AssertionError("Core consumer did not complete: " + log);
         }
         summary.add("core-consumer=ordinary jar only; no framework/annotation/third-party runtime; domain business and compatibility; seed180041/512; -Xmx64m/45s");
+    }
+
+    static void mappingConsumer() throws Exception {
+        Path jar = repository.resolve("cn/code91/server-facility/0.1.0-SNAPSHOT/server-facility-0.1.0-SNAPSHOT.jar");
+        Path annotations = repository.resolve("jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar");
+        Path evidence = Files.createDirectories(report.resolve("mapping-consumer"));
+        Path inputs = Files.createDirectories(evidence.resolve("inputs"));
+        copyDirectory(ROOT.resolve("examples/order-mapping"), inputs.resolve("example"));
+        copyDirectory(ROOT.resolve("verification/mapping-consumer"), inputs.resolve("consumer"));
+        Path source = inputs.resolve("example/src/example/orders/OrderDispatch.java");
+        Path classes = Files.createDirectories(evidence.resolve("classes"));
+        String javac = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "javac.exe" : "javac").toString();
+        run(ROOT, Map.of(), "mapping-compile", List.of(javac, "--release", "25", "-encoding", "UTF-8", "-cp",
+                jar + File.pathSeparator + annotations, "-d", classes.toString(), source.toString(),
+                inputs.resolve("consumer/OrderMappingConsumer.java").toString(),
+                inputs.resolve("consumer/LegacyCopyConsumer.java").toString()), 45, null);
+        Path business = run(ROOT, Map.of(), "order-mapping", List.of(java(), "-Xmx128m", "-XX:ActiveProcessorCount=2",
+                "-cp", classes + File.pathSeparator + annotations, "OrderMappingConsumer", source.toUri().toASCIIString(),
+                evidence.resolve("evolution").toUri().toASCIIString()), 45, null);
+        String output = Files.readString(business);
+        if (!output.contains("ORDER_MAPPING_CONSUMER_PASS") || !output.contains("ORDER_EVOLUTION_CONTROLS_PASS"))
+            throw new AssertionError("Order mapping business/evolution controls did not complete");
+        Path legacy = run(ROOT, Map.of(), "legacy-copy-resource", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                "-cp", classes + File.pathSeparator + jar, "LegacyCopyConsumer"), 45, null);
+        if (!Files.readString(legacy).contains("LEGACY_COPY_RESOURCE_PASS"))
+            throw new AssertionError("Bounded ordinary-jar copy consumer did not complete");
+        Path binary = inputs.resolve("consumer/legacy-binary");
+        for (String line : Files.readAllLines(binary.resolve("SHA256SUMS"))) {
+            String[] parts = line.split("  ", 2);
+            String actual = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(binary.resolve(parts[1]))));
+            if (!parts[0].equals(actual)) throw new AssertionError("Legacy copy binary fixture hash differs: " + parts[1]);
+        }
+        Path compatibility = run(ROOT, Map.of(), "legacy-copy-binary", List.of(java(), "-Xmx64m",
+                "-cp", binary + File.pathSeparator + jar, "LegacyCopyConsumer", "legacy"), 45, null);
+        if (!Files.readString(compatibility).contains("LEGACY_COPY_COMPAT_PASS"))
+            throw new AssertionError("Pre-change copy consumer binary did not complete");
+        summary.add("mapping=application-owned named DTO; literal fields/order/null/duplicate lines; bounded inputs; added/renamed compile controls and swapped-field business control;128MiB/45s");
+        summary.add("legacy-copy=ordinary jar only non-warning subset; pre-change ABI fixture; seed190042/512;2000 bounded copies/rejections and200 callback Errors;64MiB/45s");
     }
 
     static void cryptoConsumer() throws Exception {
