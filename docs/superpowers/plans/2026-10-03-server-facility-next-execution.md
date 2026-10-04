@@ -220,3 +220,8 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 核读fa26fc3d2031ffce9470c41ff483fdeb33989699的Windows all --fresh113命令PASS，库1733/0/0/0、5架构/原88/88/75/依赖、全部ordinary消费者/模板78/PG三CLI/打包两模式/资源与负控通过。jarSHA cc8c8a405a4e747b459c0d1eb850aa7794c90610c593d2c906b3431dc14ef312；ID64MiB固定seed2048/10000轮/平台和虚拟模式，保留1933944→1963184bytes；UUID实际3context及原0ee9d54普通jar历史样本均登记。
 - 最终35179046f2d0b1c0a1156bd38c0c59ee1585fe94已同步e561bc4，ID源码/测试/消费者不变。20中央登记1af4f1f后--no-ff合10，merge cc24fe9fb312ba6ad2c481880432710652d5922c；仅CHANGELOG与workflow相邻插入冲突，双方内容保留。组合Verify javac、全树冲突标记与diff-check通过，保留id/value/cache/mapping/HTML/HTTP/PG全部消费者和归档。
 - ADR0033与0023 Superseded理由保留，实际52条ADR。08/10/20仍verification-pending，源各自清晰；按授权push既有CI17验证新组合，未把多个本地来源拼成新来源已过。CI16已闭合的26票状态不变。
+
+## CI17 双平台观测失败保留
+
+- f081f2db7ecc14783e81f667b18586ba98d3a316 / run37166952423 已 completed/failure，UTC 更新 01:18:19Z。Ubuntu111331738095 和 Windows111331738274 的 all 均在 template-build 失败，独立 platform 与归档均 success。前者 deferred HTTP 503，后者 trace 为空，两个模板摘要均为 78/1/0/0；具体注解与 artifact metadata 限制见 [CI17 报告](../../verification/ticket-08-10-20-ci.md)。
+- 08/10/20 仍 verification-pending，closed 保持26。根代理在独立 fix-ci17 树诊断标准观测生命周期，不凭 503 扩大 deadline；后续同源 CI 才能完成联合验收。fb1bdee 推荐文档/YAML修正晚于本次来源，尚未 push，不计 CI17 覆盖。正式31/33与30预研的范围均不混入本次结论。
