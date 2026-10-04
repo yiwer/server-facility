@@ -1,0 +1,668 @@
+{
+  "schemaVersion": 1,
+  "status": "qualified",
+  "qualifiedSource": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+  "sourceScope": "Actual implementation/test/runner/CI source. Subsequent closure commit is documentation only and is not relabeled as tested.",
+  "localAll": {
+    "originalExecutionDirectory": "E:\\GenCode\\server-facility-worktrees\\ticket-33-review-fixes\\.verification-results\\20261004-221057-625-all",
+    "outer": {
+      "mode": "all --fresh",
+      "sourceCleanAtStart": true,
+      "startedUtc": "2026-10-04T14:10:56.1198035Z",
+      "endedUtc": "2026-10-04T14:43:59.8990543Z",
+      "priorRun": "20261004-205159-079-all user-aborted, separate retained evidence",
+      "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+      "exitCode": 0
+    },
+    "identity": {
+      "artifacts": {
+        "partner": {
+          "bytes": 21990,
+          "classpathRuntimeSha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+          "gav": "cn.code91.examples:partner-aggregation:1.0-SNAPSHOT",
+          "kind": "ordinary",
+          "outputTimestamp": "1980-02-01T00:00:00Z",
+          "path": "partner/partner-aggregation.jar",
+          "quality": {
+            "coverage": {
+              "BRANCH": {
+                "covered": 77,
+                "missed": 13
+              },
+              "INSTRUCTION": {
+                "covered": 832,
+                "missed": 40
+              },
+              "LINE": {
+                "covered": 115,
+                "missed": 3
+              }
+            },
+            "errors": 0,
+            "failures": 0,
+            "skipped": 0,
+            "tests": 15
+          },
+          "sha256": "f8bde24be2d7ed820fe512a6c6137dcf28fb3de79e7986f47e6f43874b2369ef"
+        },
+        "runtime": {
+          "bytes": 475282,
+          "gav": "cn.code91:server-facility:0.2.0-SNAPSHOT",
+          "kind": "ordinary",
+          "outputTimestamp": "1980-02-01T00:00:00Z",
+          "path": "artifacts/server-facility-0.2.0-SNAPSHOT.jar",
+          "quality": {
+            "coverage": {
+              "BRANCH": {
+                "covered": 2992,
+                "missed": 526
+              },
+              "INSTRUCTION": {
+                "covered": 27018,
+                "missed": 2032
+              },
+              "LINE": {
+                "covered": 5230,
+                "missed": 307
+              }
+            },
+            "errors": 0,
+            "failures": 0,
+            "skipped": 0,
+            "tests": 1790
+          },
+          "sha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717"
+        },
+        "securedApi": {
+          "bytes": 33256549,
+          "gav": "com.example:secured-api:1.0.0-SNAPSHOT",
+          "kind": "boot",
+          "nestedRuntimeSha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+          "outputTimestamp": "1980-02-01T00:00:00Z",
+          "path": "template/artifacts/secured-api-1.0.0-SNAPSHOT.jar",
+          "quality": {
+            "coverage": {
+              "BRANCH": {
+                "covered": 226,
+                "missed": 35
+              },
+              "INSTRUCTION": {
+                "covered": 2423,
+                "missed": 56
+              },
+              "LINE": {
+                "covered": 328,
+                "missed": 9
+              }
+            },
+            "errors": 0,
+            "failures": 0,
+            "skipped": 0,
+            "tests": 132
+          },
+          "sha256": "de89e244ca7a34d6db59748cf3e5f4778765d7f59ef7851283aaa791e498f263"
+        },
+        "workflow": {
+          "bytes": 33509540,
+          "gav": "com.example:secured-api:1.0.0-SNAPSHOT",
+          "kind": "boot",
+          "nestedRuntimeSha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+          "outputTimestamp": "1980-02-01T00:00:00Z",
+          "path": "workflow/artifacts/workflow-application.jar",
+          "quality": {
+            "coverage": {
+              "BRANCH": {
+                "covered": 296,
+                "missed": 47
+              },
+              "INSTRUCTION": {
+                "covered": 3082,
+                "missed": 72
+              },
+              "LINE": {
+                "covered": 427,
+                "missed": 10
+              }
+            },
+            "errors": 0,
+            "failures": 0,
+            "skipped": 0,
+            "tests": 153
+          },
+          "sha256": "55521fdd0143155e6a5a0b2565150d0642ee75f9d294bc4727a826528724291d"
+        }
+      },
+      "environment": {
+        "arch": "amd64",
+        "java": "25.0.4.1+1-LTS-5",
+        "locale": "zh_CN",
+        "maven": "3.10.0",
+        "osVersion": "10.0",
+        "python": "3.14.7",
+        "runnerImage": "local",
+        "runnerImageVersion": "local",
+        "timezone": "Asia/Shanghai",
+        "vendor": "Oracle Corporation"
+      },
+      "historical": {
+        "afterTests": 80,
+        "beforeTests": 78,
+        "packagedStages": [
+          "before-platform",
+          "after-platform",
+          "after-virtual"
+        ],
+        "phases": {
+          "after": {
+            "bytes": 33253071,
+            "quality": {
+              "coverage": {
+                "BRANCH": {
+                  "covered": 182,
+                  "missed": 33
+                },
+                "INSTRUCTION": {
+                  "covered": 1989,
+                  "missed": 39
+                },
+                "LINE": {
+                  "covered": 274,
+                  "missed": 8
+                }
+              },
+              "errors": 0,
+              "failures": 0,
+              "skipped": 0,
+              "tests": 80
+            },
+            "runtimeSha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+            "sha256": "cc25dbb609397b7d97587a78e33df7e8942fbe307d30710c10da013528fe30e4"
+          },
+          "before": {
+            "bytes": 33253107,
+            "quality": {
+              "coverage": {
+                "BRANCH": {
+                  "covered": 180,
+                  "missed": 33
+                },
+                "INSTRUCTION": {
+                  "covered": 1986,
+                  "missed": 39
+                },
+                "LINE": {
+                  "covered": 274,
+                  "missed": 8
+                }
+              },
+              "errors": 0,
+              "failures": 0,
+              "skipped": 0,
+              "tests": 78
+            },
+            "runtimeSha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+            "sha256": "79857245d948e1ae39521e1f78e684c9aaff2ee8c2037d2ce4a565acf7b2749e"
+          }
+        },
+        "result": "PASS",
+        "runtimeSha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717"
+      },
+      "inventory": {
+        "apiSha256": "84bd66056459c6967eaa506c74ea5e8d3f1d5ca5e10ccc058dc1032e21af802e",
+        "dependencySha256": "b73bd6a125485685d14489586c4af37a0eae95790d9be921fdf5f70399725256",
+        "packages": 29,
+        "runtimeSha256": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+        "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45"
+      },
+      "mode": "all",
+      "os": "Windows",
+      "result": "PASS",
+      "runAttempt": "local",
+      "runId": "local",
+      "schemaVersion": 1,
+      "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+      "sourceClean": true
+    },
+    "identitySha256": "610d50dba06a0603e0b49fd3c3846df23f4b24bbd4ccfde870473a7b29ad16d3"
+  },
+  "localPlatform": {
+    "originalExecutionDirectory": "E:\\GenCode\\server-facility-worktrees\\ticket-33-review-fixes\\.verification-results\\20261004-224431-670-platform",
+    "outer": {
+      "endedUtc": "2026-10-04T14:47:40.2449184Z",
+      "mode": "platform --fresh",
+      "exitCode": 0,
+      "sourceCleanAtStart": true,
+      "startedUtc": "2026-10-04T14:44:30.3142469Z",
+      "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45"
+    },
+    "identity": {
+      "environment": {
+        "arch": "amd64",
+        "java": "25.0.4.1+1-LTS-5",
+        "locale": "zh_CN",
+        "maven": "3.10.0",
+        "osVersion": "10.0",
+        "python": "3.14.7",
+        "runnerImage": "local",
+        "runnerImageVersion": "local",
+        "timezone": "Asia/Shanghai",
+        "vendor": "Oracle Corporation"
+      },
+      "mode": "platform",
+      "os": "Windows",
+      "result": "PASS",
+      "runAttempt": "local",
+      "runId": "local",
+      "schemaVersion": 1,
+      "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+      "sourceClean": true
+    },
+    "identitySha256": "d2a16faaf9d85ac43cda8c34392755c281099a3880f1a8067f38946a58ab17de"
+  },
+  "ci": {
+    "runId": 37203623059,
+    "attempt": 1,
+    "url": "https://github.com/yiwer/server-facility/actions/runs/37203623059",
+    "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+    "allThreeJobsAndRequiredStepsVerified": true,
+    "notices": {
+      "verify (ubuntu-latest)": {
+        "all": "PASS",
+        "platform": "PASS",
+        "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+        "run": "37203623059",
+        "attempt": "1",
+        "os": "Linux",
+        "arch": "amd64",
+        "java": "25.0.4.1+1-LTS",
+        "locale": "en",
+        "maven": "3.10.0",
+        "osVersion": "6.17.0-1022-azure",
+        "python": "3.12.3",
+        "runnerImage": "ubuntu24",
+        "runnerImageVersion": "20260927.320.1",
+        "timezone": "Etc/UTC",
+        "vendor": "Eclipse Adoptium",
+        "partner": "f8bde24be2d7ed820fe512a6c6137dcf28fb3de79e7986f47e6f43874b2369ef",
+        "partnerTests": "15",
+        "partnerBRANCH": "77/90",
+        "partnerINSTRUCTION": "832/872",
+        "partnerLINE": "115/118",
+        "runtime": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+        "runtimeTests": "1790",
+        "runtimeBRANCH": "2993/3518",
+        "runtimeINSTRUCTION": "27021/29050",
+        "runtimeLINE": "5230/5537",
+        "securedApi": "31ccf6e873169342849f0869364b5fab2fde3865723db51c30ca1fee2a883a97",
+        "securedApiTests": "132",
+        "securedApiBRANCH": "226/261",
+        "securedApiINSTRUCTION": "2423/2479",
+        "securedApiLINE": "328/337",
+        "workflow": "db8cbc8234de992f7cc5ae90694f67265a897964ca1f1681d6201457f98300b2",
+        "workflowTests": "153",
+        "workflowBRANCH": "296/343",
+        "workflowINSTRUCTION": "3082/3154",
+        "workflowLINE": "427/437"
+      },
+      "verify (windows-latest)": {
+        "all": "PASS",
+        "platform": "PASS",
+        "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+        "run": "37203623059",
+        "attempt": "1",
+        "os": "Windows",
+        "arch": "amd64",
+        "java": "25.0.4.1+1-LTS",
+        "locale": "en_US",
+        "maven": "3.10.0",
+        "osVersion": "10.0",
+        "python": "3.12.10",
+        "runnerImage": "win25-vs2026",
+        "runnerImageVersion": "20260925.250.1",
+        "timezone": "Etc/UTC",
+        "vendor": "Eclipse Adoptium",
+        "partner": "f8bde24be2d7ed820fe512a6c6137dcf28fb3de79e7986f47e6f43874b2369ef",
+        "partnerTests": "15",
+        "partnerBRANCH": "77/90",
+        "partnerINSTRUCTION": "832/872",
+        "partnerLINE": "115/118",
+        "runtime": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+        "runtimeTests": "1790",
+        "runtimeBRANCH": "2992/3518",
+        "runtimeINSTRUCTION": "27018/29050",
+        "runtimeLINE": "5230/5537",
+        "securedApi": "31ccf6e873169342849f0869364b5fab2fde3865723db51c30ca1fee2a883a97",
+        "securedApiTests": "132",
+        "securedApiBRANCH": "226/261",
+        "securedApiINSTRUCTION": "2423/2479",
+        "securedApiLINE": "328/337",
+        "workflow": "db8cbc8234de992f7cc5ae90694f67265a897964ca1f1681d6201457f98300b2",
+        "workflowTests": "153",
+        "workflowBRANCH": "296/343",
+        "workflowINSTRUCTION": "3082/3154",
+        "workflowLINE": "427/437"
+      },
+      "candidate-identity": {
+        "identity": "PASS",
+        "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+        "run": "37203623059",
+        "attempt": "1",
+        "os": "Linux",
+        "arch": "amd64",
+        "java": "25.0.4.1+1-LTS",
+        "locale": "en",
+        "maven": "3.10.0",
+        "osVersion": "6.17.0-1022-azure",
+        "python": "3.12.3",
+        "runnerImage": "ubuntu24",
+        "runnerImageVersion": "20260927.320.1",
+        "timezone": "Etc/UTC",
+        "vendor": "Eclipse Adoptium",
+        "partner": "f8bde24be2d7ed820fe512a6c6137dcf28fb3de79e7986f47e6f43874b2369ef",
+        "partnerTests": "15",
+        "partnerBRANCH": "77/90",
+        "partnerINSTRUCTION": "832/872",
+        "partnerLINE": "115/118",
+        "runtime": "02993b15334c96a18e17ce5f905b4f4240a084f95891a8934ac4bdfa41bbb717",
+        "runtimeTests": "1790",
+        "runtimeBRANCH": "2993/3518",
+        "runtimeINSTRUCTION": "27021/29050",
+        "runtimeLINE": "5230/5537",
+        "securedApi": "31ccf6e873169342849f0869364b5fab2fde3865723db51c30ca1fee2a883a97",
+        "securedApiTests": "132",
+        "securedApiBRANCH": "226/261",
+        "securedApiINSTRUCTION": "2423/2479",
+        "securedApiLINE": "328/337",
+        "workflow": "db8cbc8234de992f7cc5ae90694f67265a897964ca1f1681d6201457f98300b2",
+        "workflowTests": "153",
+        "workflowBRANCH": "296/343",
+        "workflowINSTRUCTION": "3082/3154",
+        "workflowLINE": "427/437"
+      }
+    },
+    "noticeSourceSha256": "40e1f802c6a52a6efc504cc8a7202c0a242da4f2c7039091aabbfc483e0b3fb6",
+    "jobs": [
+      {
+        "id": 111440165155,
+        "name": "verify (ubuntu-latest)",
+        "start": "2026-10-04T12:52:38Z",
+        "end": "2026-10-04T13:10:08Z",
+        "elapsedSeconds": 1050.0,
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "elapsedSeconds": 2.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Install negative-test JDK",
+            "elapsedSeconds": 3.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Install supported JDK",
+            "elapsedSeconds": 4.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Prepare pinned native PostgreSQL 18.6",
+            "elapsedSeconds": 5.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Clean build, independent consumer, resource and prerequisite checks",
+            "elapsedSeconds": 979.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Independent platform toolchain and engine controls",
+            "elapsedSeconds": 43.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Bind successful all and platform identities",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload exact successful candidate identity",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Archive evidence even on failure",
+            "elapsedSeconds": 8.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Install supported JDK",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Install negative-test JDK",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 111440165358,
+        "name": "verify (windows-latest)",
+        "start": "2026-10-04T12:52:38Z",
+        "end": "2026-10-04T13:27:38Z",
+        "elapsedSeconds": 2100.0,
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "elapsedSeconds": 8.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Install negative-test JDK",
+            "elapsedSeconds": 8.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Install supported JDK",
+            "elapsedSeconds": 4.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Prepare pinned native PostgreSQL 18.6",
+            "elapsedSeconds": 6.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Clean build, independent consumer, resource and prerequisite checks",
+            "elapsedSeconds": 1957.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Independent platform toolchain and engine controls",
+            "elapsedSeconds": 89.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Bind successful all and platform identities",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload exact successful candidate identity",
+            "elapsedSeconds": 2.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Archive evidence even on failure",
+            "elapsedSeconds": 20.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Install supported JDK",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Install negative-test JDK",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "elapsedSeconds": 2.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 111446289763,
+        "name": "candidate-identity",
+        "start": "2026-10-04T13:27:45Z",
+        "end": "2026-10-04T13:27:50Z",
+        "elapsedSeconds": 5.0,
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Download this attempt's Linux identity",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Download this attempt's Windows identity",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Require exact four-artifact identity on both platforms",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "elapsedSeconds": 1.0,
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "elapsedSeconds": 0.0,
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "boundary": "Public metadata and allowlisted notices were read. Raw remote logs/XML/JARs/archive content were not downloaded/read. Historical/inventory binding and GAV/size equality are enforced by the successful frozen-source validator/comparator, not directly enumerated in notices."
+  },
+  "inventory": {
+    "packages": 29,
+    "accessibleTypes": 162,
+    "publicProtectedMembers": 1305,
+    "removedOldDeclaredDescriptors": 25,
+    "sameDescriptorDeclarationChanges": 14,
+    "referencedFiles": 302,
+    "projects": [
+      {
+        "role": "runtime",
+        "directDependencies": 33,
+        "processors": 2,
+        "effectivePlugins": 12
+      },
+      {
+        "role": "partner",
+        "directDependencies": 5,
+        "processors": 0,
+        "effectivePlugins": 12
+      },
+      {
+        "role": "secured-api",
+        "directDependencies": 12,
+        "processors": 0,
+        "effectivePlugins": 13
+      },
+      {
+        "role": "assembly-workflow",
+        "directDependencies": 14,
+        "processors": 0,
+        "effectivePlugins": 13
+      }
+    ],
+    "apiSha256": "84bd66056459c6967eaa506c74ea5e8d3f1d5ca5e10ccc058dc1032e21af802e",
+    "dependencySha256": "b73bd6a125485685d14489586c4af37a0eae95790d9be921fdf5f70399725256"
+  },
+  "retainedEvidence": {
+    "directory": "E:\\GenCode\\server-facility\\.verification-results\\history\\ticket-33-review-fixes",
+    "files": 7112,
+    "bytes": 246140501,
+    "qualifiedSourceReceipt": "E:\\GenCode\\server-facility\\.verification-results\\history\\ticket-33-review-fixes-qualified-source-preservation.json",
+    "qualifiedSourceReceiptSha256": "6a1bd224c639e1ad159baa9c2a8811d5392eecf8b57875350d4f1b01e65e9800",
+    "globalIndexSnapshot": {
+      "files": 53520,
+      "bytes": 2484657902,
+      "sha256": "24f2f5f75ec5bee33299d1d8832bf04e94596752a9bddaa05555c0903c43fe64"
+    },
+    "excluded": "Dependency/Wrapper caches, quarantined seed, native database files, private fixture material including 19 host.properties connection files. Public manifests/events/source/reports remain retained.",
+    "userAborted": {
+      "originalReport": "20261004-205159-079-all",
+      "status": "user-aborted",
+      "separateRetainedFiles": 2025,
+      "separateRetainedBytes": 33267421
+    }
+  },
+  "ownerRelease": {
+    "capturedUtc": "2026-10-04T14:48:21.3756978Z",
+    "remainingOwnedProcesses": [],
+    "allExecExitCode": 0,
+    "platformExecExitCode": 0
+  },
+  "finalReview": {
+    "source": "2d14f6a79a05e4e693a7d0e4abb83c4890653e45",
+    "baseline": "0ee9d547022371ad31f885605e999de17ec22777",
+    "report": "ticket-33-final-review.md",
+    "sha256": "60d9f1ff5777c62a08b1f18e358c05391161864a99eed10cbb78491b5edfed79",
+    "standards": {
+      "findings": 0,
+      "highestSeverity": null
+    },
+    "spec": {
+      "findings": 0,
+      "highestSeverity": null
+    }
+  }
+}

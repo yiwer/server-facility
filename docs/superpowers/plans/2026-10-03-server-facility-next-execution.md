@@ -2,7 +2,7 @@
 
 集成分支：codex/server-facility-next。审查基线：0ee9d547022371ad31f885605e999de17ec22777。规格快照提交：6fb78dc6870ea240bb6abbda316fc035a495373f。
 
-正式进度以各张本地票的 Status、未完成项和证据为准。本记录记录跨票集成决策与环境情况，不复制每张票的验收清单。
+正式进度以各张本地票的Status及证据为准。当前01–33共33/33票均closed；实际最终候选为2d14f6a，CI25与本机fresh all/platform完成，Standards/Spec终审各0 findings，见文末[最终闭合](#33最终同候选证据与全部票据闭合)。以下逐节保留当时的历史状态，不回写旧source或失败。
 
 ## 执行方式
 
@@ -285,3 +285,13 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 最终clean交接`45d0809659cb547eadd862fff45638c3f294b8d0`已包含4470870，相对b2只有七个文档/报告文件变化。从干净4470870以--no-ff合入并登记本票closed、九项验收/场景完成，累计32票closed；33仍ready-for-agent，尚未实施，最终同一候选历史重验、四类制品身份、接合矩阵及双轴审查未预填通过。55条ADR计数不变。
 - 原18观测HTTP超时、19默认池4启动超时及有限诊断未复现的事实完整保留；独立池1控制与实际RED→GREEN契约修正不解释或抹去二者。六轮本地报告6745文件已由owner持久保留并重开ZIP逐项校验，路径与digest见[保留索引](../../verification/ticket31/local-evidence-retention.json)。root另从clean45d0809完成筛选历史映射4811文件的逐文件源/副本SHA核验，receipt为main `.verification-results/history/ticket-31-preservation.json`，共享index此时41465文件/1716646235字节；不与保留`.bin`等原始文件的完整ZIP混称。冻结五任务、历史升级和本地诊断身份不变，merger未改root历史index。
 - 此次最终关闭提交仅合入结果/保留报告和中央文档，不另跑相同产品的Java/Maven，不单独push触发重复CI；最后已推送/被CI22验证的是4470870，后续本地文档SHA不冒称已跑CI。33实施候选就绪后由root安排推送；无PR、release、master合并、制品发布或部署。
+
+## 33最终同候选证据与全部票据闭合
+
+- 最终实现`2d14f6a79a05e4e693a7d0e4abb83c4890653e45`包含同候选历史重跑/严格四角色资格门、J05四个并存executor场景，以及唯一implementer完成的预审S1/S2/S3、F1/F2和SELF1修复。原ee57/CI23失败、e85/CI24成功、真实RED/GREEN与夹具/工具失败分别保留，[发布报告](../../verification/ticket-33-release-evidence.md#final-repaired-candidate-qualification)记录准确边界。
+- 用户中止的原2d14 all在123-template-build结束，状态user-aborted；实际owner子进程/数据库关闭，2025项报告/JAR/coverage独立逐hash保留。用户恢复后从头fresh all170命令与独立fresh platform13命令均PASS/exit0/sourceClean=true：UTC14:10:56→14:43:59及14:44:30→14:47:40。实际1790/15/132/153测试全0失败/错误/跳过，历史78/80+四项自定义业务/阶段+三packaged生命周期、原质量和资源预算通过。未拼接中止结果。
+- [CI25 run37203623059 attempt1](https://github.com/yiwer/server-facility/actions/runs/37203623059) exact2d14的Windows/Linux all/platform/qualification/归档及第三身份比较job均success。四角色SHA和正向发现跨OS一致；Linux all979/platform43秒、Windows1957/89秒。实际环境与coverage分子/分母见[安全摘要](../../verification/ticket33/final-evidence-summary.json)，未下载远端raw archive，也未把本机Oracle的不同Boot字节冒称为CITemurin字节。
+- 最终库存为29包/162类型/1305成员、25旧descriptor变化/14同descriptor声明变化、302引用文件；根33直接依赖/2processor/12effectiveplugin及全部消费应用模型逐项绑定当前runtime02993b15…bbb717。FR01–10/AC01–15/Q01–10/J01–17完整映射，FR11/AC16仍条件扩展，原benchmark与历史preparation JSON不改身份。
+- [正式双轴终审](../../verification/ticket-33-final-review.md)独立固定0ee9…2d14完整范围，Standards0 findings/最高严重级别无，Spec0 findings/最高严重级别无，原发现实际源码确认闭合；原审查时local pending限界原文保留，后来完成的门另记。33票及全部验收项closed，累计33/33；56条ADR，适用0056。
+- root在clean2d14/owner全部退出且ignored冻结后，实际保留review-fixes7112文件/246140501字节到main `.verification-results/history/ticket-33-review-fixes/`。不可变qualified-source receipt SHA6a1bd224…e9800，排除缓存/nativeDB/私有连接夹具，2025项user-aborted副本保留。原ticket33的4903项归档独立保留。共享index由root独占，本提交不修改它。
+- 本次收尾只改票据、文档和安全摘要，产品/测试/POM/runner/CI/Wrapper相对2d14零差异；提交标记[skip ci]仅避免重复相同实现的CI，不能把文档SHA称作被测候选。最终worktree清理由root在证据/分支/owner检查后执行；本批无PR、master合并、制品发布或部署。

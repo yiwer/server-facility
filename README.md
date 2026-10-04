@@ -36,8 +36,8 @@
   - JaCoCo BUNDLE 级：INSTRUCTION / LINE ≥ 0.88，BRANCH ≥ 0.75；
   - `maven-dependency-plugin` `analyze-only` + `failOnWarning`：依赖账目必须干净；
   - ArchUnit 5 条架构红线（随测试套运行，见[维护须知](#维护须知)）。
-- **当前验收**：01–32已closed；33正在收集同一候选的完整Windows/Linux、四角色JAR身份、历史升级与最终审查证据，见[票33报告](docs/verification/ticket-33-release-evidence.md)及[契约账本](docs/verification/ticket-33-contract-ledger.md)。当前开发坐标未发布。
-- **最近已完成的前置门**：`4470870` / [CI22](docs/verification/ticket-31-ci22.md)在Windows/Ubuntu完成all、platform与归档；其范围属于票31，不代替33的新候选身份门。各历史source、测试数、失败及修正保留在[执行账本](docs/superpowers/plans/2026-10-03-server-facility-next-execution.md)链接的逐票报告；[票31历史升级与benchmark](docs/verification/ticket-31-template-upgrade.md)保持原始身份。
+- **当前验收**：01–33共33票已closed；被测实现`2d14f6a`完成本机fresh all/platform、Windows/Linux同候选四角色JAR身份、历史78→80升级及最终Standards/Spec双轴审查（各0 findings），见[票33报告](docs/verification/ticket-33-release-evidence.md#final-repaired-candidate-qualification)、[契约账本](docs/verification/ticket-33-contract-ledger.md)与[终审原文](docs/verification/ticket-33-final-review.md)。当前开发坐标未发布。
+- **最近完整候选门**：`2d14f6a` / [CI25 attempt1](https://github.com/yiwer/server-facility/actions/runs/37203623059)在Windows/Ubuntu完成all、platform、归档及四角色比较，实际正向测试1790/15/132/153全部通过；[安全证据摘要](docs/verification/ticket33/final-evidence-summary.json)保留身份、环境、覆盖率与边界。后续文档提交不重标为被测source。各历史source、失败与修正保留在[执行账本](docs/superpowers/plans/2026-10-03-server-facility-next-execution.md)；[票31历史升级与benchmark](docs/verification/ticket-31-template-upgrade.md)保持原始身份。
 
 ## 仓库地图
 
