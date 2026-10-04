@@ -249,6 +249,10 @@ class Verify {
                 Path log = application.resolve("target/decorator-failure-" + rollback + ".log");
                 if (Files.isRegularFile(log)) Files.copy(log, evidence.resolve(log.getFileName()));
             }
+            Path processEvidence = application.resolve("target/command-processes");
+            if (Files.isDirectory(processEvidence)) copyDirectory(processEvidence, evidence.resolve("command-processes"));
+            Path maintenanceMetrics = application.resolve("target/receipt-maintenance-metrics.jsonl");
+            if (Files.isRegularFile(maintenanceMetrics)) Files.copy(maintenanceMetrics, evidence.resolve(maintenanceMetrics.getFileName()));
             Path databaseCleanup = application.resolve("target/postgres-scope-cleanup.jsonl");
             if (Files.isRegularFile(databaseCleanup)) Files.copy(databaseCleanup, evidence.resolve(databaseCleanup.getFileName()));
         }
@@ -273,6 +277,9 @@ class Verify {
                 "com.example.api.NoteCommandsHttpTest", "com.example.api.NoteCommandConcurrencyTest", "com.example.api.NoteCommandAtomicityTest",
                 "com.example.api.NoteCommandMigrationTest", "com.example.api.NoteCommandProtocolTest", "com.example.api.NoteIdentityStorageTest",
                 "com.example.api.NoteQuotaHttpTest", "com.example.api.TestHostLifecycleTest", "com.example.api.PostgresScopeLifecycleTest",
+                "com.example.api.NoteCommandRecoveryTest", "com.example.api.NoteReceiptRecoveryTest",
+                "com.example.api.NoteReceiptMaintenanceTest", "com.example.api.NoteReceiptSchemaTest", "com.example.api.NoteReceiptMigrationTest",
+                "com.example.api.NoteReceiptAuthorizationTest", "com.example.api.NoteReceiptConcurrencyTest", "com.example.api.NoteReceiptIdentityTest",
                 "com.example.api.DatabaseConfigurationTest", "com.example.api.MigrationHttpTest")))
             throw new AssertionError("Missing template contract tests: " + discovered);
         maven(application, "template-model", "help:effective-pom", "-Doutput=" + evidence.resolve("effective-pom.xml"));
@@ -288,7 +295,9 @@ class Verify {
                     throw new AssertionError("Packaged template consumed another build's library jar");
             }
             if (archive.stream().anyMatch(entry -> entry.getName().contains("LocalIssuer") || entry.getName().contains("TestIssuer")
-                    || entry.getName().contains("LocalDatabase") || entry.getName().contains("PreparePostgres") || entry.getName().contains("schema-v1")))
+                    || entry.getName().contains("LocalDatabase") || entry.getName().contains("PreparePostgres")
+                    || entry.getName().contains("CommandRecoveryHost") || entry.getName().contains("CommandProcess")
+                    || entry.getName().contains("schema-v1") || entry.getName().contains("schema-v3")))
                 throw new AssertionError("Development/test signing fixtures leaked into production jar");
             if (archive.stream().anyMatch(entry -> entry.getName().startsWith("BOOT-INF/lib/") && entry.getName().contains("jacoco")))
                 throw new AssertionError("Coverage runtime leaked into production jar");

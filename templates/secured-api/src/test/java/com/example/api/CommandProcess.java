@@ -56,8 +56,11 @@ final class CommandProcess implements AutoCloseable {
                 assertThat(input.readUTF()).isEqualTo("ready"); assertThat(input.readLong()).isEqualTo(child.pid());
                 base = "http://127.0.0.1:" + input.readInt();
                 String facility = input.readUTF(); assertThat(facility).endsWith(".jar");
+                String statementTimeout = input.readUTF(), lockTimeout = input.readUTF();
+                assertThat(statementTimeout).isEqualTo(longLocks ? "8s" : "2s");
+                assertThat(lockTimeout).isEqualTo(longLocks ? "5s" : "500ms");
                 record("ready pid=" + child.pid() + " startupMillis=" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
-                        + " longLocks=" + longLocks + " facility=" + facility);
+                        + " longLocks=" + longLocks + " statementTimeout=" + statementTimeout + " lockTimeout=" + lockTimeout + " facility=" + facility);
                 listener.setSoTimeout(12000);
             }
             process = child; control = listener; client = http;

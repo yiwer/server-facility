@@ -45,7 +45,12 @@ public final class CommandRecoveryHost {
                 .run(options.toArray(String[]::new))) {
             try (var ready = control(); var output = new DataOutputStream(ready.getOutputStream())) {
                 output.writeUTF("ready"); output.writeLong(ProcessHandle.current().pid());
-                output.writeInt(context.getWebServer().getPort()); output.writeUTF(facility.toASCIIString()); output.flush();
+                output.writeInt(context.getWebServer().getPort()); output.writeUTF(facility.toASCIIString());
+                try (var connection = context.getBean(HookedDataSource.class).getConnection(); var statement = connection.createStatement()) {
+                    try (var rows = statement.executeQuery("show statement_timeout")) { rows.next(); output.writeUTF(rows.getString(1)); }
+                    try (var rows = statement.executeQuery("show lock_timeout")) { rows.next(); output.writeUTF(rows.getString(1)); }
+                }
+                output.flush();
             }
             // The owning test closes stdin or sends one byte to request ordinary context shutdown.
             System.in.read();
