@@ -821,8 +821,49 @@ class Verify {
                 System.err.println("::error title=Verification failure detail::" + tail.replace("%", "%25")
                         .replace("\r", "%0D").replace("\n", "%0A"));
             }
+            try {
+                reportTestFailures(cwd.resolve("target/surefire-reports"));
+            } catch (Exception diagnosticFailure) {
+                // Diagnostics must not replace the command failure (full reports are still archived).
+                System.err.println("Could not summarize test failures: " + diagnosticFailure);
+            }
             throw new AssertionError("Unexpected result for " + name + "; exit=" + exit + "; inspect " + log);
         }
         return log;
+    }
+
+    static void reportTestFailures(Path reports) throws Exception {
+        if (!Files.isDirectory(reports)) return;
+        var factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        int emitted = 0;
+        try (var files = Files.list(reports)) {
+            for (Path file : files.filter(p -> p.getFileName().toString().startsWith("TEST-") && p.toString().endsWith(".xml")).sorted().toList()) {
+                // Read only bounded test reports, never system-out/system-err into a public annotation.
+                if (Files.size(file) > 16L * 1024 * 1024) continue;
+                var cases = factory.newDocumentBuilder().parse(file.toFile()).getElementsByTagName("testcase");
+                for (int i = 0; i < cases.getLength(); i++) {
+                    var test = (Element) cases.item(i);
+                    for (String tag : List.of("error", "failure")) {
+                        var failures = test.getElementsByTagName(tag);
+                        for (int j = 0; j < failures.getLength(); j++) {
+                            String detail = test.getAttribute("classname") + "." + test.getAttribute("name") + "\n"
+                                    + failures.item(j).getTextContent();
+                            if (detail.length() > 6000) detail = detail.substring(0, 1500)
+                                    + "\n[stack truncated; full report archived]\n" + detail.substring(detail.length() - 4500);
+                            System.err.println("Test failure detail:\n" + detail);
+                            if ("true".equals(System.getenv("GITHUB_ACTIONS")))
+                                System.err.println("::error title=Test failure cause::" + detail.replace("%", "%25")
+                                        .replace("\r", "%0D").replace("\n", "%0A"));
+                            if (++emitted == 4) return;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
