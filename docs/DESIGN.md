@@ -5,17 +5,16 @@ Boot4.1.1/Jackson3.1.5目标平台已在`80670fa`通过Windows/Ubuntu完整构�
 ## 1. Deep module 哲学
 
 server-facility 遵循 Ousterhout 的 **deep module** 原则:接口窄、实现宽。消费方看到的是
-少量易记的入口 —— 静态门面(`IdUtil`、`JsonUtil`、`LogUtil`、`DateUtil`、`LocaleUtil`、
-`CopyUtil` …)、值类型(`Result<T,E>`、`Tuple`、`Triple`)与一组自动装配 bean —— 背后
+少量明确的入口：应用构造注入的 `Jsons`、`MessageSource`、`Executor`、`CacheManager`、
+具名业务 Adapter，纯函数工具与值类型(`Result<T,E>`、`Tuple`、`Triple`)。
+旧静态查容器入口和 `CopyUtil.autoCopy` 保留迁移兼容，不作为新业务的推荐边界。背后
 是被反复打磨、覆盖边界的实现。设计目标是让"引一个依赖就少写一大片样板",而不是暴露
 可配置旋钮的大工具箱。
 
 三条一以贯之的取向:
 
-- **错误显式化**:可预期失败一律走 `Result<T,E>` 的错误通道,不用 `null`、不靠受检异常
-  穿透。序列化、日期解析、文件 IO 等失败点全部返回 `Result`。
-- **降级安全**:自动装配的每个 bean 都 `@ConditionalOnMissingBean` 兜底,消费方声明同类
-  bean 即覆盖;配置属性不用 `@Validated`(ADR-0013),消费方即便没有校验 provider 也能启动。
+- **错误显式化**:Result 型入口通过 `Result<T,E>` 表达预期失败；Spring 标准 SPI、claim 和 HTTP 使用各自公开协议。必需参数错误与程序故障不伪装成业务失败。
+- **应用所有权与明确选择**:默认服务按声明的类型/名称条件让位；接线覆盖与开关范围逐项记录。显式选择能力后不能静默降低其保证。属性不用 `@Validated`(ADR-0013)，范围由组件守卫，不依赖校验 provider。
 - **窄依赖**:主源码不依赖 logback(ADR-0011)、error 包纯 JDK(ADR-0010),Web/XSS/MIME
   等重依赖一律 optional,按需引入。
 
@@ -63,15 +62,13 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
 11 个 `@AutoConfiguration` 经 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
 注册:`Core`、`Id`、`Json`、`Locale`、`Async`、`Web`、`RateLimit`、`Cache`、`Lock`、`Http`、`Idempotency`。共同约定:
 
-- **兜底不抢占**:每个 bean `@ConditionalOnMissingBean`(按类型或名称),消费方声明的同名/
-  同类型 bean 永远优先。
+- **兜底条件明确**:可替换服务按类型或名称 `@ConditionalOnMissingBean`；接线以其具体条件为准。AccessLogInterceptor 先关闭开关再替换，不能把同类型优先概括为所有 bean 的统一规则。
 - **按类型让位 Boot**:`FacilityAsyncAutoConfiguration` 的 `facilityAsyncExecutor` 条件为
   `@ConditionalOnMissingBean(Executor.class)`,并 `@AutoConfigureAfter(TaskExecutionAutoConfiguration)`
   —— 让 Boot 的 `applicationTaskExecutor` 先注册；facility 仅缺席时提供有界平台线程池。
   消费方显式向 Async 传入 Executor；静态默认不查容器；执行段上下文、整体预算和取消见 ADR-0026（部分替代 ADR-0002）。
 - **应用拥有 i18n**:`FacilityLocaleAutoConfiguration` 在 Boot `MessageSourceAutoConfiguration` 之后提供缺席兜底；Boot basename 或用户具名 `messageSource` 优先。设施 bundle `i18n/facility-messages` 由应用明确排在 basename 之后；独立 `facilityMessageSource` 不是默认注入候选，不会引起构造注入歧义。新路径不扫描或聚合其他消息源，显式旧聚合调用者负责无环委托，见 ADR0049。
-- **Web 条件门**:`FacilityWebAutoConfiguration` 整体 `@ConditionalOnWebApplication(SERVLET)`,
-  各组件再由 `facility.web.*.enabled` 单独 `@ConditionalOnProperty` 开关。
+- **Web 条件门**:`FacilityWebAutoConfiguration` 仅适用于 Servlet 应用。旧 trace 与重复读须显式启用；请求上下文/安全错误边界没有对应 enabled 开关。Trace/Repeatable/Idempotency filter 按类型让位，已选实例只入链一次；注册覆盖与 MVC 接线见 USAGE。
 - **并非所有能力簇都装配**:11 是「需要 bean/配置属性」的子集数,不是能力簇总数——无状态、无可
   替换策略的静态门面型能力(`hash`/`crypto`/`masking`/`csv`/`excel`)不注册 `@AutoConfiguration`、
   无 `facility.*` properties,恒可用,`AutoConfiguration.imports` 不含它们(ADR-0019、ADR-0020、
@@ -81,10 +78,7 @@ POI 类型隔离在包私有读写实现（0039保留0021类型隔离理由）)�
   `log → masking`,由 `MaskUtil` 零依赖设计——仅 `java.*`、零 facility 引用——保证;ArchUnit
   `packages_are_cycle_free` 守护的是未来出现反向边时立即报警,而非断言方向本身),`masking`
   自身零依赖、零装配、零 bean。`csv`/`excel` 同属这一类:`CsvUtil` 以 Commons CSV required 依赖提供有界逐行消费与明确方言（ADR-0038）;
-  `ExcelUtil` 依赖 POI(optional),但装配开关的角色由**运行时探测**(而非
-  `@ConditionalOnClass`)承担——静态门面无 bean 无从条件化,改为缓存的双类 `Class.forName`
-  探针,POI 缺失时四个 API 全返 `err(EXCEL_LIB_MISSING)` 而非崩溃(ADR-0021);两包均零
-  properties、零 `@AutoConfiguration`。
+  `ExcelUtil` 以运行时成对引擎探针隔离 optional POI 类型；无 POI、仅 core、OOXML 排除 core 的实际图返回 `EXCEL_LIB_MISSING`。完整消费图使用 POI5.5.1 及所需传递依赖；逐行读取和临时预算见 ADR0039，不能将任意人为排除传递类也称为已支持回退。两包均零 properties、零 `@AutoConfiguration`。
 
 ## 5. ADR 索引
 
@@ -184,12 +178,11 @@ ADR-0036 的上传预算也必须为正数，≤0 经Result拒绝，便利入口
 ADR-0037 的ZIP/目录与ADR-0038的CSV预算也全部正数，旧便利入口采用已登记有限默认；显式增大预算不等于宿主并发准入。
 ADR-0032 的限流capacity/rate/cost/maxBuckets均必须正且rate有限；注解capacity/rate=0仅表示继承默认，绝不表示无限制。
 ADR0043的应用导出预算为显式正数且最多64MiB；通用parseSize保留零/负数仅表示数值，绝不解释为无限预算。
+ADR0030 的本地活动键、0031 的选定缓存 TTL/条目容量、0034/0035 的 claim/HTTP 字节与时长、0039 的 Excel 预算均为显式正预算，按各公开契约拒绝无效值。
 不引入公共常量。**已批准例外（ADR-0028）**：启用 repeatable body 与选定响应捕获必须为正预算，0/负数拒绝；`RepeatableRequestWrapper` 便利构造器使用 10 MiB。禁用 repeatable 使用 `enabled=false`，不得用无界预算替代。
 
 **C3 降级日志政策**:装配期一次性动作、低频防护动作、配置故障信号 → **WARN**;每请求
-高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。历史审计(2026-07-06)中的锁降级已由ADR0030替代：缺实现拒绝、容量拒绝直接返回结果，不打印业务key。其余历史WARN项包括
-cache ConcurrentMap 回退(装配期)、幂等响应失配(配置故障)、
-CopyUtil null key drop;静默侧——旧LockUtil缺bean时tryLock返回false/unlock为no-op，execute拒绝；CacheUtil 无 CacheManager、HttpClients 无定制 bean 回退默认。
+高频路径的预期降级 → **静默**(政策依据:信号须可见,噪音须抑制)。历史审计(2026-07-06)中的锁降级已由ADR0030替代：缺实现拒绝、容量拒绝直接返回结果，不打印业务key。旧 cache ConcurrentMap 回退已由ADR0031取消；选中能力缺依赖明确失败。旧幂等响应与复制诊断由ADR0035/0042的有限安全事件替代；新路径使用标准 SLF4J 白名单，不打印业务key/任意cause。兼容门面仍需分别迁移：LockUtil缺bean时tryLock返回false/unlock为no-op，execute拒绝；CacheUtil 无 manager 的未缓存回退与 HttpClients 的未配置 client 回退不代表新应用所需能力可用。
 ADR-0032已替代限流clear-all与默认无Bean放行：新key只回收补满桶或拒绝；普通门面不可用抛异常，Optional显式降级仍不逐请求记日志。
 
 **C4 门面命名双家族**:`XxxUtil` = 静态门面(可能有状态/参与 Spring 边缘/装配交互);

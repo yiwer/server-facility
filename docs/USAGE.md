@@ -578,7 +578,7 @@ var writtenExcel = ExcelUtil.write(outputStream, rowIterable, excelLimits);
 
 ## 装配开关全表
 
-> 可直接复制的带详注样例:`src/main/resources/application.example.yaml`(全部键 = 源码默认值)。
+> 可按需复制的带详注样例:`src/main/resources/application.example.yaml`。下表包含明确标注的应用选择值；开关默认与范围不可统一推断。
 
 ```yaml
 facility:
@@ -613,6 +613,8 @@ facility:
       allowed-headers: ["*"]
       allow-credentials: false
       max-age: 3600
+    proxy:
+      trusted-proxies: []              # 默认只信任数字 Servlet peer；按部署显式列CIDR
     exception:
       use-problem-detail: true        # 默认 RFC 9457；false 显式选择安全的旧 HTTP 200 envelope
       # include-trace-profiles 已弃用；任何 profile 都不自动输出异常原文或调试栈
@@ -623,19 +625,20 @@ facility:
     default-permits-per-second: 10       # 每秒填充速率
     max-buckets: 100000                  # 严格槽位上限；只回收补满桶，无法准入则503
   cache:
-    enabled: true
-    default-ttl: 10m                     # 仅 Caffeine 后端生效(expireAfterWrite);ConcurrentMap 回退时忽略+启动 WARN
-    maximum-size: 10000                  # 仅 Caffeine 后端生效;ConcurrentMap 回退时忽略+启动 WARN
+    enabled: false                     # 默认关闭；选中须有 Caffeine + context-support
+    cache-names: []                     # 启用前设置有限非空名字，如 [catalog]
+    default-ttl: 10m                    # 正数 expire-after-write，不回退永久 Map
+    maximum-size: 10000                 # 每 cache 正条目上限；maintenance 执行，非字节预算
   lock:
     enabled: true
     max-locks: 100000                    # 本地活动key上限，含持有者和等待者；等待预算由调用显式传入，无持有租约
   http:
-    enabled: true                        # F22:五簇开关对称;false 整体关闭 http 装配
-    connect-timeout: 5s                  # RestClient 连接超时
-    read-timeout: 10s                    # RestClient 读超时
+    enabled: true                      # 关闭默认 RestClient 装配；不改变自有 client
+    connect-timeout: 5s                 # 仅宿主 builder 缺席的兼容 factory 使用
+    read-timeout: 10s                   # 不覆盖 Boot builder，亦非整体操作 deadline
   idempotency:
     enabled: true
-    lease: 30s                          # 执行资格租约；不能取消过期 owner 的外部副作用
+    lease: 30s                          # 应用选择示例，未设时兼容回退5m；不能取消旧owner副作用
     result-retention: 5m                # 到期只释放正文，不重新授权执行
     max-request-bytes: 1048576          # 选定有限请求的正数预算
     max-response-bytes: 1048576         # 选定响应副本的正数预算
@@ -669,10 +672,9 @@ facility 把重依赖声明为 Maven `optional`,消费方按用到的能力自�
 | `XssUtil`(HTML 清洗) | `org.jsoup:jsoup` |
 | `MimeTyping` / `SafeUpload` 的 MIME 魔数探测 | `org.apache.tika:tika-core` |
 | 缓存 TTL/maxSize(`CaffeineCacheManager`) | `com.github.ben-manes.caffeine:caffeine` **+** `org.springframework:spring-context-support`(**成对**；显式启用且固定 cache-names，缺任一明确失败；默认不注册 manager) |
-| `ExcelUtil`(Excel 读写) | `org.apache.poi:poi` **+** `org.apache.poi:poi-ooxml`(**成对**,版本 5.3.0 自 pin;缺任一(或两者都缺)则运行时探测降级,四个 API 全返 `err(EXCEL_LIB_MISSING)`,ADR-0021) |
+| `ExcelUtil`(Excel 读写) | `org.apache.poi:poi-ooxml:5.5.1` 及其完整传递图（包含同版 `poi`）；无 POI / 仅 core / OOXML 排除 core 的实际图返回 `EXCEL_LIB_MISSING`，其余人为排除不在保证内（ADR0039） |
 
-未引入对应 optional 依赖时,相关自动装配因 `@ConditionalOnClass` 不生效,不影响其余簇;
-`ExcelUtil` 不走自动装配,缺失时走运行时探测降级(同一效果,不同机制,详见 ADR-0021)。
+optional 只决定 Maven 传递关系，不表示已选择能力可以静默降级。未选本地缓存时缺依赖不装配；显式启用本地缓存却缺任一成对依赖会启动失败。Web 缺类时跳过相关装配；Excel 静态入口通过运行时探针返回明确错误。其他能力的缺依赖/失败政策见其小节。
 
 ## ZIP 与目录操作
 

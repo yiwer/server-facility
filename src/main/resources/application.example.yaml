@@ -1,26 +1,16 @@
 # =====================================================================
 # server-facility 配置样例(application.example.yaml)
 # =====================================================================
-# 用途:facility.* 全部配置项的带注释样例,面向消费方应用(与 coding agent)。
-#   文件名不是 application.yaml,Spring Boot 不会加载本文件——按需把片段
-#   复制进你的 application.yml,只写你要改的键。
-#
-# 事实基准:下列所有值均为源码默认值,原样复制不改变任何行为。
-#   键的权威定义 = 各簇 Facility*Properties 类(字段 javadoc);
-#   用法与降级语义详解 = docs/USAGE.md(「装配开关全表」「消费方须知」)。
-#
-# 全局规则:
-#   1. 所有 enabled 开关均 matchIfMissing=true:不写 = 开,显式 false 才关。
-#   2. 「≤0 = 不限制」是全库统一拼法(DESIGN §7 C2)。
-#   3. 绑定期不做校验(ADR-0013):非法值由组件构造器兜底、启动快速失败;
-#      消费方没有 Bean Validation provider 也能正常启动。
-#   4. Duration 类型键用 Spring Boot 时长语法:500ms / 5s / 10m / PT10M。
-#
-# 本文件不含的能力簇(没有配置键,不是遗漏):
-#   - 零装配恒可用:hash / crypto / masking / csv / excel —— 无 bean、无开关、
-#     无 properties(masking 的运行时开关是代码 API MaskUtil.setMaskingEnabled)。
-#   - 有装配、无 properties:Core / Json / Locale / Async —— 定制走「声明同类 /
-#     同名 bean 让位」机制,不走配置(见 USAGE「消费方须知·两类让位机制」)。
+# Spring Boot 不自动加载此文件；按需将所选片段复制进应用的 application.yml。
+# 属性定义以 Facility*Properties 为准，装配条件与能力边界见 docs/USAGE.md。
+# 不要把 enabled 理解为统一开关：缓存、重复读与旧 trace 默认关闭；
+# 限流/幂等关闭默认 provider 后，HTTP 注解守卫仍拒绝无保护执行。
+# 正预算由各组件在使用/构造时校验，不依赖 Bean Validation provider。
+# Duration 使用 Boot 时长语法：500ms / 5s / 10m / PT10M。
+# 应用拥有 Jsons、MessageSource、Executor、RestClient.Builder 等依赖；
+# Core / Json / Locale / Async 没有 facility.* 属性，按实际 bean 条件定制。
+# hash / crypto / masking / csv / excel 无自动装配开关；optional 格式引擎
+# 是否可用及调用预算仍由各能力的公开契约决定。
 # =====================================================================
 
 facility:
@@ -48,150 +38,138 @@ facility:
     start-timestamp: 1735660800000
 
   # -------------------------------------------------------------------
-  # Web 簇(FacilityWebAutoConfiguration;整体仅在 servlet 栈 web 应用中
-  # 装配,且需自行引入 optional 依赖 spring-web / spring-webmvc /
-  # jakarta.servlet-api,见 USAGE「optional 依赖矩阵」)
-  #
-  # 两条簇级规则(USAGE「消费方须知」):
-  #   - 过滤器 / 拦截器只认下面的 enabled 开关:声明同类型 bean 不会顶替
-  #     facility 的(两者并存、双重入链)。要换实现,先 enabled=false,
-  #     再注册自己的。
-  #   - 全局异常处理器与 SessionUserClearInterceptor 没有 enabled 键,
-  #     停用 / 接管走 bean 让位:前者声明 AbstractGlobalExceptionHandler
-  #     子类 bean,后者声明同名 facilitySessionWebMvcConfigurer bean。
+  # Servlet Web；应用自行引入 Web/MVC/Servlet 依赖。
+  # TraceIdFilter / ClientIpPolicy / RepeatableRequestFilter 按类型让位；
+  # 同一 filter 只注册一次。AccessLogInterceptor 要替换时先关闭其开关。
+  # 全局 advice 按 AbstractGlobalExceptionHandler 让位；共享 Filter/MVC/ERROR
+  # 错误策略可用 FacilityHttpErrors bean 接管，详见 ADR0027/0029/0049。
   # -------------------------------------------------------------------
   web:
-
-    # TraceIdFilter:入站提取(或生成)traceId,写入 MDC 与响应头,贯穿全链路日志
+    # 旧相关性 filter 显式 opt-in；新应用使用宿主 Micrometer tracing。
     trace:
-      enabled: true
-      # 承载 traceId 的请求 / 响应头名。入站值必须匹配 [0-9A-Za-z_-]{1,64},
-      # 不合法按缺失处理(防日志注入)。
+      enabled: false
       header-name: X-Trace-Id
-      # 写入 MDC 的 key:日志 pattern 用 %X{traceId} 引用
       mdc-key: traceId
-      # 入站头缺失时是否生成 UUID 作为本请求 traceId
+      # 入站值仅用于相关性，不代表身份；校验 [0-9A-Za-z_-]{1,64}。
+      # 不可信入口可设 false；宿主已有 MDC trace 优先。
+      accept-inbound: true
       generate-if-absent: true
 
-    # RepeatableRequestFilter:把请求体缓存为可重复读(供全局异常、访问日志、
-    # 幂等响应捕获等需要二次读 body 的组件使用)
+    proxy:
+      # 默认只接受数字 Servlet peer，不解析 DNS、不信任任意转发头。
+      # 仅按实际部署填入可信代理的数字 IP/CIDR；这不是用户认证。
+      trusted-proxies: []
+
+    # 仅为选中的同步有限 body 提供重复读取，不作为通用上传缓存。
     repeatable-request:
-      enabled: true
-      # 请求体字节数上限,超限直接拒绝;≤0 = 不限制(不建议)。默认 10 MiB。
+      enabled: false
+      # 必须为正数；超限 413，0/负数拒绝构造。默认 10 MiB。
       max-body-bytes: 10485760
-      # 仅包装 Content-Type 命中这些前缀的请求(转小写后前缀匹配)
+      # Ant 路径；可缩小为 ["/webhooks/**"]；空列表不选择请求。
+      include-paths: ["/**"]
+      # MediaType 匹配，支持结构化后缀；不是任意字符串前缀。
       include-content-types:
         - application/json
+        - "application/*+json"
         - application/xml
-        - text/
-      # 命中这些 Ant 风格路径的请求跳过包装
-      exclude-paths:
-        - /actuator/**
+        - "application/*+xml"
+        - "text/*"
+      exclude-paths: ["/actuator/**"]
 
-    # AccessLogInterceptor:请求级访问日志
+    # 标准 SLF4J 的 method/匹配路由模板/status/duration，不输出原始请求正文。
     access-log:
       enabled: true
-      # 慢请求阈值(毫秒):耗时 ≥ 该值的请求日志升 WARN 并标记 slow;
-      # 0 = 禁用慢请求标记。
+      # 达到正阈值时 WARN 并标 slow；0 禁用慢请求标记。
       slow-threshold-millis: 1000
 
-    # CORS(经 WebMvcConfigurer 注册全局跨域规则)
     cors:
       enabled: true
-      # 允许跨域的来源列表。默认空列表 = 不开 CORS(即使 enabled=true)。
-      # 生产环境须显式列举来源;开发期全开可配 ["*"]。
+      # 默认空列表不开跨域；按应用明确列出允许的来源。
       allowed-origins: []
       allowed-methods: [GET, POST, PUT, DELETE, OPTIONS]
       allowed-headers: ["*"]
-      # 是否允许携带凭证(Cookie / Authorization 等)
       allow-credentials: false
-      # 预检(preflight)结果的浏览器缓存时长(秒)
       max-age: 3600
 
-    # 全局异常处理器(本簇无 enabled 键——接管方式见上方簇级规则)
     exception:
-      # 堆栈细节白名单:active profile 在列才在错误响应中附堆栈摘要;
-      # 空列表 = 任何环境都不暴露。
-      include-trace-profiles: [dev, test, local]
-      # true  = RFC 7807 双轨切换:返回 ProblemDetail、Content-Type
-      #         application/problem+json、按异常类型映射 HTTP status;
-      # false = 默认 BaseResponse + HTTP 200(ADR-0003)。
-      use-problem-detail: false
+      # 默认 RFC 9457 ProblemDetail + 真实状态/必要头。
+      # false 显式选择安全的旧 HTTP 200 envelope（429 仍是 429）。
+      use-problem-detail: true
+      # 仅保留旧属性绑定；任何 profile 都不自动暴露异常正文/调试栈。
+      include-trace-profiles: []
 
   # -------------------------------------------------------------------
-  # 限流(FacilityRateLimitAutoConfiguration,ADR-0014)
-  # 默认实现为进程内令牌桶;跨实例限流声明自己的 RateLimiter bean(SPI)替换。
+  # 进程内入口配额；跨实例/业务配额须由应用提供相应 RateLimiter。
   # -------------------------------------------------------------------
   ratelimit:
-    # false 关闭整簇装配:RateLimiter bean、@RateLimit 拦截器都不注册——
-    # 注解随之失效;编程式 RateLimiterUtil 无 bean 时静默放行
-    # (remaining=-1 哨兵,DESIGN §7 C3)。
+    # 仅关闭默认 provider；Servlet 注解守卫继续存在，宿主 provider 优先。
     enabled: true
-    # 默认桶容量(令牌数上限):@RateLimit / 编程式调用未显式指定时使用
+    # 缺失/不可用默认拒绝；仅明确接受入口保护降级时才设 true。
+    fail-open: false
     default-capacity: 100
-    # 默认令牌填充速率(每秒,支持小数):同上为缺省值
     default-permits-per-second: 10
-    # 桶集合的无界防护上限:桶数达到该值且新 key 不在集合中时整体清空
-    # 并 WARN(防 key 无界增长,ADR-0014)。
+    # 正数主体槽位上限；只回收已补满桶，不清空其他主体额度。
+    # 新主体无法安全准入时拒绝；不是回收所有闲置桶的后台任务。
     max-buckets: 100000
 
   # -------------------------------------------------------------------
-  # 缓存(FacilityCacheAutoConfiguration,ADR-0015)
-  # 装配一个 CacheManager:classpath 同时有 caffeine + spring-context-support
-  # (必须成对)时为 CaffeineCacheManager,否则回退 ConcurrentMapCacheManager
-  # (纯 JDK,启动时 WARN 一次)。声明自己的 CacheManager bean 即整体覆盖。
+  # 显式本地缓存（ADR0031）；宿主 CacheManager 优先。
+  # 启用须同时存在 Caffeine + spring-context-support，缺任一启动失败。
+  # 不再回退永不过期的 ConcurrentMapCacheManager。
   # -------------------------------------------------------------------
   cache:
-    # false 时 facility 不装配 CacheManager;CacheUtil 门面无 CacheManager
-    # 时静默降级(不缓存,DESIGN §7 C3)。
-    enabled: true
-    # 条目写入后的默认存活时长(expireAfterWrite)。仅 Caffeine 后端生效;
-    # ConcurrentMap 回退后端不支持过期,本键被忽略。
+    enabled: false
+    # 启用前设置有限且非空、无重复的名字，例如 [catalog, exchange-rates]。
+    # 未列名字不创建 cache；不要从请求数据动态派生名称。
+    cache-names: []
+    # 正 expire-after-write 时长，须能精确表示为 long 纳秒。
     default-ttl: 10m
-    # 单个 cache 的最大条目数(maximumSize)。同上,仅 Caffeine 后端生效。
+    # 每个 cache 的正条目上限；由 Caffeine maintenance 执行，不是字节预算。
     maximum-size: 10000
 
   # -------------------------------------------------------------------
-  # 分布式锁(FacilityLockAutoConfiguration,ADR-0016)
-  # 默认实现为单机 ReentrantLock(进程内互斥);跨进程互斥声明自己的
-  # DistributedLock bean(SPI,如 Redisson)替换。
+  # 本地互斥（ADR0030）；默认仅提供 LocalKeyedMutex，不满足 DistributedLock。
+  # 需要跨进程能力时，应用必须显式提供真实 adapter。
   # -------------------------------------------------------------------
   lock:
-    # false 关闭装配。注意降级语义(DESIGN §7 C3):LockUtil.executeWithLock
-    # 无 bean 时 WARN 并**直接执行任务**(无互斥保护!);tryLock/unlock 静默。
+    # false 不装配本地 mutex；必需旧 LockUtil 缺实现时拒绝，不裸执行 action。
     enabled: true
-    # 锁集合的无界防护上限:锁数达到该值且新 key 不在集合中时拒绝新建
-    # (fail-closed,在途互斥不破,ADR-0016 修订段)。
-    # 租约 / 等待时长不在配置里——由 executeWithLock / tryLock 逐次调用显式传入。
+    # 正活动键上限，含持有者和等待者；最后退出时才安全回收。
+    # 等待预算由调用传入；没有能提前释放实际工作者的持有租约。
     max-locks: 100000
 
   # -------------------------------------------------------------------
-  # HTTP client(FacilityHttpAutoConfiguration,ADR-0018)
-  # 装配默认 RestClient bean 供 HttpClients 门面使用;声明自己的
-  # RestClient bean 即整体覆盖(超时等随你的 bean 定义)。
+  # HTTP（ADR0048）；新代码注入 Boot RestClient.Builder 构造具名服务 Adapter。
+  # 默认 RestClient 优先克隆宿主 builder，保留其 factory/JSON/观测/customizer。
   # -------------------------------------------------------------------
   http:
-    # false 关闭装配(不注册 RestClient bean):HttpClients 门面静默回退
-    # 内建默认 RestClient(DESIGN §7 C3),本段超时配置不再生效。
     enabled: true
-    # 建立连接超时
+    # 仅宿主 builder 缺席的兼容 factory 使用这两个超时，合法范围 1ms..2147483647ms。
+    # 不会覆盖应用 builder；连接/读取超时也不是整个操作的截止时间。
     connect-timeout: 5s
-    # 等待响应的读超时
     read-timeout: 10s
+    # enabled=false 不注册默认 client；已弃用 HttpClients 仍可能使用历史
+    # 未配置 fallback，不是应用 Adapter 的有界执行政策。
 
   # -------------------------------------------------------------------
-  # 幂等(FacilityIdempotencyAutoConfiguration,ADR-0017)
-  # 完整幂等语义:同 key 重复请求返回首次响应,PROCESSING 撞击返 409。
-  # 默认存储为进程内存(重启即失忆);跨实例幂等声明自己的
-  # IdempotencyStore bean(SPI,如 Redis)替换。
+  # Qualified claim + 当前授权 HTTP 重放（ADR0034/0035）。
+  # HTTP 目标必须提供 IdempotencyAuthorization，仅做当前授权/规范化，
+  # 不执行业务副作用；每次重放前重新授权。默认 Store 进程内、关闭/重启失忆。
+  # 跨实例持久化/业务唯一性须由真实 Store/事务协议提供，不能只替换存储名字。
   # -------------------------------------------------------------------
   idempotency:
-    # false 关闭整簇装配:IdempotencyStore、@Idempotent 拦截器与响应捕获
-    # Filter 都不注册,注解随之失效。
+    # false 关闭默认 Store/filter；@Idempotent 守卫继续拒绝无保护执行。
     enabled: true
-    # @Idempotent 的 ttlSeconds() 为 0(未显式指定)时,占位 / 终态记录的
-    # 默认存活时长。
+    # 已弃用兼容回退：lease/result-retention 未设时各使用此 5m。
     default-ttl: 5m
-    # 记录集合的无界防护上限:达到该值先清过期条目,复查仍超限则拒绝占位
-    # (fail-closed,ADR-0017 修订段)。
+    # 新应用独立选择两个正整毫秒时长；以下是示例，不是额外默认值。
+    # lease: 30s
+    # result-retention: 5m
+    # lease 到期可有新 owner，但不能取消旧业务；结果到期只释放正文，不重授执行。
+    # 新 claim 的绑定/终态占据有限槽位直到 close；满额明确拒绝，不因过期清掉。
     max-entries: 100000
+    # 仅选定有限同步请求/响应使用正字节预算；普通响应流直通。
+    max-request-bytes: 1048576
+    max-response-bytes: 1048576
+    # 默认 Store 合计正文/元数据驻留预算；不包含任意业务对象或容器缓冲。
+    max-stored-receipt-bytes: 67108864
