@@ -12,7 +12,7 @@ class WorkflowAdmissionHttpTest {
    String boundary="mixed-file-form";
    String body="--"+boundary+"\r\nContent-Disposition: form-data; name=\"file\"; filename=\"ok.csv\"\r\nContent-Type: text/csv\r\n\r\nname,quantity\nplain,2\n\r\n"
        +"--"+boundary+"\r\nContent-Disposition: form-data; name=\"file\"\r\n\r\nsecond-part\r\n--"+boundary+"--\r\n";
-   var response=app.client.send(HttpRequest.newBuilder(URI.create(app.base+"/api/bench/import"))
+   var response=app.client.send(HttpRequest.newBuilder(URI.create(app.base+"/api/bench/import")).timeout(java.time.Duration.ofSeconds(10))
        .header("Authorization","Bearer "+issuer.token()).header("Content-Type","multipart/form-data; boundary="+boundary)
        .POST(HttpRequest.BodyPublishers.ofString(body)).build(),HttpResponse.BodyHandlers.ofString());
    assertThat(response.statusCode()).isEqualTo(400);

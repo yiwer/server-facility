@@ -99,6 +99,8 @@ Q01 maps every changed seam above to its behavioral test and source. Q02 covers 
 
 The first complete standalone workflow `clean verify` (`12-full-workflow-verify`,355.348s) discovered151 tests (130 retained template +14 accepted common-task +7 additional qualification),0 failures/errors/skips. It passed unchanged thresholds: instruction3082/3154, line427/437, branch296/343. This qualification used explicit synthetic BENCH environment values; final same-candidate all additionally validates the overlay's test-only Surefire environment for inherited child JVMs. It is not substituted for the following final candidate run.
 
+The read-only premerge review found a missing per-request bound in the added mixed-part regression, not a product failure. It now uses the same10s HTTP request timeout as the inherited import fixture. The initial all invocation14 was proactively terminated with its owned process tree while still in library tests: its `VERIFY_WRONG_JAVA_HOME` incorrectly named the extraction parent, so the final mandatory non25-JDK check could not succeed. The log and nonzero exit are retained as an aborted prerequisite-configuration error, neither PASS nor a product failure. The corrected full invocation uses the real `jdk21/jdk-21.0.12.1+1` directory.
+
 ## Current candidate full gates
 
 Final local all/platform and merger CI evidence will be recorded here after completion. The added fourth artifact role is `assembly-workflow`; `workflow/artifact-manifest.json` records its actual executable SHA/size/GAV, nested runtime SHA/size/GAV and explicit positive suite/coverage paths. Matching the base application's generated GAV does not make the two artifact roles interchangeable.
