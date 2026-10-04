@@ -251,7 +251,7 @@ class Verify {
                 ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45,
                 "Destination must be new and outside the template directory");
         run(ROOT, Map.of(), "template-lineage", List.of(java(), lineage.toString(),
-                application.toString()), 45, null);
+                application.toUri().toASCIIString()), 45, null);
         copyDirectory(application, inputs);
         try (var files = Files.walk(inputs)) {
             for (Path input : files.filter(Files::isRegularFile).sorted().toList()) {
@@ -385,7 +385,7 @@ class Verify {
         run(ROOT, Map.of(), "workflow-instantiate", List.of(java(), copier.toString(), ROOT.resolve("templates/secured-api").toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
         run(ROOT, Map.of(), "workflow-overlay", List.of(java(), overlay.resolve("Apply.java").toString(), overlay.toUri().toASCIIString(), application.toUri().toASCIIString()), 45, null);
         Path lineage=evidence.resolve("TemplateLineage.java");Files.copy(ROOT.resolve("verification/template-consumer/TemplateLineage.java"),lineage);
-        run(ROOT, Map.of(), "workflow-lineage", List.of(java(), lineage.toString(), application.toString()), 45, null);
+        run(ROOT, Map.of(), "workflow-lineage", List.of(java(), lineage.toString(), application.toUri().toASCIIString()), 45, null);
         Path inputs = evidence.resolve("inputs");copyDirectory(application, inputs);
         run(ROOT, Map.of(), "workflow-overlay-refuse-reapply", List.of(java(), overlay.resolve("Apply.java").toString(), overlay.toUri().toASCIIString(), application.toUri().toASCIIString()), 45, "Template preimage mismatch");
         try (var files = Files.walk(inputs)) {
