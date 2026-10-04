@@ -892,12 +892,19 @@ class Verify {
                         for (int j = 0; j < failures.getLength(); j++) {
                             String detail = test.getAttribute("classname") + "." + test.getAttribute("name") + "\n"
                                     + failures.item(j).getTextContent();
+                            String cause = detail.substring(Math.max(0, detail.lastIndexOf("Caused by:")));
                             if (detail.length() > 6000) detail = detail.substring(0, 1500)
                                     + "\n[stack truncated; full report archived]\n" + detail.substring(detail.length() - 4500);
                             System.err.println("Test failure detail:\n" + detail);
-                            if ("true".equals(System.getenv("GITHUB_ACTIONS")))
-                                System.err.println("::error title=Test failure cause::" + detail.replace("%", "%25")
+                            if ("true".equals(System.getenv("GITHUB_ACTIONS"))) {
+                                // The public API truncates long annotations: retain the deepest cause's
+                                // first frames instead of losing them behind wrapper frames or a log tail.
+                                String annotation = detail.length() <= 2800 ? detail : detail.substring(0, 600)
+                                        + "\n[full report archived; deepest cause follows]\n"
+                                        + cause.substring(0, Math.min(2000, cause.length()));
+                                System.err.println("::error title=Test failure cause::" + annotation.replace("%", "%25")
                                         .replace("\r", "%0D").replace("\n", "%0A"));
+                            }
                             if (++emitted == 4) return;
                         }
                     }
