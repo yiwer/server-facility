@@ -45,3 +45,9 @@
 - **当前授权 Adapter**：宿主 `IdempotencyAuthorization` 在每次 claim/replay 前检查当前资源/方法权限并规范化输入，仅做授权与规范化，不执行业务副作用。
 - **有限同步目标**：明确 `@Idempotent` 的可有界捕获请求/响应；普通下载/SSE直通，已知异步、流式、form/multipart目标拒绝。
 - **HTTP receipt**：qualified Store中的有界FHR1状态、允许头与正文；重放跳过业务方法，不能依赖被跳过的方法权限检查，也不代表业务事务已和receipt原子提交。
+
+## 本地缓存术语（ADR0031）
+
+- **显式本地缓存**：应用选用的 Spring CacheManager/Cache，Caffeine + context-support 成对存在，名称有限且 TTL/每缓存条目容量为正；默认不注册，宿主管理器优先。
+- **缓存条目容量**：Caffeine maintenance 后兑现的条目政策，不是瞬时准入限制或任意 key/value 的字节预算。
+- **缓存生命周期**：管理器关闭先解除其 provider 引用并尝试清理各缓存；借用 Cache 和业务 loader 必须由宿主在关闭前 quiesce，不代表任意副作用取消或幂等执行资格。

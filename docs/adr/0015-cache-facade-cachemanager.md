@@ -1,5 +1,7 @@
 # ADR-0015: 缓存门面复用 Spring CacheManager SPI + Caffeine/ConcurrentMap 双后端
 
+> 2026-10-04：[ADR0031](0031-explicit-local-cache.md)更新显式选择、缺依赖拒绝、固定名字和标准loading/关闭政策；保留本记录的Spring SPI、optional和既有平台证据理由，历史自动永久Map回退不再是当前推荐。
+
 > 2026-10-04：[ADR0047](0047-boot4-consumer-integration.md) 补全成对依赖缺任一时的目标平台装配验证与实现条件，保留本记录的门面/optional理由；新TTL/容量政策仍归票08。
 
 - **状态**:Accepted(2026-07-03)

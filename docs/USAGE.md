@@ -343,22 +343,19 @@ public void export() { /* ... */ }
 
 ## 缓存:CacheUtil / @Cacheable
 
-```java
-// 编程门面(委托 Spring CacheManager;无 CacheManager 时优雅降级)
-Optional<User> u = CacheUtil.get("users", id, User.class);
-CacheUtil.put("users", id, user);
-CacheUtil.evict("users", id);
-User loaded = CacheUtil.getOrCompute("users", id, User.class, () -> userRepo.findById(id));  // 穿透便捷
+新代码构造注入 Spring `CacheManager`/`Cache`；默认不注册设施缓存。选用本地缓存须同时添加 Caffeine 与 spring-context-support，并设置 `facility.cache.enabled=true`、有限 `cache-names`、正 `default-ttl`/`maximum-size`。缺任一依赖明确启动失败，用户管理器优先且政策自有。
 
-// Spring 注解(装配 CacheManager 后 + 消费方 @EnableCaching 即可用)
-@Cacheable("users")
+```java
+Cache users = java.util.Objects.requireNonNull(manager.getCache("users"));
+User user = users.get(id, () -> userRepo.findById(id));
+users.evict(id); // 业务失效由应用负责
+
+// 宿主 @EnableCaching；sync=true 的适用限制与保证由 Spring/选中 provider 决定。
+@Cacheable(cacheNames = "users", sync = true)
 public User findById(Long id) { ... }
 ```
 
-- **后端**:Caffeine 在 classpath → `CaffeineCacheManager`(`facility.cache.default-ttl` / `maximum-size` 生效);否则 `ConcurrentMapCacheManager`(无 TTL、无界;两项配置被忽略,装配期有 WARN 提示——F15)。
-- **TTL**:Spring 原生 `@Cacheable` 无 per-cache TTL;经 `CaffeineCacheManager` 全局 `expireAfterWrite` 实现。
-- **SPI 替换**:`CacheManager` 是 Spring 标准 SPI,声明 Redis `CacheManager` 即替换。
-- **降级**:无 `CacheManager` 时 `get` 返空、`getOrCompute` 直调 loader(缓存不可用不阻断业务)。
+写入到期不因读取延长；null 是命中，loader 失败不缓存，容量在 Caffeine maintenance 后兑现且不是字节上界。关闭前宿主须收拢 loader 和借用的 Cache，关闭不会取消任意业务。旧 `CacheUtil` 已弃用；缺 manager/name 的历史无缓存 fallback 仅是兼容路径，不是显式选中能力的保证。完整配置、并发/关闭语义、异常边界和破坏性迁移见[本地缓存政策](building/local-cache.md)。
 
 ## 进程内互斥:LocalKeyedMutex
 
@@ -670,7 +667,7 @@ facility 把重依赖声明为 Maven `optional`,消费方按用到的能力自�
 | 全部 Web 簇(filter/interceptor/exception/response/session/download/argument/util) | `org.springframework:spring-web`、`spring-webmvc`、`jakarta.servlet:jakarta.servlet-api` |
 | `XssUtil`(HTML 清洗) | `org.jsoup:jsoup` |
 | `MimeTyping` / `SafeUpload` 的 MIME 魔数探测 | `org.apache.tika:tika-core` |
-| 缓存 TTL/maxSize(`CaffeineCacheManager`) | `com.github.ben-manes.caffeine:caffeine` **+** `org.springframework:spring-context-support`(**成对**——`CaffeineCacheManager` 在 context-support 而非 spring-context;缺任一则回退 `ConcurrentMapCacheManager`) |
+| 缓存 TTL/maxSize(`CaffeineCacheManager`) | `com.github.ben-manes.caffeine:caffeine` **+** `org.springframework:spring-context-support`(**成对**；显式启用且固定 cache-names，缺任一明确失败；默认不注册 manager) |
 | `ExcelUtil`(Excel 读写) | `org.apache.poi:poi` **+** `org.apache.poi:poi-ooxml`(**成对**,版本 5.3.0 自 pin;缺任一(或两者都缺)则运行时探测降级,四个 API 全返 `err(EXCEL_LIB_MISSING)`,ADR-0021) |
 
 未引入对应 optional 依赖时,相关自动装配因 `@ConditionalOnClass` 不生效,不影响其余簇;

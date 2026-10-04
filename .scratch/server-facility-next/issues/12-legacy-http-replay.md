@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 在真实 HTTP 链路统一安全错误与显式兼容协议；05 让普通下载与请求体处理保持流式和有界；11 扩展旧幂等协议以拒绝迟到 owner 覆盖
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-03、FR-04、FR-09；AC-04、AC-05、AC-06、AC-12
 
@@ -14,7 +14,7 @@
 - [x] 只捕获明确目标并限制结果大小；定义成功、业务拒绝、advice 处理异常、4xx/5xx 和不可恢复结果的保存政策。
 - [x] 安全允许集控制重放头，201/Location 等必要业务信息一致；过大结果/断连/完成失败不能自动授权重复执行业务。
 - [x] 迁移所有仓库内旧完成调用，废弃无 owner 路径；删除外部 API 仍需盘点。异步目标支持或明确拒绝，不半支持。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -38,3 +38,8 @@
 精确被测源 `3563d920f355db61c1fa9249efd8eefc1da5ac1a` 已合最新中央 `d28072f`；Windows `java verification/Verify.java all` 在 `.verification-results/20261004-071310-376-all/summary.txt` 为PASS/exit0。1667库测试与76模板测试均0失败/错误/跳过，原覆盖率/架构/依赖门、普通安装jar、真实Security/Servlet/PostgreSQL模板、所有缺类矩阵、受限堆故障/资源循环和工具链负控通过。
 
 首轮 `20261004-070251-893-all` 的旧禁用平台消费者断言FAIL保留；迁移后定向GREEN和第二轮完整PASS分别记录，不伪改原结果。03只读标准/spec短审未见阻断，保留wrapper结构守卫和已提交Store异常可能由容器记录的公开限制。本票仅Linux CI闭合待补，Q08/Q10对应平台部分尚不标closed；29持久业务receipt与33发布候选组合各自负责，不作为本票反向前置。
+
+
+## CI16 closure — 2026-10-04
+
+源码207c0cce7f67acf09bc29f40a1fbbfed4c01ac61 / run37165514455的Windows111327487229与Ubuntu111327487395完整all、独立platform及归档均success。此前本票局部/完整本地证据与本次同源跨平台门共同闭合适用Q01–Q10，状态closed。原始公开metadata、artifact范围和后续票边界见[联合验收](../../../docs/verification/ticket-07-12-19-28-32-ci.md)。历史失败不改写，后续33候选组合不冒作此次已执行。

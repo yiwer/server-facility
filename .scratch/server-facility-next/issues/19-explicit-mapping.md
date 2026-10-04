@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-08、FR-09；AC-11、AC-12
 
@@ -14,7 +14,7 @@
 - [x] 公开旧复制能力的支持/拒绝范围：具体容器、比较器、共享别名、循环与不可变值。
 - [x] 不反射修改不可变字段；DTO 漏字段可被业务契约或明确选用的编译检查发现。
 - [x] 复杂对象图复制若不适合有限接口则弃用并迁移，不建设新通用复制引擎。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -39,3 +39,8 @@ MapStruct 仅在有具体价值时采用；不依赖模板完整交付，不以�
 2026-10-04：实现与Windows验收完成。冻结`4bcad8726e1b4379a0a56fe0804d1164086ae7e8`的all --fresh在`.verification-results/20261004-075535-739-all/summary.txt`为PASS，110命令；库1712/0/0/0、模板76/0/0/0、partner15，原覆盖率/5架构/依赖及所有消费者/资源/负控通过。普通jar SHA256 `5853fd0737501be5a63f0d0efbbb59823cf820c7dcd219d76c7e72d97100cef2`。固定字段演进、旧普通jar编译binary和64MiB资源证据及22轮红绿见docs/verification/ticket-19-explicit-mapping.md；root短审发现的Map key→value中断缺口已真正RED→GREEN并进入此次全门。
 
 待验仅本票最终源Linux/联合CI；Q01–Q10 Windows维度已按报告完成，不把中央CI15 Windows迁移CME或未来33组合重验冒称已过。本票不声称已经迁移根库不存在的生产autoCopy调用，交付的是实际编译运行的订单→发运消费流程。33的最终双审/组合责任独立，不反向制造实现阻塞边；未获缺失证据前不closed。
+
+
+## CI16 closure — 2026-10-04
+
+源码207c0cce7f67acf09bc29f40a1fbbfed4c01ac61 / run37165514455的Windows111327487229与Ubuntu111327487395完整all、独立platform及归档均success。此前本票局部/完整本地证据与本次同源跨平台门共同闭合适用Q01–Q10，状态closed。原始公开metadata、artifact范围和后续票边界见[联合验收](../../../docs/verification/ticket-07-12-19-28-32-ci.md)。历史失败不改写，后续33候选组合不冒作此次已执行。

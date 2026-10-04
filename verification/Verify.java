@@ -74,6 +74,7 @@ class Verify {
                     htmlConsumer();
                     lockConsumer();
                     claimConsumer();
+                    cacheConsumer();
                     httpReplayConsumer();
                     jsonConsumer();
                     platformConsumers();
@@ -644,6 +645,23 @@ class Verify {
         summary.add("claim-failures=clone OOME with 20MiB input; host Clock Error preserved; 2048 reachable closed stores each formerly holding 4096 mixed entries; -Xmx32m/2 processors/45s per JVM");
     }
 
+    static void cacheConsumer() throws Exception {
+        Path consumer = ROOT.resolve("verification/cache-consumer");
+        maven(consumer, "cache-consumer-build", "clean", "compile", "dependency:build-classpath",
+                "-Dmdep.outputFile=" + consumer.resolve("target/classpath.txt"));
+        maven(consumer, "cache-consumer-model", "help:effective-pom", "dependency:tree",
+                "-Doutput=" + report.resolve("cache-consumer-effective-pom.xml"),
+                "-DoutputFile=" + report.resolve("cache-consumer-dependency-tree.txt"));
+        Files.copy(consumer.resolve("pom.xml"), report.resolve("cache-consumer-pom.xml"));
+        Files.copy(consumer.resolve("src/main/java/example/CacheConsumer.java"), report.resolve("CacheConsumer.java"));
+        String classpath = installedClasspath(consumer, consumer.resolve("target/classpath.txt"));
+        Path log = run(ROOT, Map.of(), "cache-consumer", List.of(java(), "-Xmx64m", "-XX:ActiveProcessorCount=2",
+                "-Dfile.encoding=UTF-8", "-cp", classpath, "example.CacheConsumer"), 120, null);
+        if (!Files.readString(log).contains("CACHE_CONSUMER_PASS seed=80031 operations=2048 namespaces=8192 churn=4096 workers=8 close-rounds=256 entries-per-close=32768 retained-managers=256"))
+            throw new AssertionError("Cache consumer did not complete: " + log);
+        summary.add("cache-consumer=ordinary jar; two application policies; seed80031/2048 operations; 8192 unknown names; 4096 key churn; 8 real workers; 256 reachable closed managers each formerly holding 32768 entries and 1MiB payload; -Xmx64m/2 processors/120s");
+    }
+
     static void httpReplayConsumer() throws Exception {
         Path consumer = ROOT.resolve("verification/http-replay-consumer");
         maven(consumer, "http-replay-consumer-build", "clean", "compile", "dependency:build-classpath",
@@ -741,8 +759,8 @@ class Verify {
                     "-Doutput=" + evidence.resolve("effective-pom.xml"), "-DoutputFile=" + evidence.resolve("dependency-tree.txt"));
             String classpath = installedClasspath(consumer, evidence.resolve("classpath.txt"));
             var scenarios = graph.equals("minimal")
-                    ? List.of("default", "disabled", "override", "jsons-override", "ambiguous", "primary", "virtual")
-                    : List.of("default");
+                    ? List.of("default", "disabled", "override", "jsons-override", "ambiguous", "primary", "virtual", "cache-enabled")
+                    : List.of("default", "disabled", "override", "cache-enabled");
             for (String scenario : scenarios) {
                 Path log = run(ROOT, Map.of(), "matrix-" + graph + "-" + scenario,
                         List.of(java(), "-Xmx256m", "-Dfile.encoding=UTF-8", "-cp", classpath,
@@ -752,7 +770,7 @@ class Verify {
                 summary.add(marker);
             }
         }
-        summary.add("matrix=5 independent Maven production graphs; 11 JVM scenarios; ordinary installed jar equals this build; no test dependencies; -Xmx256m; 45s each");
+        summary.add("matrix=5 independent Maven production graphs; 24 JVM scenarios; ordinary installed jar equals this build; no test dependencies; -Xmx256m; 45s each");
     }
 
     static String installedClasspath(Path consumer, Path file) throws Exception {

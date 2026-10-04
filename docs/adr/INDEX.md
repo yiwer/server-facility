@@ -18,7 +18,7 @@
 | [0012](0012-logutil-slf4j-messageformatter.md) | Accepted | formatMessage 委托 SLF4J MessageFormatter(RV2-17 翻案) |
 | [0013](0013-properties-validation-constructor-guard.md) | Accepted | 配置属性不用 @Validated,构造器兜底(消费方无 provider 可启动) |
 | [0014](0014-ratelimit-token-bucket-seam.md) | Accepted; 部分由 [0029](0029-request-boundaries.md) / [0032](0032-local-rate-limit-contract.md) 替代 | 保留本地令牌桶/SPI/Web分包理由；0029替代代理来源假设，0032替代数值/缺设施放行/整体clear/操作身份政策 |
-| [0015](0015-cache-facade-cachemanager.md) | Accepted; 装配条件由 [0047](0047-boot4-consumer-integration.md) 补全 | 保留CacheManager门面/成对optional理由；缺任一的真实回退由0047验证，TTL/容量政策归08 |
+| [0015](0015-cache-facade-cachemanager.md) | Accepted; 默认/回退/加载政策部分由 [0031](0031-explicit-local-cache.md) 替代 | 保留Spring Cache SPI与成对optional理由；0031替代默认注册、永久Map回退、动态名字及check-load-put |
 | [0016](0016-distributed-lock-seam.md) | Accepted; 部分由 [0030](0030-local-keyed-mutex.md) 替代 | 保留旧SPI签名；默认本地能力分名、缺实现拒绝、无租约持有及严格容量回收由0030定义 |
 | [0017](0017-idempotency-full-semantics-response-capture.md) | Accepted; 部分由 [0028](0028-bounded-web-streams.md) / [0034](0034-qualified-legacy-claims.md) / [0035](0035-authorized-bounded-http-replay.md) 替代 | 0028替代全站/无界捕获；0034替代无owner完成、到期重授与advisory容量，0035定义当前授权、HTTP作用域与有界终态重放 |
 | [0018](0018-http-client-restclient-result.md) | Accepted; 部分由 [0048](0048-application-owned-outbound-http.md) 替代 | HttpClients 门面委托 RestClient 返 Result,超时 properties + RestClient bean Seam |
@@ -34,6 +34,7 @@
 | [0028](0028-bounded-web-streams.md) | Accepted; [0047](0047-boot4-consumer-integration.md) 补充目标重载 | 普通响应直通、显式有界捕获、repeatable正预算与流所有权；6.1新入口接合由0047登记 |
 | [0029](0029-request-boundaries.md) | Accepted; 应用身份与异步接合由 [0050](0050-secured-application-template.md) 补充; 默认trace生成政策部分由 [0049](0049-application-owned-observability.md) 替代 | 显式可信代理和冻结来源、REQUEST/ASYNC/ERROR及Callable上下文归属；兼容身份清理与宿主trace恢复 |
 | [0030](0030-local-keyed-mutex.md) | Accepted | 实例内线程owner互斥、原子活动键预算和等待者安全回收；关闭不强制释放，旧入口明确迁移 |
+| [0031](0031-explicit-local-cache.md) | Accepted | 显式Spring Cache能力、固定名字与真实TTL/容量/loading/关闭；缺依赖拒绝，标准SPI迁移 |
 | [0032](0032-local-rate-limit-contract.md) | Accepted | 正成本与精确余额、真实缺额等待、有界主体准入和满桶回收；required/Optional设施政策、可信主体及入口计费 |
 | [0034](0034-qualified-legacy-claims.md) | Accepted; release的有效租约限制部分由 [0035](0035-authorized-bounded-http-replay.md) 替代 | 独立claim执行资格、owner/generation条件更新、结果保留与永久命令绑定；有界内存、旧SPI隔离与失败首因 |
 | [0035](0035-authorized-bounded-http-replay.md) | Accepted | 当前操作授权与规范化、可信身份/完整操作scope、有限同步HTTP目标、安全回执与失败终态；当前过期owner可终止但不可覆盖新generation |
@@ -47,7 +48,7 @@
 | [0044](0044-json-application-scope-expand.md) | Accepted; 旧兼容阶段由 [0046](0046-jackson3-application-ownership.md) 替代 | JSON 应用作用域注入、构建期配置与显式流预算；旧平台消费者金样及 22–24 非发布迁移门 |
 | [0045](0045-boot4-platform-toolchain.md) | Accepted | Boot 4/Jackson 3 目标依赖、技术模块归属、JUnit 6/ArchUnit 与独立工具链探针；Jackson 编译归23、完整门归24 |
 | [0046](0046-jackson3-application-ownership.md) | Accepted | Jackson3不可变配置、应用mapper/registry所有权、安全错误与正数字段流预算；保留旧金样和明确静态迁移 |
-| [0047](0047-boot4-consumer-integration.md) | Accepted | 补全0045/0046平台门、0028的Servlet6.1入口与0015缺类装配；真实五图/普通jar/Web/上传消费，OS状态按报告 |
+| [0047](0047-boot4-consumer-integration.md) | Accepted; 缓存选择政策部分由 [0031](0031-explicit-local-cache.md) 更新 | 补全0045/0046平台门、0028的Servlet6.1入口与0015缺类装配；真实五图/普通jar/Web/上传消费，OS状态按报告 |
 | [0048](0048-application-owned-outbound-http.md) | Accepted | 部分替代0018；宿主拥有HTTP配置、有限响应与应用级重试，双服务实际消费者 |
 | [0049](0049-application-owned-observability.md) | Accepted | 应用 MessageSource/SLF4J/Micrometer 所有权；退出默认静态日志与旧 trace，保留迁移入口 |
 | [0050](0050-secured-application-template.md) | Accepted; 业务持久接合由 [0051](0051-postgresql-business-module.md) 扩展 | 独立MVC模板的应用自有JWT信任、Actor与标准Security授权；安全401/403/503、JWK有限I/O、真实Servlet/执行器上下文及独立打包门 |

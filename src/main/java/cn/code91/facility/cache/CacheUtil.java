@@ -8,25 +8,15 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * <b>缓存静态门面</b>
- * <p>
- * 委托 {@link SpringContextHolder#getBean(Class)} 查找 {@link CacheManager} bean 并转发调用；
- * 容器中不存在 {@code CacheManager} bean（或指定的 cache 不存在）时优雅降级——缓存不可用不阻断业务：
- * {@link #get} 降级为空，{@link #put}/{@link #evict}/{@link #clear} 降级为 no-op，
- * {@link #getOrCompute} 降级为直接调用 loader 并返回其值（不缓存）。
- * </p>
+ * Legacy single-context cache facade. New code injects Spring {@link CacheManager} or {@link Cache}.
+ * No cache is stored here; the selected provider owns loading, null and failure semantics.
+ * Missing manager/name retains the historical no-cache fallback: reads are empty, mutations are
+ * no-ops and getOrCompute calls its loader directly. This fallback is not the selected local
+ * capability, which must start with its declared dependencies and policy (ADR0031).
  *
- * <h3>使用示例：</h3>
- * <pre>{@code
- * CacheUtil.put("users", userId, user);
- * Optional<User> cached = CacheUtil.get("users", userId, User.class);
- *
- * User user = CacheUtil.getOrCompute("users", userId, User.class, () -> userRepository.findById(userId));
- * }</pre>
- *
- * @author yvvb
- * @since 1.0.0
+ * @deprecated Use constructor injection of the application's Spring CacheManager/Cache.
  */
+@Deprecated(since = "0.1.0", forRemoval = false)
 public final class CacheUtil {
 
     private CacheUtil() {
@@ -102,7 +92,9 @@ public final class CacheUtil {
     }
 
     /**
-     * 读取或计算缓存值：命中直接返回；未命中调用 loader 计算、写入缓存后返回
+     * 读取或计算缓存值，委托 Spring Cache.get(key, Callable)。缓存 null 也是命中；
+     * loader 失败遵循 Cache.ValueRetrievalException 并保留 cause，不写入结果。
+     * 同键加载合并由实际后端决定；此门面不对所有用户 CacheManager 承诺 single-flight。
      *
      * @param cacheName cache 名称
      * @param key       缓存 key
@@ -112,12 +104,10 @@ public final class CacheUtil {
      * @return 命中的缓存值，或 loader 计算出的新值；无 {@link CacheManager} bean 时降级为直接调用 loader（不缓存）
      */
     public static <T> T getOrCompute(String cacheName, Object key, Class<T> type, Supplier<T> loader) {
-        Optional<T> hit = get(cacheName, key, type);
-        if (hit.isPresent()) {
-            return hit.get();
-        }
-        T v = loader.get();
-        put(cacheName, key, v);
-        return v;
+        java.util.Objects.requireNonNull(type, "type");
+        java.util.Objects.requireNonNull(loader, "loader");
+        CacheManager manager = SpringContextHolder.getBean(CacheManager.class).orElse(null);
+        Cache cache = manager == null ? null : manager.getCache(cacheName);
+        return cache == null ? type.cast(loader.get()) : type.cast(cache.get(key, () -> type.cast(loader.get())));
     }
 }

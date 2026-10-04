@@ -1,5 +1,7 @@
 # ADR-0047: 以实际依赖图和 Servlet 契约验收目标平台
 
+> 2026-10-04：[ADR0031](0031-explicit-local-cache.md)更新显式选择、缺依赖拒绝、固定名字和标准loading/关闭政策；保留本记录的Spring SPI、optional和既有平台证据理由，历史自动永久Map回退不再是当前推荐。
+
 ## Status
 
 Accepted，2026-10-04。对应票 24、FR-01/02/09/10；执行状态见本票报告。
