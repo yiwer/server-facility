@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 实现分支：`codex/ticket-32`，基于集成提交 `f4837ee`。公共测试入口沿用已批准的 CookieUtil、XssUtil 和真实 Servlet HTTP；ADR-0055 登记完整 Cookie 作用域与显式 HTML 片段清洗，保留 ADR-0001 的 optional 依赖决定。
 
@@ -16,7 +16,7 @@
 - [x] 原始输入与显式清洗结果区分，不在任意字段上无条件改写合法业务值。
 - [x] 升级 jsoup 与策略样本一并交付，版本纳入账本；记录不适用的上下文和 escaping 责任，不宣传清洗能覆盖所有 XSS。
 - [x] 继续支持的旧 Cookie/清洗入口记录兼容变化与替代，不为新认证模板增加阻塞。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -34,3 +34,8 @@
 ## 执行证据
 
 实现`d20c90f`，Windows完整门冻结源码`1f307a3c14a77daa65d978586e64192f36c4895e`，100命令PASS，库1655/0/0/0；普通jar两依赖图与64MiB消费者均通过。原始目录`.verification-results/20261004-072426-683-all`，TDD原始日志`.verification-results/ticket-32`。完整Q01–Q10映射、源码范围、制品哈希和资源边界见`docs/verification/ticket-32-cookie-html.md`。Q08 Linux与Q10最终集成候选CI尚待验证，故共同标准不提前勾选。
+
+
+## CI16 closure — 2026-10-04
+
+源码207c0cce7f67acf09bc29f40a1fbbfed4c01ac61 / run37165514455的Windows111327487229与Ubuntu111327487395完整all、独立platform及归档均success。此前本票局部/完整本地证据与本次同源跨平台门共同闭合适用Q01–Q10，状态closed。原始公开metadata、artifact范围和后续票边界见[联合验收](../../../docs/verification/ticket-07-12-19-28-32-ci.md)。历史失败不改写，后续33候选组合不冒作此次已执行。

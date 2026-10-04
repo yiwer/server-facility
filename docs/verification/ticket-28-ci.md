@@ -46,3 +46,8 @@ Windows公开annotation明确给出新的失败：`90-template-build.log`中模�
 冻结`3dfe963`包含19：当前库clean install1712/0/0/0及原门通过；完整独立模板78/0/0/0、原覆盖率、三项真实PG CLI、两模式可执行包持久化重启及缺coverage负控PASS。证据[修复报告](ticket-28-ci15-fix.md)区分窄复现、当前库安装与完整模板子集，不把子集写成aggregate all。公开failure annotation另经原RED XML实际验证为2737/1072/1072字符，保留最深CME及ContextBase首帧；仅此runner诊断后续调整，未无意义重跑模板78项。
 
 合入src/POM/templates/verification/workflow与交接分支相同，保留全部现有消费者。CI14、CI15原失败不改写；07/12/19/28/32继续verification-pending，closed仍21项，29未释放。本次授权push的CI16验证联合来源双OS，尚无成功结论。
+
+
+## CI16最终闭合
+
+207c0cc / run37165514455于2026-10-04T00:49:22Z完成success，Windows111327487229与Ubuntu111327487395全部all/platform/artifacts通过。28及07/12/19/32正式closed，29前置解除。公开原始metadata、artifact ID/digest与未下载内容的限制见[联合验收](ticket-07-12-19-28-32-ci.md)；此前CI14/15失败记录仍保留。

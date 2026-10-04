@@ -200,3 +200,9 @@ root将`80670fac2fed7068e364bfdd8dd4bcae97e76fd3`推送现有CI。Run37143955128
 - 2026-10-04：核读6881088的原all与d0afe97完整尾门。库1729/0/0/0、5架构/原88/88/75/依赖门及先前消费者通过，jarSHA256 ce9edfb7198d82eee5ab40007718881552dc72370d19ed033567dfefb9f6a608；原all在no-Jackson显式mapper场景的旧消费者断言冲突处FAIL，原记录保留。修正fixture后，尾门先强制库src/POM/.mvn不变及target/repository jar同SHA，再完成61步5图24场景、partner、完整模板78、PG三CLI、两模式打包重启、5资源与工具链负控，summary为PASS(tail scope only)。不把组合证据改称某次all全绿。
 - 从干净207c0cc以--no-ff合最终f71c7daf318d7e1ed5cc09bab6d54987897a8bdf，merge e6341b73af30d1947285633745806d55383467e1，无冲突；合入src/POM/verification/templates/workflow与交接分支同源。中央登记0031/0015与0047限定更新、50条实际ADR。仅短审无阻断，完整33双轴审仍独立进行。
 - 08保持verification-pending待新Linux CI；运行中的CI16源码207c0cc不含08，不能用于08闭合。20与10在各自冻结来源全门，不因本次合入重复未改源码；下一联合CI验证组合。此次不单独push，待后续批次。
+
+
+## CI16双平台闭合
+
+- 207c0cc / run37165514455：Windows111327487229与Ubuntu111327487395的all、platform、归档均success，UTC更新00:49:22Z；原始公开run/jobs/artifacts JSON保存main .verification-results/ci-16。完整元数据与只读artifact metadata限制见[联合报告](../../verification/ticket-07-12-19-28-32-ci.md)。
+- 07/12/19/28/32 closed，正式累计26；历史CI14/15失败保留，29前置解除并以followup唤醒实施。08在该来源之后合入，不算此次通过；10/20仍独立验证，33负责最终单候选组合和双轴审查。仅文档闭合，不重复同源已过全门，不单独push。

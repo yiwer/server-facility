@@ -4,7 +4,7 @@
 
 **Blocked by:** 27 交付能独立启动且默认受保护的 API 模板
 
-**Status:** verification-pending
+**Status:** closed
 
 2026-10-04 CI15 repair: the original concurrent migration test reproduced a shared Logback reconfiguration race in the same-JVM RunningApp fixture. Only standard logging listener events are now coordinated; both applications must still reach the real BEFORE_MIGRATE barrier. The diagnostic 12 repetitions changed from 3 errors to zero, and the mandatory contract retains three complete lifecycles. Precise original/secondary causes and current-candidate subset evidence: [CI15 repair report](../../../docs/verification/ticket-28-ci15-fix.md). Replacement joint CI remains required; ticket29 has not started.
 
@@ -20,7 +20,7 @@
 - [x] 业务 Module 拥有授权、不变量与事务，不引入 BaseService/万能 Repository；新增业务不修改通用核心。
 - [x] 分页大小/偏移有预算，排序允许集映射到持久化字段；非法输入 400，列表和空结果结构稳定。
 - [x] 说明开发数据库、迁移、启动、验证与打包，测试使用同类型数据库，不以 H2 替代证明。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -44,3 +44,8 @@
 - `.verification-results/ticket-28/final-template/` 最终完整独立模板子集 **PASS**：76/0/0/0，instruction98.052%、line97.112%、branch84.651%；仓库外Unicode目录、实际可执行jar平台/虚拟线程CRUD与持久化重启、普通jar一致性和无覆盖率负控均通过。遵循root授权保留两套来源，不把早期all拼成最终source全门。
 - Prepared native PostgreSQL18.6 Windows下载SHA512/解压/版本检查与开发数据库两次进程生命周期均真实通过；CI已加入Windows/Ubuntu相同固定工具入口。等待root对集成最终候选跑双OS全门，再闭合Q08/Q10与本票；目前不标closed。
 -29/30的原子命令receipt、保留清理、提交点进程丢失及双JVM恢复仍由后续独立票实现。28没有用重启读成功冒充这些承诺，也未发布制品。
+
+
+## CI16 closure — 2026-10-04
+
+源码207c0cce7f67acf09bc29f40a1fbbfed4c01ac61 / run37165514455的Windows111327487229与Ubuntu111327487395完整all、独立platform及归档均success。此前本票局部/完整本地证据与本次同源跨平台门共同闭合适用Q01–Q10，状态closed。原始公开metadata、artifact范围和后续票边界见[联合验收](../../../docs/verification/ticket-07-12-19-28-32-ci.md)。历史失败不改写，后续33候选组合不冒作此次已执行。

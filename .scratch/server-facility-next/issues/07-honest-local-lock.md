@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** verification-pending
+**Status:** closed
 
 **Traceability:** FR-02、FR-05、FR-09；AC-08、AC-09、AC-12
 
@@ -14,7 +14,7 @@
 - [x] 缺 bean、禁用或配置不满足必需保证时，在 action 之前失败；合法用户实现可覆盖。
 - [x] 释放、重入/非重入、owner、容量及键回收政策清楚，不将本地能力称作跨节点保证。
 - [x] 等待方超时或 Async 取消不代表 action 已终止。释放依据实际受保护操作结束与 owner 规则；仍在运行的旧 action 不能与新同键 action 同时进入。
-- [ ] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
+- [x] 完成本票适用的共同测试完成标准 Q01–Q10；每项契约关联测试及运行结果，不适用维度说明理由；涉及旧 ADR 时先登记替代决策。
 
 ## Required scenarios
 
@@ -32,3 +32,8 @@
 2026-10-04：root 接手预建且无改动的 ticket-07 工作树，快进到集成 6ff81c3；沿已批准公共锁/自动装配/Async seam 逐项 TDD。ADR0030 先登记替代0016，保留旧二进制入口。
 
 Windows冻结df7f788的97命令完整all已PASS，库1637项/0失败/0跳过。报告docs/verification/ticket-07-local-lock.md；原始日志.verification-results/20261004-064526-873-all。Linux及合入28后的组合由下一次CI闭合，Q08/Q10尚未完成。
+
+
+## CI16 closure — 2026-10-04
+
+源码207c0cce7f67acf09bc29f40a1fbbfed4c01ac61 / run37165514455的Windows111327487229与Ubuntu111327487395完整all、独立platform及归档均success。此前本票局部/完整本地证据与本次同源跨平台门共同闭合适用Q01–Q10，状态closed。原始公开metadata、artifact范围和后续票边界见[联合验收](../../../docs/verification/ticket-07-12-19-28-32-ci.md)。历史失败不改写，后续33候选组合不冒作此次已执行。
