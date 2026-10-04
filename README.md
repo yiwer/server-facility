@@ -144,7 +144,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `web.*` | filter / interceptor / exception / session / response / argument / util / download / upload | Servlet 栈：traceId、可重复读请求体、访问日志、全局异常、统一响应、安全上传下载、完整Cookie scope与显式有限HTML片段（optional：jsoup；ADR0055） |
 | `ratelimit` | `RateLimiterUtil` / `RateLimiter`（SPI） | 本地令牌桶：合法成本、精确扣费与有界准入；必需门面 + 显式 Optional 降级 |
 | `web.ratelimit` | `@RateLimit` | 方法级入口限流；IP / Principal / Global；429 + `Retry-After`，不可用默认 503 |
-| `cache` | `CacheUtil` | 缓存门面委托 Spring `CacheManager`；`@Cacheable` 自然可用；Caffeine optional 支持 TTL/maxSize |
+| `cache` | Spring `CacheManager` / `Cache` | 显式选用 Caffeine，固定名称及正 TTL/条目容量；用户 manager 优先；旧 `CacheUtil` 弃用。见[政策](docs/building/local-cache.md) |
 | `lock` | `LocalKeyedMutex`；旧锁入口兼容 | 实例内同步互斥、严格活动键预算和安全回收；缺少所需实现不执行 action，等待与实际持有分开 |
 | `http` | `HttpClients` | HTTP client 门面：委托 RestClient，`get`/`post`/`put`/`delete`→`Result`；超时可配 |
 | `idempotency` | `IdempotencyStore`（SPI） | 执行资格、指纹绑定与有界回执；lease/retention分离，旧入口保留迁移（ADR0034） |
@@ -167,7 +167,7 @@ Result<String, Throwable> out = Async.supply(() -> httpGet(url))
 | `facility.web.cors` | CORS：`allowed-origins`（默认空 = 不开）/ `allowed-methods` / `allow-credentials` |
 | `facility.web.exception` | 安全 HTTP 错误：默认 RFC 9457 ProblemDetail；`use-problem-detail=false` 显式旧 envelope（ADR-0027） |
 | `facility.ratelimit` | 限流：`default-capacity` / `default-permits-per-second` / `max-buckets` / `fail-open=false` |
-| `facility.cache` | 缓存：`default-ttl` / `maximum-size`（仅 Caffeine 后端生效） |
+| `facility.cache` | 默认关闭；`enabled` / `cache-names` / 正 `default-ttl` / 正 `maximum-size`；选中须有 Caffeine + context-support |
 | `facility.lock` | 分布式锁：`max-locks`（锁集合无界防护上限） |
 | `facility.http` | HTTP client：`connect-timeout` / `read-timeout` |
 | `facility.idempotency` | 幂等：`lease` / `result-retention` / `max-entries` / 请求、响应与合计回执字节预算；`default-ttl` 仅兼容回退 |

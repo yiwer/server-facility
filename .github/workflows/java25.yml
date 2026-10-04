@@ -84,6 +84,9 @@ jobs:
             .verification-results/**/partner-inputs/**
             .verification-results/**/claim-consumer/inputs/**
             .verification-results/**/lock-consumer/inputs/**
+            .verification-results/**/CacheConsumer.java
+            .verification-results/**/cache-consumer-*.xml
+            .verification-results/**/cache-consumer-*.txt
             .verification-results/**/HttpReplayConsumer.java
             .verification-results/**/http-replay-consumer-*.xml
             .verification-results/**/http-replay-consumer-*.txt

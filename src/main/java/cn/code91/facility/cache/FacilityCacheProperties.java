@@ -5,42 +5,27 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
- * {@code FacilityCacheAutoConfiguration} 默认 {@code CacheManager} 装配参数。
- * <p>
- * 校验策略(ADR-0013):不用 {@code @Validated}——避免强迫消费方引入 Bean Validation
- * provider(无 provider 的默认 Boot 应用会启动即崩);声明性约束仅供文档参考,绑定期不校验。
- * </p>
- *
- * @author yvvb
- * @since 1.0.0
+ * Explicit local cache policy (ADR0031). Selection validates positive TTL/capacity and a finite,
+ * nonempty set of distinct names before publishing any cache. A host CacheManager owns its own
+ * policy and takes precedence. No Bean Validation provider is required.
  */
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "facility.cache")
 public class FacilityCacheProperties {
 
-    /** 是否启用缓存自动装配。默认 {@code true}。 */
-    private boolean enabled = true;
+    /** Whether local cache support is explicitly selected. Disabled by default. */
+    private boolean enabled = false;
 
-    /**
-     * 缓存条目写入后的默认存活时间。默认 10 分钟。
-     * <p>
-     * <b>仅 Caffeine 后端生效</b>:装配层经
-     * {@code Caffeine.newBuilder().expireAfterWrite(defaultTtl)} 应用该值;classpath 缺
-     * Caffeine(或其 {@code CaffeineCacheManager} 支持,详见 ADR-0015)时回退的
-     * {@code ConcurrentMapCacheManager} 基于纯 JDK {@code ConcurrentHashMap},不支持过期,
-     * 本字段被忽略。
-     */
+    /** Fixed cache names selected by the application; unlisted names do not create caches. */
+    private List<String> cacheNames = List.of();
+
+    /** Positive expire-after-write duration, exactly representable in nanoseconds; default 10 minutes. */
     private Duration defaultTtl = Duration.ofMinutes(10);
 
-    /**
-     * 单个 cache 的最大条目数,超出按 Caffeine 默认淘汰策略驱逐。默认 10,000。
-     * <p>
-     * <b>同上,仅 Caffeine 后端生效</b>:装配层经
-     * {@code Caffeine.newBuilder().maximumSize(maximumSize)} 应用该值;回退的
-     * {@code ConcurrentMapCacheManager} 不支持大小上限,本字段被忽略。
-     */
+    /** Positive entry limit per cache, enforced by Caffeine maintenance; not a byte bound. Default 10,000. */
     private long maximumSize = 10_000;
 }
