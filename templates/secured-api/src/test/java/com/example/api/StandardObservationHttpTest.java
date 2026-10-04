@@ -27,7 +27,14 @@ class StandardObservationHttpTest {
                     } catch (Exception failure) { throw new RuntimeException(failure); }
                 }
             }));
-            for (var job : jobs) job.get(90, java.util.concurrent.TimeUnit.SECONDS);
+            long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(90);
+            try {
+                for (var job : jobs) job.get(Math.max(1, deadline - System.nanoTime()),
+                        java.util.concurrent.TimeUnit.NANOSECONDS);
+            } finally {
+                jobs.forEach(job -> job.cancel(true));
+                clients.shutdownNow();
+            }
         }
     }
 
