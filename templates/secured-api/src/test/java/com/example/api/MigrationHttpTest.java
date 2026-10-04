@@ -32,7 +32,7 @@ class MigrationHttpTest {
                     .hasStackTraceContaining("Validate failed");
         }
     }
-    @Test void twoApplicationsReleasedAtTheNativeBeforeMigrateBoundaryInitializeOneSchema() throws Exception {
+    @org.junit.jupiter.api.RepeatedTest(3) void twoApplicationsReleasedAtTheNativeBeforeMigrateBoundaryInitializeOneSchema() throws Exception {
         String database = Postgres.freshUrl();
         var arrivals = new java.util.concurrent.CountDownLatch(2);
         var callback = new org.flywaydb.core.api.callback.Callback() {
